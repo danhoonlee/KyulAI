@@ -1,0 +1,46 @@
+# Data (large files, versioned with DVC)
+data/raw/
+data/processed/
+data/datasets/
+data/experimental/
+
+# Model artifacts
+models/checkpoints/
+models/registry/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.venv/
+venv/
+
+# Node
+node_modules/
+.next/
+out/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# MLflow
+mlruns/
+
+# Docker
+*.log
