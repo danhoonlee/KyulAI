@@ -1,0 +1,39 @@
+# CNN surrogate (U-Net) model configuration.
+# Instantiated as CNNConfig by the experiment entry point.
+#
+# @package _global_.model
+
+model_type: cnn
+
+# ── Input ─────────────────────────────────────────────────────────────────────
+in_channels: ???          # required — number of input channels per cell
+spatial_dims: 2           # 2 for 2D | 3 for 3D (Digimat RVE)
+
+# ── Encoder/decoder ───────────────────────────────────────────────────────────
+encoder_channels: [32, 64, 128, 256]   # depth = 4 levels
+use_skip_connections: true             # U-Net style
+
+# ── FiLM conditioning ─────────────────────────────────────────────────────────
+# Set process_feature_dim to FeatureExtractor.FEATURE_DIM to condition on
+# process parameters.  Set to 0 to disable conditioning.
+process_feature_dim: 0    # resolved from FEATURE_DIM if conditioning enabled
+conditioning_dim: 256
+
+# ── Convolution settings ──────────────────────────────────────────────────────
+activation: relu          # relu | gelu | silu
+norm: batch_norm          # batch_norm | instance_norm | none
+kernel_size: 3
+
+# ── Output heads ──────────────────────────────────────────────────────────────
+# Configured per experiment.  Example for Digimat RVE stress prediction (3D):
+#
+# in_channels: 9          # A2 fiber orientation tensor components (3x3)
+# spatial_dims: 3
+# output_heads:
+#   stress_vm: 1          # von Mises stress (scalar)
+#   stress_tensor: 6      # full stress tensor in Voigt notation
+# output_field_types:
+#   stress_vm: scalar
+#   stress_tensor: tensor
+output_heads: {}
+output_field_types: {}

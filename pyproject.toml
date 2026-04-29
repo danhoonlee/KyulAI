@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "kyulai"
+version = "0.1.0"
+description = "CAE-AI platform for sim-to-real transfer in composite material analysis"
+requires-python = ">=3.11"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "RUF"]
+ignore = ["E501"]  # Line length handled by formatter
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+strict = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "slow: marks tests as slow (deselect with -m 'not slow')",
+    "integration: marks tests requiring external services",
+    "gpu: marks tests requiring a GPU",
+]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["*/__init__.py", "*/migrations/*"]
+
+[tool.coverage.report]
+fail_under = 60
+show_missing = true

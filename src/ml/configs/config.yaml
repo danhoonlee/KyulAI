@@ -1,0 +1,28 @@
+# KyulAI ML top-level Hydra configuration.
+#
+# Usage:
+#   python -m src.ml.train                        # defaults
+#   python -m src.ml.train model=cnn_baseline     # swap model
+#   python -m src.ml.train +experiment=phase1_mlp # load full experiment config
+#   python -m src.ml.train training.learning_rate=5e-4
+
+defaults:
+  - model: mlp_baseline       # src/ml/configs/model/mlp_baseline.yaml
+  - training: default         # src/ml/configs/training/default.yaml
+  - experiment: ???           # required — specify via +experiment=<name>
+  - _self_
+
+# ── Experiment identity ────────────────────────────────────────────────────────
+experiment:
+  name: kyulai_phase1_baseline
+  seed: 42
+  output_dir: outputs/${experiment.name}
+  data_dir: data/processed
+
+# ── MLflow ────────────────────────────────────────────────────────────────────
+mlflow:
+  tracking_uri: mlruns
+  experiment_name: ${experiment.name}
+  run_name: null
+  log_model: false
+  artifact_dir: artifacts

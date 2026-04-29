@@ -1,0 +1,29 @@
+# MLP baseline surrogate — Phase 1 default.
+# Maps flat process-parameter vector → scalar / field outputs.
+#
+# input_dim is resolved at runtime from FeatureExtractor.FEATURE_DIM (57).
+# output_heads and output_field_types are overridden per experiment.
+#
+# @package _global_.model
+
+model_type: mlp
+
+# input_dim: set by FeatureExtractor.FEATURE_DIM at runtime
+input_dim: 56
+
+# ── Backbone ──────────────────────────────────────────────────────────────────
+hidden_dims: [256, 512, 512, 256]
+activation: gelu          # gelu performs well on smoothly varying physical fields
+norm: layer_norm          # layer_norm avoids batch-size sensitivity
+dropout: 0.1              # enables MC Dropout uncertainty estimation at inference
+use_residual: true        # residual connections when consecutive hidden_dims match
+
+# ── Output heads ──────────────────────────────────────────────────────────────
+# Override per experiment.
+# Example (Moldex3D temperature field with 1000 mesh nodes):
+#   output_heads:
+#     temperature: 1000
+#   output_field_types:
+#     temperature: scalar
+output_heads: {}
+output_field_types: {}

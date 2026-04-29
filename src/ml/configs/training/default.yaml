@@ -1,0 +1,50 @@
+# Default training hyperparameters.
+# These apply to all experiments unless overridden.
+#
+# Override from CLI:
+#   python -m src.ml.train training.learning_rate=1e-4
+
+# @package _global_.training
+
+# ── Loop ──────────────────────────────────────────────────────────────────────
+max_epochs: 200
+learning_rate: 1.0e-3
+weight_decay: 1.0e-4
+batch_size: 32
+
+# ── Regularisation ────────────────────────────────────────────────────────────
+grad_clip_norm: 1.0       # 0 = disabled
+
+# ── LR schedule ───────────────────────────────────────────────────────────────
+lr_patience: 15           # ReduceLROnPlateau patience (epochs)
+lr_factor: 0.5
+
+# ── Early stopping ────────────────────────────────────────────────────────────
+early_stopping_patience: 30   # 0 = disabled
+
+# ── Checkpointing ─────────────────────────────────────────────────────────────
+checkpoint_dir: checkpoints/${experiment.name}
+save_every_n_epochs: 0    # 0 = only save best
+
+# ── Physics loss (Phase 2) ────────────────────────────────────────────────────
+physics_loss_weight: 0.0  # Phase 1: pure data-fit
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+log_every_n_epochs: 1
+
+# ── Device ────────────────────────────────────────────────────────────────────
+device: auto              # "auto" | "cpu" | "cuda" | "mps"
+
+# ── Data loading ──────────────────────────────────────────────────────────────
+val_fraction: 0.15
+test_fraction: 0.0
+num_workers: 4
+pin_memory: true
+shuffle_train: true
+fit_normalizer: true
+normalizer_path: null     # path to .npz if using a pre-fitted normalizer
+
+# ── Target fields ─────────────────────────────────────────────────────────────
+# List of output field names to predict.  Override per experiment.
+target_fields: []
+mode: mlp                 # "mlp" | "cnn"

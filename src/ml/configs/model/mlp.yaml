@@ -1,0 +1,32 @@
+# MLP surrogate model configuration.
+# Instantiated as MLPConfig by the experiment entry point.
+#
+# @package _global_.model
+
+model_type: mlp
+
+# ── Dimensions ────────────────────────────────────────────────────────────────
+# input_dim is set automatically from FeatureExtractor.feature_dim at runtime.
+# Override only if you have a custom feature set.
+input_dim: ???            # required — resolved from FeatureExtractor.FEATURE_DIM
+
+# ── Backbone ─────────────────────────────────────────────────────────────────
+hidden_dims: [256, 512, 512, 256]
+activation: gelu          # relu | gelu | silu | tanh | leaky_relu
+norm: layer_norm          # batch_norm | layer_norm | instance_norm | none
+dropout: 0.0              # 0 = disabled; try 0.1–0.2 if overfitting
+use_residual: true
+
+# ── Output heads ──────────────────────────────────────────────────────────────
+# Configured per experiment.  Example for Moldex3D fiber orientation (1000 nodes):
+#
+# output_heads:
+#   fiber_orientation_a11: 1000
+#   fiber_orientation_a22: 1000
+#   fiber_orientation_a12: 1000
+# output_field_types:
+#   fiber_orientation_a11: scalar
+#   fiber_orientation_a22: scalar
+#   fiber_orientation_a12: scalar
+output_heads: {}
+output_field_types: {}

@@ -1,0 +1,27 @@
+# KyulAI ML experiment base configuration.
+#
+# This is the root config composed by all experiments.
+# Override specific fields via command line or experiment/*.yaml:
+#
+#   python -m src.ml.train +experiment=phase1_mlp_temperature
+#   python -m src.ml.train trainer.learning_rate=5e-4
+
+defaults:
+  - model: mlp          # src/ml/configs/model/mlp.yaml
+  - training: default   # src/ml/configs/training/default.yaml
+  - _self_              # values below override defaults
+
+# ── Experiment identity ────────────────────────────────────────────────────────
+experiment:
+  name: kyulai_phase1_baseline
+  seed: 42
+  output_dir: outputs/${experiment.name}
+  data_dir: data/processed
+
+# ── MLflow ────────────────────────────────────────────────────────────────────
+mlflow:
+  tracking_uri: mlruns
+  experiment_name: ${experiment.name}
+  run_name: null          # auto-generated if null
+  log_model: false
+  artifact_dir: artifacts

@@ -1,0 +1,45 @@
+# U-Net CNN baseline surrogate — Phase 1 default.
+# Accepts structured spatial grids (2D or 3D) and produces per-cell field outputs.
+# Process parameters injected at bottleneck via FiLM conditioning.
+#
+# Suitable for:
+#   - Moldex3D flow results (2D structured grid)
+#   - Digimat RVE microstructure (3D voxel grid)
+#   - Any CAE tool with regular grid output
+#
+# @package _global_.model
+
+model_type: cnn
+
+# ── Input ─────────────────────────────────────────────────────────────────────
+in_channels: 4            # override per experiment (e.g. 6 for A2 fiber orientation)
+spatial_dims: 2           # 2 for 2D grids, 3 for 3D voxel (Digimat RVE)
+
+# ── U-Net encoder/decoder ─────────────────────────────────────────────────────
+encoder_channels: [32, 64, 128, 256]
+use_skip_connections: true
+
+# ── FiLM process-parameter conditioning ──────────────────────────────────────
+# Set process_feature_dim = FeatureExtractor.FEATURE_DIM (57) to condition on
+# all process parameters.  Set to 0 to disable (pure grid-to-grid).
+process_feature_dim: 56
+conditioning_dim: 256
+
+# ── Convolution settings ──────────────────────────────────────────────────────
+activation: relu
+norm: batch_norm
+kernel_size: 3
+
+# ── Output heads ──────────────────────────────────────────────────────────────
+# Override per experiment.
+# Example (Digimat 3D RVE stress prediction):
+#   in_channels: 6         # A2 fiber orientation tensor (Voigt)
+#   spatial_dims: 3
+#   output_heads:
+#     stress_vm: 1
+#     stress_voigt: 6
+#   output_field_types:
+#     stress_vm: scalar
+#     stress_voigt: tensor
+output_heads: {}
+output_field_types: {}

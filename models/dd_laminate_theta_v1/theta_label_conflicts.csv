@@ -1,0 +1,5 @@
+case,test_id,theta1,theta2,label
+Case3,Test_078,73.0,-45.0,2
+Case4,Test_078,73.0,-45.0,1
+Case3,Test_152,-52.0,62.0,2
+Case4,Test_152,-52.0,62.0,1

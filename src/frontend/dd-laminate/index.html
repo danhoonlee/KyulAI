@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KyulAI DD Laminate Predictor</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="workspace" aria-labelledby="app-title">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">KyulAI</p>
+            <h1 id="app-title">DD Laminate Type Predictor</h1>
+          </div>
+          <div class="status-pill" id="api-status">API: checking</div>
+        </header>
+
+        <div class="mode-switch" role="tablist" aria-label="Prediction mode">
+          <button class="mode-button active" type="button" data-mode="theta">Theta only</button>
+          <button class="mode-button" type="button" data-mode="curve">Curve CSV</button>
+        </div>
+
+        <div class="grid">
+          <section class="panel input-panel" aria-label="Prediction input">
+            <form id="theta-form" class="form active">
+              <div class="form-header">
+                <h2>Pre-Abaqus Estimate</h2>
+                <p>Use this before simulation data exists.</p>
+              </div>
+
+              <label>
+                Model
+                <select name="model" id="theta-model"></select>
+              </label>
+
+              <div class="two-col">
+                <label>
+                  theta1
+                  <input name="theta1" type="number" min="-90" max="90" step="0.1" value="-29" required />
+                </label>
+                <label>
+                  theta2
+                  <input name="theta2" type="number" min="-90" max="90" step="0.1" value="74" required />
+                </label>
+              </div>
+
+              <button class="primary" type="submit">Predict Type</button>
+            </form>
+
+            <form id="curve-form" class="form">
+              <div class="form-header">
+                <h2>Post-Simulation Classification</h2>
+                <p>Use this after force-displacement CSV and Pt are available.</p>
+              </div>
+
+              <label>
+                Model
+                <select name="model" id="curve-model"></select>
+              </label>
+
+              <div class="two-col">
+                <label>
+                  theta1
+                  <input name="theta1" type="number" min="-90" max="90" step="0.1" value="-29" required />
+                </label>
+                <label>
+                  theta2
+                  <input name="theta2" type="number" min="-90" max="90" step="0.1" value="74" required />
+                </label>
+              </div>
+
+              <div class="two-col">
+                <label>
+                  Pt
+                  <input name="pt" type="number" min="0" step="0.000001" placeholder="13037.62" required />
+                </label>
+                <label>
+                  Case
+                  <select name="case">
+                    <option value="Case3">Case3</option>
+                    <option value="Case4">Case4</option>
+                    <option value="Unknown">Unknown</option>
+                  </select>
+                </label>
+              </div>
+
+              <label>
+                Test ID
+                <input name="test_id" type="text" value="Uploaded" />
+              </label>
+
+              <label class="file-box">
+                Force-displacement CSV
+                <input name="file" type="file" accept=".csv,text/csv" required />
+              </label>
+
+              <button class="primary" type="submit">Predict Type</button>
+            </form>
+          </section>
+
+          <section class="panel result-panel" aria-live="polite">
+            <div class="empty-state" id="empty-state">
+              <h2>Ready for input</h2>
+              <p>Enter theta values or upload a CSV to see Type probabilities.</p>
+            </div>
+
+            <div class="result hidden" id="result">
+              <div class="result-head">
+                <div>
+                  <p class="eyebrow">Prediction</p>
+                  <h2 id="predicted-type">Type -</h2>
+                </div>
+                <div class="confidence" id="confidence">-</div>
+              </div>
+
+              <div class="bars" id="probability-bars"></div>
+
+              <dl class="meta">
+                <div>
+                  <dt>Model</dt>
+                  <dd id="model-label">-</dd>
+                </div>
+                <div>
+                  <dt>Input</dt>
+                  <dd id="input-summary">-</dd>
+                </div>
+              </dl>
+
+              <ul class="notes" id="notes"></ul>
+            </div>
+
+            <div class="error hidden" id="error"></div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

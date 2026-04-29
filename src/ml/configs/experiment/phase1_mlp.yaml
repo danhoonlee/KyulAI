@@ -1,0 +1,86 @@
+# Phase 1 MLP surrogate experiment — composable baseline config.
+#
+# Full experiment config composing mlp_baseline model + default training.
+# Specialised for Moldex3D fiber orientation prediction.
+#
+# Run:
+#   python -m src.ml.train +experiment=phase1_mlp
+#
+# Override fields:
+#   python -m src.ml.train +experiment=phase1_mlp training.max_epochs=500
+#
+# OOD split (mandatory for final results per Research Team recommendation):
+#   Use process_param_ood strategy with mold_temperature_K as ood_column.
+#   Random splits overestimate performance by 2–5× (MaterialDA, 2308.02937).
+#
+# @package _global_
+
+defaults:
+  - override /model: mlp_baseline
+  - override /training: default
+
+experiment:
+  name: phase1_mlp_fiber_orientation
+  seed: 42
+  data_dir: data/processed
+  output_dir: outputs/${experiment.name}
+
+mlflow:
+  experiment_name: phase1_mlp_fiber_orientation
+  log_model: true
+
+# ── Model ─────────────────────────────────────────────────────────────────────
+model:
+  # input_dim resolved from FeatureExtractor.FEATURE_DIM at runtime
+  input_dim: 56
+  hidden_dims: [256, 512, 512, 256]
+  activation: gelu
+  norm: layer_norm
+  dropout: 0.1
+  use_residual: true
+  # Fiber orientation tensor (A2) components on Moldex3D mesh (1000 nodes).
+  # Update node counts to match your actual Moldex3D mesh size.
+  output_heads:
+    fiber_orientation_a11: 1000
+    fiber_orientation_a22: 1000
+    fiber_orientation_a33: 1000
+    fiber_orientation_a12: 1000
+    fiber_orientation_a13: 1000
+    fiber_orientation_a23: 1000
+  output_field_types:
+    fiber_orientation_a11: scalar
+    fiber_orientation_a22: scalar
+    fiber_orientation_a33: scalar
+    fiber_orientation_a12: scalar
+    fiber_orientation_a13: scalar
+    fiber_orientation_a23: scalar
+
+# ── Training ──────────────────────────────────────────────────────────────────
+training:
+  max_epochs: 300
+  learning_rate: 1.0e-3
+  weight_decay: 1.0e-4
+  batch_size: 32
+  grad_clip_norm: 1.0
+  early_stopping_patience: 40
+  physics_loss_weight: 0.0   # Phase 1: pure data-fit; Phase 2 adds PINO loss
+  device: auto
+
+# ── Data ──────────────────────────────────────────────────────────────────────
+data:
+  target_fields:
+    - fiber_orientation_a11
+    - fiber_orientation_a22
+    - fiber_orientation_a33
+    - fiber_orientation_a12
+    - fiber_orientation_a13
+    - fiber_orientation_a23
+  val_fraction: 0.15
+  test_fraction: 0.15
+  mode: mlp
+  fit_normalizer: true
+  seed: 42
+  # OOD split configuration (override via CLI for specific OOD axes)
+  # ood_strategy: process_param_ood
+  # ood_column: mold_temperature_K
+  # ood_test_values: [250.0, 260.0]  # hold-out temperature range

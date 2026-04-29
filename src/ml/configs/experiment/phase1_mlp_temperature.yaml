@@ -1,0 +1,49 @@
+# Phase 1 experiment: MLP surrogate for temperature field prediction.
+# Primary tool: Moldex3D (flow + thermal coupled analysis).
+#
+# Run:
+#   python -m src.ml.train +experiment=phase1_mlp_temperature
+#
+# This experiment is the first baseline.  It predicts the fill-time temperature
+# field from process parameters (mold temp, cure cycle, material properties).
+# Target: R² > 0.90 on val set.
+
+# @package _global_
+
+defaults:
+  - override /model: mlp
+  - override /training: default
+
+experiment:
+  name: phase1_mlp_temperature_moldex3d
+  seed: 42
+
+mlflow:
+  experiment_name: phase1_mlp_temperature_moldex3d
+
+# ── Model ─────────────────────────────────────────────────────────────────────
+model:
+  hidden_dims: [256, 512, 512, 256]
+  activation: gelu
+  norm: layer_norm
+  dropout: 0.1
+  use_residual: true
+  # 1000 nodes — update to match your actual mesh size
+  output_heads:
+    temperature: 1000
+  output_field_types:
+    temperature: scalar
+
+# ── Training ──────────────────────────────────────────────────────────────────
+training:
+  max_epochs: 300
+  learning_rate: 1.0e-3
+  weight_decay: 1.0e-4
+  batch_size: 32
+  early_stopping_patience: 40
+
+# ── Data ──────────────────────────────────────────────────────────────────────
+data:
+  target_fields: [temperature]
+  val_fraction: 0.15
+  mode: mlp

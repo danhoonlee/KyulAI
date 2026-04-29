@@ -1,0 +1,51 @@
+# Phase 1 experiment: U-Net CNN surrogate for Digimat RVE stress prediction.
+# Input: fiber orientation tensor (A2 components) on a 3D voxel grid.
+# Output: von Mises stress field, full stress tensor in Voigt notation.
+#
+# Run:
+#   python -m src.ml.train +experiment=phase1_cnn_rve
+
+# @package _global_
+
+defaults:
+  - override /model: cnn
+  - override /training: default
+
+experiment:
+  name: phase1_cnn_rve_digimat
+  seed: 42
+
+mlflow:
+  experiment_name: phase1_cnn_rve_digimat
+
+# ── Model ─────────────────────────────────────────────────────────────────────
+model:
+  in_channels: 6          # A2 fiber orientation tensor (Voigt: a11 a22 a33 a12 a13 a23)
+  spatial_dims: 3
+  encoder_channels: [32, 64, 128, 256]
+  use_skip_connections: true
+  process_feature_dim: 0  # no FiLM conditioning for first pass
+  activation: relu
+  norm: batch_norm
+  kernel_size: 3
+  output_heads:
+    stress_vm: 1          # von Mises stress (scalar field)
+    stress_voigt: 6       # full stress tensor in Voigt (S11 S22 S33 S12 S13 S23)
+  output_field_types:
+    stress_vm: scalar
+    stress_voigt: tensor
+
+# ── Training ──────────────────────────────────────────────────────────────────
+training:
+  max_epochs: 200
+  learning_rate: 5.0e-4
+  weight_decay: 1.0e-4
+  batch_size: 8           # 3D grids are large; reduce if GPU OOM
+  grad_clip_norm: 1.0
+  early_stopping_patience: 30
+
+# ── Data ──────────────────────────────────────────────────────────────────────
+training:
+  target_fields: [stress_vm, stress_voigt]
+  val_fraction: 0.15
+  mode: cnn
