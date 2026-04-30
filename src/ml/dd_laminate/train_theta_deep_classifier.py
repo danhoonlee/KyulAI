@@ -1,4 +1,4 @@
-"""Train a GointMLP-inspired theta-only deep classifier."""
+"""Train a GointMLP-inspired theta/case deep classifier."""
 
 from __future__ import annotations
 
@@ -65,7 +65,7 @@ def run_epoch(model, loader, optimizer, device, weights, train: bool):
 
 def make_model(args, device):
     return DDThetaGointClassifier(
-        input_dim=2,
+        input_dim=3,
         hidden_dim=args.hidden_dim,
         num_branches=args.num_branches,
         dropout=args.dropout,
@@ -137,8 +137,8 @@ def write_report(out, args, summary, classical_theta=None):
     lines = [
         "# DD Theta Goint Classifier Report",
         "",
-        "This is a GointMLP-inspired theta-only deep model: multi-branch JointMLP-style head plus auxiliary ordinal loss.",
-        "It uses only `theta1` and `theta2`, normalized by 90 degrees.",
+        "This is a GointMLP-inspired theta/case deep model: multi-branch JointMLP-style head plus auxiliary ordinal loss.",
+        "It uses only pre-Abaqus inputs: `theta1`, `theta2`, and `case`.",
         "",
         "## Deep Theta Result",
         "",
@@ -170,7 +170,7 @@ def write_report(out, args, summary, classical_theta=None):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Train theta-only GointMLP-inspired DD classifier")
+    parser = argparse.ArgumentParser(description="Train theta/case GointMLP-inspired DD classifier")
     parser.add_argument("--data-dir", default="data/datasets/DD_curated_csv_v1")
     parser.add_argument("--output-dir", default="models/dd_laminate_theta_goint_v1")
     parser.add_argument("--cv-mode", choices=["sample", "grouped"], default="sample")
@@ -208,7 +208,7 @@ def main():
     torch.save({
         "model_state_dict": final.state_dict(),
         "model_config": {
-            "input_dim": 2,
+            "input_dim": 3,
             "hidden_dim": args.hidden_dim,
             "num_branches": args.num_branches,
             "dropout": args.dropout,

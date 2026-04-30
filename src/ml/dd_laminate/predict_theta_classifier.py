@@ -1,4 +1,4 @@
-"""Predict DD Type from theta1/theta2 only."""
+"""Predict DD Type from theta1/theta2/case."""
 
 from __future__ import annotations
 
@@ -12,9 +12,9 @@ import joblib
 import numpy as np
 
 
-def predict_theta_type(model_path: str | Path, theta1: float, theta2: float) -> dict:
+def predict_theta_type(model_path: str | Path, theta1: float, theta2: float, case: str = "Case4") -> dict:
     bundle = joblib.load(model_path)
-    x = np.array([[theta1, theta2]], dtype=float)
+    x = np.array([[theta1, theta2, 1.0 if case == "Case4" else 0.0]], dtype=float)
     model = bundle["model"]
     pred = int(model.predict(x)[0])
     probabilities = None
@@ -32,12 +32,13 @@ def predict_theta_type(model_path: str | Path, theta1: float, theta2: float) -> 
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Predict DD Type from theta1/theta2 only")
+    parser = argparse.ArgumentParser(description="Predict DD Type from theta1/theta2/case")
     parser.add_argument("--theta1", type=float, required=True)
     parser.add_argument("--theta2", type=float, required=True)
+    parser.add_argument("--case", choices=["Case3", "Case4"], default="Case4")
     parser.add_argument("--model", default="models/dd_laminate_theta_v1/theta_classifier.joblib")
     args = parser.parse_args()
-    result = predict_theta_type(args.model, args.theta1, args.theta2)
+    result = predict_theta_type(args.model, args.theta1, args.theta2, args.case)
     print(f"Model: {result['model_name']}")
     print(f"Predicted Type: {result['predicted_type']}")
     if result["probabilities"]:

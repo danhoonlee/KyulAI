@@ -24,13 +24,15 @@ PROJECT_ROOT = Path(__file__).resolve().parents[4]
 
 ThetaModelKey = Literal["theta_classical", "theta_goint"]
 CurveModelKey = Literal["curve_classical", "curve_goint"]
+ResponseModelKey = Literal["response_surrogate", "response_goint"]
+CaseKey = Literal["Case3", "Case4"]
 
 
 class ModelInfo(BaseModel):
     key: str
     label: str
     description: str
-    input_mode: Literal["theta", "curve"]
+    input_mode: Literal["theta", "curve", "response"]
     path: str
     available: bool
 
@@ -38,12 +40,21 @@ class ModelInfo(BaseModel):
 class DDLaminateModelsResponse(BaseModel):
     theta_models: list[ModelInfo]
     curve_models: list[ModelInfo]
+    response_models: list[ModelInfo]
 
 
 class ThetaPredictionRequest(BaseModel):
     theta1: float = Field(..., ge=-90, le=90)
     theta2: float = Field(..., ge=-90, le=90)
+    case: CaseKey
     model: ThetaModelKey = "theta_classical"
+
+
+class ResponsePredictionRequest(BaseModel):
+    theta1: float = Field(..., ge=-90, le=90)
+    theta2: float = Field(..., ge=-90, le=90)
+    case: CaseKey
+    model: ResponseModelKey = "response_surrogate"
 
 
 class PredictionResponse(BaseModel):
@@ -52,22 +63,35 @@ class PredictionResponse(BaseModel):
     probabilities: dict[str, float] | None
     model_key: str
     model_label: str
-    input_mode: Literal["theta", "curve"]
+    input_mode: Literal["theta", "curve", "response"]
     inputs: dict[str, float | str | None]
     notes: list[str] = []
     features: dict[str, float] | None = None
 
 
+class ResponseCurvePoint(BaseModel):
+    displacement: float
+    force: float
+
+
+class ResponseSurrogateResponse(PredictionResponse):
+    predicted_pt: float
+    predicted_max_displacement: float
+    predicted_max_force: float
+    curve: list[ResponseCurvePoint]
+    metrics: dict[str, float | int] = {}
+
+
 THETA_MODELS: dict[str, dict[str, str]] = {
     "theta_classical": {
-        "label": "Theta only - ExtraTrees",
-        "description": "Fast baseline from theta1/theta2 only. Best practical default before Abaqus.",
+        "label": "Theta + case - ExtraTrees",
+        "description": "Fast baseline from theta1/theta2/case. Best practical default before Abaqus.",
         "path": "models/dd_laminate_theta_v1/theta_classifier.joblib",
         "requires": "joblib,sklearn,numpy",
     },
     "theta_goint": {
-        "label": "Theta only - GointMLP-style NN",
-        "description": "Neural theta-only model inspired by GointMLP with ordinal auxiliary loss.",
+        "label": "Theta + case - GointMLP-style NN",
+        "description": "Neural theta/case model inspired by GointMLP with ordinal auxiliary loss.",
         "path": "models/dd_laminate_theta_goint_grouped_v1/theta_goint.pt",
         "requires": "torch,numpy",
     },
@@ -84,6 +108,21 @@ CURVE_MODELS: dict[str, dict[str, str]] = {
         "label": "Curve + metadata - Goint sequence NN",
         "description": "GRU + JointMLP-style deep sequence classifier for force-displacement curves.",
         "path": "models/dd_laminate_deep_sequence_grouped_v1/dd_goint_sequence.pt",
+        "requires": "torch,numpy",
+    },
+}
+
+RESPONSE_MODELS: dict[str, dict[str, str]] = {
+    "response_surrogate": {
+        "label": "Estimated response - ExtraTrees + PCA + CLT",
+        "description": "Predicts Type, Pt, and approximate force-displacement curve from theta/case plus CLT laminate physics features.",
+        "path": "models/dd_laminate_response_surrogate_v1/response_surrogate.joblib",
+        "requires": "joblib,sklearn,numpy",
+    },
+    "response_goint": {
+        "label": "Estimated response - GointMLP NN + CLT",
+        "description": "Deep multi-task surrogate using theta/case plus CLT laminate physics features.",
+        "path": "models/dd_laminate_response_goint_v1/response_goint.pt",
         "requires": "torch,numpy",
     },
 }
@@ -108,7 +147,7 @@ def _clean_probabilities(probabilities: dict[str, float] | None) -> dict[str, fl
 def _notes(probabilities: dict[str, float] | None, input_mode: str) -> list[str]:
     notes: list[str] = []
     if input_mode == "theta":
-        notes.append("Theta-only prediction is a pre-Abaqus estimate; curve-based models are preferred once simulation CSV is available.")
+        notes.append("Theta/case prediction is a pre-Abaqus estimate; curve-based models are preferred once simulation CSV is available.")
     if probabilities:
         ordered = sorted((float(v), k) for k, v in probabilities.items())
         if len(ordered) >= 2 and ordered[-1][0] - ordered[-2][0] < 0.2:
@@ -116,7 +155,7 @@ def _notes(probabilities: dict[str, float] | None, input_mode: str) -> list[str]
     return notes
 
 
-def _model_info(key: str, meta: dict[str, str], input_mode: Literal["theta", "curve"]) -> ModelInfo:
+def _model_info(key: str, meta: dict[str, str], input_mode: Literal["theta", "curve", "response"]) -> ModelInfo:
     path = _model_path(meta)
     requirements = [item.strip() for item in meta.get("requires", "").split(",") if item.strip()]
     dependencies_available = all(find_spec(item) is not None for item in requirements)
@@ -135,6 +174,7 @@ def _models_response() -> DDLaminateModelsResponse:
     return DDLaminateModelsResponse(
         theta_models=[_model_info(key, meta, "theta") for key, meta in THETA_MODELS.items()],
         curve_models=[_model_info(key, meta, "curve") for key, meta in CURVE_MODELS.items()],
+        response_models=[_model_info(key, meta, "response") for key, meta in RESPONSE_MODELS.items()],
     )
 
 
@@ -164,7 +204,7 @@ async def list_dd_laminate_models() -> DDLaminateModelsResponse:
     return _models_response()
 
 
-@router.post("/predict/theta", response_model=PredictionResponse, summary="Predict Type from theta1/theta2")
+@router.post("/predict/theta", response_model=PredictionResponse, summary="Predict Type from theta1/theta2/case")
 async def predict_from_theta(payload: ThetaPredictionRequest) -> PredictionResponse:
     meta = _ensure_available(payload.model, THETA_MODELS)
     path = _model_path(meta)
@@ -173,11 +213,11 @@ async def predict_from_theta(payload: ThetaPredictionRequest) -> PredictionRespo
         if payload.model == "theta_goint":
             from src.ml.dd_laminate.predict_theta_deep_classifier import predict as predict_theta_deep
 
-            result = predict_theta_deep(payload.theta1, payload.theta2, path, device="cpu")
+            result = predict_theta_deep(payload.theta1, payload.theta2, path, case=payload.case, device="cpu")
         else:
             from src.ml.dd_laminate.predict_theta_classifier import predict_theta_type
 
-            result = predict_theta_type(path, payload.theta1, payload.theta2)
+            result = predict_theta_type(path, payload.theta1, payload.theta2, payload.case)
     except Exception as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
@@ -189,8 +229,59 @@ async def predict_from_theta(payload: ThetaPredictionRequest) -> PredictionRespo
         model_key=payload.model,
         model_label=meta["label"],
         input_mode="theta",
-        inputs={"theta1": payload.theta1, "theta2": payload.theta2},
+        inputs={"theta1": payload.theta1, "theta2": payload.theta2, "case": payload.case},
         notes=_notes(probabilities, "theta"),
+    )
+
+
+@router.post(
+    "/predict/response",
+    response_model=ResponseSurrogateResponse,
+    summary="Estimate Type, Pt, and force-displacement curve from theta/case",
+)
+async def predict_estimated_response(payload: ResponsePredictionRequest) -> ResponseSurrogateResponse:
+    meta = _ensure_available(payload.model, RESPONSE_MODELS)
+    model_path = _model_path(meta)
+    try:
+        if payload.model == "response_goint":
+            from src.ml.dd_laminate.predict_response_deep_surrogate import predict_response_deep
+
+            result = predict_response_deep(
+                model_path=model_path,
+                theta1=payload.theta1,
+                theta2=payload.theta2,
+                case=payload.case,
+                device="cpu",
+            )
+        else:
+            from src.ml.dd_laminate.predict_response_surrogate import predict_response
+
+            result = predict_response(
+                model_path=model_path,
+                theta1=payload.theta1,
+                theta2=payload.theta2,
+                case=payload.case,
+            )
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+
+    probabilities = _clean_probabilities(result.get("probabilities"))
+    notes = _notes(probabilities, "theta")
+    notes[0] = "Estimated response is a pre-Abaqus surrogate; validate promising candidates with simulation."
+    return ResponseSurrogateResponse(
+        predicted_type=int(result["predicted_type"]),
+        confidence=_probability_confidence(probabilities),
+        probabilities=probabilities,
+        model_key=payload.model,
+        model_label=meta["label"],
+        input_mode="response",
+        inputs={"theta1": payload.theta1, "theta2": payload.theta2, "case": payload.case},
+        notes=notes,
+        predicted_pt=float(result["predicted_pt"]),
+        predicted_max_displacement=float(result["predicted_max_displacement"]),
+        predicted_max_force=float(result["predicted_max_force"]),
+        curve=result["curve"],
+        metrics=result.get("metrics", {}),
     )
 
 

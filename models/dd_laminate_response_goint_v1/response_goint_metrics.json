@@ -1,0 +1,78 @@
+{
+  "metrics": {
+    "n_samples": 400,
+    "seq_len": 128,
+    "input_dim": 33,
+    "cv_accuracy_mean": 0.9349999999999999,
+    "cv_accuracy_std": 0.051478150704935,
+    "cv_macro_f1_mean": 0.9384355821616618,
+    "cv_macro_f1_std": 0.04579356751471658,
+    "cv_pt_mae_mean": 646.092481776255,
+    "cv_pt_mae_std": 192.21156996450637,
+    "cv_max_disp_mae_mean": 0.0005911588963564498,
+    "cv_max_disp_mae_std": 0.0006005974148695252,
+    "cv_max_force_mae_mean": 2542.006121976853,
+    "cv_max_force_mae_std": 786.1797037941096,
+    "cv_curve_norm_rmse_mean": 0.03891842328011989,
+    "cv_curve_norm_rmse_std": 0.009535281082618988,
+    "cv_curve_force_rmse_mean": 2571.573516468307,
+    "cv_curve_force_rmse_std": 767.2940436892017
+  },
+  "fold_metrics": [
+    {
+      "accuracy": 0.975,
+      "macro_f1": 0.9798639455782313,
+      "pt_mae": 682.0684272916733,
+      "max_disp_mae": 0.0002872897322753674,
+      "max_force_mae": 2220.8849968644367,
+      "curve_norm_rmse": 0.033531349152326584,
+      "curve_force_rmse": 2420.033913246876,
+      "best_epoch": 21,
+      "fold": 1
+    },
+    {
+      "accuracy": 0.925,
+      "macro_f1": 0.9217084639498433,
+      "pt_mae": 994.5515452499658,
+      "max_disp_mae": 0.0003979516138013065,
+      "max_force_mae": 3849.1182243355615,
+      "curve_norm_rmse": 0.05669937655329704,
+      "curve_force_rmse": 3924.6469230896396,
+      "best_epoch": 6,
+      "fold": 2
+    },
+    {
+      "accuracy": 0.85,
+      "macro_f1": 0.8731884057971014,
+      "pt_mae": 569.9444984720477,
+      "max_disp_mae": 0.0017869114013576537,
+      "max_force_mae": 2997.1215391553624,
+      "curve_norm_rmse": 0.03918517380952835,
+      "curve_force_rmse": 2754.445059315891,
+      "best_epoch": 17,
+      "fold": 3
+    },
+    {
+      "accuracy": 1.0,
+      "macro_f1": 1.0,
+      "pt_mae": 557.8636490296279,
+      "max_disp_mae": 0.00024518095238411364,
+      "max_force_mae": 1950.309327754973,
+      "curve_norm_rmse": 0.036409635096788406,
+      "curve_force_rmse": 2100.9535252169308,
+      "best_epoch": 15,
+      "fold": 4
+    },
+    {
+      "accuracy": 0.925,
+      "macro_f1": 0.9174170954831332,
+      "pt_mae": 426.0342888379606,
+      "max_disp_mae": 0.000238460781963808,
+      "max_force_mae": 1692.5965217739335,
+      "curve_norm_rmse": 0.028766581788659096,
+      "curve_force_rmse": 1657.788161472198,
+      "best_epoch": 23,
+      "fold": 5
+    }
+  ]
+}

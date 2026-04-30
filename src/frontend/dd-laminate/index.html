@@ -3,30 +3,38 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>KyulAI DD Laminate Predictor</title>
-    <link rel="stylesheet" href="./styles.css" />
+    <title>KCLab Composite AI DD Laminate Predictor</title>
+    <link rel="stylesheet" href="./styles.css?v=20260430-intro-summary" />
   </head>
   <body>
     <main class="shell">
       <section class="workspace" aria-labelledby="app-title">
         <header class="topbar">
           <div>
-            <p class="eyebrow">KyulAI</p>
+            <p class="eyebrow">KCLab Composite AI</p>
             <h1 id="app-title">DD Laminate Type Predictor</h1>
           </div>
           <div class="status-pill" id="api-status">API: checking</div>
         </header>
 
+        <section class="intro-panel" aria-label="Application summary">
+          <p>
+            Predict DD laminate Type from pre-Abaqus theta/case inputs, estimate response curves before simulation,
+            or classify uploaded force-displacement CSV results after analysis.
+          </p>
+        </section>
+
         <div class="mode-switch" role="tablist" aria-label="Prediction mode">
-          <button class="mode-button active" type="button" data-mode="theta">Theta only</button>
+          <button class="mode-button active" type="button" data-mode="theta">Theta + case</button>
+          <button class="mode-button" type="button" data-mode="response">Response estimate</button>
           <button class="mode-button" type="button" data-mode="curve">Curve CSV</button>
         </div>
 
-        <div class="grid">
+        <div class="grid" id="workspace-grid">
           <section class="panel input-panel" aria-label="Prediction input">
             <form id="theta-form" class="form active">
               <div class="form-header">
-                <h2>Pre-Abaqus Estimate</h2>
+                <h2>Pre-Abaqus Type Estimate</h2>
                 <p>Use this before simulation data exists.</p>
               </div>
 
@@ -37,13 +45,26 @@
 
               <div class="two-col">
                 <label>
-                  theta1
+                  θ₁
                   <input name="theta1" type="number" min="-90" max="90" step="0.1" value="-29" required />
                 </label>
                 <label>
-                  theta2
+                  θ₂
                   <input name="theta2" type="number" min="-90" max="90" step="0.1" value="74" required />
                 </label>
+              </div>
+
+              <label>
+                Case
+                <select name="case">
+                  <option value="Case3">Case 3</option>
+                  <option value="Case4" selected>Case 4</option>
+                </select>
+              </label>
+
+              <div class="case-guide" aria-label="Case formulas">
+                <p><strong>Case 3</strong> [[±θ₁]/[±θ₂]/[∓θ₂]/[∓θ₂]]₂</p>
+                <p><strong>Case 4</strong> [([±θ₁]/[±θ₂])₂ / ([∓θ₁]/[∓θ₂])₂]</p>
               </div>
 
               <button class="primary" type="submit">Predict Type</button>
@@ -62,11 +83,11 @@
 
               <div class="two-col">
                 <label>
-                  theta1
+                  θ₁
                   <input name="theta1" type="number" min="-90" max="90" step="0.1" value="-29" required />
                 </label>
                 <label>
-                  theta2
+                  θ₂
                   <input name="theta2" type="number" min="-90" max="90" step="0.1" value="74" required />
                 </label>
               </div>
@@ -79,11 +100,16 @@
                 <label>
                   Case
                   <select name="case">
-                    <option value="Case3">Case3</option>
-                    <option value="Case4">Case4</option>
+                    <option value="Case3">Case 3</option>
+                    <option value="Case4">Case 4</option>
                     <option value="Unknown">Unknown</option>
                   </select>
                 </label>
+              </div>
+
+              <div class="case-guide" aria-label="Case formulas">
+                <p><strong>Case 3</strong> [[±θ₁]/[±θ₂]/[∓θ₂]/[∓θ₂]]₂</p>
+                <p><strong>Case 4</strong> [([±θ₁]/[±θ₂])₂ / ([∓θ₁]/[∓θ₂])₂]</p>
               </div>
 
               <label>
@@ -93,11 +119,76 @@
 
               <label class="file-box">
                 Force-displacement CSV
-                <input name="file" type="file" accept=".csv,text/csv" required />
+                <input id="curve-file" name="file" type="file" accept=".csv,text/csv" required />
               </label>
 
               <button class="primary" type="submit">Predict Type</button>
             </form>
+
+            <form id="response-form" class="form">
+              <div class="form-header">
+                <h2>Pre-Abaqus Response Estimate</h2>
+                <p>Estimate Type, Pt, and force-displacement curve from angles and case.</p>
+              </div>
+
+              <label>
+                Model
+                <select name="model" id="response-model"></select>
+              </label>
+
+              <div class="two-col">
+                <label>
+                  θ₁
+                  <input name="theta1" type="number" min="-90" max="90" step="0.1" value="-29" required />
+                </label>
+                <label>
+                  θ₂
+                  <input name="theta2" type="number" min="-90" max="90" step="0.1" value="74" required />
+                </label>
+              </div>
+
+              <label>
+                Case
+                <select name="case">
+                  <option value="Case3">Case 3</option>
+                  <option value="Case4" selected>Case 4</option>
+                </select>
+              </label>
+
+              <div class="case-guide" aria-label="Case formulas">
+                <p><strong>Case 3</strong> [[±θ₁]/[±θ₂]/[∓θ₂]/[∓θ₂]]₂</p>
+                <p><strong>Case 4</strong> [([±θ₁]/[±θ₂])₂ / ([∓θ₁]/[∓θ₂])₂]</p>
+              </div>
+
+              <button class="primary" type="submit">Estimate Response</button>
+            </form>
+          </section>
+
+          <section class="panel curve-preview-panel hidden" id="curve-preview-panel" aria-label="CSV curve preview">
+            <div class="preview-head">
+              <div>
+                <p class="eyebrow">CSV Preview</p>
+                <h2 id="curve-preview-title">No file selected</h2>
+              </div>
+              <button class="secondary" id="clear-curve-preview" type="button">Clear</button>
+            </div>
+
+            <canvas id="curve-preview-canvas" width="760" height="300"></canvas>
+
+            <div class="preview-stats">
+              <div>
+                <span>Points</span>
+                <strong id="curve-point-count">-</strong>
+              </div>
+              <div>
+                <span>Max. Displacement</span>
+                <strong id="curve-max-displacement">-</strong>
+              </div>
+              <div>
+                <span>Max. Force</span>
+                <strong id="curve-max-force">-</strong>
+              </div>
+            </div>
           </section>
 
           <section class="panel result-panel" aria-live="polite">
@@ -128,6 +219,38 @@
                 </div>
               </dl>
 
+              <section class="response-estimate hidden" id="response-estimate">
+                <div class="preview-head">
+                  <div>
+                    <p class="eyebrow">Estimated Response</p>
+                    <h2 id="response-curve-title">Surrogate curve</h2>
+                  </div>
+                </div>
+
+                <div class="preview-stats">
+                  <div>
+                    <span>Predicted Pt</span>
+                    <strong id="predicted-pt">-</strong>
+                  </div>
+                  <div>
+                    <span>Max. Displacement</span>
+                    <strong id="predicted-max-displacement">-</strong>
+                  </div>
+                  <div>
+                    <span>Max. Force</span>
+                    <strong id="predicted-max-force">-</strong>
+                  </div>
+                </div>
+
+                <canvas id="response-curve-canvas" width="720" height="300"></canvas>
+                <div class="curve-legend" aria-label="Response curve legend">
+                  <span><i class="legend-swatch curve"></i>Predicted curve</span>
+                  <span><i class="legend-swatch guide"></i>Linear fits</span>
+                  <span><i class="legend-swatch kink"></i>Kink line</span>
+                  <span><i class="legend-swatch pt"></i>Predicted Pt</span>
+                </div>
+              </section>
+
               <ul class="notes" id="notes"></ul>
             </div>
 
@@ -137,6 +260,6 @@
       </section>
     </main>
 
-    <script src="./app.js"></script>
+    <script src="./app.js?v=20260430-carbon-bg-return"></script>
   </body>
 </html>

@@ -1,7 +1,7 @@
-"""Train theta-only DD laminate Type predictor.
+"""Train theta/case DD laminate Type predictor.
 
-This model intentionally uses only theta1 and theta2 as inputs. It is a
-pre-Abaqus surrogate: unlike curve classifiers, it does not use Pt, case, or the
+This model intentionally uses only pre-Abaqus design inputs: theta1, theta2,
+and Case. Unlike curve classifiers, it does not use Pt or the
 force-displacement CSV curve.
 """
 
@@ -45,7 +45,7 @@ def load_theta_rows(data_dir: str | Path, cases=("Case3", "Case4")) -> list[dict
 
 
 def theta_matrix(rows: list[dict]):
-    x = np.array([[r["theta1"], r["theta2"]] for r in rows], dtype=float)
+    x = np.array([[r["theta1"], r["theta2"], 1.0 if r["case"] == "Case4" else 0.0] for r in rows], dtype=float)
     y = np.array([r["label"] for r in rows], dtype=int)
     groups = np.array([r["test_id"] for r in rows], dtype=str)
     return x, y, groups
@@ -189,7 +189,7 @@ def write_report(out: Path, data_dir: str, best: str, primary: dict, secondary: 
         "",
         f"Dataset: `{data_dir}`",
         "",
-        "This model predicts Type 1/2/3 using only `theta1` and `theta2`. It does not use case, Pt, or force-displacement curves.",
+        "This model predicts Type 1/2/3 using only `theta1`, `theta2`, and `case`. It does not use Pt or force-displacement curves.",
         "Because this is a pre-Abaqus surrogate, performance is expected to be lower than curve-based models.",
         "",
         "## Label Counts",
@@ -231,7 +231,7 @@ def write_report(out: Path, data_dir: str, best: str, primary: dict, secondary: 
         lines.append(f"| {name} | {r['mean_accuracy']:.4f} ± {r['std_accuracy']:.4f} | {r['mean_macro_f1']:.4f} ± {r['std_macro_f1']:.4f} | {r['mean_weighted_f1']:.4f} |")
     lines.extend([
         "",
-        f"Selected production theta-only model: `{best}` from primary CV.",
+        f"Selected production theta/case model: `{best}` from primary CV.",
         "",
         "## Selected Model Confusion Matrix",
         "",
@@ -266,7 +266,7 @@ def train_theta_classifier(data_dir: str, output_dir: str, splits: int = 5, rand
     bundle = {
         "model": final,
         "model_name": best,
-        "feature_columns": ["theta1", "theta2"],
+        "feature_columns": ["theta1", "theta2", "case_is_case4"],
         "label_names": {1: "Type 1", 2: "Type 2", 3: "Type 3"},
         "data_dir": str(Path(data_dir).resolve()),
         "primary_sample_cv_results": primary,
@@ -289,7 +289,7 @@ def train_theta_classifier(data_dir: str, output_dir: str, splits: int = 5, rand
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Train theta-only DD Type predictor")
+    parser = argparse.ArgumentParser(description="Train theta/case DD Type predictor")
     parser.add_argument("--data-dir", default="data/datasets/DD_curated_csv_v1")
     parser.add_argument("--output-dir", default="models/dd_laminate_theta_v1")
     parser.add_argument("--splits", type=int, default=5)

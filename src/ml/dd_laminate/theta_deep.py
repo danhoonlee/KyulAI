@@ -1,4 +1,4 @@
-"""GointMLP-inspired theta-only deep classifier for DD laminates."""
+"""GointMLP-inspired theta/case deep classifier for DD laminates."""
 
 from __future__ import annotations
 
@@ -54,6 +54,7 @@ class DDThetaDataset(Dataset):
         features = np.array([
             sample.theta1 / 90.0,
             sample.theta2 / 90.0,
+            1.0 if sample.case == "Case4" else 0.0,
         ], dtype=np.float32)
         return {
             "x": torch.tensor(features, dtype=torch.float32),
@@ -83,9 +84,9 @@ class ThetaBranch(nn.Module):
 
 
 class DDThetaGointClassifier(nn.Module):
-    """JointMLP-style theta-only classifier with ordinal auxiliary head."""
+    """JointMLP-style theta/case classifier with ordinal auxiliary head."""
 
-    def __init__(self, input_dim: int = 2, hidden_dim: int = 32, num_branches: int = 8, dropout: float = 0.12):
+    def __init__(self, input_dim: int = 3, hidden_dim: int = 32, num_branches: int = 8, dropout: float = 0.12):
         super().__init__()
         self.branches = nn.ModuleList([ThetaBranch(input_dim, hidden_dim, dropout) for _ in range(num_branches)])
         joined_dim = hidden_dim * num_branches

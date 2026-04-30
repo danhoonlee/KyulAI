@@ -2,7 +2,7 @@
 
 Dataset: `data/datasets/DD_curated_csv_v1`
 
-This model predicts Type 1/2/3 using only `theta1` and `theta2`. It does not use case, Pt, or force-displacement curves.
+This model predicts Type 1/2/3 using only `theta1`, `theta2`, and `case`. It does not use Pt or force-displacement curves.
 Because this is a pre-Abaqus surrogate, performance is expected to be lower than curve-based models.
 
 ## Label Counts
@@ -25,12 +25,12 @@ The deterministic theta-only ceiling on the 400-row dataset is approximately 0.9
 
 | Model | Accuracy | Macro F1 | Weighted F1 |
 |---|---:|---:|---:|
-| extra_trees | 0.9600 ± 0.0184 | 0.9675 ± 0.0151 | 0.9600 |
-| neural_net_mlp_lbfgs | 0.9600 ± 0.0200 | 0.9667 ± 0.0172 | 0.9596 |
-| hist_gradient_boosting | 0.9650 ± 0.0122 | 0.9644 ± 0.0213 | 0.9646 |
-| random_forest | 0.9575 ± 0.0170 | 0.9626 ± 0.0179 | 0.9574 |
-| neural_net_mlp_adam | 0.9225 ± 0.0527 | 0.9198 ± 0.0534 | 0.9217 |
-| svc_rbf | 0.8850 ± 0.0483 | 0.8758 ± 0.0587 | 0.8866 |
+| hist_gradient_boosting | 0.9625 ± 0.0158 | 0.9624 ± 0.0250 | 0.9622 |
+| neural_net_mlp_adam | 0.9025 ± 0.0184 | 0.9072 ± 0.0244 | 0.9015 |
+| neural_net_mlp_lbfgs | 0.9000 ± 0.0335 | 0.8980 ± 0.0306 | 0.8993 |
+| random_forest | 0.9125 ± 0.0177 | 0.8927 ± 0.0179 | 0.9125 |
+| extra_trees | 0.8775 ± 0.0289 | 0.8601 ± 0.0320 | 0.8796 |
+| svc_rbf | 0.8575 ± 0.0451 | 0.8410 ± 0.0451 | 0.8587 |
 
 ## Secondary Grouped CV
 
@@ -38,21 +38,21 @@ This grouped check keeps matching Case3/Case4 Test_ID pairs together and is the 
 
 | Model | Accuracy | Macro F1 | Weighted F1 |
 |---|---:|---:|---:|
-| neural_net_mlp_adam | 0.9150 ± 0.0496 | 0.9188 ± 0.0522 | 0.9141 |
-| neural_net_mlp_lbfgs | 0.8900 ± 0.0215 | 0.8807 ± 0.0507 | 0.8892 |
-| random_forest | 0.9100 ± 0.0457 | 0.8730 ± 0.0731 | 0.9091 |
-| extra_trees | 0.8900 ± 0.0184 | 0.8705 ± 0.0449 | 0.8874 |
-| svc_rbf | 0.8800 ± 0.0615 | 0.8570 ± 0.0908 | 0.8824 |
-| hist_gradient_boosting | 0.8900 ± 0.0629 | 0.8313 ± 0.0793 | 0.8879 |
+| neural_net_mlp_adam | 0.9025 ± 0.0556 | 0.9133 ± 0.0459 | 0.9026 |
+| neural_net_mlp_lbfgs | 0.8975 ± 0.0348 | 0.9055 ± 0.0391 | 0.8978 |
+| random_forest | 0.9175 ± 0.0423 | 0.8799 ± 0.0721 | 0.9164 |
+| extra_trees | 0.9025 ± 0.0357 | 0.8672 ± 0.0708 | 0.9063 |
+| hist_gradient_boosting | 0.8950 ± 0.0551 | 0.8352 ± 0.0746 | 0.8929 |
+| svc_rbf | 0.8625 ± 0.0468 | 0.8339 ± 0.0724 | 0.8663 |
 
-Selected production theta-only model: `extra_trees` from primary CV.
+Selected production theta/case model: `hist_gradient_boosting` from primary CV.
 
 ## Selected Model Confusion Matrix
 
 Rows=true, columns=predicted `[Type1, Type2, Type3]`.
 
 ```text
-[[119   7   0]
- [  9 225   0]
- [  0   0  40]]
+[[118   8   0]
+ [  5 229   0]
+ [  0   2  38]]
 ```
