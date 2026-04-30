@@ -1,0 +1,660 @@
+const API_HOST = window.location.hostname || "localhost";
+const URL_PARAMS = new URLSearchParams(window.location.search);
+const API_PORT = URL_PARAMS.get("apiPort");
+const API_BASE = URL_PARAMS.get("apiBase") || (
+  API_PORT
+    ? `http://${API_HOST}:${API_PORT}/api/v1/simple-injection`
+    : window.location.port === "3010"
+      ? `http://${API_HOST}:8010/api/v1/simple-injection`
+      : `${window.location.origin}/api/v1/simple-injection`
+);
+const IS_KO = document.documentElement.lang.toLowerCase().startsWith("ko");
+const TEXT = {
+  loading: IS_KO ? "예측 중..." : "Predicting...",
+  apiConnected: IS_KO ? "API: 연결됨" : "API: connected",
+  apiOffline: IS_KO ? "API: 연결 안 됨" : "API: offline",
+  apiStart: IS_KO
+    ? "Simple Injection API를 먼저 실행해 주세요."
+    : "Start the Simple Injection API before predicting.",
+  customGeometry: IS_KO ? "사용자 입력 (형상)" : "User input (geometry)",
+  customProcess: IS_KO ? "사용자 입력 (공정)" : "User input (process)",
+  fixRequired: IS_KO ? "수정 필요" : "Fix required",
+  warning: IS_KO ? "경고" : "warning",
+  warnings: IS_KO ? "경고" : "warnings",
+  error: IS_KO ? "오류" : "error",
+  emptyCurve: IS_KO ? "압력 곡선이 여기에 표시됩니다." : "Pressure curve will appear here.",
+  timeAxis: IS_KO ? "시간 (s)" : "Time (s)",
+  pressureAxis: IS_KO ? "Sprue pressure (MPa)" : "Sprue pressure (MPa)",
+  geometry: IS_KO ? "형상" : "Geometry",
+  process: IS_KO ? "공정" : "Process",
+  invalidInput: IS_KO ? "물리적으로 유효하지 않은 입력 조건이 있습니다." : "Input contains physically invalid conditions.",
+};
+const MODEL_LABELS_KO = {
+  "Sprue pressure - ExtraTrees + PCA": "Sprue Pressure - ExtraTrees + PCA",
+  "Sprue pressure - GointMLP-style NN": "Sprue Pressure - GointMLP 스타일 신경망",
+};
+const NOTE_LABELS_KO = {
+  "Current model is trained on 30 of the planned 300 Moldex3D runs.": "현재 모델은 계획된 300개 Moldex3D 해석 중 30개 결과로 학습된 초기 버전입니다.",
+  "Use the ExtraTrees surrogate as the practical default until more geometry results are available.": "추가 형상 결과가 쌓이기 전까지는 ExtraTrees surrogate를 기본 모델로 사용하는 것을 권장합니다.",
+  "The GointMLP-style model is currently a deep-learning baseline and is less stable with 30 samples.": "GointMLP 스타일 모델은 현재 deep-learning baseline이며, 30개 샘플 기준으로는 안정성이 낮습니다.",
+};
+
+const apiStatus = document.querySelector("#api-status");
+const form = document.querySelector("#prediction-form");
+const modelSelect = document.querySelector("#model-select");
+const geometrySelect = document.querySelector("#geometry-select");
+const processSelect = document.querySelector("#process-select");
+const emptyState = document.querySelector("#empty-state");
+const resultPanel = document.querySelector("#result");
+const errorPanel = document.querySelector("#error");
+const maxPressure = document.querySelector("#max-pressure");
+const maxTime = document.querySelector("#max-time");
+const curvePoints = document.querySelector("#curve-points");
+const pressureCanvas = document.querySelector("#pressure-canvas");
+const modelLabel = document.querySelector("#model-label");
+const inputSummary = document.querySelector("#input-summary");
+const notes = document.querySelector("#notes");
+const preventionPanel = document.querySelector("#prevention-panel");
+const preventionList = document.querySelector("#prevention-list");
+const preventionCount = document.querySelector("#prevention-count");
+
+const CUSTOM_GEOMETRY_ID = "__custom_geometry__";
+const CUSTOM_PROCESS_ID = "__custom_process__";
+
+let geometries = [];
+let processes = [];
+let applyingDoeValues = false;
+let hasBlockingValidation = false;
+
+function formatMetric(value, digits = 3) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) {
+    return "-";
+  }
+  return Number(value).toLocaleString(undefined, { maximumFractionDigits: digits });
+}
+
+function setError(message) {
+  errorPanel.textContent = message;
+  errorPanel.classList.remove("hidden");
+}
+
+function clearError() {
+  errorPanel.textContent = "";
+  errorPanel.classList.add("hidden");
+}
+
+function setLoading(loading) {
+  const button = form.querySelector("button[type='submit']");
+  if (!button.dataset.defaultText) {
+    button.dataset.defaultText = button.textContent;
+  }
+  button.disabled = loading || hasBlockingValidation;
+  button.textContent = loading ? TEXT.loading : button.dataset.defaultText;
+}
+
+function fillModelSelect(models) {
+  modelSelect.innerHTML = "";
+  models.forEach((model) => {
+    const option = document.createElement("option");
+    option.value = model.key;
+    option.textContent = model.available ? model.label : `${model.label} (missing)`;
+    option.disabled = !model.available;
+    option.dataset.description = model.description;
+    modelSelect.appendChild(option);
+  });
+}
+
+function fillDoeSelect(select, rows) {
+  select.innerHTML = "";
+  rows.forEach((row) => {
+    const option = document.createElement("option");
+    option.value = row.id;
+    option.textContent = row.id;
+    select.appendChild(option);
+  });
+}
+
+function ensureCustomOption(select, value, label) {
+  let option = Array.from(select.options).find((item) => item.value === value);
+  if (!option) {
+    option = document.createElement("option");
+    option.value = value;
+    select.prepend(option);
+  }
+  option.textContent = label;
+  select.value = value;
+}
+
+function setField(name, value) {
+  const input = form.elements[name];
+  if (!input) {
+    return;
+  }
+  input.value = value;
+}
+
+function applyGeometry(id) {
+  if (id === CUSTOM_GEOMETRY_ID) {
+    return;
+  }
+  const row = geometries.find((item) => item.id === id);
+  if (!row) {
+    return;
+  }
+  const values = row.values;
+  applyingDoeValues = true;
+  setField("L_mm", values.L_mm);
+  setField("W_mm", values.W_mm);
+  setField("t_mm", values.t_mm);
+  setField("D_mm", values.D_mm);
+  setField("R_mm", values.R_mm);
+  setField("gate_type", values.gate_type);
+  setField("gate_size_width_mm", values.gate_size_width_mm);
+  setField("gate_size_height_mm", values.gate_size_height_mm);
+  applyingDoeValues = false;
+}
+
+function applyProcess(id) {
+  if (id === CUSTOM_PROCESS_ID) {
+    return;
+  }
+  const row = processes.find((item) => item.id === id);
+  if (!row) {
+    return;
+  }
+  const values = row.values;
+  applyingDoeValues = true;
+  setField("melt_temp_C", values.melt_temp_C);
+  setField("mold_temp_C", values.mold_temp_C);
+  setField("injection_time_s", values.injection_time_s);
+  setField("packing_pressure_MPa", values.packing_pressure_MPa);
+  setField("packing_time_s", values.packing_time_s);
+  applyingDoeValues = false;
+}
+
+function markCustomGeometry() {
+  if (applyingDoeValues) {
+    return;
+  }
+  ensureCustomOption(geometrySelect, CUSTOM_GEOMETRY_ID, TEXT.customGeometry);
+}
+
+function markCustomProcess() {
+  if (applyingDoeValues) {
+    return;
+  }
+  ensureCustomOption(processSelect, CUSTOM_PROCESS_ID, TEXT.customProcess);
+}
+
+async function loadBootstrapData() {
+  try {
+    const [modelsResponse, doeResponse] = await Promise.all([
+      fetch(`${API_BASE}/models`),
+      fetch(`${API_BASE}/doe`),
+    ]);
+    if (!modelsResponse.ok || !doeResponse.ok) {
+      throw new Error(`HTTP ${modelsResponse.status || doeResponse.status}`);
+    }
+    const models = await modelsResponse.json();
+    const doe = await doeResponse.json();
+    geometries = doe.geometries;
+    processes = doe.processes;
+    fillModelSelect(models.sprue_pressure_models);
+    fillDoeSelect(geometrySelect, geometries);
+    fillDoeSelect(processSelect, processes);
+    if (geometries.length) {
+      geometrySelect.value = "G01";
+      applyGeometry(geometrySelect.value);
+    }
+    if (processes.length) {
+      processSelect.value = "P01";
+      applyProcess(processSelect.value);
+    }
+    updatePreventionCheck();
+    apiStatus.textContent = TEXT.apiConnected;
+    apiStatus.classList.add("ok");
+  } catch (error) {
+    apiStatus.textContent = TEXT.apiOffline;
+    apiStatus.classList.add("bad");
+    setError(TEXT.apiStart);
+  }
+}
+
+function formPayload() {
+  const data = new FormData(form);
+  const numericFields = [
+    "L_mm",
+    "W_mm",
+    "t_mm",
+    "D_mm",
+    "R_mm",
+    "gate_size_width_mm",
+    "gate_size_height_mm",
+    "melt_temp_C",
+    "mold_temp_C",
+    "injection_time_s",
+    "packing_pressure_MPa",
+    "packing_time_s",
+  ];
+  const payload = {
+    model: data.get("model"),
+    geometry_id: data.get("geometry_id") === CUSTOM_GEOMETRY_ID ? null : data.get("geometry_id"),
+    process_id: data.get("process_id") === CUSTOM_PROCESS_ID ? null : data.get("process_id"),
+    gate_type: data.get("gate_type"),
+  };
+  numericFields.forEach((name) => {
+    payload[name] = Number(data.get(name));
+  });
+  return payload;
+}
+
+function issue(severity, category, field, message) {
+  return { severity, category, field, message };
+}
+
+function validatePayload(payload) {
+  const issues = [];
+  const length = Number(payload.L_mm);
+  const width = Number(payload.W_mm);
+  const thickness = Number(payload.t_mm);
+  const diameter = Number(payload.D_mm);
+  const radius = Number(payload.R_mm || diameter / 2);
+  const gateWidth = Number(payload.gate_size_width_mm);
+  const gateHeight = Number(payload.gate_size_height_mm);
+  const meltTemp = Number(payload.melt_temp_C);
+  const moldTemp = Number(payload.mold_temp_C);
+  const injectionTime = Number(payload.injection_time_s);
+  const packingPressure = Number(payload.packing_pressure_MPa);
+  const packingTime = Number(payload.packing_time_s);
+
+  [
+    ["L_mm", length],
+    ["W_mm", width],
+    ["t_mm", thickness],
+    ["D_mm", diameter],
+    ["gate_size_width_mm", gateWidth],
+    ["gate_size_height_mm", gateHeight],
+    ["injection_time_s", injectionTime],
+    ["packing_pressure_MPa", packingPressure],
+    ["packing_time_s", packingTime],
+  ].forEach(([field, value]) => {
+    if (!Number.isFinite(value) || value <= 0) {
+      issues.push(issue("error", "input", field, `${field} must be greater than 0.`));
+    }
+  });
+
+  if (diameter > 0 && radius > 0 && Math.abs(radius - diameter / 2) > Math.max(0.05, diameter * 0.02)) {
+    issues.push(issue("warning", "geometry", "R_mm", "Hole radius does not match D/2."));
+  }
+
+  if (Math.min(length, width, thickness, diameter) > 0) {
+    const shortSide = Math.min(length, width);
+    const longSide = Math.max(length, width);
+    const clearance = (shortSide - diameter) / 2;
+    if (diameter >= shortSide) {
+      issues.push(issue("error", "geometry", "D_mm", "Hole diameter must be smaller than both L and W."));
+    } else if (clearance < Math.max(1.0, thickness)) {
+      issues.push(issue("warning", "geometry", "D_mm", "Wall clearance around the hole is very small."));
+    }
+    if (diameter / shortSide > 0.72) {
+      issues.push(issue("warning", "geometry", "D_mm", "Hole diameter consumes most of the short side."));
+    }
+    if (longSide / shortSide > 4.0) {
+      issues.push(issue("warning", "geometry", "L_mm", "L/W aspect ratio is far outside the current DOE range."));
+    }
+    if (length * width - Math.PI * radius ** 2 <= 0) {
+      issues.push(issue("error", "geometry", "D_mm", "Hole area is larger than or equal to the rectangular area."));
+    }
+  }
+
+  if (thickness > 0 && thickness < 0.6) {
+    issues.push(issue("warning", "geometry", "t_mm", "Thickness is below a typical robust PP wall range."));
+  } else if (thickness > 6.0) {
+    issues.push(issue("warning", "geometry", "t_mm", "Thickness is high for a simple PP molded plate."));
+  }
+
+  if (Math.min(gateWidth, gateHeight, thickness, length, width) > 0) {
+    if (gateHeight > thickness) {
+      issues.push(issue("error", "gate", "gate_size_height_mm", "Gate height cannot exceed part thickness."));
+    } else if (gateHeight > thickness * 0.85) {
+      issues.push(issue("warning", "gate", "gate_size_height_mm", "Gate height is close to full wall thickness."));
+    } else if (gateHeight < Math.max(0.15, thickness * 0.08)) {
+      issues.push(issue("warning", "gate", "gate_size_height_mm", "Gate height is very small."));
+    }
+    if (gateWidth > Math.min(length, width)) {
+      issues.push(issue("error", "gate", "gate_size_width_mm", "Gate width cannot be larger than the available side length."));
+    } else if (gateWidth > Math.min(length, width) * 0.5) {
+      issues.push(issue("warning", "gate", "gate_size_width_mm", "Gate width is more than half of the short side."));
+    }
+    const gateArea = gateWidth * gateHeight;
+    const edgeSection = Math.min(length, width) * thickness;
+    if (gateArea > edgeSection * 0.5) {
+      issues.push(issue("warning", "gate", "gate_size_width_mm", "Gate area is unusually large relative to the edge cross-section."));
+    }
+    if (gateArea < 0.2) {
+      issues.push(issue("warning", "gate", "gate_size_width_mm", "Gate area is extremely small."));
+    }
+  }
+
+  if (meltTemp < 160 || meltTemp > 290) {
+    issues.push(issue("error", "process", "melt_temp_C", "Melt temperature is outside a broad PP processing range."));
+  } else if (meltTemp < 190 || meltTemp > 260) {
+    issues.push(issue("warning", "process", "melt_temp_C", "Melt temperature is outside the current PP DOE neighborhood."));
+  }
+  if (moldTemp < 5 || moldTemp > 120) {
+    issues.push(issue("error", "process", "mold_temp_C", "Mold temperature is outside a broad physical range."));
+  } else if (moldTemp < 25 || moldTemp > 90) {
+    issues.push(issue("warning", "process", "mold_temp_C", "Mold temperature is outside the current PP DOE neighborhood."));
+  }
+  if (injectionTime > 0 && injectionTime < 0.2) {
+    issues.push(issue("warning", "process", "injection_time_s", "Injection time is very short."));
+  } else if (injectionTime > 8.0) {
+    issues.push(issue("warning", "process", "injection_time_s", "Injection time is much longer than the current DOE."));
+  }
+  if (packingPressure > 160) {
+    issues.push(issue("error", "process", "packing_pressure_MPa", "Packing pressure is beyond the broad expected range."));
+  } else if (packingPressure > 0 && (packingPressure < 10 || packingPressure > 120)) {
+    issues.push(issue("warning", "process", "packing_pressure_MPa", "Packing pressure is outside the current DOE neighborhood."));
+  }
+  if (packingTime > 20) {
+    issues.push(issue("warning", "process", "packing_time_s", "Packing time is much longer than the current DOE."));
+  }
+
+  return issues;
+}
+
+function renderPreventionIssues(issues) {
+  preventionList.innerHTML = "";
+  hasBlockingValidation = issues.some((item) => item.severity === "error");
+  const button = form.querySelector("button[type='submit']");
+  button.disabled = hasBlockingValidation;
+  if (!issues.length) {
+    preventionPanel.classList.add("hidden");
+    return;
+  }
+  preventionPanel.classList.remove("hidden");
+  preventionPanel.classList.toggle("has-errors", hasBlockingValidation);
+  preventionCount.textContent = hasBlockingValidation ? TEXT.fixRequired : `${issues.length} ${issues.length > 1 ? TEXT.warnings : TEXT.warning}`;
+  issues.forEach((item) => {
+    const li = document.createElement("li");
+    li.className = item.severity;
+    const badge = document.createElement("span");
+    badge.className = "issue-badge";
+    badge.textContent = item.severity === "error" ? TEXT.error : TEXT.warning;
+    const text = document.createElement("span");
+    text.textContent = `${localizeCategory(item.category)} / ${item.field}: ${localizeMessage(item.message)}`;
+    li.append(badge, text);
+    preventionList.appendChild(li);
+  });
+}
+
+function updatePreventionCheck() {
+  renderPreventionIssues(validatePayload(formPayload()));
+}
+
+function localizeCategory(category) {
+  if (!IS_KO) {
+    return category;
+  }
+  return {
+    input: "입력",
+    geometry: "형상",
+    gate: "게이트",
+    process: "공정",
+  }[category] || category;
+}
+
+function localizeMessage(message) {
+  if (!IS_KO) {
+    return message;
+  }
+  const messages = {
+    "Hole radius does not match D/2.": "중앙 홀 반지름이 D/2와 일치하지 않습니다.",
+    "Hole diameter must be smaller than both L and W.": "중앙 홀 직경은 L과 W보다 작아야 합니다.",
+    "Wall clearance around the hole is very small.": "중앙 홀 주변 wall clearance가 매우 작습니다.",
+    "Hole diameter consumes most of the short side.": "중앙 홀 직경이 짧은 변의 대부분을 차지합니다.",
+    "L/W aspect ratio is far outside the current DOE range.": "L/W 비율이 현재 DOE 범위를 크게 벗어납니다.",
+    "Hole area is larger than or equal to the rectangular area.": "중앙 홀 면적이 직사각형 면적보다 크거나 같습니다.",
+    "Thickness is below a typical robust PP wall range.": "두께가 일반적인 PP 사출 wall 범위보다 작습니다.",
+    "Thickness is high for a simple PP molded plate.": "두께가 단순 PP 사출 plate 기준으로 큰 편입니다.",
+    "Gate height cannot exceed part thickness.": "Gate height는 제품 두께보다 클 수 없습니다.",
+    "Gate height is close to full wall thickness.": "Gate height가 제품 두께에 너무 가깝습니다.",
+    "Gate height is very small.": "Gate height가 매우 작습니다.",
+    "Gate width cannot be larger than the available side length.": "Gate width는 사용 가능한 side length보다 클 수 없습니다.",
+    "Gate width is more than half of the short side.": "Gate width가 짧은 변의 절반보다 큽니다.",
+    "Gate area is unusually large relative to the edge cross-section.": "Gate 면적이 edge 단면 대비 지나치게 큽니다.",
+    "Gate area is extremely small.": "Gate 면적이 매우 작습니다.",
+    "Melt temperature is outside a broad PP processing range.": "수지 온도가 PP 공정 가능 범위를 크게 벗어납니다.",
+    "Melt temperature is outside the current PP DOE neighborhood.": "수지 온도가 현재 PP DOE 범위를 벗어납니다.",
+    "Mold temperature is outside a broad physical range.": "금형 온도가 물리적으로 보기 어려운 범위입니다.",
+    "Mold temperature is outside the current PP DOE neighborhood.": "금형 온도가 현재 PP DOE 범위를 벗어납니다.",
+    "Injection time is very short.": "Injection time이 매우 짧습니다.",
+    "Injection time is much longer than the current DOE.": "Injection time이 현재 DOE보다 훨씬 깁니다.",
+    "Packing pressure is beyond the broad expected range.": "Packing pressure가 예상 가능한 범위를 크게 벗어납니다.",
+    "Packing pressure is outside the current DOE neighborhood.": "Packing pressure가 현재 DOE 범위를 벗어납니다.",
+    "Packing time is much longer than the current DOE.": "Packing time이 현재 DOE보다 훨씬 깁니다.",
+    "Hole diameter must be smaller than both L and W to preserve a rectangular wall around the hole.": "직사각형 wall을 유지하려면 중앙 홀 직경은 L과 W보다 작아야 합니다.",
+    "Hole diameter consumes most of the short side, so the part may no longer behave like the intended block shape.": "중앙 홀이 짧은 변의 대부분을 차지해 의도한 block 형상으로 보기 어려울 수 있습니다.",
+  };
+  return messages[message] || message;
+}
+
+function localizeModelLabel(label) {
+  return IS_KO ? MODEL_LABELS_KO[label] || label : label;
+}
+
+function localizeNote(note) {
+  return IS_KO ? NOTE_LABELS_KO[note] || localizeMessage(note) : note;
+}
+
+function localizeInputValue(value) {
+  if (!IS_KO) {
+    return value;
+  }
+  if (value === "manual") {
+    return "사용자 입력";
+  }
+  if (value === "edge_gate") {
+    return "edge gate";
+  }
+  return value;
+}
+
+function drawPressureCurve(points) {
+  const ctx = pressureCanvas.getContext("2d");
+  const { width, height } = pressureCanvas;
+  const pad = { left: 58, right: 18, top: 22, bottom: 44 };
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = "#f8fbfd";
+  ctx.fillRect(0, 0, width, height);
+  if (!points || !points.length) {
+    ctx.fillStyle = "#637184";
+    ctx.font = "14px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(TEXT.emptyCurve, width / 2, height / 2);
+    return;
+  }
+
+  const xs = points.map((point) => Number(point.time_s));
+  const ys = points.map((point) => Number(point.sprue_pressure_MPa));
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(0, ...ys);
+  const maxY = Math.max(...ys) * 1.06;
+  const plotW = width - pad.left - pad.right;
+  const plotH = height - pad.top - pad.bottom;
+  const scaleX = (value) => pad.left + ((value - minX) / Math.max(1e-9, maxX - minX)) * plotW;
+  const scaleY = (value) => pad.top + (1 - (value - minY) / Math.max(1e-9, maxY - minY)) * plotH;
+
+  ctx.strokeStyle = "#d2dee9";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(pad.left, pad.top);
+  ctx.lineTo(pad.left, height - pad.bottom);
+  ctx.lineTo(width - pad.right, height - pad.bottom);
+  ctx.stroke();
+
+  ctx.fillStyle = "#607086";
+  ctx.font = "12px system-ui, sans-serif";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+  for (let i = 0; i <= 4; i += 1) {
+    const yValue = minY + ((maxY - minY) * i) / 4;
+    const y = scaleY(yValue);
+    ctx.strokeStyle = "#e7eef5";
+    ctx.beginPath();
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(width - pad.right, y);
+    ctx.stroke();
+    ctx.fillText(formatMetric(yValue, 1), pad.left - 8, y);
+  }
+
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  for (let i = 0; i <= 4; i += 1) {
+    const xValue = minX + ((maxX - minX) * i) / 4;
+    ctx.fillText(formatMetric(xValue, 2), scaleX(xValue), height - pad.bottom + 10);
+  }
+
+  const gradient = ctx.createLinearGradient(pad.left, 0, width - pad.right, 0);
+  gradient.addColorStop(0, "#0076bd");
+  gradient.addColorStop(0.55, "#16aad8");
+  gradient.addColorStop(1, "#00ad5a");
+  ctx.strokeStyle = gradient;
+  ctx.lineWidth = 3;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  points.forEach((point, index) => {
+    const x = scaleX(point.time_s);
+    const y = scaleY(point.sprue_pressure_MPa);
+    if (index === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+  });
+  ctx.stroke();
+
+  ctx.fillStyle = "#132236";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+  ctx.font = "12px system-ui, sans-serif";
+  ctx.fillText(TEXT.timeAxis, pad.left + plotW / 2, height - 4);
+  ctx.save();
+  ctx.translate(14, pad.top + plotH / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText(TEXT.pressureAxis, 0, 0);
+  ctx.restore();
+}
+
+function renderInputSummary(inputs) {
+  inputSummary.innerHTML = "";
+  [
+    [TEXT.geometry, inputs.geometry_id],
+    [TEXT.process, inputs.process_id],
+    ["L", `${formatMetric(inputs.L_mm, 2)} mm`],
+    ["W", `${formatMetric(inputs.W_mm, 2)} mm`],
+    ["t", `${formatMetric(inputs.t_mm, 3)} mm`],
+    ["D", `${formatMetric(inputs.D_mm, 2)} mm`],
+  ].forEach(([labelText, value]) => {
+    const item = document.createElement("span");
+    item.className = "input-token";
+    const label = document.createElement("strong");
+    label.textContent = labelText;
+    const valueEl = document.createElement("span");
+    valueEl.className = "input-token-value";
+    valueEl.textContent = localizeInputValue(value);
+    item.append(label, valueEl);
+    inputSummary.appendChild(item);
+  });
+}
+
+function renderResult(data) {
+  emptyState.classList.add("hidden");
+  resultPanel.classList.remove("hidden");
+  maxPressure.textContent = `${formatMetric(data.predicted_max_pressure_MPa, 3)} MPa`;
+  maxTime.textContent = `${formatMetric(data.predicted_max_time_s, 3)} s`;
+  curvePoints.textContent = data.curve.length;
+  modelLabel.textContent = localizeModelLabel(data.model_label);
+  renderInputSummary(data.inputs);
+  drawPressureCurve(data.curve);
+
+  notes.innerHTML = "";
+  (data.validation_warnings || []).forEach((warning) => {
+    const item = document.createElement("li");
+    const severity = warning.severity === "error" ? TEXT.error : TEXT.warning;
+    item.textContent = `${severity.toUpperCase()}: ${localizeMessage(warning.message)}`;
+    notes.appendChild(item);
+  });
+  data.notes.forEach((note) => {
+    const item = document.createElement("li");
+    item.textContent = localizeNote(note);
+    notes.appendChild(item);
+  });
+}
+
+async function submitPrediction(event) {
+  event.preventDefault();
+  clearError();
+  setLoading(true);
+  try {
+    const response = await fetch(`${API_BASE}/predict/sprue-pressure`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formPayload()),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      if (data.detail && data.detail.warnings) {
+        renderPreventionIssues(data.detail.warnings);
+        throw new Error(IS_KO ? TEXT.invalidInput : data.detail.message || TEXT.invalidInput);
+      }
+      throw new Error(data.detail || `HTTP ${response.status}`);
+    }
+    renderResult(data);
+  } catch (error) {
+    setError(error.message || "Prediction failed.");
+  } finally {
+    setLoading(false);
+  }
+}
+
+geometrySelect.addEventListener("change", () => {
+  applyGeometry(geometrySelect.value);
+  updatePreventionCheck();
+});
+processSelect.addEventListener("change", () => {
+  applyProcess(processSelect.value);
+  updatePreventionCheck();
+});
+[
+  "L_mm",
+  "W_mm",
+  "t_mm",
+  "D_mm",
+  "R_mm",
+  "gate_type",
+  "gate_size_width_mm",
+  "gate_size_height_mm",
+].forEach((name) => {
+  form.elements[name].addEventListener("input", () => {
+    markCustomGeometry();
+    updatePreventionCheck();
+  });
+});
+[
+  "melt_temp_C",
+  "mold_temp_C",
+  "injection_time_s",
+  "packing_pressure_MPa",
+  "packing_time_s",
+].forEach((name) => {
+  form.elements[name].addEventListener("input", () => {
+    markCustomProcess();
+    updatePreventionCheck();
+  });
+});
+form.addEventListener("submit", submitPrediction);
+drawPressureCurve([]);
+loadBootstrapData();

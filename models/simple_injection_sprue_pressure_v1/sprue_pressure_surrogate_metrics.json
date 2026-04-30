@@ -1,0 +1,253 @@
+{
+  "best_model": "extra_trees",
+  "metrics": {
+    "cv_mode": "grouped",
+    "fold_scores": [
+      {
+        "max_time_mae": 0.11583067881698916,
+        "max_pressure_mae": 0.1695315454698374,
+        "curve_norm_rmse": 0.06957155929661692,
+        "curve_pressure_rmse": 4.393697845210631,
+        "fold": 1,
+        "n_val": 10
+      },
+      {
+        "max_time_mae": 0.12169980463407874,
+        "max_pressure_mae": 0.24631000000224007,
+        "curve_norm_rmse": 0.05791665667682623,
+        "curve_pressure_rmse": 3.861349376617943,
+        "fold": 2,
+        "n_val": 10
+      },
+      {
+        "max_time_mae": 0.1350453094069362,
+        "max_pressure_mae": 0.19628949883306532,
+        "curve_norm_rmse": 0.04012518274014756,
+        "curve_pressure_rmse": 2.7945303305281675,
+        "fold": 3,
+        "n_val": 10
+      }
+    ],
+    "mean_max_time_mae": 0.12419193095266805,
+    "std_max_time_mae": 0.008039839441509856,
+    "mean_max_pressure_mae": 0.20404368143504759,
+    "std_max_pressure_mae": 0.03182062518728715,
+    "mean_curve_norm_rmse": 0.05587113290453024,
+    "std_curve_norm_rmse": 0.012108134970716123,
+    "mean_curve_pressure_rmse": 3.683192517452247,
+    "std_curve_pressure_rmse": 0.6649005363484882
+  },
+  "all_model_metrics": {
+    "extra_trees": {
+      "cv_mode": "grouped",
+      "fold_scores": [
+        {
+          "max_time_mae": 0.11583067881698916,
+          "max_pressure_mae": 0.1695315454698374,
+          "curve_norm_rmse": 0.06957155929661692,
+          "curve_pressure_rmse": 4.393697845210631,
+          "fold": 1,
+          "n_val": 10
+        },
+        {
+          "max_time_mae": 0.12169980463407874,
+          "max_pressure_mae": 0.24631000000224007,
+          "curve_norm_rmse": 0.05791665667682623,
+          "curve_pressure_rmse": 3.861349376617943,
+          "fold": 2,
+          "n_val": 10
+        },
+        {
+          "max_time_mae": 0.1350453094069362,
+          "max_pressure_mae": 0.19628949883306532,
+          "curve_norm_rmse": 0.04012518274014756,
+          "curve_pressure_rmse": 2.7945303305281675,
+          "fold": 3,
+          "n_val": 10
+        }
+      ],
+      "mean_max_time_mae": 0.12419193095266805,
+      "std_max_time_mae": 0.008039839441509856,
+      "mean_max_pressure_mae": 0.20404368143504759,
+      "std_max_pressure_mae": 0.03182062518728715,
+      "mean_curve_norm_rmse": 0.05587113290453024,
+      "std_curve_norm_rmse": 0.012108134970716123,
+      "mean_curve_pressure_rmse": 3.683192517452247,
+      "std_curve_pressure_rmse": 0.6649005363484882
+    },
+    "random_forest": {
+      "cv_mode": "grouped",
+      "fold_scores": [
+        {
+          "max_time_mae": 0.3145111630254419,
+          "max_pressure_mae": 1.1326117605562864,
+          "curve_norm_rmse": 0.07493415312876485,
+          "curve_pressure_rmse": 4.939958489276332,
+          "fold": 1,
+          "n_val": 10
+        },
+        {
+          "max_time_mae": 0.3101240788551028,
+          "max_pressure_mae": 0.9892720874059883,
+          "curve_norm_rmse": 0.05843684021010699,
+          "curve_pressure_rmse": 3.9671804376422033,
+          "fold": 2,
+          "n_val": 10
+        },
+        {
+          "max_time_mae": 0.2718193063591734,
+          "max_pressure_mae": 1.1413696691769473,
+          "curve_norm_rmse": 0.04631692625968512,
+          "curve_pressure_rmse": 3.2959021338758197,
+          "fold": 3,
+          "n_val": 10
+        }
+      ],
+      "mean_max_time_mae": 0.29881818274657274,
+      "std_max_time_mae": 0.019174916279973003,
+      "mean_max_pressure_mae": 1.0877511723797406,
+      "std_max_pressure_mae": 0.06972695735893744,
+      "mean_curve_norm_rmse": 0.05989597319951898,
+      "std_curve_norm_rmse": 0.011728404842651237,
+      "mean_curve_pressure_rmse": 4.067680353598118,
+      "std_curve_pressure_rmse": 0.6749348115502531
+    },
+    "hist_gradient_boosting": {
+      "cv_mode": "grouped",
+      "fold_scores": [
+        {
+          "max_time_mae": 1.8595000000000006,
+          "max_pressure_mae": 12.620000000000001,
+          "curve_norm_rmse": 0.23655498651145757,
+          "curve_pressure_rmse": 16.824693698955514,
+          "fold": 1,
+          "n_val": 10
+        },
+        {
+          "max_time_mae": 1.8814799999999998,
+          "max_pressure_mae": 12.39378146920777,
+          "curve_norm_rmse": 0.22436311750521112,
+          "curve_pressure_rmse": 16.023330445479157,
+          "fold": 2,
+          "n_val": 10
+        },
+        {
+          "max_time_mae": 1.83656,
+          "max_pressure_mae": 12.620000000000001,
+          "curve_norm_rmse": 0.2254340018564845,
+          "curve_pressure_rmse": 16.098742161568364,
+          "fold": 3,
+          "n_val": 10
+        }
+      ],
+      "mean_max_time_mae": 1.8591800000000003,
+      "std_max_time_mae": 0.01833990912372972,
+      "mean_max_pressure_mae": 12.544593823069258,
+      "std_max_pressure_mae": 0.10664043810216284,
+      "mean_curve_norm_rmse": 0.22878403529105107,
+      "std_curve_norm_rmse": 0.00551225667495649,
+      "mean_curve_pressure_rmse": 16.31558876866768,
+      "std_curve_pressure_rmse": 0.3613055994246572
+    },
+    "ridge": {
+      "cv_mode": "grouped",
+      "fold_scores": [
+        {
+          "max_time_mae": 0.16759305980847045,
+          "max_pressure_mae": 0.5963329997317608,
+          "curve_norm_rmse": 0.13975137407232766,
+          "curve_pressure_rmse": 9.424895066293466,
+          "fold": 1,
+          "n_val": 10
+        },
+        {
+          "max_time_mae": 0.12040883761172658,
+          "max_pressure_mae": 0.5985490551912342,
+          "curve_norm_rmse": 0.1151587163148769,
+          "curve_pressure_rmse": 7.909779091762564,
+          "fold": 2,
+          "n_val": 10
+        },
+        {
+          "max_time_mae": 0.133613678471821,
+          "max_pressure_mae": 0.7217479164562356,
+          "curve_norm_rmse": 0.1391095751050249,
+          "curve_pressure_rmse": 9.390659500596295,
+          "fold": 3,
+          "n_val": 10
+        }
+      ],
+      "mean_max_time_mae": 0.14053852529733935,
+      "std_max_time_mae": 0.019875493012679255,
+      "mean_max_pressure_mae": 0.6388766571264103,
+      "std_max_pressure_mae": 0.05860581280972758,
+      "mean_curve_norm_rmse": 0.13133988849740982,
+      "std_curve_norm_rmse": 0.011444816188394073,
+      "mean_curve_pressure_rmse": 8.908444552884108,
+      "std_curve_pressure_rmse": 0.7063014209799671
+    },
+    "neural_net_mlp_lbfgs": {
+      "cv_mode": "grouped",
+      "fold_scores": [
+        {
+          "max_time_mae": 0.1980701672061677,
+          "max_pressure_mae": 1.4587350442586384,
+          "curve_norm_rmse": 0.20940190769313566,
+          "curve_pressure_rmse": 13.754287709144396,
+          "fold": 1,
+          "n_val": 10
+        },
+        {
+          "max_time_mae": 0.13206245643548406,
+          "max_pressure_mae": 0.6379929906297633,
+          "curve_norm_rmse": 0.05637679502553976,
+          "curve_pressure_rmse": 3.7680206304661414,
+          "fold": 2,
+          "n_val": 10
+        },
+        {
+          "max_time_mae": 3.5459173455324953,
+          "max_pressure_mae": 36.48876836402808,
+          "curve_norm_rmse": 0.10693611909470886,
+          "curve_pressure_rmse": 15.686671552202629,
+          "fold": 3,
+          "n_val": 10
+        }
+      ],
+      "mean_max_time_mae": 1.2920166563913824,
+      "std_max_time_mae": 1.5939762632806853,
+      "mean_max_pressure_mae": 12.861832132972161,
+      "std_max_pressure_mae": 16.710126493226316,
+      "mean_curve_norm_rmse": 0.12423827393779475,
+      "std_curve_norm_rmse": 0.06365895956000325,
+      "mean_curve_pressure_rmse": 11.069659963937724,
+      "std_curve_pressure_rmse": 5.2229608171548705
+    }
+  },
+  "n_samples": 30,
+  "feature_columns": [
+    "L_mm",
+    "W_mm",
+    "t_mm",
+    "D_mm",
+    "R_mm",
+    "gate_size_width_mm",
+    "gate_size_height_mm",
+    "melt_temp_C",
+    "mold_temp_C",
+    "injection_time_s",
+    "packing_pressure_MPa",
+    "packing_time_s",
+    "gate_type__edge_gate",
+    "area_mm2",
+    "hole_area_mm2",
+    "net_area_mm2",
+    "volume_mm3",
+    "aspect_ratio",
+    "hole_diameter_ratio",
+    "gate_area_mm2",
+    "gate_to_thickness_ratio",
+    "flow_length_to_thickness",
+    "process_total_time_s"
+  ]
+}
