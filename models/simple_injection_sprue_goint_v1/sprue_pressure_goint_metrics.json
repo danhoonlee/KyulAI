@@ -1,41 +1,57 @@
 {
   "metrics": {
-    "n_samples": 30,
+    "n_samples": 150,
     "seq_len": 128,
     "input_dim": 23,
-    "cv_max_time_mae_mean": 0.4624199793736308,
-    "cv_max_time_mae_std": 0.2086333936568882,
-    "cv_max_pressure_mae_mean": 3.1498357157642682,
-    "cv_max_pressure_mae_std": 1.463499891017216,
-    "cv_curve_norm_rmse_mean": 0.14499035477638245,
-    "cv_curve_norm_rmse_std": 0.019918367137959983,
-    "cv_curve_pressure_rmse_mean": 9.797681427568529,
-    "cv_curve_pressure_rmse_std": 1.2366197238064982
+    "cv_max_time_mae_mean": 0.2141686010927928,
+    "cv_max_time_mae_std": 0.12967812690696273,
+    "cv_max_pressure_mae_mean": 1.302165441527218,
+    "cv_max_pressure_mae_std": 0.8380092175828485,
+    "cv_curve_norm_rmse_mean": 0.05140063464641571,
+    "cv_curve_norm_rmse_std": 0.02488360890200249,
+    "cv_curve_pressure_rmse_mean": 3.55368722124755,
+    "cv_curve_pressure_rmse_std": 1.7720229092762314
   },
   "fold_metrics": [
     {
-      "max_time_mae": 0.7505619641031668,
-      "max_pressure_mae": 5.21810464669069,
-      "curve_norm_rmse": 0.17315006256103516,
-      "curve_pressure_rmse": 11.540142854336262,
-      "best_epoch": 75,
+      "max_time_mae": 0.22585764581253365,
+      "max_pressure_mae": 0.9685412442582868,
+      "curve_norm_rmse": 0.03985818475484848,
+      "curve_pressure_rmse": 2.625950340410446,
+      "best_epoch": 101,
       "fold": 1
     },
     {
-      "max_time_mae": 0.3733261359007248,
-      "max_pressure_mae": 2.0490257785407247,
-      "curve_norm_rmse": 0.13153111934661865,
-      "curve_pressure_rmse": 9.055731973966619,
-      "best_epoch": 63,
+      "max_time_mae": 0.11318648065570767,
+      "max_pressure_mae": 0.7177839709192642,
+      "curve_norm_rmse": 0.037462376058101654,
+      "curve_pressure_rmse": 2.58937038912597,
+      "best_epoch": 138,
       "fold": 2
     },
     {
-      "max_time_mae": 0.2633718381170006,
-      "max_pressure_mae": 2.1823767220613903,
-      "curve_norm_rmse": 0.13028988242149353,
-      "curve_pressure_rmse": 8.797169454402708,
-      "best_epoch": 79,
+      "max_time_mae": 0.1297545649470828,
+      "max_pressure_mae": 1.1642386508748683,
+      "curve_norm_rmse": 0.04658595100045204,
+      "curve_pressure_rmse": 3.108235598648223,
+      "best_epoch": 90,
       "fold": 3
+    },
+    {
+      "max_time_mae": 0.14049918246654738,
+      "max_pressure_mae": 0.716136617502014,
+      "curve_norm_rmse": 0.032737236469984055,
+      "curve_pressure_rmse": 2.379436417276763,
+      "best_epoch": 116,
+      "fold": 4
+    },
+    {
+      "max_time_mae": 0.4615451315820923,
+      "max_pressure_mae": 2.944126724081656,
+      "curve_norm_rmse": 0.10035942494869232,
+      "curve_pressure_rmse": 7.06544336077635,
+      "best_epoch": 140,
+      "fold": 5
     }
   ]
 }

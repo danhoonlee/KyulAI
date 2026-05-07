@@ -119,7 +119,15 @@ def _to_float(value: str) -> float | None:
         return None
 
 
-RUN_RE = re.compile(r"(G\d{2})_(P\d{2})")
+RUN_RE = re.compile(r"G(\d{2})_P0*(\d{1,2})")
+
+
+def _sample_id_from_header(value: str) -> str | None:
+    match = RUN_RE.search(value)
+    if not match:
+        return None
+    process_number = int(match.group(2))
+    return f"G{match.group(1)}_P{process_number:02d}"
 
 
 def load_result_curves(result_dir: str | Path = DEFAULT_RESULT_DIR) -> dict[str, tuple[np.ndarray, np.ndarray]]:
@@ -136,10 +144,9 @@ def load_result_curves(result_dir: str | Path = DEFAULT_RESULT_DIR) -> dict[str,
 
         header = rows[header_idx]
         for col in range(0, len(header) - 1, 2):
-            match = RUN_RE.search(header[col + 1])
-            if not match:
+            sample_id = _sample_id_from_header(header[col + 1])
+            if not sample_id:
                 continue
-            sample_id = f"{match.group(1)}_{match.group(2)}"
             times = []
             pressures = []
             for row in rows[header_idx + 1 :]:
@@ -274,4 +281,3 @@ def build_record_from_inputs(
     )
     x, feature_columns, _ = make_feature_matrix([record], gate_types=gate_types)
     return x, feature_columns
-

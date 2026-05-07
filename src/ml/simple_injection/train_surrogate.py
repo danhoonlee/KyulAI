@@ -225,7 +225,7 @@ def write_report(
             "",
             "## Caveat",
             "",
-            "Only 30 of the planned 300 CAE runs are available, so geometry-group validation is intentionally harsh.",
+            f"Only {n_samples} of the planned 300 CAE runs are available, so geometry-group validation is intentionally harsh.",
             "Treat these metrics as a baseline and retrain after each new geometry batch is added.",
         ]
     )
@@ -335,4 +335,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

@@ -204,7 +204,7 @@ def write_report(output_dir: Path, args, metrics: dict) -> None:
         f"| Max time MAE (s) | {metrics['cv_max_time_mae_mean']:.4f} | {metrics['cv_max_time_mae_std']:.4f} |",
         f"| Normalized curve RMSE | {metrics['cv_curve_norm_rmse_mean']:.5f} | {metrics['cv_curve_norm_rmse_std']:.5f} |",
         "",
-        "With only 30 samples, this deep model is primarily a structural baseline; it should improve as the remaining 270 DOE results arrive.",
+        f"With {metrics['n_samples']} samples, this deep model is primarily a structural baseline; it should improve as the remaining DOE results arrive.",
     ]
     (output_dir / "sprue_pressure_goint_report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -308,4 +308,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

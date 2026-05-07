@@ -2,16 +2,16 @@
 
 This is a GointMLP-style multi-branch neural surrogate for Moldex3D sprue pressure.
 
-- Samples: 30
+- Samples: 150
 - Input dimension: 23
 - Sequence length: 128
-- Validation mode: `grouped`; folds: 3
+- Validation mode: `grouped`; folds: 5
 
 | Metric | Mean | Std |
 |---|---:|---:|
-| Pressure curve RMSE (MPa) | 9.7977 | 1.2366 |
-| Max pressure MAE (MPa) | 3.1498 | 1.4635 |
-| Max time MAE (s) | 0.4624 | 0.2086 |
-| Normalized curve RMSE | 0.14499 | 0.01992 |
+| Pressure curve RMSE (MPa) | 3.5537 | 1.7720 |
+| Max pressure MAE (MPa) | 1.3022 | 0.8380 |
+| Max time MAE (s) | 0.2142 | 0.1297 |
+| Normalized curve RMSE | 0.05140 | 0.02488 |
 
-With only 30 samples, this deep model is primarily a structural baseline; it should improve as the remaining 270 DOE results arrive.
+With 150 samples, this deep model is primarily a structural baseline; it should improve as the remaining DOE results arrive.
