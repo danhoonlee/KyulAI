@@ -1,9 +1,45 @@
-const API_HOST = window.location.hostname || "localhost";
-const API_BASE = `http://${API_HOST}:8000/api/v1/dd-laminate`;
+const API_BASE = window.location.port === "3000"
+  ? `http://${window.location.hostname || "localhost"}:8000/api/v1/dd-laminate`
+  : `${window.location.origin}/api/v1/dd-laminate`;
+const IS_KO = document.documentElement.lang.toLowerCase().startsWith("ko");
+const TEXT = {
+  predicting: IS_KO ? "예측 중..." : "Predicting...",
+  apiConnected: IS_KO ? "API: 연결됨" : "API: connected",
+  apiOffline: IS_KO ? "API: 연결 안 됨" : "API: offline",
+  apiStart: IS_KO
+    ? "예측하기 전에 DD API를 먼저 실행해 주세요."
+    : "Start the DD API at http://localhost:8000 before predicting.",
+  noProbability: IS_KO ? "이 모델은 확률 출력을 제공하지 않습니다." : "No probability output for this model.",
+  unknown: IS_KO ? "알 수 없음" : "Unknown",
+  estimatedCurveEmpty: IS_KO ? "예측 곡선이 여기에 표시됩니다." : "Estimated curve will appear here.",
+  displacementAxis: "Displacement",
+  forceAxis: "Force",
+  selectCsv: IS_KO
+    ? "두 열로 된 force-displacement CSV를 선택해 주세요."
+    : "Select a two-column force-displacement CSV.",
+  csvPreviewFailed: IS_KO
+    ? "CSV 미리보기 실패: 숫자 displacement,force 행이 1개 이상 필요합니다."
+    : "CSV preview failed: expected at least one numeric displacement,force row.",
+  csvParseFailed: IS_KO ? "이 CSV를 읽을 수 없습니다." : "Could not parse this CSV.",
+  noFileSelected: IS_KO ? "선택된 파일 없음" : "No file selected",
+};
+const MODEL_LABELS_KO = {
+  "Theta + case - ExtraTrees": "θ + Case - ExtraTrees",
+  "Theta + case - GointMLP-style NN": "θ + Case - GointMLP 스타일 신경망",
+  "Curve + metadata - HistGradientBoosting": "곡선 + 메타데이터 - HistGradientBoosting",
+  "Curve + metadata - Goint sequence NN": "곡선 + 메타데이터 - Goint sequence 신경망",
+  "Estimated response - ExtraTrees + PCA + CLT": "응답 예측 - ExtraTrees + PCA + CLT",
+  "Estimated response - GointMLP NN + CLT": "응답 예측 - GointMLP 신경망 + CLT",
+};
+const NOTE_LABELS_KO = {
+  "Theta/case prediction is a pre-Abaqus estimate; curve-based models are preferred once simulation CSV is available.":
+    "θ/Case 예측은 Abaqus 전 사전 추정입니다. 해석 CSV가 있으면 곡선 기반 모델 사용을 권장합니다.",
+};
 
 const apiStatus = document.querySelector("#api-status");
 const workspaceGrid = document.querySelector("#workspace-grid");
 const inputPanel = document.querySelector(".input-panel");
+const visualPanel = document.querySelector(".visual-panel");
 const thetaForm = document.querySelector("#theta-form");
 const curveForm = document.querySelector("#curve-form");
 const responseForm = document.querySelector("#response-form");
@@ -67,7 +103,7 @@ function setLoading(form, loading) {
     button.dataset.defaultText = button.textContent;
   }
   button.disabled = loading;
-  button.textContent = loading ? "Predicting..." : button.dataset.defaultText;
+  button.textContent = loading ? TEXT.predicting : button.dataset.defaultText;
 }
 
 function fillModelSelect(select, models) {
@@ -75,7 +111,8 @@ function fillModelSelect(select, models) {
   models.forEach((model) => {
     const option = document.createElement("option");
     option.value = model.key;
-    option.textContent = model.available ? model.label : `${model.label} (missing)`;
+    const label = IS_KO ? (MODEL_LABELS_KO[model.label] || model.label) : model.label;
+    option.textContent = model.available ? label : `${label} (${IS_KO ? "없음" : "missing"})`;
     option.disabled = !model.available;
     select.appendChild(option);
   });
@@ -95,19 +132,19 @@ async function loadModels() {
     fillModelSelect(thetaModel, data.theta_models);
     fillModelSelect(curveModel, data.curve_models);
     fillModelSelect(responseModel, data.response_models || []);
-    apiStatus.textContent = "API: connected";
+    apiStatus.textContent = TEXT.apiConnected;
     apiStatus.classList.add("ok");
   } catch (error) {
-    apiStatus.textContent = "API: offline";
+    apiStatus.textContent = TEXT.apiOffline;
     apiStatus.classList.add("bad");
-    setError("Start the DD API at http://localhost:8000 before predicting.");
+    setError(TEXT.apiStart);
   }
 }
 
 function renderProbabilities(probabilities) {
   probabilityBars.innerHTML = "";
   if (!probabilities) {
-    probabilityBars.textContent = "No probability output for this model.";
+    probabilityBars.textContent = TEXT.noProbability;
     return;
   }
 
@@ -139,7 +176,7 @@ function renderResult(data) {
   resultPanel.classList.add(`type-${data.predicted_type}`);
   predictedType.textContent = `Type ${data.predicted_type}`;
   confidenceEl.textContent = percent(data.confidence);
-  modelLabel.textContent = data.model_label;
+  modelLabel.textContent = IS_KO ? (MODEL_LABELS_KO[data.model_label] || data.model_label) : data.model_label;
   const inputLabels = {
     theta1: "θ₁",
     theta2: "θ₂",
@@ -148,6 +185,7 @@ function renderResult(data) {
   const inputValueLabels = {
     Case3: "Case 3",
     Case4: "Case 4",
+    Unknown: TEXT.unknown,
   };
   inputSummary.innerHTML = "";
   const inputEntries = Object.entries(data.inputs)
@@ -173,7 +211,7 @@ function renderResult(data) {
   notes.innerHTML = "";
   data.notes.forEach((note) => {
     const item = document.createElement("li");
-    item.textContent = note;
+    item.textContent = IS_KO ? (NOTE_LABELS_KO[note] || note) : note;
     notes.appendChild(item);
   });
 }
@@ -337,7 +375,7 @@ function drawResponseCurve(points, predictedPtValue) {
     ctx.fillStyle = "#637184";
     ctx.font = "14px system-ui, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("Estimated curve will appear here.", width / 2, height / 2);
+    ctx.fillText(TEXT.estimatedCurveEmpty, width / 2, height / 2);
     return;
   }
   const bilinearFit = buildBilinearFit(points, predictedPtValue);
@@ -441,11 +479,11 @@ function drawResponseCurve(points, predictedPtValue) {
   ctx.fillStyle = "#637184";
   ctx.font = "12px system-ui, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("Displacement", pad.left + plotW / 2, height - 12);
+  ctx.fillText(TEXT.displacementAxis, pad.left + plotW / 2, height - 12);
   ctx.save();
   ctx.translate(16, pad.top + plotH / 2 + 18);
   ctx.rotate(-Math.PI / 2);
-  ctx.fillText("Force", 0, 0);
+  ctx.fillText(TEXT.forceAxis, 0, 0);
   ctx.restore();
 }
 
@@ -467,7 +505,7 @@ function parseCurveCsv(text) {
     .map(([displacement, force]) => ({ displacement, force }));
 }
 
-function drawEmptyCurvePreview(message = "Select a two-column force-displacement CSV.") {
+function drawEmptyCurvePreview(message = TEXT.selectCsv) {
   const ctx = curvePreviewCanvas.getContext("2d");
   const { width, height } = curvePreviewCanvas;
   ctx.clearRect(0, 0, width, height);
@@ -531,11 +569,11 @@ function drawCurvePreview(points) {
   ctx.fillStyle = "#637184";
   ctx.font = "12px system-ui, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("Displacement", pad.left + plotW / 2, height - 12);
+  ctx.fillText(TEXT.displacementAxis, pad.left + plotW / 2, height - 12);
   ctx.save();
   ctx.translate(16, pad.top + plotH / 2 + 18);
   ctx.rotate(-Math.PI / 2);
-  ctx.fillText("Force", 0, 0);
+  ctx.fillText(TEXT.forceAxis, 0, 0);
   ctx.restore();
 
   ctx.textAlign = "left";
@@ -545,7 +583,7 @@ function drawCurvePreview(points) {
   ctx.fillText(formatMetric(maxX, 4), width - pad.right, height - 25);
 }
 
-function updateCurvePreview(points, fileName = "No file selected") {
+function updateCurvePreview(points, fileName = TEXT.noFileSelected) {
   curvePreviewTitle.textContent = fileName;
   curvePointCount.textContent = points.length ? String(points.length) : "-";
   curveMaxDisplacement.textContent = points.length
@@ -590,6 +628,7 @@ document.querySelectorAll(".mode-button").forEach((button) => {
     thetaForm.classList.toggle("active", mode === "theta");
     curveForm.classList.toggle("active", mode === "curve");
     responseForm.classList.toggle("active", mode === "response");
+    visualPanel.classList.toggle("hidden", mode === "curve");
     curvePreviewPanel.classList.toggle("hidden", mode !== "curve");
     workspaceGrid.classList.toggle("curve-active", mode === "curve");
     clearError();
@@ -663,12 +702,12 @@ curveFile.addEventListener("change", async () => {
     const text = await file.text();
     const points = parseCurveCsv(text);
     if (!points.length) {
-      throw new Error("CSV preview failed: expected at least one numeric displacement,force row.");
+      throw new Error(TEXT.csvPreviewFailed);
     }
     updateCurvePreview(points, file.name);
   } catch (error) {
     updateCurvePreview([], file.name);
-    drawEmptyCurvePreview("Could not parse this CSV.");
+    drawEmptyCurvePreview(TEXT.csvParseFailed);
     setError(error.message);
   }
 });

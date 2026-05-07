@@ -1,10 +1,266 @@
 # KyulAI Session Memory
 
-This file captures important project context and decisions so a future chat can resume work without losing direction.
+This file captures important conversation context and project decisions so a
+future chat can resume work without losing direction.
 
-## Current Focus
+## Project Summary
 
-The active work is DD laminate Type prediction for composite laminate research.
+KyulAI is a CAE-AI platform for composite material analysis. Its goal is to use
+simulation data from multiple CAE tools to predict real-world experimental
+results, with a focus on sim-to-real transfer learning.
+
+Supported CAE tools and domains currently described in the project:
+
+- Moldex3D: SMC/RTM molding, flow, curing, fiber orientation
+- AniForm: forming and draping
+- Digimat: micromechanics and material modeling
+- Abaqus: structural FEA
+- Simutence: multi-process simulation
+- cadfil: filament winding
+
+The repository currently contains architecture and agent-team planning
+documents, not a full implemented application. The planned implementation
+includes `src/data`, `src/ml`, `src/validation`, `src/backend`, and
+`src/frontend`.
+
+## Current Repository State
+
+Important existing files:
+
+- `CLAUDE.md`: project overview, tech stack, conventions, directory layout
+- `docs/architecture/agent-team-architecture.md`: full agent/team architecture
+- `agents/*/team.md`: team role definitions
+- `agents/orchestrator/agent.md`: routing and coordination rules
+- `scripts/launch-teams.sh`: original Claude/tmux team launcher
+
+Files added during this Codex session:
+
+- `scripts/agent-bus.py`: local JSONL-based message and task bus for agents
+- `scripts/telegram-bridge.py`: watches local agent-bus events and forwards
+  new messages/tasks to Telegram
+- `scripts/launch-codex-teams.sh`: tmux launcher for Codex-style agent teams
+- `docs/architecture/agent-communication.md`: local and optional chat
+  integration documentation
+- `.gitignore`: now ignores `.agent-bus/`
+- `CLAUDE.md`: now links to agent communication documentation
+
+## Key Decisions
+
+1. Codex can continue this project from the Claude-created planning state.
+2. The recommended first implementation area is Data Engineering:
+   unified CAE schema, parser base interface, quality validation, and tests.
+3. Existing agent-team separation should be preserved:
+   orchestrator, research, data engineering, AI/ML, domain validation,
+   backend, frontend, MLOps, and QA.
+4. Telegram, Discord, and Slack are not required for agent-to-agent
+   communication. A shared coordination channel is enough.
+5. The repository now uses a local append-only JSONL message/task bus as the
+   default coordination channel.
+6. Slack, Discord, and Telegram are optional notification integrations via
+   environment variables.
+7. From this point onward, important chat context and decisions should be
+   recorded in this file so future sessions can resume cleanly.
+8. Telegram integration should be used as a live observer bridge for agent-bus
+   messages/tasks, not as the required source of truth for coordination.
+9. The user completed the Telegram setup flow far enough to get past the
+   `getUpdates` empty-result issue. Future work can assume Telegram bridge
+   credentials are available in the user's shell when they export them.
+
+## Agent Communication
+
+Default local coordination uses:
+
+```bash
+python3 scripts/agent-bus.py
+```
+
+Common commands:
+
+```bash
+python3 scripts/agent-bus.py post \
+  --from orchestrator \
+  --to data-eng \
+  --topic schema \
+  --subject "Start unified schema" \
+  --body "Design Pydantic schemas for UnifiedCAERecord first."
+```
+
+```bash
+python3 scripts/agent-bus.py inbox --agent data-eng
+```
+
+```bash
+python3 scripts/agent-bus.py task create \
+  --from orchestrator \
+  --to data-eng \
+  --title "Implement unified CAE schema" \
+  --body "Create src/data/schemas and tests for the first schema version."
+```
+
+```bash
+python3 scripts/agent-bus.py task list --agent data-eng
+```
+
+Codex teams can be launched with:
+
+```bash
+scripts/launch-codex-teams.sh
+```
+
+Useful overrides:
+
+```bash
+AGENT_CMD=codex scripts/launch-codex-teams.sh
+TEAMS="orchestrator data-eng qa" scripts/launch-codex-teams.sh
+RESET_SESSION=1 scripts/launch-codex-teams.sh
+```
+
+Optional notification environment variables:
+
+```bash
+export SLACK_WEBHOOK_URL="https://hooks.slack.com/services/..."
+export DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/..."
+export TELEGRAM_BOT_TOKEN="123456:..."
+export TELEGRAM_CHAT_ID="123456789"
+```
+
+Telegram live bridge:
+
+```bash
+python3 scripts/telegram-bridge.py --send-test
+python3 scripts/telegram-bridge.py
+```
+
+Local dry-run checks:
+
+```bash
+python3 scripts/telegram-bridge.py --send-test --dry-run
+python3 scripts/telegram-bridge.py --once --since beginning --reset-state --dry-run
+```
+
+## Verified During Session
+
+The following checks were run successfully:
+
+- `python3 scripts/agent-bus.py --help`
+- `bash -n scripts/launch-codex-teams.sh`
+- `python3 -m py_compile scripts/agent-bus.py`
+- `python3 -m py_compile scripts/telegram-bridge.py`
+- `python3 scripts/telegram-bridge.py --send-test --dry-run`
+- `python3 scripts/telegram-bridge.py --once --since beginning --reset-state --dry-run`
+- Agent bus smoke test:
+  - posted a message from `orchestrator` to `data-eng`
+  - read `data-eng` inbox
+  - created a task for `data-eng`
+  - updated that task to `in_progress`
+
+The `.agent-bus/` runtime directory was created during testing and is ignored by
+git.
+
+## Next Recommended Work
+
+Start implementation with the Data Engineering foundation:
+
+1. Create Python package scaffolding, likely with `pyproject.toml`.
+2. Implement `src/data/schemas/` with Pydantic models for `UnifiedCAERecord`.
+3. Implement `src/data/parsers/base.py` with the parser interface.
+4. Implement `src/data/quality/` validation rules.
+5. Add focused tests for schema validation and parser contracts.
+
+After this, Backend and AI/ML can depend on stable data contracts.
+
+## Current Code Status As Of Latest Review
+
+The repository now contains the first product implementation slice for the Data
+Engineering foundation. Frontend, backend, ML, validation, and infrastructure
+apps still have not been implemented yet.
+
+Implemented/available today:
+
+- Architecture and planning docs
+- Team definitions under `agents/`
+- Original Claude tmux launcher
+- Codex tmux launcher
+- Local JSONL agent message/task bus
+- Telegram bridge for observing agent-bus events
+- Session memory document
+- `pyproject.toml` Python package/test configuration
+- `src/kyulai/data/schemas.py` with initial Pydantic unified CAE data models
+- `src/kyulai/data/parsers/base.py` with parser contracts
+- `src/kyulai/data/quality.py` with structured quality validation helpers
+- `tests/unit/test_data_foundation_contract.py` with initial API/contract tests
+
+Latest completed milestone:
+
+- Orchestrator kicked off implementation through `scripts/agent-bus.py`.
+- Data Engineering worker implemented the first data foundation.
+- QA worker implemented contract tests.
+- Orchestrator integrated compatibility fixes:
+  - Python 3.10-friendly enum usage
+  - public aliases `CAEMetadata` and `FieldCollection`
+  - `input_fields`/`output_fields` compatibility on `UnifiedCAERecord`
+  - simple list serialization for basic field collections
+  - public parser exports from `kyulai.data`
+  - pytest `unit` marker registration
+- Full test suite passes: `pytest` -> 6 passed.
+
+Additional autonomous milestones completed:
+
+1. Parser foundation:
+   - Added typed tool mappings for Abaqus, Moldex3D, AniForm, Digimat,
+     Simutence, and cadfil.
+   - Added `AbaqusExportParser` for conservative Abaqus JSON exports only.
+   - Added Abaqus fixture tests.
+   - Added `research/recommendations/initial-methodology-priorities.md`.
+   - Full test suite passed: `pytest` -> 10 passed.
+2. Domain Validation foundation:
+   - Added `src/kyulai/validation/physics.py`.
+   - Public APIs: `PhysicsSeverity`, `PhysicsIssue`,
+     `PhysicsValidationResult`, `validate_physics`.
+   - Checks include finite values, node field length consistency, positive
+     stiffness/modulus-like material properties, tensor sanity, and basic fiber
+     orientation tensor checks.
+   - Added domain validation tests.
+   - Full test suite passed: `pytest` -> 16 passed.
+3. Ingestion pipeline:
+   - Added `src/kyulai/data/pipelines/ingestion.py`.
+   - Public APIs: `IngestionResult`, `default_parsers`, `select_parser`,
+     `ingest_file`.
+   - `ingest_file` now connects parser selection, parsing, data quality checks,
+     and physics validation.
+   - Added ingestion pipeline tests.
+   - Full test suite passed: `pytest` -> 21 passed.
+4. Moldex3D JSON export support:
+   - Added `src/kyulai/data/parsers/moldex3d.py`.
+   - Public APIs: `Moldex3DExportParser` from `kyulai`,
+     `kyulai.data`, and `kyulai.data.parsers`.
+   - `default_parsers()` now includes `Moldex3DExportParser` before
+     `AbaqusExportParser`, so Moldex-identifying JSON files are routed before
+     generic Abaqus JSON handling.
+   - Added `tests/fixtures/data/moldex3d_export.json`.
+   - Added Moldex3D parser and ingestion tests.
+   - Scope is conservative Moldex3D JSON exports only. Proprietary XML/binary
+     parsing remains future work.
+   - Full test suite passed: `pytest` -> 27 passed.
+
+Recommended agent assignment for the next phase:
+
+1. Orchestrator: create the initial task graph and dependency order.
+2. Data Engineering: add a CLI or batch ingestion interface, then expand parser
+   coverage beyond Abaqus/Moldex3D as sample data becomes available.
+3. QA: keep adding fixture-driven tests and negative-path validation cases.
+4. Domain Validation: refine checks into tool/material-specific modules and add
+   uncertainty validation later.
+5. Backend: can now start a thin API around `ingest_file`, because there is a
+   stable enough data/validation entrypoint.
+6. AI/ML: should still wait for more realistic fixtures or paired experimental
+   examples before training code becomes useful.
+7. MLOps: can add lightweight CI/test automation once the current uncommitted
+   scaffold is reviewed.
+
+## DD Laminate AI And UI Work
+
+In the full project checkout at `/Users/danlee/KyulAI_codex`, the active work shifted to DD laminate Type prediction.
 
 Canonical case naming:
 
@@ -13,75 +269,37 @@ Canonical case naming:
 - Case 3: `[[±theta1]/[±theta2]/[∓theta2]/[∓theta2]]2`
 - Case 4: `[([±theta1]/[±theta2])2 / ([∓theta1]/[∓theta2])2]`
 
-Current usable data contains Case3 and Case4 only.
+Current curated dataset:
 
-## DD Dataset
+- `/Users/danlee/KyulAI_codex/data/datasets/DD_curated_csv_v1`
+- Total 400 samples from Case3 and Case4.
+- Counts: Type1 126, Type2 234, Type3 40.
 
-Original data is preserved under:
+Current model families:
 
-`/Users/danlee/KyulAI_codex/data/datasets/DD`
+- Curve/CSV + metadata classifier:
+  `/Users/danlee/KyulAI_codex/models/dd_laminate_csv_meta_v1`
+- GointMLP-inspired deep sequence classifier:
+  `/Users/danlee/KyulAI_codex/models/dd_laminate_deep_sequence_grouped_v1`
+- Theta-only classical classifier:
+  `/Users/danlee/KyulAI_codex/models/dd_laminate_theta_v1`
+- Theta-only GointMLP-style classifier:
+  `/Users/danlee/KyulAI_codex/models/dd_laminate_theta_goint_grouped_v1`
 
-Curated CSV-validated dataset:
+Unified DD summary:
 
-`/Users/danlee/KyulAI_codex/data/datasets/DD_curated_csv_v1`
+- `/Users/danlee/KyulAI_codex/docs/DD_Laminate_AI_Current_Summary.md`
 
-Curated counts:
+First local UI/API slice added:
 
-- Case3: Type1 62, Type2 118, Type3 20
-- Case4: Type1 64, Type2 116, Type3 20
-- Total: Type1 126, Type2 234, Type3 40
+- Backend router:
+  `/Users/danlee/KyulAI_codex/src/backend/api/v1/dd_laminate.py`
+- Standalone DB-free API app:
+  `/Users/danlee/KyulAI_codex/src/backend/dd_laminate_app.py`
+- Static frontend:
+  `/Users/danlee/KyulAI_codex/src/frontend/dd-laminate`
 
-Main curation script:
-
-`/Users/danlee/KyulAI_codex/scripts/dd_reclassify_from_csv.py`
-
-## DD Models
-
-Curve/CSV + metadata classifier:
-
-- Folder: `/Users/danlee/KyulAI_codex/models/dd_laminate_csv_meta_v1`
-- Best model: HistGradientBoosting
-- Use after Abaqus CSV + Pt are available.
-
-GointMLP-inspired deep sequence classifier:
-
-- Folder: `/Users/danlee/KyulAI_codex/models/dd_laminate_deep_sequence_grouped_v1`
-- Model file: `dd_goint_sequence.pt`
-- Uses raw force-displacement sequence plus theta/Pt/case metadata.
-
-Theta-only classifier:
-
-- Folder: `/Users/danlee/KyulAI_codex/models/dd_laminate_theta_v1`
-- Model file: `theta_classifier.joblib`
-- Use as pre-Abaqus screening from `theta1`, `theta2`.
-
-Theta-only GointMLP-style model:
-
-- Folder: `/Users/danlee/KyulAI_codex/models/dd_laminate_theta_goint_grouped_v1`
-- Model file: `theta_goint.pt`
-- Neural theta-only baseline.
-
-Unified summary:
-
-`/Users/danlee/KyulAI_codex/docs/DD_Laminate_AI_Current_Summary.md`
-
-## UI/API Work
-
-A first local DD predictor interface was added.
-
-Backend files:
-
-- `/Users/danlee/KyulAI_codex/src/backend/api/v1/dd_laminate.py`
-- `/Users/danlee/KyulAI_codex/src/backend/dd_laminate_app.py`
-
-Frontend files:
-
-- `/Users/danlee/KyulAI_codex/src/frontend/dd-laminate/index.html`
-- `/Users/danlee/KyulAI_codex/src/frontend/dd-laminate/styles.css`
-- `/Users/danlee/KyulAI_codex/src/frontend/dd-laminate/app.js`
-- `/Users/danlee/KyulAI_codex/src/frontend/dd-laminate/README.md`
-
-Makefile commands:
+Run commands:
 
 ```bash
 cd /Users/danlee/KyulAI_codex
@@ -89,11 +307,7 @@ make dd-api
 make dd-ui
 ```
 
-Then open:
-
-```text
-http://localhost:3000
-```
+Then open `http://localhost:3000`.
 
 API endpoints:
 
@@ -101,14 +315,798 @@ API endpoints:
 - `POST /api/v1/dd-laminate/predict/theta`
 - `POST /api/v1/dd-laminate/predict/curve`
 
-Implementation note:
+Verification performed:
 
-- The standalone DD API avoids the main FastAPI app database startup.
-- Current local `.venv` did not have FastAPI/Torch/scikit-learn installed during Codex verification.
-- Python syntax compile passed for the new backend files.
-- Frontend JavaScript syntax check and HTML parse passed.
+- `python3 -m py_compile src/backend/api/v1/dd_laminate.py src/backend/dd_laminate_app.py`
+- `node --check src/frontend/dd-laminate/app.js`
+- Basic HTML parse of `src/frontend/dd-laminate/index.html`
 
-## Live Test Update
+Limitation observed:
+
+- The project `.venv` did not currently have FastAPI/Torch/scikit-learn installed in this Codex environment, so live model-serving verification still needs an API+ML dependency environment.
+
+## External DD Laminate Dataset Review
+
+User pointed to a separate working tree/data path:
+
+- Dataset: `/Users/danlee/KyulAI_codex/data/datasets/DD`
+- Extra context: `/Users/danlee/KyulAI_codex/extra/DD_Laminate_Research_Context.md`
+- PPT: `/Users/danlee/Personal/Won/Presentation_G3MS_Dongwon.pptx`
+
+Findings from inspection:
+
+- The dataset path currently contains `Case3` and `Case4`, not folders named
+  `Case2` and `Case3`.
+- Each case has `Trial_1` and `Trial_2`, each sorted into `type1`, `type2`,
+  and `type3`.
+- There are 800 PNG graph images total:
+  - Case3 Trial_1: type1 61, type2 114, type3 25
+  - Case3 Trial_2: type1 61, type2 114, type3 25
+  - Case4 Trial_1: type1 82, type2 98, type3 20
+  - Case4 Trial_2: type1 82, type2 98, type3 20
+- There are only two CSV files in this DD dataset:
+  - `Case3/transition_load.csv`
+  - `Case4/transition_load.csv`
+- Each transition CSV has 200 rows with columns:
+  `Test_ID, Theta1, Theta2, Pt, type`.
+- These CSVs are mapping tables, not raw force-displacement curves.
+- `Trial_1` images are `P1` plots and `Trial_2` images are `P2` plots. They
+  are different views/series for the same test id, not byte-identical
+  duplicates.
+- Representative images show the graphs include title text with Test_ID, Pt,
+  theta1, theta2, plotted force-displacement curve, fitted lines, kink marker,
+  and transition point.
+- The PPT has 21 slides. Extracted text confirms the mechanics problem,
+  workflow, three DD cases, type definitions, transition-load discussion, and
+  cost function context.
+- `/Users/danlee/KyulAI_codex` already contains DD-specific ML code and models:
+  - `src/ml/dd_laminate/data.py`
+  - `src/ml/dd_laminate/classifier.py`
+  - `src/ml/dd_laminate/train.py`
+  - `src/ml/dd_laminate/optimize.py`
+  - `models/dd_laminate/image_classifier.pt`
+  - `models/dd_laminate/angle_predictor.pt`
+  - `models/dd_laminate/pt_predictor.pt`
+- Existing DD code appears to load Case3/Case4, store both P1/P2 image paths,
+  but the current image classifier dataset uses only `image_path_p1`.
+
+Open questions before modifying DD AI implementation:
+
+1. Should `Case3` and `Case4` in the folder be treated as the user's described
+   Case 2 and Case 3, or are they truly Case 3 and Case 4?
+2. Should `Trial_1/P1` and `Trial_2/P2` both be used for classification, or is
+   one of them the authoritative graph for type sorting?
+3. Are raw force-displacement CSV files available elsewhere, or should the first
+   production prototype use graph PNG image classification plus the
+   `transition_load.csv` mapping tables?
+4. Should labels be corrected using
+   `classification_review_report.md` recommendations before training, or should
+   the current folder labels remain the ground truth?
+5. Should code changes target `/Users/danlee/KyulAI_codex` directly, or should
+   the current Codex worktree remain the implementation target and ingest the
+   external dataset as read-only input?
+
+## DD Laminate CSV-Based Reclassification
+
+User clarified the canonical case naming:
+
+- Case 1: To be determined.
+- Case 2: `[[±θ1]/[±θ2]]4`
+- Case 3: `[[±θ1]/[±θ2]/[∓θ2]/[∓θ2]]2`
+- Case 4: `[([±θ1]/[±θ2])2 / ([∓θ1]/[∓θ2])2]`
+- Current usable data is only Case 3 and Case 4, stored as folders
+  `/Users/danlee/KyulAI_codex/data/datasets/DD/Case3` and `Case4`.
+
+New raw force-displacement CSV curves were found:
+
+- `/Users/danlee/KyulAI_codex/data/datasets/DD/Case3/csv_load`
+- `/Users/danlee/KyulAI_codex/data/datasets/DD/Case4/csv_load`
+- 200 files per case, named `force_disp_Test_###.csv`.
+- Each file is a two-column displacement/load curve with no header.
+
+The advisor paper `/Users/danlee/KyulAI_codex/extra/CS_DDpaper.pdf` was
+extracted with `pdftotext`. Key criterion:
+
+- For unsymmetric DD laminates, classical bifurcation buckling load is not the
+  main quantity.
+- A geometrically nonlinear load-displacement response is used.
+- Transition load is approximated by the intersection of the two stable path
+  slopes.
+- Therefore, type classification should focus on post-transition behavior:
+  linear branch, moderate curvature, or strong/tail curvature.
+
+Created new code and curated dataset in the external project:
+
+- Script:
+  `/Users/danlee/KyulAI_codex/scripts/dd_reclassify_from_csv.py`
+- New dataset:
+  `/Users/danlee/KyulAI_codex/data/datasets/DD_curated_csv_v1`
+- Reports/metadata:
+  - `DD_curated_csv_v1/README.md`
+  - `DD_curated_csv_v1/classification_audit.csv`
+  - `DD_curated_csv_v1/classification_review_report_csv.md`
+
+Original dataset was not modified. The new dataset copies P1/P2 images and raw
+CSV curves into final type folders. It remains compatible with the existing
+loader `src.ml.dd_laminate.data.load_dd_dataset()`.
+
+CSV-validated final label counts:
+
+- Original Case3: Type1 61, Type2 114, Type3 25.
+- Curated Case3: Type1 62, Type2 118, Type3 20.
+- Original Case4: Type1 82, Type2 98, Type3 20.
+- Curated Case4: Type1 64, Type2 116, Type3 20.
+- Total changed labels: 24.
+- Needs-review rows: 2.
+
+Important label decisions:
+
+- Case3 `Test_085`, `Test_162`, `Test_166`, `Test_180`, `Test_197` changed
+  Type3 -> Type2. CSV supports moderate curvature, not heavy Type3 tail
+  curvature.
+- Case3 `Test_008` changed Type2 -> Type1. CSV metrics place it with
+  clean/borderline Type1 curves, updating the previous report's "keep as-is"
+  stance.
+- Case4 report-recommended Type1 -> Type2 changes were accepted except
+  `Test_078` and `Test_152`; their raw CSV curves are strongly Type1-linear.
+- Case3 `Test_078` and `Test_152` were kept as Type2 but flagged
+  `needs_review` because the raw CSV tail after Pt is missing or too short for
+  reliable post-transition classification.
+
+Verification:
+
+- File counts in curated dataset:
+  - Case3 Trial_1 images: 200
+  - Case4 Trial_1 images: 200
+  - Case3 csv_load files: 200
+  - Case4 csv_load files: 200
+- Existing loader check:
+  - `load_dd_dataset("data/datasets/DD")` -> 400 samples.
+  - `load_dd_dataset("data/datasets/DD_curated_csv_v1")` -> 400 samples with
+    Case3 62/118/20 and Case4 64/116/20.
+
+## DD CSV Curve Classifier Training
+
+User asked to train a classifier using the corrected classification standard.
+Decision:
+
+- Use CSV curves as the primary model input because the new labels are defined
+  from force-displacement curve behavior, while graph PNGs are a rendered
+  secondary representation.
+- Do not overwrite Claude's previous image-only models.
+- Train a separate sklearn classifier from normalized curve-shape features.
+- Use grouped cross-validation by `Test_ID` so matching Case3/Case4 samples do
+  not leak between train and validation folds.
+
+New files in `/Users/danlee/KyulAI_codex/src/ml/dd_laminate`:
+
+- `curve_features.py`
+  - Loads `transition_load.csv` + `csv_load/force_disp_Test_###.csv`.
+  - Extracts 13 shape features including post-transition R2, normalized RMSE,
+    slope ratio/drop, tail R2, quadratic curvature, transition location/load
+    ratios, post fraction, and data-quality code.
+- `train_curve_classifier.py`
+  - Compares ExtraTrees, RandomForest, HistGradientBoosting, and RBF-SVC.
+  - Saves model bundle, feature table, metrics JSON, feature importances, and
+    markdown report.
+- `predict_curve_classifier.py`
+  - CLI/API helper for predicting one new force-displacement CSV when `Pt` is
+    known.
+
+Training command used:
+
+```bash
+cd /Users/danlee/KyulAI_codex
+python3 -m src.ml.dd_laminate.train_curve_classifier \
+  --data-dir data/datasets/DD_curated_csv_v1 \
+  --output-dir models/dd_laminate_csv_v1
+```
+
+Outputs:
+
+- `/Users/danlee/KyulAI_codex/models/dd_laminate_csv_v1/curve_classifier.joblib`
+- `/Users/danlee/KyulAI_codex/models/dd_laminate_csv_v1/curve_features.csv`
+- `/Users/danlee/KyulAI_codex/models/dd_laminate_csv_v1/feature_importances.csv`
+- `/Users/danlee/KyulAI_codex/models/dd_laminate_csv_v1/curve_classifier_metrics.json`
+- `/Users/danlee/KyulAI_codex/models/dd_laminate_csv_v1/curve_classifier_report.md`
+
+Grouped 5-fold CV result:
+
+- Best model: RandomForest.
+- Accuracy: 0.9675 ± 0.0367.
+- Macro F1: 0.9738 ± 0.0264.
+- Confusion matrix, rows true and columns predicted `[Type1, Type2, Type3]`:
+
+```text
+[[120   6   0]
+ [  6 228   0]
+ [  0   1  39]]
+```
+
+Most important features:
+
+- `tail_r2`
+- `transition_x_ratio`
+- `transition_load_ratio`
+- `abs_quad_a`
+- `post_nrmse`
+- `post_r2`
+
+Single-sample prediction test:
+
+```bash
+python3 -m src.ml.dd_laminate.predict_curve_classifier \
+  data/datasets/DD_curated_csv_v1/Case3/csv_load/force_disp_Test_008.csv \
+  --pt 13801.0 --case Case3 --test-id Test_008 --theta1 -43 --theta2 77
+```
+
+Result:
+
+- Predicted Type: 1.
+- Probabilities: Type1 0.9995, Type2 0.0005, Type3 0.0000.
+
+## DD Combined Metadata + Curve Classifier
+
+User clarified the next desired model:
+
+- `Case3` and `Case4` files with the same `force_disp_Test_###.csv` name are
+  not identical data.
+- All 200 matching Test_ID pairs share the same theta1/theta2 values.
+- Zero CSV pairs are byte-identical.
+- 193/200 pairs have the same array shape; 7 pairs have different row counts:
+  `Test_060`, `Test_078`, `Test_079`, `Test_140`, `Test_143`, `Test_152`,
+  `Test_185`.
+
+User wanted filenames to avoid collisions and wanted training/validation to mix
+more freely instead of being forced apart by shared names. Implemented:
+
+- Flat unique CSV view:
+  `/Users/danlee/KyulAI_codex/data/datasets/DD_curated_csv_v1/flat_csv`
+- Manifest:
+  `/Users/danlee/KyulAI_codex/data/datasets/DD_curated_csv_v1/flat_csv/manifest.csv`
+- 400 copied CSV files plus manifest.
+- Filename pattern:
+  `Case3_type2_force_disp_Test_001.csv`,
+  `Case4_type1_force_disp_Test_006.csv`, etc.
+- Script:
+  `/Users/danlee/KyulAI_codex/scripts/dd_flatten_curated_csv.py`
+
+Updated classifier code:
+
+- `curve_features.py`
+  - Added `case_id`.
+  - Added feature sets:
+    - `curve`: curve-only features.
+    - `metadata`: `theta1`, `theta2`, `pt`, `case_id`.
+    - `combined`: metadata + curve features.
+- `train_curve_classifier.py`
+  - Added `--feature-set curve|metadata|combined`.
+  - Added `--cv-mode sample|grouped`.
+  - Default for new combined model uses sample-level shuffled StratifiedKFold.
+  - Still writes a secondary grouped CV check for conservative comparison.
+- `predict_curve_classifier.py`
+  - Works with combined model if `--pt`, `--case`, `--theta1`, `--theta2` are
+    supplied.
+
+Training command:
+
+```bash
+cd /Users/danlee/KyulAI_codex
+python3 -m src.ml.dd_laminate.train_curve_classifier \
+  --data-dir data/datasets/DD_curated_csv_v1 \
+  --output-dir models/dd_laminate_csv_meta_v1 \
+  --feature-set combined \
+  --cv-mode sample
+```
+
+Combined model outputs:
+
+- `/Users/danlee/KyulAI_codex/models/dd_laminate_csv_meta_v1/curve_classifier.joblib`
+- `/Users/danlee/KyulAI_codex/models/dd_laminate_csv_meta_v1/curve_features.csv`
+- `/Users/danlee/KyulAI_codex/models/dd_laminate_csv_meta_v1/permutation_importances.csv`
+- `/Users/danlee/KyulAI_codex/models/dd_laminate_csv_meta_v1/curve_classifier_metrics.json`
+- `/Users/danlee/KyulAI_codex/models/dd_laminate_csv_meta_v1/curve_classifier_report.md`
+
+Combined model result:
+
+- Selected model: HistGradientBoosting.
+- Primary sample CV:
+  - Accuracy: 0.9950 ± 0.0100.
+  - Macro F1: 0.9958 ± 0.0083.
+  - Confusion matrix:
+
+```text
+[[124   2   0]
+ [  0 234   0]
+ [  0   0  40]]
+```
+
+- Secondary conservative grouped CV:
+  - Best grouped model: RandomForest.
+  - Accuracy: 0.9675 ± 0.0367.
+  - Macro F1: 0.9738 ± 0.0264.
+
+Top permutation-importance features for the selected combined model:
+
+- `transition_x_ratio`
+- `post_slope_ratio`
+- `theta1`
+- `theta2`
+- `pt` and `case_id` had zero permutation importance in this trained model,
+  likely because the curve-shape features already explain almost all current
+  label variance.
+
+Single prediction smoke test:
+
+```bash
+python3 -m src.ml.dd_laminate.predict_curve_classifier \
+  data/datasets/DD_curated_csv_v1/Case4/csv_load/force_disp_Test_194.csv \
+  --model models/dd_laminate_csv_meta_v1/curve_classifier.joblib \
+  --pt 13037.617786195782 --case Case4 --test-id Test_194 \
+  --theta1 -29 --theta2 74
+```
+
+Result:
+
+- Predicted Type: 2.
+- Probabilities: Type1 0.0000, Type2 1.0000, Type3 0.0000.
+
+Important future note:
+
+- For a future Case5, if a raw force-displacement CSV and Pt are available,
+  this combined model can still make a shape-based Type prediction. However,
+  the current `case_id` encoding only knows Case3/Case4, so Case5 structural
+  generalization should eventually use a richer case/layup descriptor rather
+  than a simple integer ID.
+
+## DD Neural-Net Candidate Comparison
+
+User asked to try NN-family models and show them together with all existing
+models. Updated:
+
+- `/Users/danlee/KyulAI_codex/src/ml/dd_laminate/train_curve_classifier.py`
+  now includes two sklearn MLPClassifier candidates:
+  - `neural_net_mlp_adam`: `(64, 32)` hidden layers, Adam, early stopping.
+  - `neural_net_mlp_lbfgs`: `(48, 24)` hidden layers, LBFGS solver, better for
+    small tabular datasets.
+- Reports now list tree/SVC/HGB/NN candidates in the same table.
+- Final full-data candidate bundles are saved for every model:
+  `/Users/danlee/KyulAI_codex/models/dd_laminate_csv_meta_v1/candidate_models/`
+  - `extra_trees.joblib`
+  - `random_forest.joblib`
+  - `hist_gradient_boosting.joblib`
+  - `svc_rbf.joblib`
+  - `neural_net_mlp_adam.joblib`
+  - `neural_net_mlp_lbfgs.joblib`
+
+Primary sample CV results:
+
+| Model | Accuracy | Macro F1 | Weighted F1 |
+|---|---:|---:|---:|
+| hist_gradient_boosting | 0.9950 ± 0.0100 | 0.9958 ± 0.0083 | 0.9949 |
+| random_forest | 0.9925 ± 0.0100 | 0.9938 ± 0.0083 | 0.9924 |
+| extra_trees | 0.9800 ± 0.0061 | 0.9838 ± 0.0050 | 0.9801 |
+| neural_net_mlp_lbfgs | 0.9550 ± 0.0257 | 0.9576 ± 0.0226 | 0.9547 |
+| svc_rbf | 0.9575 ± 0.0127 | 0.9515 ± 0.0221 | 0.9582 |
+| neural_net_mlp_adam | 0.9425 ± 0.0232 | 0.9222 ± 0.0395 | 0.9411 |
+
+Secondary conservative grouped CV results:
+
+| Model | Accuracy | Macro F1 | Weighted F1 |
+|---|---:|---:|---:|
+| random_forest | 0.9675 ± 0.0367 | 0.9738 ± 0.0264 | 0.9674 |
+| hist_gradient_boosting | 0.9650 ± 0.0464 | 0.9710 ± 0.0328 | 0.9645 |
+| extra_trees | 0.9575 ± 0.0232 | 0.9640 ± 0.0151 | 0.9574 |
+| neural_net_mlp_lbfgs | 0.9475 ± 0.0200 | 0.9491 ± 0.0209 | 0.9481 |
+| svc_rbf | 0.9600 ± 0.0348 | 0.9448 ± 0.0614 | 0.9610 |
+| neural_net_mlp_adam | 0.9350 ± 0.0561 | 0.9228 ± 0.0683 | 0.9339 |
+
+Conclusion:
+
+- NN-family models work, especially `neural_net_mlp_lbfgs`, but they do not
+  beat HGB/RandomForest on this small tabular feature dataset.
+- Keep `hist_gradient_boosting` as the default production model for now.
+- Use `neural_net_mlp_lbfgs.joblib` as the best NN baseline if the user wants
+  to compare NN-specific behavior.
+
+NN prediction smoke test:
+
+```bash
+python3 -m src.ml.dd_laminate.predict_curve_classifier \
+  data/datasets/DD_curated_csv_v1/Case4/csv_load/force_disp_Test_194.csv \
+  --model models/dd_laminate_csv_meta_v1/candidate_models/neural_net_mlp_lbfgs.joblib \
+  --pt 13037.617786195782 --case Case4 --test-id Test_194 \
+  --theta1 -29 --theta2 74
+```
+
+Result: Predicted Type 2 with Type2 probability 1.0000.
+
+## Review of User's Old GointMLP Code
+
+User pointed to old deep-learning code:
+
+- `/Users/danlee/KyulAI_codex/extra/GointMLP-master`
+
+Important structure:
+
+- `Model/GointMLP.py`
+  - PyTorch Lightning module.
+  - Architecture: GRU over input sequence, then JointMLP output head.
+  - Multi-task output: regression value + CORAL ordinal classification logits.
+- `Model/JointmLP.py`
+  - `JointmLP` is an ensemble-like set of `SimpleMLP` branches.
+  - Uses Sparsemax inside branches.
+  - Uses `CoralLayer` for ordinal classification.
+- `Dataloader/data.py`
+  - Hard-coded for TDM medical columns:
+    `gender`, `age`, `Ht`, `Wt`, `interval`, `tdm_value`, `range`, etc.
+  - Not directly compatible with DD without a new adapter.
+- `Dataloader/dataModule.py`
+  - Variable-length sequence dataset with padding and mask.
+  - Good conceptual fit for force-displacement curves.
+- `Utils/losses.py`
+  - Regression losses plus CORAL ordinal classification loss.
+
+Dependency check in current environment:
+
+- `torch` installed: 2.2.2.
+- Missing: `pytorch_lightning`, `coral_pytorch`, `sparsemax`, `torchmetrics`.
+
+Assessment for DD laminate:
+
+- This is not a drop-in model for DD because the dataloader/schema is tied to
+  TDM data.
+- Conceptually it is a strong fit:
+  - Force-displacement CSV is naturally a sequence.
+  - GRU can learn curve evolution directly.
+  - Type 1 < Type 2 < Type 3 is ordinal, so CORAL is appropriate.
+  - Regression head could predict Pt or normalized transition/load if desired.
+- Recommended next implementation:
+  - Build a DD-specific GointMLP-inspired model in the main project rather than
+  trying to run the old repo as-is.
+  - Avoid extra dependencies at first by implementing a lightweight PyTorch
+    version: GRU encoder + MLP head + optional ordinal/CORAL-style loss.
+  - Inputs per timestep can include normalized displacement, normalized load,
+    theta1, theta2, Pt, case_id, and maybe step index.
+  - Output initially: Type 1/2/3 classification.
+  - Optional later: multi-task Type + Pt/transition regression.
+
+## DD GointMLP-Inspired Deep Sequence Model
+
+User approved adapting the old GointMLP idea to DD instead of running the old
+TDM code directly. Implemented a pure PyTorch version, avoiding missing
+dependencies (`pytorch_lightning`, `coral_pytorch`, `sparsemax`,
+`torchmetrics`):
+
+- `/Users/danlee/KyulAI_codex/src/ml/dd_laminate/deep_sequence.py`
+  - Loads DD samples from `transition_load.csv` + raw `csv_load` curves.
+  - Resamples each force-displacement curve to a fixed sequence.
+  - Per-timestep features:
+    `displacement_norm`, `load_norm`, `step_norm`, `theta1/90`, `theta2/90`,
+    `pt/pt_scale`, `case_id`, `load/pt`.
+  - Model: bidirectional GRU encoder + JointMLP-style multi-branch MLP head.
+  - Outputs class logits plus auxiliary ordinal logits.
+  - Loss: cross entropy + CORAL-style ordinal BCE auxiliary loss.
+- `/Users/danlee/KyulAI_codex/src/ml/dd_laminate/train_deep_sequence_classifier.py`
+  - Trains/evaluates the DD Goint sequence classifier.
+  - Supports sample/grouped CV, CPU/MPS/CUDA selection.
+  - MPS GRU was very slow in this environment; CPU was used.
+- `/Users/danlee/KyulAI_codex/src/ml/dd_laminate/predict_deep_sequence_classifier.py`
+  - Single raw CSV prediction helper.
+
+Primary sample-CV training command:
+
+```bash
+cd /Users/danlee/KyulAI_codex
+python3 -m src.ml.dd_laminate.train_deep_sequence_classifier \
+  --data-dir data/datasets/DD_curated_csv_v1 \
+  --output-dir models/dd_laminate_deep_sequence_v1 \
+  --cv-mode sample \
+  --seq-len 128 \
+  --device cpu
+```
+
+Sample-CV outputs:
+
+- `/Users/danlee/KyulAI_codex/models/dd_laminate_deep_sequence_v1/dd_goint_sequence.pt`
+- `/Users/danlee/KyulAI_codex/models/dd_laminate_deep_sequence_v1/deep_sequence_report.md`
+- `/Users/danlee/KyulAI_codex/models/dd_laminate_deep_sequence_v1/deep_sequence_metrics.json`
+- `/Users/danlee/KyulAI_codex/models/dd_laminate_deep_sequence_v1/oof_predictions.csv`
+
+Sample-CV result:
+
+- Accuracy: 0.9775 ± 0.0094.
+- Macro F1: 0.9819 ± 0.0075.
+- Confusion matrix rows true / columns predicted `[Type1, Type2, Type3]`:
+
+```text
+[[125   1   0]
+ [  8 226   0]
+ [  0   0  40]]
+```
+
+Grouped-CV command:
+
+```bash
+python3 -m src.ml.dd_laminate.train_deep_sequence_classifier \
+  --data-dir data/datasets/DD_curated_csv_v1 \
+  --output-dir models/dd_laminate_deep_sequence_grouped_v1 \
+  --cv-mode grouped \
+  --seq-len 128 \
+  --device cpu
+```
+
+Grouped-CV outputs:
+
+- `/Users/danlee/KyulAI_codex/models/dd_laminate_deep_sequence_grouped_v1/dd_goint_sequence.pt`
+- `/Users/danlee/KyulAI_codex/models/dd_laminate_deep_sequence_grouped_v1/deep_sequence_report.md`
+- `/Users/danlee/KyulAI_codex/models/dd_laminate_deep_sequence_grouped_v1/deep_sequence_metrics.json`
+- `/Users/danlee/KyulAI_codex/models/dd_laminate_deep_sequence_grouped_v1/oof_predictions.csv`
+
+Grouped-CV result:
+
+- Accuracy: 0.9800.
+- Macro F1: 0.9840.
+- Confusion matrix:
+
+```text
+[[126   0   0]
+ [  8 226   0]
+ [  0   0  40]]
+```
+
+Single deep prediction smoke test:
+
+```bash
+python3 -m src.ml.dd_laminate.predict_deep_sequence_classifier \
+  data/datasets/DD_curated_csv_v1/Case4/csv_load/force_disp_Test_194.csv \
+  --model models/dd_laminate_deep_sequence_v1/dd_goint_sequence.pt \
+  --pt 13037.617786195782 \
+  --case Case4 \
+  --test-id Test_194 \
+  --theta1 -29 \
+  --theta2 74 \
+  --device cpu
+```
+
+Result:
+
+- Predicted Type: 2.
+- Softmax probabilities: Type1 0.0012, Type2 0.9985, Type3 0.0003.
+- Ordinal probabilities:
+  - `P(type > 1)`: 0.9963.
+  - `P(type > 2)`: 0.0021.
+
+Comparison note:
+
+- HGB remains the strongest feature-engineered production model:
+  sample macro F1 0.9958.
+- The DD Goint sequence model is the strongest true deep-learning curve model so
+  far and clearly beats the sklearn MLP baselines:
+  sample macro F1 0.9819, grouped macro F1 0.9840.
+- This is now a credible "deep learning" approach because it reads the raw
+  curve sequence directly rather than only engineered curve statistics.
+
+## DD Theta-Only Type Predictor
+
+User asked for a much harder pre-Abaqus model that predicts Type using only
+`theta1` and `theta2`, without Pt or force-displacement curves.
+
+Important data issue:
+
+- Case3 and Case4 share 200 identical theta pairs.
+- There are 2 theta pairs with conflicting curated labels:
+  - `(73, -45)`: Case3/Test_078 Type2, Case4/Test_078 Type1.
+  - `(-52, 62)`: Case3/Test_152 Type2, Case4/Test_152 Type1.
+- Therefore, theta-only prediction is intrinsically ambiguous for these pairs.
+
+Implemented:
+
+- `/Users/danlee/KyulAI_codex/src/ml/dd_laminate/train_theta_classifier.py`
+- `/Users/danlee/KyulAI_codex/src/ml/dd_laminate/predict_theta_classifier.py`
+
+Training command:
+
+```bash
+cd /Users/danlee/KyulAI_codex
+python3 -m src.ml.dd_laminate.train_theta_classifier \
+  --data-dir data/datasets/DD_curated_csv_v1 \
+  --output-dir models/dd_laminate_theta_v1
+```
+
+Outputs:
+
+- `/Users/danlee/KyulAI_codex/models/dd_laminate_theta_v1/theta_classifier.joblib`
+- `/Users/danlee/KyulAI_codex/models/dd_laminate_theta_v1/theta_classifier_report.md`
+- `/Users/danlee/KyulAI_codex/models/dd_laminate_theta_v1/theta_classifier_metrics.json`
+- `/Users/danlee/KyulAI_codex/models/dd_laminate_theta_v1/theta_training_rows.csv`
+- `/Users/danlee/KyulAI_codex/models/dd_laminate_theta_v1/theta_label_conflicts.csv`
+- Candidate model bundles:
+  `/Users/danlee/KyulAI_codex/models/dd_laminate_theta_v1/candidate_models/`
+
+Primary sample CV results:
+
+| Model | Accuracy | Macro F1 | Weighted F1 |
+|---|---:|---:|---:|
+| extra_trees | 0.9600 ± 0.0184 | 0.9675 ± 0.0151 | 0.9600 |
+| neural_net_mlp_lbfgs | 0.9600 ± 0.0200 | 0.9667 ± 0.0172 | 0.9596 |
+| hist_gradient_boosting | 0.9650 ± 0.0122 | 0.9644 ± 0.0213 | 0.9646 |
+| random_forest | 0.9575 ± 0.0170 | 0.9626 ± 0.0179 | 0.9574 |
+| neural_net_mlp_adam | 0.9225 ± 0.0527 | 0.9198 ± 0.0534 | 0.9217 |
+| svc_rbf | 0.8850 ± 0.0483 | 0.8758 ± 0.0587 | 0.8866 |
+
+Secondary grouped CV results, better for unseen theta pairs:
+
+| Model | Accuracy | Macro F1 | Weighted F1 |
+|---|---:|---:|---:|
+| neural_net_mlp_adam | 0.9150 ± 0.0496 | 0.9188 ± 0.0522 | 0.9141 |
+| neural_net_mlp_lbfgs | 0.8900 ± 0.0215 | 0.8807 ± 0.0507 | 0.8892 |
+| random_forest | 0.9100 ± 0.0457 | 0.8730 ± 0.0731 | 0.9091 |
+| extra_trees | 0.8900 ± 0.0184 | 0.8705 ± 0.0449 | 0.8874 |
+| svc_rbf | 0.8800 ± 0.0615 | 0.8570 ± 0.0908 | 0.8824 |
+| hist_gradient_boosting | 0.8900 ± 0.0629 | 0.8313 ± 0.0793 | 0.8879 |
+
+Default saved model:
+
+- `theta_classifier.joblib` uses `extra_trees`, selected from primary sample CV.
+- For unseen theta generalization, also consider:
+  `candidate_models/neural_net_mlp_adam.joblib`, which had the best grouped CV.
+
+Smoke tests:
+
+```bash
+python3 -m src.ml.dd_laminate.predict_theta_classifier \
+  --theta1 -29 --theta2 74 \
+  --model models/dd_laminate_theta_v1/theta_classifier.joblib
+```
+
+Result: Predicted Type2 with probability 1.0000.
+
+```bash
+python3 -m src.ml.dd_laminate.predict_theta_classifier \
+  --theta1 73 --theta2 -45 \
+  --model models/dd_laminate_theta_v1/theta_classifier.joblib
+```
+
+Result: Predicted Type1 with probabilities Type1 0.6500, Type2 0.3500,
+showing useful uncertainty for an intrinsically conflicting theta pair.
+
+Interpretation:
+
+- Theta-only is feasible and surprisingly strong, but it is less reliable than
+  models that see Pt/curve data.
+- Use it as a pre-Abaqus screening surrogate, not final classification.
+- For top candidates, run Abaqus and then use the curve/deep-sequence model for
+  final Type classification.
+
+## DD Theta-Only GointMLP-Inspired Model
+
+User asked whether the GointMLP idea can also be applied to theta-only
+prediction. Since theta-only input has no sequence, a GRU is not meaningful
+there. Implemented a GointMLP-inspired theta model using the JointMLP part:
+
+- Multi-branch MLP head.
+- Auxiliary ordinal loss, mirroring the CORAL idea.
+- Input only: `theta1/90`, `theta2/90`.
+- No case, Pt, or force-displacement curve data.
+
+Implemented:
+
+- `/Users/danlee/KyulAI_codex/src/ml/dd_laminate/theta_deep.py`
+- `/Users/danlee/KyulAI_codex/src/ml/dd_laminate/train_theta_deep_classifier.py`
+- `/Users/danlee/KyulAI_codex/src/ml/dd_laminate/predict_theta_deep_classifier.py`
+
+Sample CV command:
+
+```bash
+cd /Users/danlee/KyulAI_codex
+python3 -m src.ml.dd_laminate.train_theta_deep_classifier \
+  --data-dir data/datasets/DD_curated_csv_v1 \
+  --output-dir models/dd_laminate_theta_goint_v1 \
+  --cv-mode sample \
+  --device cpu
+```
+
+Sample CV result:
+
+- Accuracy: 0.9450 ± 0.0257.
+- Macro F1: 0.9512 ± 0.0241.
+- Confusion matrix:
+
+```text
+[[123   3   0]
+ [ 17 215   2]
+ [  0   0  40]]
+```
+
+Grouped CV command:
+
+```bash
+python3 -m src.ml.dd_laminate.train_theta_deep_classifier \
+  --data-dir data/datasets/DD_curated_csv_v1 \
+  --output-dir models/dd_laminate_theta_goint_grouped_v1 \
+  --cv-mode grouped \
+  --device cpu
+```
+
+Grouped CV result:
+
+- Accuracy: 0.9050 ± 0.0595.
+- Macro F1: 0.8989 ± 0.0758.
+- Confusion matrix:
+
+```text
+[[118   8   0]
+ [ 24 204   6]
+ [  0   0  40]]
+```
+
+Outputs:
+
+- `/Users/danlee/KyulAI_codex/models/dd_laminate_theta_goint_v1/theta_goint.pt`
+- `/Users/danlee/KyulAI_codex/models/dd_laminate_theta_goint_v1/theta_goint_report.md`
+- `/Users/danlee/KyulAI_codex/models/dd_laminate_theta_goint_grouped_v1/theta_goint.pt`
+- `/Users/danlee/KyulAI_codex/models/dd_laminate_theta_goint_grouped_v1/theta_goint_report.md`
+
+Prediction examples:
+
+```bash
+python3 -m src.ml.dd_laminate.predict_theta_deep_classifier \
+  --theta1 -29 --theta2 74 \
+  --model models/dd_laminate_theta_goint_v1/theta_goint.pt \
+  --device cpu
+```
+
+Result: Type2 with probabilities Type1 0.0555, Type2 0.9444, Type3 0.0000.
+
+```bash
+python3 -m src.ml.dd_laminate.predict_theta_deep_classifier \
+  --theta1 73 --theta2 -45 \
+  --model models/dd_laminate_theta_goint_v1/theta_goint.pt \
+  --device cpu
+```
+
+Result: Type1 with probabilities Type1 0.9352, Type2 0.0648, Type3 0.0000.
+
+Interpretation:
+
+- Goint-style theta-only works, but it does not beat the best classical
+  theta-only model on sample CV.
+- It is comparable to theta-only sklearn MLP baselines.
+- The full curve-sequence Goint model is the better place to use the GointMLP
+  idea because it can exploit the actual force-displacement sequence.
+
+## Unified DD Summary Document
+
+User asked for one consolidated summary because many model results had
+accumulated. Created:
+
+- `/Users/danlee/KyulAI_codex/docs/DD_Laminate_AI_Current_Summary.md`
+
+The document summarizes:
+
+- Current DD research goal and case definitions.
+- Curated dataset and label counts.
+- CSV/curve HGB classifier.
+- GointMLP-inspired deep sequence classifier.
+- Theta-only predictor.
+- Theta-only GointMLP-style deep predictor.
+- Which model to use in each situation.
+- Key caveats and important file paths.
+
+## DD UI/API Live Test Update
+
+In `/Users/danlee/KyulAI_codex`, a first local DD predictor UI/API slice was
+added and then live-tested.
+
+Backend files:
+
+- `/Users/danlee/KyulAI_codex/src/backend/api/v1/dd_laminate.py`
+- `/Users/danlee/KyulAI_codex/src/backend/dd_laminate_app.py`
+
+Frontend folder:
+
+- `/Users/danlee/KyulAI_codex/src/frontend/dd-laminate`
 
 Minimal runtime packages were installed into `/Users/danlee/KyulAI_codex/.venv`
 for classical API testing:
@@ -868,9 +1866,524 @@ Caveat:
   mechanics proof. To prove mechanism, inspect Abaqus mode shapes, post-kink
   curvature, strain energy, and controlled angle sweeps.
 
-## Next Good Steps
+## 2026-04-30 Cloudflare Tunnel Access
 
-1. Test theta-only predictions from the browser.
-2. Test CSV upload with a known Case3/Case4 sample and Pt.
-3. Install Torch if Goint/deep models should be testable from the UI now.
-4. Later, migrate the static UI into the documented Next.js frontend stack if the project needs a full web app.
+User asked to make the DD Laminate app accessible from outside the local
+network through Cloudflare.
+
+Implemented:
+
+- Updated `src/backend/dd_laminate_app.py` so the standalone FastAPI app serves
+  the static DD frontend at `/` while keeping API routes under `/api/v1`.
+- Updated `src/frontend/dd-laminate/app.js`:
+  - If running from local dev server port `3000`, keep using
+    `http://<host>:8000/api/v1/dd-laminate`.
+  - Otherwise use same-origin API:
+    `${window.location.origin}/api/v1/dd-laminate`.
+- Updated `src/frontend/dd-laminate/index.html` cache-bust query to
+  `v=20260430-cloudflare`.
+
+Runtime state:
+
+- Uvicorn is running at `http://127.0.0.1:8000`.
+- Cloudflare quick tunnel is running to that local server.
+- Current public test URL:
+  `https://command-newbie-scholarship-sofa.trycloudflare.com`
+
+Verification:
+
+- `PYTHONPYCACHEPREFIX=/tmp/kyulai_pycache python3 -m py_compile` passed for
+  DD backend files.
+- `node --check src/frontend/dd-laminate/app.js` passed.
+- Local checks passed:
+  - `http://127.0.0.1:8000/health`
+  - `http://127.0.0.1:8000/`
+  - `http://127.0.0.1:8000/api/v1/dd-laminate/models`
+- Cloudflare checks passed:
+  - Public URL returns the DD UI HTML.
+  - Public `/api/v1/dd-laminate/models` returns model metadata.
+  - Public theta prediction smoke:
+    `theta1=-29`, `theta2=74`, `Case4`, `theta_classical`
+    -> Type 2, confidence `0.999863`.
+
+Notes:
+
+- This is an account-less Cloudflare quick tunnel. It is temporary and only
+  works while both the local Uvicorn process and `cloudflared` process are
+  running.
+- For a stable URL, set up a named Cloudflare Tunnel under a Cloudflare account
+  and route a custom domain/subdomain.
+
+## 2026-04-30 Named Cloudflare Tunnel Attempt
+
+User asked whether DD and Injection can be exposed simultaneously through a
+stable Cloudflare setup and requested the stable approach.
+
+Findings:
+
+- Both apps can be exposed at the same time.
+- Best stable approach:
+  - One Cloudflare named tunnel.
+  - One public hostname, with paths such as `/dd` and `/injection`, or separate
+    hostnames such as `dd.example.com` and `injection.example.com`.
+  - Local routing can be one unified FastAPI app or Cloudflare ingress rules
+    pointing to multiple local services.
+- Current checked-out branch has DD app files, but Simple Injection app files
+  are not present in this branch because the branch contains the revert commit
+  `2cc9e1f Revert "Add Simple Injection predictor app"`.
+- Simple Injection still exists in another local worktree:
+  `/private/tmp/kyulai-simple-injection`
+
+Cloudflare status:
+
+- `cloudflared` is installed at `/opt/homebrew/bin/cloudflared`.
+- `cloudflared tunnel list` failed because no Cloudflare origin certificate
+  exists locally.
+- Ran `cloudflared tunnel login`; it opened/printed the Cloudflare login URL and
+  waited for account/domain login.
+- Login was not completed during the turn, so the waiting process was stopped.
+
+Code prepared before the login blocker:
+
+- `src/backend/dd_laminate_app.py` now serves the DD static UI at `/`, while
+  keeping DD API under `/api/v1`.
+- `src/frontend/dd-laminate/app.js` now uses same-origin API unless it is being
+  served by the legacy local dev server on port `3000`.
+- `src/frontend/dd-laminate/index.html` cache-bust query updated to
+  `v=20260430-cloudflare`.
+
+Verified:
+
+- Local unified DD server:
+  - `http://127.0.0.1:8000/health`
+  - `http://127.0.0.1:8000/`
+  - `http://127.0.0.1:8000/api/v1/dd-laminate/models`
+- Existing quick tunnel also verified:
+  `https://command-newbie-scholarship-sofa.trycloudflare.com`
+
+Blocker to finish stable named tunnel:
+
+- User must log in to Cloudflare and select a Cloudflare-managed domain/zone.
+- Need target hostname choice, for example:
+  - `dd.<domain>` only for DD, or
+  - `apps.<domain>/dd` and `apps.<domain>/injection`, or
+  - `dd.<domain>` + `injection.<domain>`.
+
+## 2026-04-30 Domain Choice for Cloudflare
+
+User decided not to use `kcompositelab.com` for the first Cloudflare setup
+because it already has email-related DNS records and changing nameservers feels
+risky.
+
+Current direction:
+
+- Use `cafedecafe.co.kr` instead as the Cloudflare-connected domain.
+- Once Cloudflare shows `cafedecafe.co.kr` as active, continue named tunnel
+  setup from the existing DD unified server on port `8000`.
+- Suggested first hostname remains:
+  `dd.cafedecafe.co.kr`
+- If Injection is restored later, suggested second hostname:
+  `injection.cafedecafe.co.kr`
+
+Important DNS reminder:
+
+- If `cafedecafe.co.kr` also has email, preserve MX/TXT/SPF/DKIM/DMARC records
+  when moving DNS to Cloudflare.
+- If it is only for testing, the setup is much simpler: point the domain's
+  nameservers to Cloudflare, wait until active, then create a named tunnel and
+  route `dd.cafedecafe.co.kr`.
+
+## 2026-04-30 `dd.cafedecafe.co.kr` Named Tunnel Live
+
+Cloudflare DNS delegation for `cafedecafe.co.kr` was verified locally:
+
+- `perla.ns.cloudflare.com`
+- `sterling.ns.cloudflare.com`
+
+Cloudflare tunnel login completed successfully. Origin certificate saved by
+Cloudflare to:
+
+- `/Users/danlee/.cloudflared/cert.pem`
+
+Created named tunnel:
+
+- Name: `kclab-composite-ai`
+- ID: `02b4b689-84ef-4459-91cd-48c81ea549ae`
+- Credentials file:
+  `/Users/danlee/.cloudflared/02b4b689-84ef-4459-91cd-48c81ea549ae.json`
+
+Created DNS route:
+
+- `dd.cafedecafe.co.kr` -> `kclab-composite-ai`
+
+Local config file created:
+
+- `infrastructure/cloudflare/kclab-composite-ai.yml`
+
+Runtime state:
+
+- DD FastAPI server running from `/Users/danlee/KyulAI_codex` on
+  `127.0.0.1:8000`.
+- Named Cloudflare Tunnel running with the config above.
+
+Verified public URL:
+
+- `https://dd.cafedecafe.co.kr/` returns the DD UI.
+- `https://dd.cafedecafe.co.kr/api/v1/dd-laminate/models` returns model
+  metadata.
+- Public theta prediction smoke passed:
+  `theta1=-29`, `theta2=74`, `case=Case4`, `model=theta_classical`
+  -> Type 2, confidence `0.999863`.
+
+## 2026-04-30 `injection.cafedecafe.co.kr` Added
+
+User requested exposing the Simple Injection app the same way as DD.
+
+Simple Injection source/runtime location:
+
+- `/private/tmp/kyulai-simple-injection`
+
+Started Simple Injection FastAPI server:
+
+- App: `src.backend.simple_injection_app:app`
+- Host/port: `127.0.0.1:8010`
+- Command:
+  `/Users/danlee/KyulAI_codex/.venv/bin/uvicorn src.backend.simple_injection_app:app --host 127.0.0.1 --port 8010`
+
+Cloudflare route added:
+
+- `injection.cafedecafe.co.kr` -> existing tunnel `kclab-composite-ai`
+
+Cloudflare config updated:
+
+- `infrastructure/cloudflare/kclab-composite-ai.yml`
+- Ingress now routes:
+  - `dd.cafedecafe.co.kr` -> `http://127.0.0.1:8000`
+  - `injection.cafedecafe.co.kr` -> `http://127.0.0.1:8010`
+
+Restarted named tunnel with updated config:
+
+- `/opt/homebrew/bin/cloudflared --config /Users/danlee/KyulAI_codex/infrastructure/cloudflare/kclab-composite-ai.yml tunnel run kclab-composite-ai`
+
+Verification:
+
+- Local Injection health and model metadata passed:
+  - `http://127.0.0.1:8010/health`
+  - `http://127.0.0.1:8010/api/v1/simple-injection/models`
+- Public routing was verified by forcing a Cloudflare IP with curl because local
+  DNS cache had not yet caught up:
+  - `https://injection.cafedecafe.co.kr/` returns the Korean Injection UI.
+  - `https://injection.cafedecafe.co.kr/api/v1/simple-injection/models`
+    returns model metadata.
+  - Public sprue-pressure prediction smoke passed for `G01` + `P01` using
+    `sprue_classical`, returning max pressure about `69 MPa`.
+
+Note:
+
+- Normal browser DNS may need a few minutes after route creation.
+
+## 2026-04-30 DD Korean Page Added
+
+User requested that DD have a Korean page like Simple Injection.
+
+Implemented in `/Users/danlee/KyulAI_codex`:
+
+- Added `src/frontend/dd-laminate/index.ko.html`.
+- Kept `src/frontend/dd-laminate/index.html` as the English page.
+- Added language switch links:
+  - Korean page links to `index.html` as `English`.
+  - English page links to `index.ko.html` as `한국어`.
+- Updated `src/backend/dd_laminate_app.py` so root `/` serves
+  `index.ko.html`.
+- Added convenience routes:
+  - `/dd-laminate-ko`
+  - `/dd-laminate-en`
+- Updated `src/frontend/dd-laminate/app.js` so dynamic UI text follows
+  `document.documentElement.lang`:
+  - API status
+  - loading text
+  - model labels
+  - notes
+  - CSV preview errors
+  - empty chart labels
+- Added `.top-actions` and `.language-link` styles to
+  `src/frontend/dd-laminate/styles.css`.
+
+Verification:
+
+- `node --check src/frontend/dd-laminate/app.js` passed.
+- `PYTHONPYCACHEPREFIX=/tmp/kyulai_pycache python3 -m py_compile
+  src/backend/dd_laminate_app.py` passed.
+- Restarted DD server on `127.0.0.1:8000`.
+- Local `/` returns Korean DD page.
+- Public `https://dd.cafedecafe.co.kr/` returned Korean DD page after restart.
+
+## 2026-04-30 Default Language Policy Updated
+
+User requested that both DD and Injection should default to English when the
+base URL is typed directly. Korean pages should be reached through the language
+button on the right side. Follow this convention for future UI work.
+
+Implemented:
+
+- DD:
+  - `/` now serves `src/frontend/dd-laminate/index.html` (English).
+  - Korean page remains at `index.ko.html` and via the `한국어` button.
+  - `/dd-laminate-ko` and `/dd-laminate-en` remain available.
+- Injection:
+  - `/` now serves `src/frontend/simple-injection/index.html` (English).
+  - Removed the root redirect to `/simple-injection/index.ko.html`.
+  - Added root static serving so `/styles.css`, `/app.js`, and
+    `/index.ko.html` work when the app is opened at
+    `https://injection.cafedecafe.co.kr/`.
+  - Legacy `/simple-injection` path still works, but it is no longer the URL
+    users need to type.
+
+Verification:
+
+- DD local `/` returns English page.
+- DD local `/index.ko.html` returns Korean page.
+- Injection local `/` returns English page with no redirect.
+- Injection local `/styles.css` returns CSS successfully.
+- Cloudflare routing verified with direct Cloudflare IP resolution:
+  - `https://dd.cafedecafe.co.kr/` returns English page.
+  - `https://dd.cafedecafe.co.kr/index.ko.html` returns Korean page.
+  - `https://injection.cafedecafe.co.kr/` returns English page.
+  - `https://injection.cafedecafe.co.kr/styles.css` returns CSS.
+
+Note:
+
+- Local DNS lookup was intermittently stale/NXDOMAIN for
+  `dd.cafedecafe.co.kr`, but `cloudflared tunnel route dns --overwrite-dns`
+  confirmed the DD hostname is already routed to the named tunnel.
+
+## 2026-04-30 Public App Connection Recheck
+
+User reported the public connection seemed disconnected and asked to reconnect.
+
+Checked runtime state:
+
+- DD server still listening on `127.0.0.1:8000`.
+- Injection server still listening on `127.0.0.1:8010`.
+- Cloudflare tunnel still listening on metrics port `127.0.0.1:20241`.
+
+Health checks:
+
+- `http://127.0.0.1:8000/health` -> `{"status":"ok"}`
+- `http://127.0.0.1:8010/health` -> `{"status":"ok"}`
+
+Public checks:
+
+- `https://dd.cafedecafe.co.kr/` -> HTTP 200.
+- `https://injection.cafedecafe.co.kr/` -> HTTP 200.
+
+Conclusion:
+
+- No restart was needed. Public tunnel and both local apps were still connected.
+
+## 2026-04-30 DD Laminate Reference Image Added
+
+User requested adding a DD laminate structure image like the Simple Injection
+shape reference, based on an attached Abaqus ply stack screenshot.
+
+Implemented:
+
+- Added DD image asset:
+  `src/frontend/dd-laminate/assets/dd-ply-stack.svg`
+- Added a reference panel to both DD pages:
+  - English: `Laminate Reference` / `Double-Double ply stack`
+  - Korean: `적층 구조 참고` / `Double-Double ply stack`
+- Updated DD layout to show three panels by default:
+  - input
+  - laminate reference image
+  - result
+- Updated JS so the laminate reference panel hides in `Curve CSV` mode, where
+  the CSV preview panel needs the middle column.
+
+Verification:
+
+- `node --check src/frontend/dd-laminate/app.js` passed.
+- Local DD English and Korean pages include the new reference panel.
+- Local asset `/assets/dd-ply-stack.svg` returns HTTP 200 as `image/svg+xml`.
+- Public DD page includes the new reference image.
+- Public asset `https://dd.cafedecafe.co.kr/assets/dd-ply-stack.svg` returns
+  HTTP 200 as `image/svg+xml`.
+
+## 2026-05-07 Telegram Control Question
+
+User asked whether they can message the Telegram bot to talk to Codex or assign
+work through Telegram.
+
+Current implementation status:
+
+- `scripts/agent-bus.py` supports local append-only agent messages/tasks.
+- `scripts/telegram-bridge.py` is currently an observer bridge:
+  - watches `.agent-bus/messages.jsonl` and `.agent-bus/tasks.jsonl`
+  - forwards new events to Telegram with `sendMessage`
+- The current bridge does not poll Telegram `getUpdates` for inbound user
+  messages and does not convert Telegram messages into agent-bus tasks.
+
+Answer:
+
+- Agent-to-agent messages can be observed in Telegram.
+- User-to-Codex or user-to-agent control from Telegram is not available yet.
+- It can be implemented by adding an inbound Telegram listener that:
+  - polls `getUpdates` or uses a webhook
+  - only accepts allowlisted `TELEGRAM_CHAT_ID`
+  - parses commands such as `/task`, `/msg`, `/status`
+  - writes accepted commands into `.agent-bus/`
+  - sends acknowledgements back to Telegram
+
+Important caveat:
+
+- Even with inbound Telegram commands, Codex itself will not automatically wake
+  and execute arbitrary work unless a local runner/agent process is also
+  running to read the bus and act on those tasks.
+
+## 2026-05-07 Slack Outbound Bridge Setup
+
+User asked to proceed step by step with Slack integration.
+
+Implemented first phase: Slack outbound observer bridge.
+
+Files added/restored in `/Users/danlee/KyulAI_codex`:
+
+- `scripts/agent-bus.py`
+  - Restored from the Codex worktree.
+  - Supports local `.agent-bus/` messages/tasks and `--notify slack`.
+- `scripts/slack-bridge.py`
+  - New observer bridge.
+  - Watches `.agent-bus/messages.jsonl` and `.agent-bus/tasks.jsonl`.
+  - Sends new events to Slack through `SLACK_WEBHOOK_URL`.
+  - Supports `--send-test`, `--dry-run`, `--once`, `--since beginning`, and
+    `--reset-state`.
+- `docs/architecture/agent-communication.md`
+  - Documents local bus, Slack outbound bridge, and future inbound slash
+    command plan.
+- `.gitignore`
+  - Added `.agent-bus/`.
+
+Verification:
+
+- `PYTHONPYCACHEPREFIX=/tmp/kyulai_pycache python3 -m py_compile
+  scripts/agent-bus.py scripts/slack-bridge.py` passed.
+- `python3 scripts/slack-bridge.py --send-test --dry-run` passed.
+- Created a test bus message with `python3 scripts/agent-bus.py post ...`.
+- `python3 scripts/slack-bridge.py --once --since beginning --reset-state
+  --dry-run` printed the formatted Slack message.
+
+Next user action:
+
+- Create a Slack App.
+- Enable Incoming Webhooks.
+- Add webhook to the desired Slack channel.
+- Export `SLACK_WEBHOOK_URL`.
+- Then run:
+  `python3 scripts/slack-bridge.py --send-test`
+  and if successful:
+  `python3 scripts/slack-bridge.py`.
+
+Future phase:
+
+- Add Slack inbound Slash Commands such as `/kyulai task`, `/kyulai msg`, and
+  `/kyulai status` if the user wants Slack-to-agent control.
+
+## 2026-05-07 Slack Webhook Connected
+
+User provided a Slack Incoming Webhook URL and asked Codex to run the terminal
+setup directly.
+
+Actions:
+
+- Ran `scripts/slack-bridge.py --send-test` with `SLACK_WEBHOOK_URL` set only
+  in the process environment.
+- Test message command exited successfully.
+- Started live Slack bridge:
+  `python3 scripts/slack-bridge.py`
+- Live bridge is running in Codex exec session `13842`.
+- Posted a live agent-bus test message:
+  - from: `orchestrator`
+  - to: `all`
+  - topic: `slack`
+  - subject: `Slack live bridge connected`
+
+Security note:
+
+- The Slack webhook URL was not written to project files or session memory.
+- It was only used as a process environment variable for the test and live
+  bridge command.
+
+## 2026-05-07 Slack Inbound Slash Command Implemented
+
+User asked to make Slack command control.
+
+Implemented:
+
+- Added `src/backend/api/v1/slack_commands.py`.
+- Included the router in `src/backend/dd_laminate_app.py`.
+- Public endpoint when DD server is restarted with the new code:
+  `POST https://dd.cafedecafe.co.kr/slack/commands`
+- Intended Slack Slash Command:
+  `/kyulai`
+
+Supported command text:
+
+- `help`
+- `status`
+- `task <work request>`
+- `msg <agent> <message>`
+
+Security:
+
+- Endpoint verifies Slack request signatures using `SLACK_SIGNING_SECRET`.
+- Verifies timestamp freshness to reduce replay risk.
+- Optional allowlist:
+  `SLACK_ALLOWED_USER_IDS="U123,U456"`.
+- Local-only bypass exists as `SLACK_ALLOW_UNSIGNED_COMMANDS=1`, but this
+  should not be used for public operation.
+
+Verification:
+
+- `PYTHONPYCACHEPREFIX=/tmp/kyulai_pycache python3 -m py_compile
+  src/backend/api/v1/slack_commands.py src/backend/dd_laminate_app.py` passed.
+- FastAPI TestClient with `SLACK_ALLOW_UNSIGNED_COMMANDS=1` passed for:
+  - `help`
+  - `status`
+  - `task Check Slack inbound command wiring`
+- Test task created:
+  `task_1778134243_e20b6ed6`
+
+Next user action:
+
+- In Slack App -> Basic Information, copy the Signing Secret.
+- Configure Slash Command:
+  - Command: `/kyulai`
+  - Request URL: `https://dd.cafedecafe.co.kr/slack/commands`
+  - Short description: `Send tasks and status requests to KyulAI`
+  - Usage hint: `task <request> | status | msg <agent> <message>`
+- Restart DD server with:
+  `SLACK_SIGNING_SECRET` set in the process environment.
+
+Follow-up:
+
+- User provided the Slack Signing Secret.
+- DD server was restarted with `SLACK_SIGNING_SECRET` set only as a process
+  environment variable.
+- New DD server process:
+  - PID shown by uvicorn startup: `42221`
+  - listening on `127.0.0.1:8000`
+- Local signed Slack request test passed:
+  - `POST http://127.0.0.1:8000/slack/commands`
+  - text: `status`
+  - response: HTTP 200 with KyulAI status.
+- Public signed Slack request test passed:
+  - `POST https://dd.cafedecafe.co.kr/slack/commands`
+  - text: `help`
+  - response: HTTP 200 with command help.
+
+Operational note:
+
+- The Signing Secret value is intentionally not recorded in this file.
+- If DD server is restarted later, it must be started again with
+  `SLACK_SIGNING_SECRET` in the environment or Slack Slash Commands will return
+  service unavailable.

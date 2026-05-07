@@ -29,6 +29,9 @@ out/
 .env.local
 .env.*.local
 
+# Local agent runtime
+.agent-bus/
+
 # IDE
 .vscode/
 .idea/

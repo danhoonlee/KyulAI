@@ -9,8 +9,15 @@ used immediately on a local machine.
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
 from src.backend.api.v1.dd_laminate import router as dd_laminate_router
+from src.backend.api.v1.slack_commands import router as slack_commands_router
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+FRONTEND_DIR = PROJECT_ROOT / "src" / "frontend" / "dd-laminate"
 
 app = FastAPI(
     title="KyulAI DD Laminate API",
@@ -28,8 +35,28 @@ app.add_middleware(
 )
 
 app.include_router(dd_laminate_router, prefix="/api/v1")
+app.include_router(slack_commands_router)
 
 
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/")
+async def root() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "index.html")
+
+
+@app.get("/dd-laminate-ko")
+async def dd_laminate_ko() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "index.ko.html")
+
+
+@app.get("/dd-laminate-en")
+async def dd_laminate_en() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "index.html")
+
+
+if FRONTEND_DIR.exists():
+    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="dd-laminate-ui")

@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="ko">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>KCLab Composite AI DD Laminate Predictor</title>
+    <title>KCLab Composite AI DD 적층 예측기</title>
     <link rel="stylesheet" href="./styles.css?v=20260430-ko-page" />
   </head>
   <body>
@@ -12,37 +12,37 @@
         <header class="topbar">
           <div>
             <p class="eyebrow">KCLab Composite AI</p>
-            <h1 id="app-title">DD Laminate Type Predictor</h1>
+            <h1 id="app-title">DD 적층 Type 예측기</h1>
           </div>
           <div class="top-actions">
-            <a class="language-link" href="./index.ko.html">한국어</a>
-            <div class="status-pill" id="api-status">API: checking</div>
+            <a class="language-link" href="./index.html">English</a>
+            <div class="status-pill" id="api-status">API: 확인 중</div>
           </div>
         </header>
 
-        <section class="intro-panel" aria-label="Application summary">
+        <section class="intro-panel" aria-label="프로그램 설명">
           <p>
-            Predict DD laminate Type from pre-Abaqus theta/case inputs, estimate response curves before simulation,
-            or classify uploaded force-displacement CSV results after analysis.
+            Abaqus 해석 전에는 θ와 Case 입력만으로 DD 적층 Type을 예측하고, 해석 후에는
+            force-displacement CSV와 Pt를 이용해 분류 결과를 검토할 수 있습니다.
           </p>
         </section>
 
-        <div class="mode-switch" role="tablist" aria-label="Prediction mode">
-          <button class="mode-button active" type="button" data-mode="theta">Theta + case</button>
-          <button class="mode-button" type="button" data-mode="response">Response estimate</button>
-          <button class="mode-button" type="button" data-mode="curve">Curve CSV</button>
+        <div class="mode-switch" role="tablist" aria-label="예측 모드">
+          <button class="mode-button active" type="button" data-mode="theta">θ + Case</button>
+          <button class="mode-button" type="button" data-mode="response">응답 예측</button>
+          <button class="mode-button" type="button" data-mode="curve">CSV 분류</button>
         </div>
 
         <div class="grid" id="workspace-grid">
-          <section class="panel input-panel" aria-label="Prediction input">
+          <section class="panel input-panel" aria-label="예측 입력">
             <form id="theta-form" class="form active">
               <div class="form-header">
-                <h2>Pre-Abaqus Type Estimate</h2>
-                <p>Use this before simulation data exists.</p>
+                <h2>Abaqus 전 Type 예측</h2>
+                <p>해석 결과가 없을 때 θ와 Case만으로 먼저 확인합니다.</p>
               </div>
 
               <label>
-                Model
+                모델
                 <select name="model" id="theta-model"></select>
               </label>
 
@@ -65,22 +65,22 @@
                 </select>
               </label>
 
-              <div class="case-guide" aria-label="Case formulas">
+              <div class="case-guide" aria-label="Case 수식">
                 <p><strong>Case 3</strong> [[±θ₁]/[±θ₂]/[∓θ₂]/[∓θ₂]]₂</p>
                 <p><strong>Case 4</strong> [([±θ₁]/[±θ₂])₂ / ([∓θ₁]/[∓θ₂])₂]</p>
               </div>
 
-              <button class="primary" type="submit">Predict Type</button>
+              <button class="primary" type="submit">Type 예측</button>
             </form>
 
             <form id="curve-form" class="form">
               <div class="form-header">
-                <h2>Post-Simulation Classification</h2>
-                <p>Use this after force-displacement CSV and Pt are available.</p>
+                <h2>해석 후 CSV 분류</h2>
+                <p>Force-displacement CSV와 Pt가 있을 때 사용합니다.</p>
               </div>
 
               <label>
-                Model
+                모델
                 <select name="model" id="curve-model"></select>
               </label>
 
@@ -105,12 +105,12 @@
                   <select name="case">
                     <option value="Case3">Case 3</option>
                     <option value="Case4">Case 4</option>
-                    <option value="Unknown">Unknown</option>
+                    <option value="Unknown">알 수 없음</option>
                   </select>
                 </label>
               </div>
 
-              <div class="case-guide" aria-label="Case formulas">
+              <div class="case-guide" aria-label="Case 수식">
                 <p><strong>Case 3</strong> [[±θ₁]/[±θ₂]/[∓θ₂]/[∓θ₂]]₂</p>
                 <p><strong>Case 4</strong> [([±θ₁]/[±θ₂])₂ / ([∓θ₁]/[∓θ₂])₂]</p>
               </div>
@@ -125,17 +125,17 @@
                 <input id="curve-file" name="file" type="file" accept=".csv,text/csv" required />
               </label>
 
-              <button class="primary" type="submit">Predict Type</button>
+              <button class="primary" type="submit">Type 예측</button>
             </form>
 
             <form id="response-form" class="form">
               <div class="form-header">
-                <h2>Pre-Abaqus Response Estimate</h2>
-                <p>Estimate Type, Pt, and force-displacement curve from angles and case.</p>
+                <h2>Abaqus 전 응답 예측</h2>
+                <p>θ와 Case로 Type, Pt, force-displacement 곡선을 추정합니다.</p>
               </div>
 
               <label>
-                Model
+                모델
                 <select name="model" id="response-model"></select>
               </label>
 
@@ -158,41 +158,41 @@
                 </select>
               </label>
 
-              <div class="case-guide" aria-label="Case formulas">
+              <div class="case-guide" aria-label="Case 수식">
                 <p><strong>Case 3</strong> [[±θ₁]/[±θ₂]/[∓θ₂]/[∓θ₂]]₂</p>
                 <p><strong>Case 4</strong> [([±θ₁]/[±θ₂])₂ / ([∓θ₁]/[∓θ₂])₂]</p>
               </div>
 
-              <button class="primary" type="submit">Estimate Response</button>
+              <button class="primary" type="submit">응답 예측</button>
             </form>
           </section>
 
-          <section class="panel visual-panel" aria-label="Laminate stack reference">
+          <section class="panel visual-panel" aria-label="적층 구조 참고 이미지">
             <div class="preview-head">
               <div>
-                <p class="eyebrow">Laminate Reference</p>
+                <p class="eyebrow">적층 구조 참고</p>
                 <h2>Double-Double ply stack</h2>
               </div>
             </div>
             <div class="laminate-reference">
-              <img src="./assets/dd-ply-stack.svg" alt="Double-Double laminate ply stack reference" />
+              <img src="./assets/dd-ply-stack.svg" alt="Double-Double 적층 구조 참고 이미지" />
             </div>
           </section>
 
-          <section class="panel curve-preview-panel hidden" id="curve-preview-panel" aria-label="CSV curve preview">
+          <section class="panel curve-preview-panel hidden" id="curve-preview-panel" aria-label="CSV 곡선 미리보기">
             <div class="preview-head">
               <div>
-                <p class="eyebrow">CSV Preview</p>
-                <h2 id="curve-preview-title">No file selected</h2>
+                <p class="eyebrow">CSV 미리보기</p>
+                <h2 id="curve-preview-title">선택된 파일 없음</h2>
               </div>
-              <button class="secondary" id="clear-curve-preview" type="button">Clear</button>
+              <button class="secondary" id="clear-curve-preview" type="button">초기화</button>
             </div>
 
             <canvas id="curve-preview-canvas" width="760" height="300"></canvas>
 
             <div class="preview-stats">
               <div>
-                <span>Points</span>
+                <span>데이터 포인트</span>
                 <strong id="curve-point-count">-</strong>
               </div>
               <div>
@@ -208,14 +208,14 @@
 
           <section class="panel result-panel" aria-live="polite">
             <div class="empty-state" id="empty-state">
-              <h2>Ready for input</h2>
-              <p>Enter theta values or upload a CSV to see Type probabilities.</p>
+              <h2>입력을 기다리는 중</h2>
+              <p>θ 값을 입력하거나 CSV를 업로드하면 Type 확률이 표시됩니다.</p>
             </div>
 
             <div class="result hidden" id="result">
               <div class="result-head">
                 <div>
-                  <p class="eyebrow">Prediction</p>
+                  <p class="eyebrow">예측 결과</p>
                   <h2 id="predicted-type">Type -</h2>
                 </div>
                 <div class="confidence" id="confidence">-</div>
@@ -225,11 +225,11 @@
 
               <dl class="meta">
                 <div>
-                  <dt>Model</dt>
+                  <dt>모델</dt>
                   <dd id="model-label">-</dd>
                 </div>
                 <div>
-                  <dt>Input</dt>
+                  <dt>입력값</dt>
                   <dd id="input-summary">-</dd>
                 </div>
               </dl>
@@ -237,8 +237,8 @@
               <section class="response-estimate hidden" id="response-estimate">
                 <div class="preview-head">
                   <div>
-                    <p class="eyebrow">Estimated Response</p>
-                    <h2 id="response-curve-title">Surrogate curve</h2>
+                    <p class="eyebrow">응답 예측</p>
+                    <h2 id="response-curve-title">Surrogate 곡선</h2>
                   </div>
                 </div>
 
@@ -259,9 +259,9 @@
 
                 <canvas id="response-curve-canvas" width="720" height="300"></canvas>
                 <div class="curve-legend" aria-label="Response curve legend">
-                  <span><i class="legend-swatch curve"></i>Predicted curve</span>
-                  <span><i class="legend-swatch guide"></i>Linear fits</span>
-                  <span><i class="legend-swatch kink"></i>Kink line</span>
+                  <span><i class="legend-swatch curve"></i>예측 곡선</span>
+                  <span><i class="legend-swatch guide"></i>Linear fit</span>
+                  <span><i class="legend-swatch kink"></i>굴곡 기준선</span>
                   <span><i class="legend-swatch pt"></i>Predicted Pt</span>
                 </div>
               </section>
