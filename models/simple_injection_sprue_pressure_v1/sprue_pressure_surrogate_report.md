@@ -7,8 +7,8 @@ The saved model predicts `max_time`, `max_pressure`, and a normalized pressure c
 
 ## Data
 
-- Samples with results: 240
-- Geometry groups represented: 24
+- Samples with results: 300
+- Geometry groups represented: 30
 - Process combinations represented: 10
 - Curve sequence length: 128
 - Input features used internally: 23
@@ -19,13 +19,13 @@ Best model: `hist_gradient_boosting`
 
 | Model | Pressure RMSE (MPa) | Max pressure MAE (MPa) | Max time MAE (s) | Norm curve RMSE |
 |---|---:|---:|---:|---:|
-| hist_gradient_boosting | 1.8886 ± 0.2245 | 0.1175 ± 0.0352 | 0.0951 ± 0.0050 | 0.02896 ± 0.00332 |
-| extra_trees | 1.9187 ± 0.2088 | 0.0568 ± 0.0220 | 0.0966 ± 0.0080 | 0.02971 ± 0.00279 |
-| random_forest | 1.9315 ± 0.2110 | 0.0578 ± 0.0345 | 0.0943 ± 0.0060 | 0.02971 ± 0.00305 |
-| ridge | 7.7239 ± 0.3380 | 0.8625 ± 0.7546 | 0.2720 ± 0.3143 | 0.11207 ± 0.00313 |
-| neural_net_mlp_lbfgs | 11.4473 ± 18.6450 | 1.3045 ± 1.6495 | 0.4028 ± 0.5181 | 0.13689 ± 0.20671 |
+| hist_gradient_boosting | 1.8719 ± 0.1140 | 0.1048 ± 0.0376 | 0.0955 ± 0.0034 | 0.02843 ± 0.00206 |
+| extra_trees | 1.9107 ± 0.1015 | 0.0539 ± 0.0222 | 0.0960 ± 0.0033 | 0.02914 ± 0.00185 |
+| random_forest | 1.9157 ± 0.1005 | 0.0558 ± 0.0330 | 0.0952 ± 0.0025 | 0.02908 ± 0.00179 |
+| ridge | 7.6567 ± 0.1662 | 0.6373 ± 0.3466 | 0.2116 ± 0.1922 | 0.11167 ± 0.00193 |
+| neural_net_mlp_lbfgs | 12.2041 ± 19.2918 | 2.2654 ± 3.7422 | 0.3072 ± 0.3195 | 0.10897 ± 0.13727 |
 
 ## Caveat
 
-Only 240 of the planned 300 CAE runs are available, so geometry-group validation is intentionally harsh.
+Only 300 of the planned 300 CAE runs are available, so geometry-group validation is intentionally harsh.
 Treat these metrics as a baseline and retrain after each new geometry batch is added.
