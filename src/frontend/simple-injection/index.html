@@ -96,12 +96,21 @@
             </form>
           </section>
 
-          <section class="panel visual-panel" aria-label="Shape views">
+          <section class="panel visual-panel" aria-label="Shape preview">
             <div class="preview-head">
               <div>
-                <p class="eyebrow">Shape Reference</p>
-                <h2>Center-hole block with edge gate</h2>
+                <p class="eyebrow">Shape Preview</p>
+                <h2>DOE-driven 3D preview</h2>
               </div>
+            </div>
+            <div class="shape-preview" id="shape-preview">
+              <div class="shape-preview-status" id="shape-preview-status">Preparing 3D shape</div>
+            </div>
+            <div class="shape-metrics" aria-label="Shape dimension summary">
+              <div><span>L</span><strong id="shape-metric-l">-</strong></div>
+              <div><span>W</span><strong id="shape-metric-w">-</strong></div>
+              <div><span>t</span><strong id="shape-metric-t">-</strong></div>
+              <div><span>D</span><strong id="shape-metric-d">-</strong></div>
             </div>
             <div class="shape-grid">
               <img src="../../../data/datasets/Simple_Injection/Shape/KakaoTalk_Photo_2026-04-30-13-25-16.png" alt="Simple injection shape main view" />
@@ -162,6 +171,7 @@
       </section>
     </main>
 
-    <script src="./app.js?v=20260430-simple-injection-prevention"></script>
+    <script src="./vendor/three.r160.min.js"></script>
+    <script src="./app.js?v=20260508-parametric-preview"></script>
   </body>
 </html>

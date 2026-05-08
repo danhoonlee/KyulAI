@@ -80,8 +80,8 @@ class SpruePressurePredictionResponse(BaseModel):
 
 SPRUE_MODELS: dict[str, dict[str, str]] = {
     "sprue_classical": {
-        "label": "Sprue pressure - ExtraTrees + PCA",
-        "description": "Best current baseline for 30 Moldex3D result curves.",
+        "label": "Sprue pressure - HistGradientBoosting + PCA",
+        "description": "Best current classical surrogate for the full 300 Moldex3D result curves.",
         "path": "models/simple_injection_sprue_pressure_v1/sprue_pressure_surrogate.joblib",
         "requires": "joblib,sklearn,numpy",
     },
@@ -217,11 +217,11 @@ async def predict_sprue_pressure(
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
     notes = [
-        "Current model is trained on 30 of the planned 300 Moldex3D runs.",
-        "Use the ExtraTrees surrogate as the practical default until more geometry results are available.",
+        "Current model is trained on the full 300 planned Moldex3D runs.",
+        "Use the classical surrogate as the practical default for this Simple Injection DOE set.",
     ]
     if payload.model == "sprue_goint":
-        notes[1] = "The GointMLP-style model is currently a deep-learning baseline and is less stable with 30 samples."
+        notes[1] = "The GointMLP-style model is a deep-learning baseline and is less stable than the classical surrogate on this DOE set."
 
     return SpruePressurePredictionResponse(
         model_key=payload.model,

@@ -96,12 +96,21 @@
             </form>
           </section>
 
-          <section class="panel visual-panel" aria-label="형상 참고 이미지">
+          <section class="panel visual-panel" aria-label="형상 미리보기">
             <div class="preview-head">
               <div>
-                <p class="eyebrow">형상 참고</p>
-                <h2>중앙 홀이 있는 육면체와 edge gate</h2>
+                <p class="eyebrow">형상 미리보기</p>
+                <h2>DOE 기반 3D preview</h2>
               </div>
+            </div>
+            <div class="shape-preview" id="shape-preview">
+              <div class="shape-preview-status" id="shape-preview-status">3D 형상 준비 중</div>
+            </div>
+            <div class="shape-metrics" aria-label="형상 치수 요약">
+              <div><span>L</span><strong id="shape-metric-l">-</strong></div>
+              <div><span>W</span><strong id="shape-metric-w">-</strong></div>
+              <div><span>t</span><strong id="shape-metric-t">-</strong></div>
+              <div><span>D</span><strong id="shape-metric-d">-</strong></div>
             </div>
             <div class="shape-grid">
               <img src="../../../data/datasets/Simple_Injection/Shape/KakaoTalk_Photo_2026-04-30-13-25-16.png" alt="Simple injection 형상 메인 뷰" />
@@ -162,6 +171,7 @@
       </section>
     </main>
 
-    <script src="./app.js?v=20260430-simple-injection-ko"></script>
+    <script src="./vendor/three.r160.min.js"></script>
+    <script src="./app.js?v=20260508-parametric-preview-ko"></script>
   </body>
 </html>

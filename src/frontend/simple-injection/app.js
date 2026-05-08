@@ -31,12 +31,16 @@ const TEXT = {
 };
 const MODEL_LABELS_KO = {
   "Sprue pressure - ExtraTrees + PCA": "Sprue Pressure - ExtraTrees + PCA",
+  "Sprue pressure - HistGradientBoosting + PCA": "Sprue Pressure - HistGradientBoosting + PCA",
   "Sprue pressure - GointMLP-style NN": "Sprue Pressure - GointMLP 스타일 신경망",
 };
 const NOTE_LABELS_KO = {
   "Current model is trained on 30 of the planned 300 Moldex3D runs.": "현재 모델은 계획된 300개 Moldex3D 해석 중 30개 결과로 학습된 초기 버전입니다.",
+  "Current model is trained on the full 300 planned Moldex3D runs.": "현재 모델은 계획된 300개 Moldex3D 해석 전체 결과로 학습되었습니다.",
   "Use the ExtraTrees surrogate as the practical default until more geometry results are available.": "추가 형상 결과가 쌓이기 전까지는 ExtraTrees surrogate를 기본 모델로 사용하는 것을 권장합니다.",
+  "Use the classical surrogate as the practical default for this Simple Injection DOE set.": "현재 Simple Injection DOE set에서는 classical surrogate를 기본 모델로 사용하는 것을 권장합니다.",
   "The GointMLP-style model is currently a deep-learning baseline and is less stable with 30 samples.": "GointMLP 스타일 모델은 현재 deep-learning baseline이며, 30개 샘플 기준으로는 안정성이 낮습니다.",
+  "The GointMLP-style model is a deep-learning baseline and is less stable than the classical surrogate on this DOE set.": "GointMLP 스타일 모델은 deep-learning baseline이며, 현재 DOE set에서는 classical surrogate보다 안정성이 낮습니다.",
 };
 
 const apiStatus = document.querySelector("#api-status");
@@ -57,6 +61,12 @@ const notes = document.querySelector("#notes");
 const preventionPanel = document.querySelector("#prevention-panel");
 const preventionList = document.querySelector("#prevention-list");
 const preventionCount = document.querySelector("#prevention-count");
+const shapePreview = document.querySelector("#shape-preview");
+const shapePreviewStatus = document.querySelector("#shape-preview-status");
+const shapeMetricL = document.querySelector("#shape-metric-l");
+const shapeMetricW = document.querySelector("#shape-metric-w");
+const shapeMetricT = document.querySelector("#shape-metric-t");
+const shapeMetricD = document.querySelector("#shape-metric-d");
 
 const CUSTOM_GEOMETRY_ID = "__custom_geometry__";
 const CUSTOM_PROCESS_ID = "__custom_process__";
@@ -65,6 +75,7 @@ let geometries = [];
 let processes = [];
 let applyingDoeValues = false;
 let hasBlockingValidation = false;
+let shapePreviewState = null;
 
 function formatMetric(value, digits = 3) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
@@ -248,6 +259,278 @@ function formPayload() {
   return payload;
 }
 
+function initShapePreview() {
+  if (!shapePreview || !window.THREE) {
+    if (shapePreviewStatus) {
+      shapePreviewStatus.textContent = IS_KO
+        ? "3D 라이브러리를 불러오지 못했습니다."
+        : "The 3D library could not be loaded.";
+    }
+    return;
+  }
+
+  try {
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xf8fbfd);
+
+    const camera = new THREE.OrthographicCamera(-100, 100, 100, -100, 0.1, 2000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    shapePreview.appendChild(renderer.domElement);
+
+    const group = new THREE.Group();
+    group.rotation.x = -0.82;
+    group.rotation.z = -0.58;
+    scene.add(group);
+
+    const ambient = new THREE.HemisphereLight(0xffffff, 0xc8d4df, 2.2);
+    scene.add(ambient);
+    const key = new THREE.DirectionalLight(0xffffff, 2.6);
+    key.position.set(80, -120, 150);
+    scene.add(key);
+    const fill = new THREE.DirectionalLight(0xbfefff, 1.1);
+    fill.position.set(-120, 80, 90);
+    scene.add(fill);
+
+    const grid = new THREE.GridHelper(220, 12, 0xc5d6e5, 0xe2ebf2);
+    grid.rotation.x = Math.PI / 2;
+    grid.position.z = -0.9;
+    scene.add(grid);
+
+    shapePreviewState = {
+      scene,
+      camera,
+      renderer,
+      group,
+      meshObjects: [],
+      lastPayloadKey: "",
+      pointer: { active: false, x: 0, y: 0 },
+      autoRotate: true,
+    };
+
+    shapePreview.addEventListener("pointerdown", (event) => {
+      shapePreviewState.pointer.active = true;
+      shapePreviewState.pointer.x = event.clientX;
+      shapePreviewState.pointer.y = event.clientY;
+      shapePreviewState.autoRotate = false;
+      shapePreview.setPointerCapture(event.pointerId);
+    });
+    shapePreview.addEventListener("pointermove", (event) => {
+      if (!shapePreviewState.pointer.active) {
+        return;
+      }
+      const dx = event.clientX - shapePreviewState.pointer.x;
+      const dy = event.clientY - shapePreviewState.pointer.y;
+      shapePreviewState.group.rotation.z += dx * 0.008;
+      shapePreviewState.group.rotation.x = Math.max(
+        -1.35,
+        Math.min(-0.25, shapePreviewState.group.rotation.x + dy * 0.006),
+      );
+      shapePreviewState.pointer.x = event.clientX;
+      shapePreviewState.pointer.y = event.clientY;
+    });
+    shapePreview.addEventListener("pointerup", (event) => {
+      shapePreviewState.pointer.active = false;
+      shapePreview.releasePointerCapture(event.pointerId);
+    });
+    shapePreview.addEventListener("pointerleave", () => {
+      shapePreviewState.pointer.active = false;
+    });
+
+    new ResizeObserver(resizeShapePreview).observe(shapePreview);
+    resizeShapePreview();
+    animateShapePreview();
+  } catch (error) {
+    shapePreviewState = null;
+    shapePreviewStatus.textContent = IS_KO
+      ? "이 브라우저에서 WebGL preview를 시작하지 못했습니다."
+      : "This browser could not start the WebGL preview.";
+  }
+}
+
+function resizeShapePreview() {
+  if (!shapePreviewState || !shapePreview) {
+    return;
+  }
+  const rect = shapePreview.getBoundingClientRect();
+  const width = Math.max(240, Math.floor(rect.width));
+  const height = Math.max(220, Math.floor(rect.height));
+  shapePreviewState.renderer.setSize(width, height, false);
+  shapePreviewState.camera.left = -width / 2;
+  shapePreviewState.camera.right = width / 2;
+  shapePreviewState.camera.top = height / 2;
+  shapePreviewState.camera.bottom = -height / 2;
+  shapePreviewState.camera.updateProjectionMatrix();
+}
+
+function animateShapePreview() {
+  if (!shapePreviewState) {
+    return;
+  }
+  if (shapePreviewState.autoRotate) {
+    shapePreviewState.group.rotation.z += 0.0035;
+  }
+  shapePreviewState.renderer.render(shapePreviewState.scene, shapePreviewState.camera);
+  window.requestAnimationFrame(animateShapePreview);
+}
+
+function clearShapeObjects() {
+  if (!shapePreviewState) {
+    return;
+  }
+  shapePreviewState.meshObjects.forEach((object) => {
+    shapePreviewState.group.remove(object);
+    object.traverse((child) => {
+      if (child.geometry) {
+        child.geometry.dispose();
+      }
+      if (child.material) {
+        if (Array.isArray(child.material)) {
+          child.material.forEach((material) => material.dispose());
+        } else {
+          child.material.dispose();
+        }
+      }
+    });
+  });
+  shapePreviewState.meshObjects = [];
+}
+
+function makePlateGeometry(length, width, thickness, holeRadius) {
+  const shape = new THREE.Shape();
+  shape.moveTo(-length / 2, -width / 2);
+  shape.lineTo(length / 2, -width / 2);
+  shape.lineTo(length / 2, width / 2);
+  shape.lineTo(-length / 2, width / 2);
+  shape.lineTo(-length / 2, -width / 2);
+
+  const hole = new THREE.Path();
+  hole.absellipse(0, 0, holeRadius, holeRadius, 0, Math.PI * 2, false, 0);
+  shape.holes.push(hole);
+
+  const geometry = new THREE.ExtrudeGeometry(shape, {
+    depth: thickness,
+    bevelEnabled: true,
+    bevelThickness: Math.min(thickness * 0.12, 0.18),
+    bevelSize: Math.min(Math.min(length, width) * 0.004, 0.2),
+    bevelSegments: 1,
+    curveSegments: 64,
+  });
+  geometry.translate(0, 0, -thickness / 2);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+function addEdges(parent, mesh, color = 0x34556d) {
+  const edges = new THREE.LineSegments(
+    new THREE.EdgesGeometry(mesh.geometry, 24),
+    new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.46 }),
+  );
+  edges.position.copy(mesh.position);
+  edges.rotation.copy(mesh.rotation);
+  parent.add(edges);
+  return edges;
+}
+
+function updateShapeMetrics(payload) {
+  if (!shapeMetricL) {
+    return;
+  }
+  shapeMetricL.textContent = `${formatMetric(payload.L_mm, 1)} mm`;
+  shapeMetricW.textContent = `${formatMetric(payload.W_mm, 1)} mm`;
+  shapeMetricT.textContent = `${formatMetric(payload.t_mm, 2)} mm`;
+  shapeMetricD.textContent = `${formatMetric(payload.D_mm, 1)} mm`;
+}
+
+function updateShapePreview() {
+  const payload = formPayload();
+  updateShapeMetrics(payload);
+  if (!shapePreviewState || !window.THREE) {
+    return;
+  }
+  const rawLength = Number(payload.L_mm);
+  const rawWidth = Number(payload.W_mm);
+  const rawThickness = Number(payload.t_mm);
+  const rawDiameter = Number(payload.D_mm);
+  const rawGateWidth = Number(payload.gate_size_width_mm);
+  const rawGateHeight = Number(payload.gate_size_height_mm);
+  const key = [rawLength, rawWidth, rawThickness, rawDiameter, rawGateWidth, rawGateHeight].join("|");
+  if (shapePreviewState.lastPayloadKey === key) {
+    return;
+  }
+  shapePreviewState.lastPayloadKey = key;
+
+  if (![rawLength, rawWidth, rawThickness, rawDiameter, rawGateWidth, rawGateHeight].every((value) => Number.isFinite(value) && value > 0)) {
+    clearShapeObjects();
+    shapePreviewStatus.textContent = IS_KO ? "형상 치수를 입력하면 3D preview가 표시됩니다." : "Enter shape dimensions to show the 3D preview.";
+    shapePreviewStatus.classList.remove("hidden");
+    return;
+  }
+
+  const length = Math.max(rawLength, 1);
+  const width = Math.max(rawWidth, 1);
+  const thickness = Math.max(rawThickness, 0.2);
+  const maxHoleRadius = Math.max(Math.min(length, width) * 0.47, 0.1);
+  const holeRadius = Math.min(Math.max(rawDiameter / 2, 0.1), maxHoleRadius);
+  const gateWidth = Math.min(Math.max(rawGateWidth, 0.2), Math.min(length, width) * 0.92);
+  const gateHeight = Math.min(Math.max(rawGateHeight, 0.15), thickness);
+  const gateDepth = Math.max(5, Math.min(width * 0.16, 16));
+
+  clearShapeObjects();
+  const plate = new THREE.Mesh(
+    makePlateGeometry(length, width, thickness, holeRadius),
+    new THREE.MeshStandardMaterial({
+      color: 0x86c3df,
+      roughness: 0.62,
+      metalness: 0.04,
+    }),
+  );
+  shapePreviewState.group.add(plate);
+  const plateEdges = addEdges(shapePreviewState.group, plate);
+
+  const gate = new THREE.Mesh(
+    new THREE.BoxGeometry(gateWidth, gateDepth, gateHeight),
+    new THREE.MeshStandardMaterial({
+      color: 0xd40000,
+      roughness: 0.5,
+      metalness: 0.02,
+    }),
+  );
+  gate.position.set(0, -width / 2 - gateDepth / 2, -thickness / 2 + gateHeight / 2);
+  shapePreviewState.group.add(gate);
+  const gateEdges = addEdges(shapePreviewState.group, gate, 0x7a0000);
+
+  const sprue = new THREE.Mesh(
+    new THREE.CylinderGeometry(Math.max(gateHeight * 0.45, 0.35), Math.max(gateHeight * 0.45, 0.35), gateDepth * 1.25, 24),
+    new THREE.MeshStandardMaterial({ color: 0xff3b30, roughness: 0.46 }),
+  );
+  sprue.rotation.x = Math.PI / 2;
+  sprue.position.set(0, -width / 2 - gateDepth * 1.55, -thickness / 2 + gateHeight / 2);
+  shapePreviewState.group.add(sprue);
+  const sprueEdges = addEdges(shapePreviewState.group, sprue, 0x8a0b0b);
+
+  shapePreviewState.meshObjects.push(plate, plateEdges, gate, gateEdges, sprue, sprueEdges);
+
+  const span = Math.max(length, width + gateDepth * 3, thickness * 8);
+  const zoom = Math.min(
+    shapePreview.clientWidth / Math.max(span * 1.72, 1),
+    shapePreview.clientHeight / Math.max(span * 1.18, 1),
+  );
+  shapePreviewState.camera.zoom = Math.max(1.2, Math.min(5.8, zoom));
+  shapePreviewState.camera.position.set(span * 0.58, -span * 0.78, span * 0.55);
+  shapePreviewState.camera.lookAt(0, 0, 0);
+  shapePreviewState.camera.updateProjectionMatrix();
+
+  const clamped = holeRadius !== rawDiameter / 2 || gateWidth !== rawGateWidth || gateHeight !== rawGateHeight;
+  shapePreviewStatus.textContent = clamped
+    ? IS_KO
+      ? "Preview는 표시를 위해 불가능한 치수를 일부 제한했습니다."
+      : "Preview clamps impossible dimensions for display."
+    : "";
+  shapePreviewStatus.classList.toggle("hidden", !clamped);
+}
+
 function issue(severity, category, field, message) {
   return { severity, category, field, message };
 }
@@ -390,6 +673,7 @@ function renderPreventionIssues(issues) {
 
 function updatePreventionCheck() {
   renderPreventionIssues(validatePayload(formPayload()));
+  updateShapePreview();
 }
 
 function localizeCategory(category) {
@@ -656,5 +940,6 @@ processSelect.addEventListener("change", () => {
   });
 });
 form.addEventListener("submit", submitPrediction);
+initShapePreview();
 drawPressureCurve([]);
 loadBootstrapData();
