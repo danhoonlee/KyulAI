@@ -121,7 +121,10 @@ def _to_float(value: str) -> float | None:
 
 
 RUN_RE = re.compile(r"(G\d{2})_(P\d{2})")
-FILLING_PRESSURE_RE = re.compile(r"(G\d{2})_(P\d{2})_Filling_Pressure\.csv$", re.IGNORECASE)
+FILLING_PRESSURE_RE = re.compile(
+    r"(G\d{2})_(P\d{2})[\s_-]+Filling[\s_-]+Pressure\.csv$",
+    re.IGNORECASE,
+)
 
 
 def load_result_curves(result_dir: str | Path = DEFAULT_RESULT_DIR) -> dict[str, tuple[np.ndarray, np.ndarray]]:
@@ -175,7 +178,7 @@ def load_filling_pressure_distribution(
     if not root.exists():
         return distributions
 
-    for path in sorted(root.glob("*Filling_Pressure*.csv")):
+    for path in sorted(root.glob("*.csv")):
         match = FILLING_PRESSURE_RE.search(path.name)
         if not match:
             continue

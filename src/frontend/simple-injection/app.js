@@ -97,7 +97,7 @@ let processes = [];
 let applyingDoeValues = false;
 let hasBlockingValidation = false;
 let shapePreviewState = null;
-let shapePreviewMode = "exact";
+let shapePreviewMode = "parametric";
 let shapeAssetMap = new Map();
 let shapeLoadToken = 0;
 let latestFillingPressureSummary = null;
@@ -511,6 +511,26 @@ function pressureFromDistribution(summary, flowFraction) {
   return Number(bins[bins.length - 1].center_MPa);
 }
 
+function fillingColorStops() {
+  return [
+    [0.0, new THREE.Color(0x074bd8)],
+    [0.25, new THREE.Color(0x0092ff)],
+    [0.42, new THREE.Color(0x12dfe3)],
+    [0.56, new THREE.Color(0x00d45b)],
+    [0.70, new THREE.Color(0xd8ea00)],
+    [0.84, new THREE.Color(0xff8a00)],
+    [1.0, new THREE.Color(0xd40000)],
+  ];
+}
+
+function fillingVisualFlowFraction(x, y, length, width) {
+  const xFlow = (x + length / 2) / Math.max(length, 1e-9);
+  const ySpread = Math.abs(y) / Math.max(width / 2, 1e-9);
+  const gateHotspot = Math.exp(-((xFlow / 0.14) ** 2 + (ySpread / 0.42) ** 2));
+  const stream = Math.max(0, Math.min(1, xFlow + Math.max(0, ySpread - 0.12) * 0.12));
+  return Math.max(0, Math.min(1, stream ** 1.55 - gateHotspot * 0.08));
+}
+
 function makeFillingContourOverlay(length, width, thickness, holeRadius, summary) {
   if (!summary?.bins?.length) {
     return null;
@@ -521,22 +541,13 @@ function makeFillingContourOverlay(length, width, thickness, holeRadius, summary
   const stats = summary.stats || {};
   const minPressure = Number(stats.min_MPa) || 0;
   const maxPressure = Math.max(Number(stats.max_MPa) || 0, minPressure + 1e-9);
-  const colorStops = [
-    [0.0, new THREE.Color(0x0756d8)],
-    [0.34, new THREE.Color(0x16aad8)],
-    [0.55, new THREE.Color(0x00ad5a)],
-    [0.76, new THREE.Color(0xf0d800)],
-    [1.0, new THREE.Color(0xd40000)],
-  ];
+  const colorStops = fillingColorStops();
   const positions = geometry.getAttribute("position");
   const colors = [];
   for (let index = 0; index < positions.count; index += 1) {
     const x = positions.getX(index);
     const y = positions.getY(index);
-    const xFlow = (x + length / 2) / Math.max(length, 1e-9);
-    const ySpread = Math.abs(y) / Math.max(width / 2, 1e-9);
-    const flowFraction = Math.max(0, Math.min(1, xFlow + ySpread * 0.18));
-    const pressure = pressureFromDistribution(summary, flowFraction ** 0.86);
+    const pressure = pressureFromDistribution(summary, fillingVisualFlowFraction(x, y, length, width));
     const normalized = pressure === null ? 0 : (pressure - minPressure) / Math.max(maxPressure - minPressure, 1e-9);
     const color = interpolateColor(colorStops, normalized);
     colors.push(color.r, color.g, color.b);
@@ -563,22 +574,13 @@ function applyFillingVertexColors(geometry, length, width, summary) {
   const stats = summary.stats || {};
   const minPressure = Number(stats.min_MPa) || 0;
   const maxPressure = Math.max(Number(stats.max_MPa) || 0, minPressure + 1e-9);
-  const colorStops = [
-    [0.0, new THREE.Color(0x0756d8)],
-    [0.34, new THREE.Color(0x16aad8)],
-    [0.55, new THREE.Color(0x00ad5a)],
-    [0.76, new THREE.Color(0xf0d800)],
-    [1.0, new THREE.Color(0xd40000)],
-  ];
+  const colorStops = fillingColorStops();
   const positions = geometry.getAttribute("position");
   const colors = [];
   for (let index = 0; index < positions.count; index += 1) {
     const x = positions.getX(index);
     const y = positions.getY(index);
-    const xFlow = (x + length / 2) / Math.max(length, 1e-9);
-    const ySpread = Math.abs(y) / Math.max(width / 2, 1e-9);
-    const flowFraction = Math.max(0, Math.min(1, xFlow + ySpread * 0.18));
-    const pressure = pressureFromDistribution(summary, flowFraction ** 0.86);
+    const pressure = pressureFromDistribution(summary, fillingVisualFlowFraction(x, y, length, width));
     const normalized = pressure === null ? 0 : (pressure - minPressure) / Math.max(maxPressure - minPressure, 1e-9);
     const color = interpolateColor(colorStops, normalized);
     colors.push(color.r, color.g, color.b);
@@ -777,12 +779,17 @@ function renderParametricShape(payload, message = "") {
   const hasContour = applyFillingVertexColors(plateGeometry, length, width, latestFillingPressureSummary);
   const plate = new THREE.Mesh(
     plateGeometry,
-    new THREE.MeshStandardMaterial({
-      color: hasContour ? 0xffffff : 0x86c3df,
-      roughness: hasContour ? 0.48 : 0.62,
-      metalness: 0.04,
-      vertexColors: hasContour,
-    }),
+    hasContour
+      ? new THREE.MeshBasicMaterial({
+          color: 0xffffff,
+          vertexColors: true,
+          side: THREE.DoubleSide,
+        })
+      : new THREE.MeshStandardMaterial({
+          color: 0x86c3df,
+          roughness: 0.62,
+          metalness: 0.04,
+        }),
   );
   shapePreviewState.group.add(plate);
   const plateEdges = addEdges(shapePreviewState.group, plate);

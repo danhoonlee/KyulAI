@@ -356,13 +356,17 @@ select:focus {
 
 .shape-mode-control {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
   margin-bottom: 10px;
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 4px;
   background: var(--surface-muted);
+}
+
+.preview-option-hidden {
+  display: none !important;
 }
 
 .shape-mode-control button {
