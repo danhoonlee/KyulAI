@@ -103,9 +103,14 @@
                 <h2>DOE-driven 3D preview</h2>
               </div>
             </div>
+            <div class="shape-mode-control" aria-label="3D preview mode">
+              <button type="button" class="active" data-shape-mode="exact">STEP Geometry</button>
+              <button type="button" data-shape-mode="parametric">Parametric</button>
+            </div>
             <div class="shape-preview" id="shape-preview">
               <div class="shape-preview-status" id="shape-preview-status">Preparing 3D shape</div>
             </div>
+            <div class="shape-source" id="shape-source">-</div>
             <div class="shape-metrics" aria-label="Shape dimension summary">
               <div><span>L</span><strong id="shape-metric-l">-</strong></div>
               <div><span>W</span><strong id="shape-metric-w">-</strong></div>
@@ -171,7 +176,13 @@
       </section>
     </main>
 
-    <script src="./vendor/three.r160.min.js"></script>
-    <script src="./app.js?v=20260508-parametric-preview"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./vendor/three.module.r160.js"
+        }
+      }
+    </script>
+    <script type="module" src="./app.js?v=20260508-step-glb-preview"></script>
   </body>
 </html>

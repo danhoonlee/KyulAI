@@ -1,3 +1,6 @@
+import * as THREE from "three";
+import { GLTFLoader } from "./vendor/GLTFLoader.r160.js";
+
 const API_HOST = window.location.hostname || "localhost";
 const URL_PARAMS = new URLSearchParams(window.location.search);
 const API_PORT = URL_PARAMS.get("apiPort");
@@ -28,6 +31,10 @@ const TEXT = {
   geometry: IS_KO ? "형상" : "Geometry",
   process: IS_KO ? "공정" : "Process",
   invalidInput: IS_KO ? "물리적으로 유효하지 않은 입력 조건이 있습니다." : "Input contains physically invalid conditions.",
+  exactMode: IS_KO ? "STEP 형상" : "STEP geometry",
+  parametricMode: IS_KO ? "Parametric preview" : "Parametric preview",
+  exactUnavailable: IS_KO ? "선택한 DOE의 STEP GLB가 없어 parametric preview로 표시합니다." : "No STEP GLB is available for this DOE; showing the parametric preview.",
+  customParametric: IS_KO ? "사용자 입력 형상은 parametric preview로 표시합니다." : "User-edited geometry is shown with the parametric preview.",
 };
 const MODEL_LABELS_KO = {
   "Sprue pressure - ExtraTrees + PCA": "Sprue Pressure - ExtraTrees + PCA",
@@ -67,6 +74,8 @@ const shapeMetricL = document.querySelector("#shape-metric-l");
 const shapeMetricW = document.querySelector("#shape-metric-w");
 const shapeMetricT = document.querySelector("#shape-metric-t");
 const shapeMetricD = document.querySelector("#shape-metric-d");
+const shapeModeButtons = Array.from(document.querySelectorAll("[data-shape-mode]"));
+const shapeSource = document.querySelector("#shape-source");
 
 const CUSTOM_GEOMETRY_ID = "__custom_geometry__";
 const CUSTOM_PROCESS_ID = "__custom_process__";
@@ -76,6 +85,9 @@ let processes = [];
 let applyingDoeValues = false;
 let hasBlockingValidation = false;
 let shapePreviewState = null;
+let shapePreviewMode = "exact";
+let shapeAssetMap = new Map();
+let shapeLoadToken = 0;
 
 function formatMetric(value, digits = 3) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
@@ -202,6 +214,7 @@ async function loadBootstrapData() {
     const [modelsResponse, doeResponse] = await Promise.all([
       fetch(`${API_BASE}/models`),
       fetch(`${API_BASE}/doe`),
+      loadShapeAssetManifest(),
     ]);
     if (!modelsResponse.ok || !doeResponse.ok) {
       throw new Error(`HTTP ${modelsResponse.status || doeResponse.status}`);
@@ -228,6 +241,23 @@ async function loadBootstrapData() {
     apiStatus.textContent = TEXT.apiOffline;
     apiStatus.classList.add("bad");
     setError(TEXT.apiStart);
+  }
+}
+
+async function loadShapeAssetManifest() {
+  try {
+    const response = await fetch("./assets/step-glb/manifest.json");
+    if (!response.ok) {
+      return;
+    }
+    const manifest = await response.json();
+    shapeAssetMap = new Map(
+      (manifest.geometries || [])
+        .filter((row) => row.geometry_id && row.output && ["converted", "up_to_date"].includes(row.status))
+        .map((row) => [row.geometry_id, `./assets/step-glb/${row.geometry_id}.glb`]),
+    );
+  } catch (error) {
+    shapeAssetMap = new Map();
   }
 }
 
@@ -260,7 +290,7 @@ function formPayload() {
 }
 
 function initShapePreview() {
-  if (!shapePreview || !window.THREE) {
+  if (!shapePreview) {
     if (shapePreviewStatus) {
       shapePreviewStatus.textContent = IS_KO
         ? "3D 라이브러리를 불러오지 못했습니다."
@@ -303,6 +333,7 @@ function initShapePreview() {
       camera,
       renderer,
       group,
+      loader: new GLTFLoader(),
       meshObjects: [],
       lastPayloadKey: "",
       pointer: { active: false, x: 0, y: 0 },
@@ -379,6 +410,7 @@ function clearShapeObjects() {
   if (!shapePreviewState) {
     return;
   }
+  shapeLoadToken += 1;
   shapePreviewState.meshObjects.forEach((object) => {
     shapePreviewState.group.remove(object);
     object.traverse((child) => {
@@ -395,6 +427,17 @@ function clearShapeObjects() {
     });
   });
   shapePreviewState.meshObjects = [];
+}
+
+function setShapeMode(mode) {
+  shapePreviewMode = mode;
+  shapeModeButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.shapeMode === mode);
+  });
+  if (shapePreviewState) {
+    shapePreviewState.lastPayloadKey = "";
+  }
+  updateShapePreview();
 }
 
 function makePlateGeometry(length, width, thickness, holeRadius) {
@@ -443,12 +486,143 @@ function updateShapeMetrics(payload) {
   shapeMetricD.textContent = `${formatMetric(payload.D_mm, 1)} mm`;
 }
 
-function updateShapePreview() {
-  const payload = formPayload();
-  updateShapeMetrics(payload);
-  if (!shapePreviewState || !window.THREE) {
+function setShapeSource(text) {
+  if (shapeSource) {
+    shapeSource.textContent = text;
+  }
+}
+
+function setPreviewStatus(message, visible = true) {
+  shapePreviewStatus.textContent = message;
+  shapePreviewStatus.classList.toggle("hidden", !visible);
+}
+
+function fitPreviewCamera(span) {
+  const zoom = Math.min(
+    shapePreview.clientWidth / Math.max(span * 1.72, 1),
+    shapePreview.clientHeight / Math.max(span * 1.18, 1),
+  );
+  shapePreviewState.camera.zoom = Math.max(1.2, Math.min(5.8, zoom));
+  shapePreviewState.camera.position.set(span * 0.58, -span * 0.78, span * 0.55);
+  shapePreviewState.camera.lookAt(0, 0, 0);
+  shapePreviewState.camera.updateProjectionMatrix();
+}
+
+function addMeshEdges(mesh, color = 0x34556d) {
+  const edges = new THREE.LineSegments(
+    new THREE.EdgesGeometry(mesh.geometry, 24),
+    new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.38 }),
+  );
+  mesh.add(edges);
+  return edges;
+}
+
+function styleExactShape(object) {
+  object.traverse((child) => {
+    if (!child.isMesh) {
+      return;
+    }
+    child.castShadow = false;
+    child.receiveShadow = false;
+    child.material = new THREE.MeshStandardMaterial({
+      color: 0x86c3df,
+      roughness: 0.62,
+      metalness: 0.04,
+      side: THREE.DoubleSide,
+    });
+    addMeshEdges(child);
+  });
+}
+
+function addExactGateOverlay(payload) {
+  const length = Math.max(Number(payload.L_mm), 1);
+  const width = Math.max(Number(payload.W_mm), 1);
+  const thickness = Math.max(Number(payload.t_mm), 0.2);
+  const gateWidth = Math.min(Math.max(Number(payload.gate_size_width_mm), 0.2), width * 0.92);
+  const gateHeight = Math.min(Math.max(Number(payload.gate_size_height_mm), 0.15), thickness);
+  const gateDepth = Math.max(5, Math.min(length * 0.08, 16));
+  const gate = new THREE.Mesh(
+    new THREE.BoxGeometry(gateDepth, gateWidth, gateHeight),
+    new THREE.MeshStandardMaterial({ color: 0xd40000, roughness: 0.5, metalness: 0.02 }),
+  );
+  gate.position.set(-length / 2 - gateDepth / 2, 0, -thickness / 2 + gateHeight / 2);
+  shapePreviewState.group.add(gate);
+  const gateEdges = addEdges(shapePreviewState.group, gate, 0x7a0000);
+
+  const sprue = new THREE.Mesh(
+    new THREE.CylinderGeometry(Math.max(gateHeight * 0.45, 0.35), Math.max(gateHeight * 0.45, 0.35), gateDepth * 1.35, 24),
+    new THREE.MeshStandardMaterial({ color: 0xff3b30, roughness: 0.46 }),
+  );
+  sprue.rotation.z = Math.PI / 2;
+  sprue.position.set(-length / 2 - gateDepth * 1.65, 0, -thickness / 2 + gateHeight / 2);
+  shapePreviewState.group.add(sprue);
+  const sprueEdges = addEdges(shapePreviewState.group, sprue, 0x8a0b0b);
+  return [gate, gateEdges, sprue, sprueEdges];
+}
+
+function resetCadQueryRootRotation(object, geometryId) {
+  const cadRoot = object.children.find((child) => child.name === geometryId) || object.children[0];
+  if (!cadRoot) {
     return;
   }
+  cadRoot.quaternion.identity();
+  cadRoot.rotation.set(0, 0, 0);
+  cadRoot.updateMatrixWorld(true);
+}
+
+function centerExactShape(object) {
+  const box = new THREE.Box3().setFromObject(object);
+  const center = box.getCenter(new THREE.Vector3());
+  object.position.sub(center);
+  object.updateMatrixWorld(true);
+  const centeredBox = new THREE.Box3().setFromObject(object);
+  const size = centeredBox.getSize(new THREE.Vector3());
+  return Math.max(size.x, size.y, size.z * 8, 1);
+}
+
+function loadExactShapePreview(payload) {
+  const geometryId = payload.geometry_id;
+  const assetUrl = shapeAssetMap.get(geometryId);
+  if (!geometryId || !assetUrl) {
+    renderParametricShape(payload, TEXT.exactUnavailable);
+    return;
+  }
+
+  clearShapeObjects();
+  const token = ++shapeLoadToken;
+  setShapeSource(`${TEXT.exactMode}: ${geometryId}.glb`);
+  setPreviewStatus(IS_KO ? `${geometryId} STEP 형상 로딩 중` : `Loading ${geometryId} STEP geometry`);
+  shapePreviewState.loader.load(
+    assetUrl,
+    (gltf) => {
+      if (token !== shapeLoadToken) {
+        return;
+      }
+      clearShapeObjects();
+      shapeLoadToken = token;
+      const object = gltf.scene;
+      object.name = `${geometryId}_step_glb`;
+      resetCadQueryRootRotation(object, geometryId);
+      styleExactShape(object);
+      shapePreviewState.group.add(object);
+      const gateObjects = addExactGateOverlay(payload);
+      shapePreviewState.meshObjects.push(object, ...gateObjects);
+      const span = centerExactShape(object);
+      fitPreviewCamera(span);
+      setPreviewStatus("", false);
+      setShapeSource(`${TEXT.exactMode}: ${geometryId}.glb`);
+    },
+    undefined,
+    () => {
+      if (token !== shapeLoadToken) {
+        return;
+      }
+      renderParametricShape(payload, TEXT.exactUnavailable);
+    },
+  );
+}
+
+function renderParametricShape(payload, message = "") {
   const rawLength = Number(payload.L_mm);
   const rawWidth = Number(payload.W_mm);
   const rawThickness = Number(payload.t_mm);
@@ -463,8 +637,8 @@ function updateShapePreview() {
 
   if (![rawLength, rawWidth, rawThickness, rawDiameter, rawGateWidth, rawGateHeight].every((value) => Number.isFinite(value) && value > 0)) {
     clearShapeObjects();
-    shapePreviewStatus.textContent = IS_KO ? "형상 치수를 입력하면 3D preview가 표시됩니다." : "Enter shape dimensions to show the 3D preview.";
-    shapePreviewStatus.classList.remove("hidden");
+    setPreviewStatus(IS_KO ? "형상 치수를 입력하면 3D preview가 표시됩니다." : "Enter shape dimensions to show the 3D preview.");
+    setShapeSource(TEXT.parametricMode);
     return;
   }
 
@@ -513,22 +687,54 @@ function updateShapePreview() {
   shapePreviewState.meshObjects.push(plate, plateEdges, gate, gateEdges, sprue, sprueEdges);
 
   const span = Math.max(length, width + gateDepth * 3, thickness * 8);
-  const zoom = Math.min(
-    shapePreview.clientWidth / Math.max(span * 1.72, 1),
-    shapePreview.clientHeight / Math.max(span * 1.18, 1),
-  );
-  shapePreviewState.camera.zoom = Math.max(1.2, Math.min(5.8, zoom));
-  shapePreviewState.camera.position.set(span * 0.58, -span * 0.78, span * 0.55);
-  shapePreviewState.camera.lookAt(0, 0, 0);
-  shapePreviewState.camera.updateProjectionMatrix();
+  fitPreviewCamera(span);
 
   const clamped = holeRadius !== rawDiameter / 2 || gateWidth !== rawGateWidth || gateHeight !== rawGateHeight;
-  shapePreviewStatus.textContent = clamped
+  const statusMessage = message || (clamped
     ? IS_KO
       ? "Preview는 표시를 위해 불가능한 치수를 일부 제한했습니다."
       : "Preview clamps impossible dimensions for display."
-    : "";
-  shapePreviewStatus.classList.toggle("hidden", !clamped);
+    : "");
+  setPreviewStatus(statusMessage, Boolean(statusMessage));
+  setShapeSource(payload.geometry_id ? `${TEXT.parametricMode}: ${payload.geometry_id}` : TEXT.customParametric);
+}
+
+function updateShapePreview() {
+  const payload = formPayload();
+  updateShapeMetrics(payload);
+  if (!shapePreviewState) {
+    return;
+  }
+  const rawLength = Number(payload.L_mm);
+  const rawWidth = Number(payload.W_mm);
+  const rawThickness = Number(payload.t_mm);
+  const rawDiameter = Number(payload.D_mm);
+  const rawGateWidth = Number(payload.gate_size_width_mm);
+  const rawGateHeight = Number(payload.gate_size_height_mm);
+  const canShowExact = shapePreviewMode === "exact" && payload.geometry_id && shapeAssetMap.has(payload.geometry_id);
+  const activeMode = canShowExact ? "exact" : "parametric";
+  const key = [
+    activeMode,
+    payload.geometry_id || "custom",
+    rawLength,
+    rawWidth,
+    rawThickness,
+    rawDiameter,
+    rawGateWidth,
+    rawGateHeight,
+  ].join("|");
+  if (shapePreviewState.lastPayloadKey === key) {
+    return;
+  }
+  shapePreviewState.lastPayloadKey = key;
+  if (canShowExact) {
+    loadExactShapePreview(payload);
+  } else {
+    renderParametricShape(
+      payload,
+      shapePreviewMode === "exact" && !payload.geometry_id ? TEXT.customParametric : "",
+    );
+  }
 }
 
 function issue(severity, category, field, message) {
@@ -911,6 +1117,11 @@ geometrySelect.addEventListener("change", () => {
 processSelect.addEventListener("change", () => {
   applyProcess(processSelect.value);
   updatePreventionCheck();
+});
+shapeModeButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    setShapeMode(button.dataset.shapeMode);
+  });
 });
 [
   "L_mm",
