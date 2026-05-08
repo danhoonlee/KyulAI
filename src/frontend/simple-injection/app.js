@@ -538,15 +538,16 @@ function styleExactShape(object) {
 function addExactGateOverlay(payload, bodyBox) {
   const size = bodyBox.getSize(new THREE.Vector3());
   const center = bodyBox.getCenter(new THREE.Vector3());
-  const gateWidth = Math.min(Math.max(Number(payload.gate_size_width_mm), 0.2), Math.max(size.y * 0.92, 0.2));
-  const gateHeight = Math.min(Math.max(Number(payload.gate_size_height_mm), 0.15), Math.max(size.z, 0.2));
-  const gateDepth = Math.max(5, Math.min(size.x * 0.08, 16));
-  const overlap = gateDepth * 1.0;
+  // STEP files store the gate as a 5 mm curve marker, not as a solid body.
+  const markerLength = 5;
+  const gateWidth = Math.min(Math.max(Number(payload.gate_size_width_mm), 0.2), Math.max(size.y * 0.36, 0.2));
+  const markerThickness = Math.max(0.12, Math.min(size.z * 0.08, 0.28));
+  const overlap = 0.35;
   const gate = new THREE.Mesh(
-    new THREE.BoxGeometry(gateDepth, gateWidth, gateHeight),
+    new THREE.BoxGeometry(markerLength, gateWidth, markerThickness),
     new THREE.MeshStandardMaterial({ color: 0xd40000, roughness: 0.5, metalness: 0.02 }),
   );
-  gate.position.set(bodyBox.min.x - gateDepth / 2 + overlap, center.y, bodyBox.max.z + gateHeight / 2);
+  gate.position.set(bodyBox.min.x - markerLength / 2 + overlap, center.y, bodyBox.max.z + markerThickness * 0.18);
   shapePreviewState.group.add(gate);
   const gateEdges = addEdges(shapePreviewState.group, gate, 0x7a0000);
 
