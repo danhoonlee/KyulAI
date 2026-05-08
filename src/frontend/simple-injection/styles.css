@@ -603,10 +603,12 @@ select:focus {
   line-height: 1.45;
 }
 
+.filling-generated-animation,
 .filling-animation {
   margin-top: 14px;
 }
 
+.filling-generated-animation canvas,
 .filling-animation img {
   display: block;
   width: 100%;

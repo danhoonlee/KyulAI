@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>KCLab Simple Injection Sprue Pressure Predictor</title>
-    <link rel="stylesheet" href="./styles.css?v=20260508-filling-animation-ko" />
+    <link rel="stylesheet" href="./styles.css?v=20260508-generated-filling-animation-ko" />
   </head>
   <body>
     <main class="shell">
@@ -184,10 +184,20 @@
                 </div>
                 <div class="filling-histogram" id="filling-histogram"></div>
                 <p class="filling-note" id="filling-note"></p>
+                <div class="filling-generated-animation hidden" id="filling-generated-animation">
+                  <div class="section-head">
+                    <div>
+                      <p class="eyebrow">Generated Preview</p>
+                      <h3>예측 기반 Filling Animation</h3>
+                    </div>
+                    <span id="filling-generated-label">Histogram 기반</span>
+                  </div>
+                  <canvas id="filling-generated-canvas" width="760" height="360"></canvas>
+                </div>
                 <div class="filling-animation hidden" id="filling-animation">
                   <div class="section-head">
                     <div>
-                      <p class="eyebrow">Animation</p>
+                      <p class="eyebrow">Moldex3D GIF</p>
                       <h3>Filling Pressure 변화</h3>
                     </div>
                     <span id="filling-animation-label">-</span>
@@ -223,6 +233,6 @@
         }
       }
     </script>
-    <script type="module" src="./app.js?v=20260508-filling-animation-ko"></script>
+    <script type="module" src="./app.js?v=20260508-generated-filling-animation-ko"></script>
   </body>
 </html>

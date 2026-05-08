@@ -77,6 +77,9 @@ const fillingMax = document.querySelector("#filling-max");
 const fillingSd = document.querySelector("#filling-sd");
 const fillingHistogram = document.querySelector("#filling-histogram");
 const fillingNote = document.querySelector("#filling-note");
+const fillingGeneratedAnimation = document.querySelector("#filling-generated-animation");
+const fillingGeneratedLabel = document.querySelector("#filling-generated-label");
+const fillingGeneratedCanvas = document.querySelector("#filling-generated-canvas");
 const fillingAnimation = document.querySelector("#filling-animation");
 const fillingAnimationLabel = document.querySelector("#filling-animation-label");
 const fillingAnimationImage = document.querySelector("#filling-animation-image");
@@ -104,6 +107,8 @@ let shapePreviewMode = "parametric";
 let shapeAssetMap = new Map();
 let shapeLoadToken = 0;
 let latestFillingPressureSummary = null;
+let generatedFillingAnimationFrame = null;
+let generatedFillingAnimationStart = 0;
 
 function formatMetric(value, digits = 3) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
@@ -1191,12 +1196,128 @@ function renderInputSummary(inputs) {
   });
 }
 
-function renderFillingPressure(summary) {
+function stopGeneratedFillingAnimation() {
+  if (generatedFillingAnimationFrame) {
+    window.cancelAnimationFrame(generatedFillingAnimationFrame);
+    generatedFillingAnimationFrame = null;
+  }
+}
+
+function colorCss(color) {
+  return `rgb(${Math.round(color.r * 255)}, ${Math.round(color.g * 255)}, ${Math.round(color.b * 255)})`;
+}
+
+function drawGeneratedFillingFrame(summary, inputs, progress) {
+  if (!fillingGeneratedCanvas) {
+    return;
+  }
+  const ctx = fillingGeneratedCanvas.getContext("2d");
+  const { width, height } = fillingGeneratedCanvas;
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = "#f8fbfd";
+  ctx.fillRect(0, 0, width, height);
+
+  const length = Math.max(Number(inputs?.L_mm), 1);
+  const widthMm = Math.max(Number(inputs?.W_mm), 1);
+  const diameter = Math.max(Number(inputs?.D_mm), 1);
+  const gateWidth = Math.max(Number(inputs?.gate_size_width_mm), 1);
+  const margin = 54;
+  const maxPartW = width - margin * 2;
+  const maxPartH = height - 92;
+  const scale = Math.min(maxPartW / length, maxPartH / widthMm);
+  const partW = length * scale;
+  const partH = widthMm * scale;
+  const x0 = (width - partW) / 2;
+  const y0 = (height - partH) / 2 + 10;
+  const holeR = Math.max((diameter * scale) / 2, 3);
+  const holeX = x0 + partW / 2;
+  const holeY = y0 + partH / 2;
+  const front = Math.min(1.06, progress * 1.18);
+  const colorStops = fillingColorStops();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x0, y0, partW, partH);
+  ctx.arc(holeX, holeY, holeR, 0, Math.PI * 2, true);
+  ctx.clip("evenodd");
+
+  const step = 5;
+  for (let y = y0; y < y0 + partH; y += step) {
+    for (let x = x0; x < x0 + partW; x += step) {
+      const localX = (x - x0) / Math.max(partW, 1e-9);
+      if (localX > front) {
+        continue;
+      }
+      const localY = Math.abs((y - (y0 + partH / 2)) / Math.max(partH / 2, 1e-9));
+      const gateHotspot = Math.exp(-((localX / 0.16) ** 2 + (localY / 0.46) ** 2));
+      const wake = Math.max(0, 1 - (front - localX) * 2.2) * 0.18;
+      const visualFraction = Math.max(0, Math.min(1, localX ** 1.45 - gateHotspot * 0.08 - wake));
+      const pressure = pressureFromDistribution(summary, visualFraction);
+      const maxPressure = Math.max(Number(summary.stats?.max_MPa) || 0, 1e-9);
+      const normalized = Math.max(0, Math.min(1, Number(pressure) / maxPressure));
+      const color = interpolateColor(colorStops, normalized);
+      ctx.fillStyle = colorCss(color);
+      ctx.fillRect(x, y, step + 1, step + 1);
+    }
+  }
+
+  ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
+  ctx.beginPath();
+  ctx.arc(holeX, holeY, holeR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.strokeStyle = "#5b6d8c";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x0, y0, partW, partH);
+  ctx.beginPath();
+  ctx.arc(holeX, holeY, holeR, 0, Math.PI * 2);
+  ctx.stroke();
+
+  const gateH = Math.max(gateWidth * scale, 12);
+  ctx.fillStyle = "#d40000";
+  ctx.fillRect(x0 - 24, y0 + partH / 2 - gateH / 2, 24, gateH);
+
+  ctx.fillStyle = "#607086";
+  ctx.font = "12px system-ui, sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText(`${summary.sample_id || ""} generated filling preview`, x0, height - 18);
+  ctx.textAlign = "right";
+  ctx.fillText(`${formatMetric((Number(summary.stats?.max_MPa) || 0) * Math.min(progress * 1.1, 1), 1)} MPa`, x0 + partW, height - 18);
+}
+
+function startGeneratedFillingAnimation(summary, inputs) {
+  stopGeneratedFillingAnimation();
+  if (!summary?.bins?.length || !fillingGeneratedAnimation || !fillingGeneratedCanvas) {
+    if (fillingGeneratedAnimation) {
+      fillingGeneratedAnimation.classList.add("hidden");
+    }
+    return;
+  }
+  fillingGeneratedAnimation.classList.remove("hidden");
+  if (fillingGeneratedLabel) {
+    fillingGeneratedLabel.textContent = summary.sample_id || (IS_KO ? "예측 분포" : "Predicted distribution");
+  }
+  generatedFillingAnimationStart = performance.now();
+  const animate = (now) => {
+    const durationMs = 3200;
+    const progress = ((now - generatedFillingAnimationStart) % durationMs) / durationMs;
+    drawGeneratedFillingFrame(summary, inputs, progress);
+    generatedFillingAnimationFrame = window.requestAnimationFrame(animate);
+  };
+  generatedFillingAnimationFrame = window.requestAnimationFrame(animate);
+}
+
+function renderFillingPressure(summary, inputs = {}) {
   if (!fillingSummary) {
     return;
   }
   if (!summary) {
     fillingSummary.classList.add("hidden");
+    stopGeneratedFillingAnimation();
+    if (fillingGeneratedAnimation) {
+      fillingGeneratedAnimation.classList.add("hidden");
+    }
     if (fillingAnimation) {
       fillingAnimation.classList.add("hidden");
     }
@@ -1236,6 +1357,7 @@ function renderFillingPressure(summary) {
   });
 
   fillingNote.textContent = TEXT.fillingNoSpatial;
+  startGeneratedFillingAnimation(summary, inputs);
   if (summary.animation_url && fillingAnimation && fillingAnimationImage) {
     fillingAnimation.classList.remove("hidden");
     fillingAnimationLabel.textContent = summary.sample_id || "";
@@ -1250,6 +1372,10 @@ function renderFillingPressure(summary) {
 
 function clearFillingPressureContext() {
   latestFillingPressureSummary = null;
+  stopGeneratedFillingAnimation();
+  if (fillingGeneratedAnimation) {
+    fillingGeneratedAnimation.classList.add("hidden");
+  }
   if (shapePreviewState) {
     shapePreviewState.lastPayloadKey = "";
   }
@@ -1265,7 +1391,7 @@ function renderResult(data) {
   renderInputSummary(data.inputs);
   drawPressureCurve(data.curve);
   latestFillingPressureSummary = data.filling_pressure || null;
-  renderFillingPressure(data.filling_pressure);
+  renderFillingPressure(data.filling_pressure, data.inputs);
   if (shapePreviewMode === "parametric" && shapePreviewState) {
     shapePreviewState.lastPayloadKey = "";
     updateShapePreview();
