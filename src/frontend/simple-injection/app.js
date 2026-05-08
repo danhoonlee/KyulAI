@@ -35,6 +35,7 @@ const TEXT = {
   parametricMode: IS_KO ? "Parametric preview" : "Parametric preview",
   exactUnavailable: IS_KO ? "선택한 DOE의 STEP GLB가 없어 parametric preview로 표시합니다." : "No STEP GLB is available for this DOE; showing the parametric preview.",
   customParametric: IS_KO ? "사용자 입력 형상은 parametric preview로 표시합니다." : "User-edited geometry is shown with the parametric preview.",
+  doeParametric: IS_KO ? "DOE 치수 기반 parametric preview" : "Parametric preview from DOE dimensions",
 };
 const MODEL_LABELS_KO = {
   "Sprue pressure - ExtraTrees + PCA": "Sprue Pressure - ExtraTrees + PCA",
@@ -549,15 +550,7 @@ function addExactGateOverlay(payload, bodyBox) {
   shapePreviewState.group.add(gate);
   const gateEdges = addEdges(shapePreviewState.group, gate, 0x7a0000);
 
-  const sprue = new THREE.Mesh(
-    new THREE.CylinderGeometry(Math.max(gateHeight * 0.45, 0.35), Math.max(gateHeight * 0.45, 0.35), gateDepth * 1.35, 24),
-    new THREE.MeshStandardMaterial({ color: 0xff3b30, roughness: 0.46 }),
-  );
-  sprue.rotation.z = Math.PI / 2;
-  sprue.position.set(bodyBox.min.x - gateDepth * 0.28, center.y, bodyBox.max.z + gateHeight / 2);
-  shapePreviewState.group.add(sprue);
-  const sprueEdges = addEdges(shapePreviewState.group, sprue, 0x8a0b0b);
-  return [gate, gateEdges, sprue, sprueEdges];
+  return [gate, gateEdges];
 }
 
 function resetCadQueryRootRotation(object, geometryId) {
@@ -678,16 +671,7 @@ function renderParametricShape(payload, message = "") {
   shapePreviewState.group.add(gate);
   const gateEdges = addEdges(shapePreviewState.group, gate, 0x7a0000);
 
-  const sprue = new THREE.Mesh(
-    new THREE.CylinderGeometry(Math.max(gateHeight * 0.45, 0.35), Math.max(gateHeight * 0.45, 0.35), gateDepth * 1.25, 24),
-    new THREE.MeshStandardMaterial({ color: 0xff3b30, roughness: 0.46 }),
-  );
-  sprue.rotation.x = Math.PI / 2;
-  sprue.position.set(0, -width / 2 - gateDepth * 1.55, -thickness / 2 + gateHeight / 2);
-  shapePreviewState.group.add(sprue);
-  const sprueEdges = addEdges(shapePreviewState.group, sprue, 0x8a0b0b);
-
-  shapePreviewState.meshObjects.push(plate, plateEdges, gate, gateEdges, sprue, sprueEdges);
+  shapePreviewState.meshObjects.push(plate, plateEdges, gate, gateEdges);
 
   const span = Math.max(length, width + gateDepth * 3, thickness * 8);
   fitPreviewCamera(span);
@@ -699,7 +683,7 @@ function renderParametricShape(payload, message = "") {
       : "Preview clamps impossible dimensions for display."
     : "");
   setPreviewStatus(statusMessage, Boolean(statusMessage));
-  setShapeSource(payload.geometry_id ? `${TEXT.parametricMode}: ${payload.geometry_id}` : TEXT.customParametric);
+  setShapeSource(payload.geometry_id ? `${TEXT.doeParametric}: ${payload.geometry_id}` : TEXT.customParametric);
 }
 
 function updateShapePreview() {
