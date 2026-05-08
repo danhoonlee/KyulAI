@@ -603,6 +603,20 @@ select:focus {
   line-height: 1.45;
 }
 
+.filling-animation {
+  margin-top: 14px;
+}
+
+.filling-animation img {
+  display: block;
+  width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #f8fbfd;
+}
+
 canvas {
   width: 100%;
   height: auto;

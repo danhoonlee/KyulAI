@@ -88,6 +88,7 @@ class FillingPressureSummary(BaseModel):
     total_volume_ratio_pct: float
     bins: list[FillingPressureBin]
     note: str
+    animation_url: str | None = None
 
 
 class SpruePressurePredictionResponse(BaseModel):
@@ -206,15 +207,25 @@ def _filling_pressure_summary(
     sample_id = f"{geometry['geometry_id']}_{process['process_id']}"
     observed = _filling_pressure_map().get(sample_id)
     if observed:
-        return observed
+        return _with_filling_pressure_assets(observed)
     if not FILLING_PRESSURE_MODEL_PATH.exists():
         return None
     try:
         from src.ml.simple_injection.predict_filling_pressure import predict_filling_pressure
 
-        return predict_filling_pressure(FILLING_PRESSURE_MODEL_PATH, geometry, process)
+        return _with_filling_pressure_assets(predict_filling_pressure(FILLING_PRESSURE_MODEL_PATH, geometry, process))
     except Exception:
         return None
+
+
+def _with_filling_pressure_assets(summary: dict[str, object]) -> dict[str, object]:
+    out = dict(summary)
+    sample_id = str(out.get("sample_id", ""))
+    filling_dir = PROJECT_ROOT / "data/datasets/Simple_Injection/Filling_Pressure"
+    animation_path = filling_dir / f"{sample_id}_Filling_Pressure.gif"
+    if animation_path.exists():
+        out["animation_url"] = f"/data/datasets/Simple_Injection/Filling_Pressure/{animation_path.name}"
+    return out
 
 
 @router.get("/models", response_model=SimpleInjectionModelsResponse, summary="List Simple Injection models")

@@ -77,6 +77,9 @@ const fillingMax = document.querySelector("#filling-max");
 const fillingSd = document.querySelector("#filling-sd");
 const fillingHistogram = document.querySelector("#filling-histogram");
 const fillingNote = document.querySelector("#filling-note");
+const fillingAnimation = document.querySelector("#filling-animation");
+const fillingAnimationLabel = document.querySelector("#filling-animation-label");
+const fillingAnimationImage = document.querySelector("#filling-animation-image");
 const preventionPanel = document.querySelector("#prevention-panel");
 const preventionList = document.querySelector("#prevention-list");
 const preventionCount = document.querySelector("#prevention-count");
@@ -1194,6 +1197,9 @@ function renderFillingPressure(summary) {
   }
   if (!summary) {
     fillingSummary.classList.add("hidden");
+    if (fillingAnimation) {
+      fillingAnimation.classList.add("hidden");
+    }
     return;
   }
 
@@ -1230,6 +1236,16 @@ function renderFillingPressure(summary) {
   });
 
   fillingNote.textContent = TEXT.fillingNoSpatial;
+  if (summary.animation_url && fillingAnimation && fillingAnimationImage) {
+    fillingAnimation.classList.remove("hidden");
+    fillingAnimationLabel.textContent = summary.sample_id || "";
+    fillingAnimationImage.src = summary.animation_url;
+  } else if (fillingAnimation) {
+    fillingAnimation.classList.add("hidden");
+    if (fillingAnimationImage) {
+      fillingAnimationImage.removeAttribute("src");
+    }
+  }
 }
 
 function clearFillingPressureContext() {
