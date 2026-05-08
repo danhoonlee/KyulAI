@@ -13,6 +13,7 @@ import numpy as np
 DEFAULT_DATA_DIR = Path("data/datasets/Simple_Injection")
 DEFAULT_DOE_DIR = DEFAULT_DATA_DIR / "DOE"
 DEFAULT_RESULT_DIR = DEFAULT_DATA_DIR / "Result"
+DEFAULT_FILLING_PRESSURE_DIR = DEFAULT_DATA_DIR / "Filling_Pressure"
 
 BASE_FEATURE_COLUMNS = [
     "L_mm",
@@ -120,6 +121,7 @@ def _to_float(value: str) -> float | None:
 
 
 RUN_RE = re.compile(r"(G\d{2})_(P\d{2})")
+FILLING_PRESSURE_RE = re.compile(r"(G\d{2})_(P\d{2})_Filling_Pressure\.csv$", re.IGNORECASE)
 
 
 def load_result_curves(result_dir: str | Path = DEFAULT_RESULT_DIR) -> dict[str, tuple[np.ndarray, np.ndarray]]:
@@ -158,6 +160,74 @@ def load_result_curves(result_dir: str | Path = DEFAULT_RESULT_DIR) -> dict[str,
             pressure = np.asarray(pressures, dtype=float)[order]
             curves[sample_id] = (time, pressure)
     return curves
+
+
+def load_filling_pressure_distribution(
+    filling_dir: str | Path = DEFAULT_FILLING_PRESSURE_DIR,
+) -> dict[str, dict[str, object]]:
+    """Load Moldex3D filling pressure histogram exports.
+
+    Moldex3D's CSV export is a summary distribution, not a mesh-point field. It
+    preserves global statistics and binned volume ratios but not spatial values.
+    """
+    distributions: dict[str, dict[str, object]] = {}
+    root = Path(filling_dir)
+    if not root.exists():
+        return distributions
+
+    for path in sorted(root.glob("*Filling_Pressure*.csv")):
+        match = FILLING_PRESSURE_RE.search(path.name)
+        if not match:
+            continue
+        sample_id = f"{match.group(1)}_{match.group(2)}"
+        with path.open(newline="", encoding="utf-8-sig") as f:
+            rows = [row for row in csv.reader(f) if any(cell.strip() for cell in row)]
+
+        stats: dict[str, float | str] = {}
+        bins: list[dict[str, float | int]] = []
+        in_distribution = False
+        for row in rows:
+            first = row[0].strip()
+            if first == "[Distribution]":
+                in_distribution = True
+                continue
+            if not in_distribution and len(row) == 1 and "=" in first:
+                key, value = [item.strip() for item in first.split("=", 1)]
+                number = _to_float(value)
+                stats[key.lower()] = number if number is not None else value
+                continue
+            if in_distribution and first.isdigit() and len(row) >= 6:
+                bins.append(
+                    {
+                        "group": int(first),
+                        "from_MPa": float(row[1]),
+                        "to_MPa": float(row[2]),
+                        "center_MPa": float(row[3]),
+                        "count": int(float(row[4])),
+                        "volume_ratio_pct": float(row[5]),
+                    }
+                )
+
+        if bins:
+            distributions[sample_id] = {
+                "sample_id": sample_id,
+                "source_file": path.name,
+                "stats": {
+                    "min_MPa": float(stats.get("min", 0.0)),
+                    "max_MPa": float(stats.get("max", 0.0)),
+                    "avg_MPa": float(stats.get("avg", 0.0)),
+                    "sd_MPa": float(stats.get("sd", 0.0)),
+                },
+                "group_count": len(bins),
+                "total_count": sum(int(bin_row["count"]) for bin_row in bins),
+                "total_volume_ratio_pct": sum(float(bin_row["volume_ratio_pct"]) for bin_row in bins),
+                "bins": bins,
+                "note": (
+                    "Moldex3D histogram export; spatial mesh coordinates are not included, "
+                    "so this is a distribution summary rather than a contour field."
+                ),
+            }
+    return distributions
 
 
 def _with_derived_features(features: dict[str, float | str]) -> dict[str, float | str]:

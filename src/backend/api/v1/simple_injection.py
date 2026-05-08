@@ -10,7 +10,11 @@ from typing import Any, Literal
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
-from src.ml.simple_injection.data import load_geometry_doe, load_process_doe
+from src.ml.simple_injection.data import (
+    load_filling_pressure_distribution,
+    load_geometry_doe,
+    load_process_doe,
+)
 from src.ml.simple_injection.validation import has_blocking_issues, validate_simple_injection_inputs
 
 router = APIRouter(prefix="/simple-injection", tags=["simple-injection"])
@@ -66,6 +70,26 @@ class SpruePressurePoint(BaseModel):
     sprue_pressure_MPa: float
 
 
+class FillingPressureBin(BaseModel):
+    group: int
+    from_MPa: float
+    to_MPa: float
+    center_MPa: float
+    count: int
+    volume_ratio_pct: float
+
+
+class FillingPressureSummary(BaseModel):
+    sample_id: str
+    source_file: str
+    stats: dict[str, float]
+    group_count: int
+    total_count: int
+    total_volume_ratio_pct: float
+    bins: list[FillingPressureBin]
+    note: str
+
+
 class SpruePressurePredictionResponse(BaseModel):
     model_key: str
     model_label: str
@@ -76,6 +100,7 @@ class SpruePressurePredictionResponse(BaseModel):
     metrics: dict[str, Any] = {}
     notes: list[str] = []
     validation_warnings: list[dict[str, str]] = []
+    filling_pressure: FillingPressureSummary | None = None
 
 
 SPRUE_MODELS: dict[str, dict[str, str]] = {
@@ -164,6 +189,15 @@ def _process_payload(payload: SpruePressurePredictionRequest) -> dict[str, float
     }
 
 
+@lru_cache(maxsize=1)
+def _filling_pressure_map() -> dict[str, dict[str, object]]:
+    data_dir = PROJECT_ROOT / "data/datasets/Simple_Injection"
+    primary = load_filling_pressure_distribution(data_dir / "Filling_Pressure")
+    if primary:
+        return primary
+    return load_filling_pressure_distribution(data_dir / "Filling")
+
+
 @router.get("/models", response_model=SimpleInjectionModelsResponse, summary="List Simple Injection models")
 async def list_simple_injection_models() -> SimpleInjectionModelsResponse:
     return _models_response()
@@ -233,4 +267,5 @@ async def predict_sprue_pressure(
         metrics=result.get("metrics", {}),
         notes=notes,
         validation_warnings=validation_warnings,
+        filling_pressure=_filling_pressure_map().get(f"{geometry['geometry_id']}_{process['process_id']}"),
     )

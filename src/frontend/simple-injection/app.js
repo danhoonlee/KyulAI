@@ -31,6 +31,9 @@ const TEXT = {
   geometry: IS_KO ? "형상" : "Geometry",
   process: IS_KO ? "공정" : "Process",
   invalidInput: IS_KO ? "물리적으로 유효하지 않은 입력 조건이 있습니다." : "Input contains physically invalid conditions.",
+  fillingNoSpatial: IS_KO
+    ? "이 값은 Moldex3D histogram export 요약입니다. 메쉬 좌표가 없어 실제 contour 위치 정보는 포함하지 않습니다."
+    : "This is a Moldex3D histogram export summary. Mesh coordinates are not included, so it is not a spatial contour field.",
   exactMode: IS_KO ? "STEP 형상" : "STEP geometry",
   parametricMode: IS_KO ? "Parametric preview" : "Parametric preview",
   exactUnavailable: IS_KO ? "선택한 DOE의 STEP GLB가 없어 parametric preview로 표시합니다." : "No STEP GLB is available for this DOE; showing the parametric preview.",
@@ -66,6 +69,14 @@ const pressureCanvas = document.querySelector("#pressure-canvas");
 const modelLabel = document.querySelector("#model-label");
 const inputSummary = document.querySelector("#input-summary");
 const notes = document.querySelector("#notes");
+const fillingSummary = document.querySelector("#filling-summary");
+const fillingSource = document.querySelector("#filling-source");
+const fillingMin = document.querySelector("#filling-min");
+const fillingAvg = document.querySelector("#filling-avg");
+const fillingMax = document.querySelector("#filling-max");
+const fillingSd = document.querySelector("#filling-sd");
+const fillingHistogram = document.querySelector("#filling-histogram");
+const fillingNote = document.querySelector("#filling-note");
 const preventionPanel = document.querySelector("#prevention-panel");
 const preventionList = document.querySelector("#prevention-list");
 const preventionCount = document.querySelector("#prevention-count");
@@ -1051,6 +1062,50 @@ function renderInputSummary(inputs) {
   });
 }
 
+function renderFillingPressure(summary) {
+  if (!fillingSummary) {
+    return;
+  }
+  if (!summary) {
+    fillingSummary.classList.add("hidden");
+    return;
+  }
+
+  const stats = summary.stats || {};
+  fillingSummary.classList.remove("hidden");
+  fillingSource.textContent = summary.sample_id || summary.source_file || "-";
+  fillingMin.textContent = `${formatMetric(stats.min_MPa, 3)} MPa`;
+  fillingAvg.textContent = `${formatMetric(stats.avg_MPa, 3)} MPa`;
+  fillingMax.textContent = `${formatMetric(stats.max_MPa, 3)} MPa`;
+  fillingSd.textContent = `${formatMetric(stats.sd_MPa, 3)} MPa`;
+
+  fillingHistogram.innerHTML = "";
+  const bins = summary.bins || [];
+  const maxRatio = Math.max(...bins.map((bin) => Number(bin.volume_ratio_pct) || 0), 1);
+  bins.forEach((bin) => {
+    const row = document.createElement("div");
+    row.className = "filling-bar";
+
+    const range = document.createElement("span");
+    range.textContent = `${formatMetric(bin.from_MPa, 1)}-${formatMetric(bin.to_MPa, 1)}`;
+
+    const track = document.createElement("div");
+    track.className = "filling-bar-track";
+    const fill = document.createElement("div");
+    fill.className = "filling-bar-fill";
+    fill.style.width = `${Math.max(1, (Number(bin.volume_ratio_pct) / maxRatio) * 100)}%`;
+    track.appendChild(fill);
+
+    const ratio = document.createElement("strong");
+    ratio.textContent = `${formatMetric(bin.volume_ratio_pct, 2)}%`;
+
+    row.append(range, track, ratio);
+    fillingHistogram.appendChild(row);
+  });
+
+  fillingNote.textContent = TEXT.fillingNoSpatial;
+}
+
 function renderResult(data) {
   emptyState.classList.add("hidden");
   resultPanel.classList.remove("hidden");
@@ -1060,6 +1115,7 @@ function renderResult(data) {
   modelLabel.textContent = localizeModelLabel(data.model_label);
   renderInputSummary(data.inputs);
   drawPressureCurve(data.curve);
+  renderFillingPressure(data.filling_pressure);
 
   notes.innerHTML = "";
   (data.validation_warnings || []).forEach((warning) => {

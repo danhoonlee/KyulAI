@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>KCLab Simple Injection Sprue Pressure Predictor</title>
-    <link rel="stylesheet" href="./styles.css?v=20260430-simple-injection-intro" />
+    <link rel="stylesheet" href="./styles.css?v=20260508-filling-pressure" />
   </head>
   <body>
     <main class="shell">
@@ -156,6 +156,36 @@
 
               <canvas id="pressure-canvas" width="760" height="360"></canvas>
 
+              <section class="filling-summary hidden" id="filling-summary" aria-label="Filling pressure distribution">
+                <div class="section-head">
+                  <div>
+                    <p class="eyebrow">Moldex3D Export</p>
+                    <h3>Filling Pressure Distribution</h3>
+                  </div>
+                  <span id="filling-source">-</span>
+                </div>
+                <div class="stats filling-stats">
+                  <div>
+                    <span>Min</span>
+                    <strong id="filling-min">-</strong>
+                  </div>
+                  <div>
+                    <span>Average</span>
+                    <strong id="filling-avg">-</strong>
+                  </div>
+                  <div>
+                    <span>Max</span>
+                    <strong id="filling-max">-</strong>
+                  </div>
+                  <div>
+                    <span>SD</span>
+                    <strong id="filling-sd">-</strong>
+                  </div>
+                </div>
+                <div class="filling-histogram" id="filling-histogram"></div>
+                <p class="filling-note" id="filling-note"></p>
+              </section>
+
               <dl class="meta">
                 <div>
                   <dt>Model</dt>
@@ -183,6 +213,6 @@
         }
       }
     </script>
-    <script type="module" src="./app.js?v=20260508-attached-gate-patch"></script>
+    <script type="module" src="./app.js?v=20260508-filling-pressure"></script>
   </body>
 </html>
