@@ -534,18 +534,18 @@ function styleExactShape(object) {
   });
 }
 
-function addExactGateOverlay(payload) {
-  const length = Math.max(Number(payload.L_mm), 1);
-  const width = Math.max(Number(payload.W_mm), 1);
-  const thickness = Math.max(Number(payload.t_mm), 0.2);
-  const gateWidth = Math.min(Math.max(Number(payload.gate_size_width_mm), 0.2), width * 0.92);
-  const gateHeight = Math.min(Math.max(Number(payload.gate_size_height_mm), 0.15), thickness);
-  const gateDepth = Math.max(5, Math.min(length * 0.08, 16));
+function addExactGateOverlay(payload, bodyBox) {
+  const size = bodyBox.getSize(new THREE.Vector3());
+  const center = bodyBox.getCenter(new THREE.Vector3());
+  const gateWidth = Math.min(Math.max(Number(payload.gate_size_width_mm), 0.2), Math.max(size.y * 0.92, 0.2));
+  const gateHeight = Math.min(Math.max(Number(payload.gate_size_height_mm), 0.15), Math.max(size.z, 0.2));
+  const gateDepth = Math.max(5, Math.min(size.x * 0.08, 16));
+  const overlap = gateDepth * 1.0;
   const gate = new THREE.Mesh(
     new THREE.BoxGeometry(gateDepth, gateWidth, gateHeight),
     new THREE.MeshStandardMaterial({ color: 0xd40000, roughness: 0.5, metalness: 0.02 }),
   );
-  gate.position.set(-length / 2 - gateDepth / 2, 0, -thickness / 2 + gateHeight / 2);
+  gate.position.set(bodyBox.min.x - gateDepth / 2 + overlap, center.y, bodyBox.max.z + gateHeight / 2);
   shapePreviewState.group.add(gate);
   const gateEdges = addEdges(shapePreviewState.group, gate, 0x7a0000);
 
@@ -554,7 +554,7 @@ function addExactGateOverlay(payload) {
     new THREE.MeshStandardMaterial({ color: 0xff3b30, roughness: 0.46 }),
   );
   sprue.rotation.z = Math.PI / 2;
-  sprue.position.set(-length / 2 - gateDepth * 1.65, 0, -thickness / 2 + gateHeight / 2);
+  sprue.position.set(bodyBox.min.x - gateDepth * 0.28, center.y, bodyBox.max.z + gateHeight / 2);
   shapePreviewState.group.add(sprue);
   const sprueEdges = addEdges(shapePreviewState.group, sprue, 0x8a0b0b);
   return [gate, gateEdges, sprue, sprueEdges];
@@ -577,7 +577,10 @@ function centerExactShape(object) {
   object.updateMatrixWorld(true);
   const centeredBox = new THREE.Box3().setFromObject(object);
   const size = centeredBox.getSize(new THREE.Vector3());
-  return Math.max(size.x, size.y, size.z * 8, 1);
+  return {
+    box: centeredBox,
+    span: Math.max(size.x, size.y, size.z * 8, 1),
+  };
 }
 
 function loadExactShapePreview(payload) {
@@ -605,10 +608,10 @@ function loadExactShapePreview(payload) {
       resetCadQueryRootRotation(object, geometryId);
       styleExactShape(object);
       shapePreviewState.group.add(object);
-      const gateObjects = addExactGateOverlay(payload);
+      const exactFit = centerExactShape(object);
+      const gateObjects = addExactGateOverlay(payload, exactFit.box);
       shapePreviewState.meshObjects.push(object, ...gateObjects);
-      const span = centerExactShape(object);
-      fitPreviewCamera(span);
+      fitPreviewCamera(exactFit.span);
       setPreviewStatus("", false);
       setShapeSource(`${TEXT.exactMode}: ${geometryId}.glb`);
     },
