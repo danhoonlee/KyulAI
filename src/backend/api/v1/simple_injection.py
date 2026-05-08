@@ -117,6 +117,7 @@ SPRUE_MODELS: dict[str, dict[str, str]] = {
         "requires": "torch,numpy",
     },
 }
+FILLING_PRESSURE_MODEL_PATH = PROJECT_ROOT / "models/simple_injection_filling_pressure_v1/filling_pressure_surrogate.joblib"
 
 
 def _model_path(model_meta: dict[str, str]) -> Path:
@@ -198,6 +199,24 @@ def _filling_pressure_map() -> dict[str, dict[str, object]]:
     return load_filling_pressure_distribution(data_dir / "Filling")
 
 
+def _filling_pressure_summary(
+    geometry: dict[str, float | str | None],
+    process: dict[str, float | str | None],
+) -> dict[str, object] | None:
+    sample_id = f"{geometry['geometry_id']}_{process['process_id']}"
+    observed = _filling_pressure_map().get(sample_id)
+    if observed:
+        return observed
+    if not FILLING_PRESSURE_MODEL_PATH.exists():
+        return None
+    try:
+        from src.ml.simple_injection.predict_filling_pressure import predict_filling_pressure
+
+        return predict_filling_pressure(FILLING_PRESSURE_MODEL_PATH, geometry, process)
+    except Exception:
+        return None
+
+
 @router.get("/models", response_model=SimpleInjectionModelsResponse, summary="List Simple Injection models")
 async def list_simple_injection_models() -> SimpleInjectionModelsResponse:
     return _models_response()
@@ -267,5 +286,5 @@ async def predict_sprue_pressure(
         metrics=result.get("metrics", {}),
         notes=notes,
         validation_warnings=validation_warnings,
-        filling_pressure=_filling_pressure_map().get(f"{geometry['geometry_id']}_{process['process_id']}"),
+        filling_pressure=_filling_pressure_summary(geometry, process),
     )

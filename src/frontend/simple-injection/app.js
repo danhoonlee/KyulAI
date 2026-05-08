@@ -100,6 +100,7 @@ let shapePreviewState = null;
 let shapePreviewMode = "exact";
 let shapeAssetMap = new Map();
 let shapeLoadToken = 0;
+let latestFillingPressureSummary = null;
 
 function formatMetric(value, digits = 3) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
@@ -452,7 +453,7 @@ function setShapeMode(mode) {
   updateShapePreview();
 }
 
-function makePlateGeometry(length, width, thickness, holeRadius) {
+function makePlateShape(length, width, holeRadius) {
   const shape = new THREE.Shape();
   shape.moveTo(-length / 2, -width / 2);
   shape.lineTo(length / 2, -width / 2);
@@ -463,7 +464,11 @@ function makePlateGeometry(length, width, thickness, holeRadius) {
   const hole = new THREE.Path();
   hole.absellipse(0, 0, holeRadius, holeRadius, 0, Math.PI * 2, false, 0);
   shape.holes.push(hole);
+  return shape;
+}
 
+function makePlateGeometry(length, width, thickness, holeRadius) {
+  const shape = makePlateShape(length, width, holeRadius);
   const geometry = new THREE.ExtrudeGeometry(shape, {
     depth: thickness,
     bevelEnabled: true,
@@ -475,6 +480,111 @@ function makePlateGeometry(length, width, thickness, holeRadius) {
   geometry.translate(0, 0, -thickness / 2);
   geometry.computeVertexNormals();
   return geometry;
+}
+
+function interpolateColor(stops, value) {
+  const t = Math.max(0, Math.min(1, value));
+  for (let index = 0; index < stops.length - 1; index += 1) {
+    const [startAt, startColor] = stops[index];
+    const [endAt, endColor] = stops[index + 1];
+    if (t >= startAt && t <= endAt) {
+      const local = (t - startAt) / Math.max(1e-9, endAt - startAt);
+      return startColor.clone().lerp(endColor, local);
+    }
+  }
+  return stops[stops.length - 1][1].clone();
+}
+
+function pressureFromDistribution(summary, flowFraction) {
+  const bins = [...(summary?.bins || [])].sort((a, b) => Number(b.center_MPa) - Number(a.center_MPa));
+  if (!bins.length) {
+    return null;
+  }
+  const target = Math.max(0, Math.min(100, flowFraction * 100));
+  let cumulative = 0;
+  for (const bin of bins) {
+    cumulative += Number(bin.volume_ratio_pct) || 0;
+    if (target <= cumulative) {
+      return Number(bin.center_MPa);
+    }
+  }
+  return Number(bins[bins.length - 1].center_MPa);
+}
+
+function makeFillingContourOverlay(length, width, thickness, holeRadius, summary) {
+  if (!summary?.bins?.length) {
+    return null;
+  }
+  const geometry = new THREE.ShapeGeometry(makePlateShape(length, width, holeRadius), 96);
+  geometry.translate(0, 0, thickness / 2 + 0.035);
+
+  const stats = summary.stats || {};
+  const minPressure = Number(stats.min_MPa) || 0;
+  const maxPressure = Math.max(Number(stats.max_MPa) || 0, minPressure + 1e-9);
+  const colorStops = [
+    [0.0, new THREE.Color(0x0756d8)],
+    [0.34, new THREE.Color(0x16aad8)],
+    [0.55, new THREE.Color(0x00ad5a)],
+    [0.76, new THREE.Color(0xf0d800)],
+    [1.0, new THREE.Color(0xd40000)],
+  ];
+  const positions = geometry.getAttribute("position");
+  const colors = [];
+  for (let index = 0; index < positions.count; index += 1) {
+    const x = positions.getX(index);
+    const y = positions.getY(index);
+    const xFlow = (x + length / 2) / Math.max(length, 1e-9);
+    const ySpread = Math.abs(y) / Math.max(width / 2, 1e-9);
+    const flowFraction = Math.max(0, Math.min(1, xFlow + ySpread * 0.18));
+    const pressure = pressureFromDistribution(summary, flowFraction ** 0.86);
+    const normalized = pressure === null ? 0 : (pressure - minPressure) / Math.max(maxPressure - minPressure, 1e-9);
+    const color = interpolateColor(colorStops, normalized);
+    colors.push(color.r, color.g, color.b);
+  }
+  geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+  return new THREE.Mesh(
+    geometry,
+    new THREE.MeshBasicMaterial({
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.72,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -2,
+    }),
+  );
+}
+
+function applyFillingVertexColors(geometry, length, width, summary) {
+  if (!summary?.bins?.length) {
+    return false;
+  }
+  const stats = summary.stats || {};
+  const minPressure = Number(stats.min_MPa) || 0;
+  const maxPressure = Math.max(Number(stats.max_MPa) || 0, minPressure + 1e-9);
+  const colorStops = [
+    [0.0, new THREE.Color(0x0756d8)],
+    [0.34, new THREE.Color(0x16aad8)],
+    [0.55, new THREE.Color(0x00ad5a)],
+    [0.76, new THREE.Color(0xf0d800)],
+    [1.0, new THREE.Color(0xd40000)],
+  ];
+  const positions = geometry.getAttribute("position");
+  const colors = [];
+  for (let index = 0; index < positions.count; index += 1) {
+    const x = positions.getX(index);
+    const y = positions.getY(index);
+    const xFlow = (x + length / 2) / Math.max(length, 1e-9);
+    const ySpread = Math.abs(y) / Math.max(width / 2, 1e-9);
+    const flowFraction = Math.max(0, Math.min(1, xFlow + ySpread * 0.18));
+    const pressure = pressureFromDistribution(summary, flowFraction ** 0.86);
+    const normalized = pressure === null ? 0 : (pressure - minPressure) / Math.max(maxPressure - minPressure, 1e-9);
+    const color = interpolateColor(colorStops, normalized);
+    colors.push(color.r, color.g, color.b);
+  }
+  geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+  return true;
 }
 
 function addEdges(parent, mesh, color = 0x34556d) {
@@ -638,7 +748,8 @@ function renderParametricShape(payload, message = "") {
   const rawDiameter = Number(payload.D_mm);
   const rawGateWidth = Number(payload.gate_size_width_mm);
   const rawGateHeight = Number(payload.gate_size_height_mm);
-  const key = [rawLength, rawWidth, rawThickness, rawDiameter, rawGateWidth, rawGateHeight].join("|");
+  const fillingKey = latestFillingPressureSummary?.sample_id || "no-filling";
+  const key = [rawLength, rawWidth, rawThickness, rawDiameter, rawGateWidth, rawGateHeight, fillingKey].join("|");
   if (shapePreviewState.lastPayloadKey === key) {
     return;
   }
@@ -662,12 +773,15 @@ function renderParametricShape(payload, message = "") {
   const gateOverlap = 0.35;
 
   clearShapeObjects();
+  const plateGeometry = makePlateGeometry(length, width, thickness, holeRadius);
+  const hasContour = applyFillingVertexColors(plateGeometry, length, width, latestFillingPressureSummary);
   const plate = new THREE.Mesh(
-    makePlateGeometry(length, width, thickness, holeRadius),
+    plateGeometry,
     new THREE.MeshStandardMaterial({
-      color: 0x86c3df,
-      roughness: 0.62,
+      color: hasContour ? 0xffffff : 0x86c3df,
+      roughness: hasContour ? 0.48 : 0.62,
       metalness: 0.04,
+      vertexColors: hasContour,
     }),
   );
   shapePreviewState.group.add(plate);
@@ -686,7 +800,12 @@ function renderParametricShape(payload, message = "") {
   shapePreviewState.group.add(gate);
   const gateEdges = addEdges(shapePreviewState.group, gate, 0x7a0000);
 
-  shapePreviewState.meshObjects.push(plate, plateEdges, gate, gateEdges);
+  shapePreviewState.meshObjects.push(
+    plate,
+    plateEdges,
+    gate,
+    gateEdges,
+  );
 
   const span = Math.max(length + gateDepth * 3, width, thickness * 8);
   fitPreviewCamera(span);
@@ -1106,6 +1225,13 @@ function renderFillingPressure(summary) {
   fillingNote.textContent = TEXT.fillingNoSpatial;
 }
 
+function clearFillingPressureContext() {
+  latestFillingPressureSummary = null;
+  if (shapePreviewState) {
+    shapePreviewState.lastPayloadKey = "";
+  }
+}
+
 function renderResult(data) {
   emptyState.classList.add("hidden");
   resultPanel.classList.remove("hidden");
@@ -1115,7 +1241,12 @@ function renderResult(data) {
   modelLabel.textContent = localizeModelLabel(data.model_label);
   renderInputSummary(data.inputs);
   drawPressureCurve(data.curve);
+  latestFillingPressureSummary = data.filling_pressure || null;
   renderFillingPressure(data.filling_pressure);
+  if (shapePreviewMode === "parametric" && shapePreviewState) {
+    shapePreviewState.lastPayloadKey = "";
+    updateShapePreview();
+  }
 
   notes.innerHTML = "";
   (data.validation_warnings || []).forEach((warning) => {
@@ -1158,10 +1289,12 @@ async function submitPrediction(event) {
 }
 
 geometrySelect.addEventListener("change", () => {
+  clearFillingPressureContext();
   applyGeometry(geometrySelect.value);
   updatePreventionCheck();
 });
 processSelect.addEventListener("change", () => {
+  clearFillingPressureContext();
   applyProcess(processSelect.value);
   updatePreventionCheck();
 });
@@ -1181,6 +1314,7 @@ shapeModeButtons.forEach((button) => {
   "gate_size_height_mm",
 ].forEach((name) => {
   form.elements[name].addEventListener("input", () => {
+    clearFillingPressureContext();
     markCustomGeometry();
     updatePreventionCheck();
   });
@@ -1193,6 +1327,7 @@ shapeModeButtons.forEach((button) => {
   "packing_time_s",
 ].forEach((name) => {
   form.elements[name].addEventListener("input", () => {
+    clearFillingPressureContext();
     markCustomProcess();
     updatePreventionCheck();
   });

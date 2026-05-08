@@ -230,6 +230,61 @@ def load_filling_pressure_distribution(
     return distributions
 
 
+def load_filling_pressure_training_arrays(
+    data_dir: str | Path = DEFAULT_DATA_DIR,
+    group_count: int = 10,
+) -> tuple[list[SimpleInjectionRecord], np.ndarray, np.ndarray, list[str], list[str], list[str]]:
+    data_path = Path(data_dir)
+    geometry = load_geometry_doe(data_path / "DOE")
+    process = load_process_doe(data_path / "DOE")
+    filling = load_filling_pressure_distribution(data_path / "Filling_Pressure")
+    if not filling:
+        filling = load_filling_pressure_distribution(data_path / "Filling")
+
+    records: list[SimpleInjectionRecord] = []
+    targets = []
+    target_columns = [
+        "min_MPa",
+        "max_MPa",
+        "avg_MPa",
+        "sd_MPa",
+    ] + [f"group_{idx:02d}_volume_ratio_pct" for idx in range(1, group_count + 1)]
+
+    for sample_id, summary in sorted(filling.items()):
+        geometry_id, process_id = sample_id.split("_")
+        if geometry_id not in geometry or process_id not in process:
+            continue
+        bins = sorted(summary["bins"], key=lambda row: int(row["group"]))
+        if len(bins) != group_count:
+            continue
+        features = _with_derived_features({**geometry[geometry_id], **process[process_id]})
+        records.append(
+            SimpleInjectionRecord(
+                geometry_id=geometry_id,
+                process_id=process_id,
+                gate_type=str(features["gate_type"]),
+                features=features,
+                time=np.asarray([0.0, 1.0]),
+                pressure=np.asarray([0.0, 1.0]),
+            )
+        )
+        stats = summary["stats"]
+        targets.append(
+            [
+                float(stats["min_MPa"]),
+                float(stats["max_MPa"]),
+                float(stats["avg_MPa"]),
+                float(stats["sd_MPa"]),
+                *[float(row["volume_ratio_pct"]) for row in bins],
+            ]
+        )
+
+    if not records:
+        raise ValueError(f"No filling pressure distribution CSV files found under {data_dir}")
+    x, feature_columns, gate_types = make_feature_matrix(records)
+    return records, x, np.asarray(targets, dtype=float), target_columns, feature_columns, gate_types
+
+
 def _with_derived_features(features: dict[str, float | str]) -> dict[str, float | str]:
     out = dict(features)
     length = float(out["L_mm"])
