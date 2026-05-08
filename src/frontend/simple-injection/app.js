@@ -539,15 +539,16 @@ function addExactGateOverlay(payload, bodyBox) {
   const size = bodyBox.getSize(new THREE.Vector3());
   const center = bodyBox.getCenter(new THREE.Vector3());
   // STEP files store the gate as a 5 mm curve marker, not as a solid body.
-  const markerLength = 5;
+  const gateDepth = 5;
   const gateWidth = Math.min(Math.max(Number(payload.gate_size_width_mm), 0.2), Math.max(size.y * 0.36, 0.2));
-  const markerThickness = Math.max(0.12, Math.min(size.z * 0.08, 0.28));
-  const overlap = 0.35;
+  const gateHeight = Math.min(Math.max(Number(payload.gate_size_height_mm), 0.15), Math.max(size.z, 0.2));
+  const gateOverlap = 0.35;
   const gate = new THREE.Mesh(
-    new THREE.BoxGeometry(markerLength, gateWidth, markerThickness),
+    new THREE.BoxGeometry(gateWidth, gateDepth, gateHeight),
     new THREE.MeshStandardMaterial({ color: 0xd40000, roughness: 0.5, metalness: 0.02 }),
   );
-  gate.position.set(bodyBox.min.x - markerLength / 2 + overlap, center.y, bodyBox.max.z + markerThickness * 0.18);
+  gate.rotation.z = Math.PI / 2;
+  gate.position.set(bodyBox.min.x - gateDepth / 2 + gateOverlap, center.y, bodyBox.max.z - gateHeight / 2);
   shapePreviewState.group.add(gate);
   const gateEdges = addEdges(shapePreviewState.group, gate, 0x7a0000);
 
@@ -646,7 +647,8 @@ function renderParametricShape(payload, message = "") {
   const holeRadius = Math.min(Math.max(rawDiameter / 2, 0.1), maxHoleRadius);
   const gateWidth = Math.min(Math.max(rawGateWidth, 0.2), Math.min(length, width) * 0.92);
   const gateHeight = Math.min(Math.max(rawGateHeight, 0.15), thickness);
-  const gateDepth = Math.max(5, Math.min(width * 0.16, 16));
+  const gateDepth = 5;
+  const gateOverlap = 0.35;
 
   clearShapeObjects();
   const plate = new THREE.Mesh(
@@ -668,13 +670,14 @@ function renderParametricShape(payload, message = "") {
       metalness: 0.02,
     }),
   );
-  gate.position.set(0, -width / 2 - gateDepth / 2, -thickness / 2 + gateHeight / 2);
+  gate.rotation.z = Math.PI / 2;
+  gate.position.set(-length / 2 - gateDepth / 2 + gateOverlap, 0, thickness / 2 - gateHeight / 2);
   shapePreviewState.group.add(gate);
   const gateEdges = addEdges(shapePreviewState.group, gate, 0x7a0000);
 
   shapePreviewState.meshObjects.push(plate, plateEdges, gate, gateEdges);
 
-  const span = Math.max(length, width + gateDepth * 3, thickness * 8);
+  const span = Math.max(length + gateDepth * 3, width, thickness * 8);
   fitPreviewCamera(span);
 
   const clamped = holeRadius !== rawDiameter / 2 || gateWidth !== rawGateWidth || gateHeight !== rawGateHeight;
