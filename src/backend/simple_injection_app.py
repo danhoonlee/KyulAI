@@ -4,6 +4,8 @@ Run with:
     uvicorn src.backend.simple_injection_app:app --reload --port 8000
 """
 
+import mimetypes
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse
@@ -14,6 +16,9 @@ from src.backend.api.v1.simple_injection import router as simple_injection_route
 PROJECT_ROOT = __import__("pathlib").Path(__file__).resolve().parents[2]
 FRONTEND_DIR = PROJECT_ROOT / "src/frontend/simple-injection"
 DATA_DIR = PROJECT_ROOT / "data"
+
+mimetypes.add_type("model/gltf-binary", ".glb")
+mimetypes.add_type("model/gltf+json", ".gltf")
 
 app = FastAPI(
     title="KyulAI Simple Injection API",
