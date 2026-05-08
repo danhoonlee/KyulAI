@@ -98,6 +98,9 @@ const shapeMetricT = document.querySelector("#shape-metric-t");
 const shapeMetricD = document.querySelector("#shape-metric-d");
 const shapeModeButtons = Array.from(document.querySelectorAll("[data-shape-mode]"));
 const shapeSource = document.querySelector("#shape-source");
+const shapeZoomIn = document.querySelector("#shape-zoom-in");
+const shapeZoomOut = document.querySelector("#shape-zoom-out");
+const shapeViewReset = document.querySelector("#shape-view-reset");
 
 const CUSTOM_GEOMETRY_ID = "__custom_geometry__";
 const CUSTOM_PROCESS_ID = "__custom_process__";
@@ -118,6 +121,7 @@ let generatedFillingAnimationPaused = false;
 let generatedFillingAnimationSummary = null;
 let generatedFillingAnimationInputs = null;
 const GENERATED_FILLING_DURATION_MS = 3200;
+const SHAPE_DEFAULT_ROTATION = { x: -0.82, z: -0.58 };
 
 function formatMetric(value, digits = 3) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
@@ -340,8 +344,8 @@ function initShapePreview() {
     shapePreview.appendChild(renderer.domElement);
 
     const group = new THREE.Group();
-    group.rotation.x = -0.82;
-    group.rotation.z = -0.58;
+    group.rotation.x = SHAPE_DEFAULT_ROTATION.x;
+    group.rotation.z = SHAPE_DEFAULT_ROTATION.z;
     scene.add(group);
 
     const ambient = new THREE.HemisphereLight(0xffffff, 0xc8d4df, 2.2);
@@ -368,6 +372,8 @@ function initShapePreview() {
       lastPayloadKey: "",
       pointer: { active: false, x: 0, y: 0 },
       autoRotate: true,
+      baseZoom: 1,
+      zoomFactor: 1,
     };
 
     shapePreview.addEventListener("pointerdown", (event) => {
@@ -384,10 +390,7 @@ function initShapePreview() {
       const dx = event.clientX - shapePreviewState.pointer.x;
       const dy = event.clientY - shapePreviewState.pointer.y;
       shapePreviewState.group.rotation.z += dx * 0.008;
-      shapePreviewState.group.rotation.x = Math.max(
-        -1.35,
-        Math.min(-0.25, shapePreviewState.group.rotation.x + dy * 0.006),
-      );
+      shapePreviewState.group.rotation.x += dy * 0.006;
       shapePreviewState.pointer.x = event.clientX;
       shapePreviewState.pointer.y = event.clientY;
     });
@@ -398,6 +401,11 @@ function initShapePreview() {
     shapePreview.addEventListener("pointerleave", () => {
       shapePreviewState.pointer.active = false;
     });
+    shapePreview.addEventListener("wheel", (event) => {
+      event.preventDefault();
+      zoomShapePreview(event.deltaY < 0 ? 1.12 : 1 / 1.12);
+      shapePreviewState.autoRotate = false;
+    }, { passive: false });
 
     new ResizeObserver(resizeShapePreview).observe(shapePreview);
     resizeShapePreview();
@@ -434,6 +442,36 @@ function animateShapePreview() {
   }
   shapePreviewState.renderer.render(shapePreviewState.scene, shapePreviewState.camera);
   window.requestAnimationFrame(animateShapePreview);
+}
+
+function applyShapeZoom() {
+  if (!shapePreviewState) {
+    return;
+  }
+  shapePreviewState.camera.zoom = Math.max(
+    0.35,
+    Math.min(14, shapePreviewState.baseZoom * shapePreviewState.zoomFactor),
+  );
+  shapePreviewState.camera.updateProjectionMatrix();
+}
+
+function zoomShapePreview(multiplier) {
+  if (!shapePreviewState) {
+    return;
+  }
+  shapePreviewState.zoomFactor = Math.max(0.55, Math.min(4.5, shapePreviewState.zoomFactor * multiplier));
+  applyShapeZoom();
+}
+
+function resetShapeView() {
+  if (!shapePreviewState) {
+    return;
+  }
+  shapePreviewState.group.rotation.x = SHAPE_DEFAULT_ROTATION.x;
+  shapePreviewState.group.rotation.z = SHAPE_DEFAULT_ROTATION.z;
+  shapePreviewState.zoomFactor = 1;
+  shapePreviewState.autoRotate = true;
+  applyShapeZoom();
 }
 
 function clearShapeObjects() {
@@ -643,10 +681,10 @@ function fitPreviewCamera(span) {
     shapePreview.clientWidth / Math.max(span * 1.72, 1),
     shapePreview.clientHeight / Math.max(span * 1.18, 1),
   );
-  shapePreviewState.camera.zoom = Math.max(1.2, Math.min(5.8, zoom));
+  shapePreviewState.baseZoom = Math.max(1.2, Math.min(5.8, zoom));
   shapePreviewState.camera.position.set(span * 0.58, -span * 0.78, span * 0.55);
   shapePreviewState.camera.lookAt(0, 0, 0);
-  shapePreviewState.camera.updateProjectionMatrix();
+  applyShapeZoom();
 }
 
 function addMeshEdges(mesh, color = 0x34556d) {
@@ -1543,6 +1581,25 @@ if (fillingGeneratedRange) {
   fillingGeneratedRange.addEventListener("input", () => {
     seekGeneratedFillingAnimation(Number(fillingGeneratedRange.value) / 100);
   });
+}
+if (shapeZoomIn) {
+  shapeZoomIn.addEventListener("click", () => {
+    zoomShapePreview(1.18);
+    if (shapePreviewState) {
+      shapePreviewState.autoRotate = false;
+    }
+  });
+}
+if (shapeZoomOut) {
+  shapeZoomOut.addEventListener("click", () => {
+    zoomShapePreview(1 / 1.18);
+    if (shapePreviewState) {
+      shapePreviewState.autoRotate = false;
+    }
+  });
+}
+if (shapeViewReset) {
+  shapeViewReset.addEventListener("click", resetShapeView);
 }
 [
   "L_mm",

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>KCLab Simple Injection Sprue Pressure Predictor</title>
-    <link rel="stylesheet" href="./styles.css?v=20260508-animation-controller" />
+    <link rel="stylesheet" href="./styles.css?v=20260508-shape-orbit-zoom" />
   </head>
   <body>
     <main class="shell">
@@ -109,6 +109,11 @@
             </div>
             <div class="shape-preview" id="shape-preview">
               <div class="shape-preview-status" id="shape-preview-status">Preparing 3D shape</div>
+              <div class="shape-view-controls" aria-label="3D view controls">
+                <button type="button" id="shape-zoom-in" aria-label="Zoom in">+</button>
+                <button type="button" id="shape-zoom-out" aria-label="Zoom out">-</button>
+                <button type="button" id="shape-view-reset" aria-label="Reset view">↺</button>
+              </div>
             </div>
             <div class="shape-source" id="shape-source">-</div>
             <div class="shape-metrics" aria-label="Shape dimension summary">
@@ -239,6 +244,6 @@
         }
       }
     </script>
-    <script type="module" src="./app.js?v=20260508-animation-controller"></script>
+    <script type="module" src="./app.js?v=20260508-shape-orbit-zoom"></script>
   </body>
 </html>
