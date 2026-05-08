@@ -80,6 +80,10 @@ const fillingNote = document.querySelector("#filling-note");
 const fillingGeneratedAnimation = document.querySelector("#filling-generated-animation");
 const fillingGeneratedLabel = document.querySelector("#filling-generated-label");
 const fillingGeneratedCanvas = document.querySelector("#filling-generated-canvas");
+const fillingGeneratedPlay = document.querySelector("#filling-generated-play");
+const fillingGeneratedReset = document.querySelector("#filling-generated-reset");
+const fillingGeneratedRange = document.querySelector("#filling-generated-range");
+const fillingGeneratedProgress = document.querySelector("#filling-generated-progress");
 const fillingAnimation = document.querySelector("#filling-animation");
 const fillingAnimationLabel = document.querySelector("#filling-animation-label");
 const fillingAnimationImage = document.querySelector("#filling-animation-image");
@@ -109,6 +113,11 @@ let shapeLoadToken = 0;
 let latestFillingPressureSummary = null;
 let generatedFillingAnimationFrame = null;
 let generatedFillingAnimationStart = 0;
+let generatedFillingAnimationProgress = 0;
+let generatedFillingAnimationPaused = false;
+let generatedFillingAnimationSummary = null;
+let generatedFillingAnimationInputs = null;
+const GENERATED_FILLING_DURATION_MS = 3200;
 
 function formatMetric(value, digits = 3) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
@@ -1201,6 +1210,23 @@ function stopGeneratedFillingAnimation() {
     window.cancelAnimationFrame(generatedFillingAnimationFrame);
     generatedFillingAnimationFrame = null;
   }
+  generatedFillingAnimationSummary = null;
+  generatedFillingAnimationInputs = null;
+}
+
+function updateGeneratedFillingControls() {
+  if (fillingGeneratedRange) {
+    fillingGeneratedRange.value = String(generatedFillingAnimationProgress * 100);
+  }
+  if (fillingGeneratedProgress) {
+    fillingGeneratedProgress.textContent = `${formatMetric(generatedFillingAnimationProgress * 100, 1)}%`;
+  }
+  if (fillingGeneratedPlay) {
+    fillingGeneratedPlay.textContent = generatedFillingAnimationPaused ? ">" : "||";
+    fillingGeneratedPlay.setAttribute("aria-label", generatedFillingAnimationPaused
+      ? (IS_KO ? "재생" : "Play")
+      : (IS_KO ? "일시정지" : "Pause"));
+  }
 }
 
 function colorCss(color) {
@@ -1298,14 +1324,61 @@ function startGeneratedFillingAnimation(summary, inputs) {
   if (fillingGeneratedLabel) {
     fillingGeneratedLabel.textContent = summary.sample_id || (IS_KO ? "예측 분포" : "Predicted distribution");
   }
+  generatedFillingAnimationSummary = summary;
+  generatedFillingAnimationInputs = inputs;
+  generatedFillingAnimationProgress = 0;
+  generatedFillingAnimationPaused = false;
   generatedFillingAnimationStart = performance.now();
   const animate = (now) => {
-    const durationMs = 3200;
-    const progress = ((now - generatedFillingAnimationStart) % durationMs) / durationMs;
-    drawGeneratedFillingFrame(summary, inputs, progress);
+    generatedFillingAnimationProgress = ((now - generatedFillingAnimationStart) % GENERATED_FILLING_DURATION_MS) / GENERATED_FILLING_DURATION_MS;
+    drawGeneratedFillingFrame(summary, inputs, generatedFillingAnimationProgress);
+    updateGeneratedFillingControls();
     generatedFillingAnimationFrame = window.requestAnimationFrame(animate);
   };
+  updateGeneratedFillingControls();
   generatedFillingAnimationFrame = window.requestAnimationFrame(animate);
+}
+
+function playGeneratedFillingAnimation() {
+  if (!generatedFillingAnimationSummary || !generatedFillingAnimationInputs) {
+    return;
+  }
+  if (generatedFillingAnimationFrame) {
+    return;
+  }
+  generatedFillingAnimationPaused = false;
+  generatedFillingAnimationStart = performance.now() - generatedFillingAnimationProgress * GENERATED_FILLING_DURATION_MS;
+  const animate = (now) => {
+    generatedFillingAnimationProgress = ((now - generatedFillingAnimationStart) % GENERATED_FILLING_DURATION_MS) / GENERATED_FILLING_DURATION_MS;
+    drawGeneratedFillingFrame(generatedFillingAnimationSummary, generatedFillingAnimationInputs, generatedFillingAnimationProgress);
+    updateGeneratedFillingControls();
+    generatedFillingAnimationFrame = window.requestAnimationFrame(animate);
+  };
+  updateGeneratedFillingControls();
+  generatedFillingAnimationFrame = window.requestAnimationFrame(animate);
+}
+
+function pauseGeneratedFillingAnimation() {
+  if (generatedFillingAnimationFrame) {
+    window.cancelAnimationFrame(generatedFillingAnimationFrame);
+    generatedFillingAnimationFrame = null;
+  }
+  generatedFillingAnimationPaused = true;
+  updateGeneratedFillingControls();
+}
+
+function seekGeneratedFillingAnimation(progress) {
+  if (!generatedFillingAnimationSummary || !generatedFillingAnimationInputs) {
+    return;
+  }
+  pauseGeneratedFillingAnimation();
+  generatedFillingAnimationProgress = Math.max(0, Math.min(1, progress));
+  drawGeneratedFillingFrame(
+    generatedFillingAnimationSummary,
+    generatedFillingAnimationInputs,
+    generatedFillingAnimationProgress,
+  );
+  updateGeneratedFillingControls();
 }
 
 function renderFillingPressure(summary, inputs = {}) {
@@ -1452,6 +1525,25 @@ shapeModeButtons.forEach((button) => {
     setShapeMode(button.dataset.shapeMode);
   });
 });
+if (fillingGeneratedPlay) {
+  fillingGeneratedPlay.addEventListener("click", () => {
+    if (generatedFillingAnimationPaused || !generatedFillingAnimationFrame) {
+      playGeneratedFillingAnimation();
+    } else {
+      pauseGeneratedFillingAnimation();
+    }
+  });
+}
+if (fillingGeneratedReset) {
+  fillingGeneratedReset.addEventListener("click", () => {
+    seekGeneratedFillingAnimation(0);
+  });
+}
+if (fillingGeneratedRange) {
+  fillingGeneratedRange.addEventListener("input", () => {
+    seekGeneratedFillingAnimation(Number(fillingGeneratedRange.value) / 100);
+  });
+}
 [
   "L_mm",
   "W_mm",

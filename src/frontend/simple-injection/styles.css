@@ -619,6 +619,41 @@ select:focus {
   background: #f8fbfd;
 }
 
+.animation-controls {
+  display: grid;
+  grid-template-columns: 34px 34px minmax(0, 1fr) 54px;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.animation-controls button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--accent);
+  background: #ffffff;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.animation-controls input[type="range"] {
+  min-height: 28px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.animation-controls output {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-align: right;
+}
+
 canvas {
   width: 100%;
   height: auto;

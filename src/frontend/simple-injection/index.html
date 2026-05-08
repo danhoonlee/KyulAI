@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>KCLab Simple Injection Sprue Pressure Predictor</title>
-    <link rel="stylesheet" href="./styles.css?v=20260508-generated-filling-animation" />
+    <link rel="stylesheet" href="./styles.css?v=20260508-animation-controller" />
   </head>
   <body>
     <main class="shell">
@@ -193,6 +193,12 @@
                     <span id="filling-generated-label">Histogram driven</span>
                   </div>
                   <canvas id="filling-generated-canvas" width="760" height="360"></canvas>
+                  <div class="animation-controls" aria-label="Generated filling animation controls">
+                    <button type="button" id="filling-generated-play" aria-label="Pause">||</button>
+                    <button type="button" id="filling-generated-reset" aria-label="Restart">|&lt;</button>
+                    <input id="filling-generated-range" type="range" min="0" max="100" value="0" step="0.1" />
+                    <output id="filling-generated-progress">0.0%</output>
+                  </div>
                 </div>
                 <div class="filling-animation hidden" id="filling-animation">
                   <div class="section-head">
@@ -233,6 +239,6 @@
         }
       }
     </script>
-    <script type="module" src="./app.js?v=20260508-generated-filling-animation"></script>
+    <script type="module" src="./app.js?v=20260508-animation-controller"></script>
   </body>
 </html>
