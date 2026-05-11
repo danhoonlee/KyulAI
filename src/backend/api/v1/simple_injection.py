@@ -222,9 +222,10 @@ def _with_filling_pressure_assets(summary: dict[str, object]) -> dict[str, objec
     out = dict(summary)
     sample_id = str(out.get("sample_id", ""))
     filling_dir = PROJECT_ROOT / "data/datasets/Simple_Injection/Filling_Pressure"
-    animation_path = filling_dir / f"{sample_id}_Filling_Pressure.gif"
-    if animation_path.exists():
-        out["animation_url"] = f"/data/datasets/Simple_Injection/Filling_Pressure/{animation_path.name}"
+    animation_path = next(filling_dir.rglob(f"{sample_id}_Filling_Pressure.gif"), None)
+    if animation_path is not None and animation_path.exists():
+        relative_path = animation_path.relative_to(filling_dir).as_posix()
+        out["animation_url"] = f"/data/datasets/Simple_Injection/Filling_Pressure/{relative_path}"
     return out
 
 

@@ -175,11 +175,17 @@ def load_filling_pressure_distribution(
     if not root.exists():
         return distributions
 
-    for path in sorted(root.glob("*.csv")):
+    for path in sorted(root.rglob("*.csv")):
         match = FILLING_PRESSURE_RE.search(path.name)
         if not match:
             continue
         sample_id = f"{match.group(1)}_{match.group(2)}"
+        relative_path = path.relative_to(root)
+        existing = distributions.get(sample_id)
+        if existing is not None:
+            existing_path = Path(str(existing["source_file"]))
+            if len(relative_path.parts) <= len(existing_path.parts):
+                continue
         with path.open(newline="", encoding="utf-8-sig") as f:
             rows = [row for row in csv.reader(f) if any(cell.strip() for cell in row)]
 
@@ -211,7 +217,7 @@ def load_filling_pressure_distribution(
         if bins:
             distributions[sample_id] = {
                 "sample_id": sample_id,
-                "source_file": path.name,
+                "source_file": relative_path.as_posix(),
                 "stats": {
                     "min_MPa": float(stats.get("min", 0.0)),
                     "max_MPa": float(stats.get("max", 0.0)),

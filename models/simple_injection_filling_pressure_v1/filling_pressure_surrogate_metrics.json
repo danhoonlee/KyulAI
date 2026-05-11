@@ -1,0 +1,207 @@
+{
+  "best_model": "extra_trees",
+  "metrics": {
+    "cv_mode": "grouped",
+    "fold_scores": [
+      {
+        "stats_mae_MPa": 2.262313125000006,
+        "volume_ratio_mae_pct": 2.0305168287622823,
+        "volume_ratio_rmse_pct": 3.036043495319829,
+        "fold": 1,
+        "n_val": 40
+      },
+      {
+        "stats_mae_MPa": 0.7953300714285829,
+        "volume_ratio_mae_pct": 0.9913730161593042,
+        "volume_ratio_rmse_pct": 1.6570344473899257,
+        "fold": 2,
+        "n_val": 40
+      },
+      {
+        "stats_mae_MPa": 1.2378662589285658,
+        "volume_ratio_mae_pct": 1.2794813787096317,
+        "volume_ratio_rmse_pct": 1.8490461637255606,
+        "fold": 3,
+        "n_val": 40
+      }
+    ],
+    "mean_stats_mae_MPa": 1.4318364851190515,
+    "std_stats_mae_MPa": 0.6143984355192351,
+    "mean_volume_ratio_mae_pct": 1.4337904078770727,
+    "std_volume_ratio_mae_pct": 0.4380360892131393,
+    "mean_volume_ratio_rmse_pct": 2.1807080354784385,
+    "std_volume_ratio_rmse_pct": 0.6098722196488383
+  },
+  "all_model_metrics": {
+    "extra_trees": {
+      "cv_mode": "grouped",
+      "fold_scores": [
+        {
+          "stats_mae_MPa": 2.262313125000006,
+          "volume_ratio_mae_pct": 2.0305168287622823,
+          "volume_ratio_rmse_pct": 3.036043495319829,
+          "fold": 1,
+          "n_val": 40
+        },
+        {
+          "stats_mae_MPa": 0.7953300714285829,
+          "volume_ratio_mae_pct": 0.9913730161593042,
+          "volume_ratio_rmse_pct": 1.6570344473899257,
+          "fold": 2,
+          "n_val": 40
+        },
+        {
+          "stats_mae_MPa": 1.2378662589285658,
+          "volume_ratio_mae_pct": 1.2794813787096317,
+          "volume_ratio_rmse_pct": 1.8490461637255606,
+          "fold": 3,
+          "n_val": 40
+        }
+      ],
+      "mean_stats_mae_MPa": 1.4318364851190515,
+      "std_stats_mae_MPa": 0.6143984355192351,
+      "mean_volume_ratio_mae_pct": 1.4337904078770727,
+      "std_volume_ratio_mae_pct": 0.4380360892131393,
+      "mean_volume_ratio_rmse_pct": 2.1807080354784385,
+      "std_volume_ratio_rmse_pct": 0.6098722196488383
+    },
+    "random_forest": {
+      "cv_mode": "grouped",
+      "fold_scores": [
+        {
+          "stats_mae_MPa": 2.531626089285714,
+          "volume_ratio_mae_pct": 2.191300899862573,
+          "volume_ratio_rmse_pct": 3.1823613033777534,
+          "fold": 1,
+          "n_val": 40
+        },
+        {
+          "stats_mae_MPa": 0.6743270267857215,
+          "volume_ratio_mae_pct": 1.0370435992455391,
+          "volume_ratio_rmse_pct": 1.6378458002694918,
+          "fold": 2,
+          "n_val": 40
+        },
+        {
+          "stats_mae_MPa": 2.4983140357142695,
+          "volume_ratio_mae_pct": 1.4736848408506895,
+          "volume_ratio_rmse_pct": 2.0731218018435187,
+          "fold": 3,
+          "n_val": 40
+        }
+      ],
+      "mean_stats_mae_MPa": 1.9014223839285684,
+      "std_stats_mae_MPa": 0.8677940173679599,
+      "mean_volume_ratio_mae_pct": 1.5673431133196007,
+      "std_volume_ratio_mae_pct": 0.47585458773896183,
+      "mean_volume_ratio_rmse_pct": 2.2977763018302544,
+      "std_volume_ratio_rmse_pct": 0.6502482951963603
+    },
+    "hist_gradient_boosting": {
+      "cv_mode": "grouped",
+      "fold_scores": [
+        {
+          "stats_mae_MPa": 2.182551212734107,
+          "volume_ratio_mae_pct": 1.928734553160492,
+          "volume_ratio_rmse_pct": 2.831995799176592,
+          "fold": 1,
+          "n_val": 40
+        },
+        {
+          "stats_mae_MPa": 0.970934028899365,
+          "volume_ratio_mae_pct": 1.3751206461717884,
+          "volume_ratio_rmse_pct": 1.9099974308692529,
+          "fold": 2,
+          "n_val": 40
+        },
+        {
+          "stats_mae_MPa": 1.2670635272129032,
+          "volume_ratio_mae_pct": 1.4476835487572617,
+          "volume_ratio_rmse_pct": 2.0028973935224648,
+          "fold": 3,
+          "n_val": 40
+        }
+      ],
+      "mean_stats_mae_MPa": 1.4735162562821251,
+      "std_stats_mae_MPa": 0.5157331978494338,
+      "mean_volume_ratio_mae_pct": 1.5838462493631809,
+      "std_volume_ratio_mae_pct": 0.24566549110534716,
+      "mean_volume_ratio_rmse_pct": 2.24829687452277,
+      "std_volume_ratio_rmse_pct": 0.414476317575776
+    },
+    "ridge": {
+      "cv_mode": "grouped",
+      "fold_scores": [
+        {
+          "stats_mae_MPa": 1.9403076625578914,
+          "volume_ratio_mae_pct": 3.007824262786685,
+          "volume_ratio_rmse_pct": 4.517595558162025,
+          "fold": 1,
+          "n_val": 40
+        },
+        {
+          "stats_mae_MPa": 1.9576220832956581,
+          "volume_ratio_mae_pct": 3.3196036078499205,
+          "volume_ratio_rmse_pct": 6.0486739274832235,
+          "fold": 2,
+          "n_val": 40
+        },
+        {
+          "stats_mae_MPa": 1.0097731059900739,
+          "volume_ratio_mae_pct": 1.5692657416352778,
+          "volume_ratio_rmse_pct": 2.158306463783367,
+          "fold": 3,
+          "n_val": 40
+        }
+      ],
+      "mean_stats_mae_MPa": 1.6359009506145412,
+      "std_stats_mae_MPa": 0.4427956681901423,
+      "mean_volume_ratio_mae_pct": 2.632231204090628,
+      "std_volume_ratio_mae_pct": 0.7623311925848248,
+      "mean_volume_ratio_rmse_pct": 4.2415253164762055,
+      "std_volume_ratio_rmse_pct": 1.6001876628304077
+    }
+  },
+  "n_samples": 120,
+  "feature_columns": [
+    "L_mm",
+    "W_mm",
+    "t_mm",
+    "D_mm",
+    "R_mm",
+    "gate_size_width_mm",
+    "gate_size_height_mm",
+    "melt_temp_C",
+    "mold_temp_C",
+    "injection_time_s",
+    "packing_pressure_MPa",
+    "packing_time_s",
+    "gate_type__edge_gate",
+    "area_mm2",
+    "hole_area_mm2",
+    "net_area_mm2",
+    "volume_mm3",
+    "aspect_ratio",
+    "hole_diameter_ratio",
+    "gate_area_mm2",
+    "gate_to_thickness_ratio",
+    "flow_length_to_thickness",
+    "process_total_time_s"
+  ],
+  "target_columns": [
+    "min_MPa",
+    "max_MPa",
+    "avg_MPa",
+    "sd_MPa",
+    "group_01_volume_ratio_pct",
+    "group_02_volume_ratio_pct",
+    "group_03_volume_ratio_pct",
+    "group_04_volume_ratio_pct",
+    "group_05_volume_ratio_pct",
+    "group_06_volume_ratio_pct",
+    "group_07_volume_ratio_pct",
+    "group_08_volume_ratio_pct",
+    "group_09_volume_ratio_pct",
+    "group_10_volume_ratio_pct"
+  ]
+}
