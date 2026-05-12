@@ -1,0 +1,36 @@
+{
+  "metrics": {
+    "n_samples": 120,
+    "input_dim": 23,
+    "output_dim": 14,
+    "cv_stats_mae_MPa_mean": 2.3191140421523073,
+    "cv_stats_mae_MPa_std": 0.6257799453038363,
+    "cv_volume_ratio_mae_pct_mean": 1.5813656492766988,
+    "cv_volume_ratio_mae_pct_std": 0.32725712380842215,
+    "cv_volume_ratio_rmse_pct_mean": 2.3033966404154205,
+    "cv_volume_ratio_rmse_pct_std": 0.5097104757364005
+  },
+  "fold_metrics": [
+    {
+      "stats_mae_MPa": 3.036323516735384,
+      "volume_ratio_mae_pct": 2.0436626177835797,
+      "volume_ratio_rmse_pct": 3.022235142809941,
+      "best_epoch": 5,
+      "fold": 1
+    },
+    {
+      "stats_mae_MPa": 2.409517920694484,
+      "volume_ratio_mae_pct": 1.331323454242886,
+      "volume_ratio_rmse_pct": 1.9904592052276913,
+      "best_epoch": 5,
+      "fold": 2
+    },
+    {
+      "stats_mae_MPa": 1.511500689027054,
+      "volume_ratio_mae_pct": 1.3691108758036306,
+      "volume_ratio_rmse_pct": 1.8974955732086292,
+      "best_epoch": 6,
+      "fold": 3
+    }
+  ]
+}

@@ -102,6 +102,7 @@ class SpruePressurePredictionResponse(BaseModel):
     notes: list[str] = []
     validation_warnings: list[dict[str, str]] = []
     filling_pressure: FillingPressureSummary | None = None
+    predicted_filling_pressure: FillingPressureSummary | None = None
 
 
 SPRUE_MODELS: dict[str, dict[str, str]] = {
@@ -218,6 +219,20 @@ def _filling_pressure_summary(
         return None
 
 
+def _predicted_filling_pressure_summary(
+    geometry: dict[str, float | str | None],
+    process: dict[str, float | str | None],
+) -> dict[str, object] | None:
+    if not FILLING_PRESSURE_MODEL_PATH.exists():
+        return None
+    try:
+        from src.ml.simple_injection.predict_filling_pressure import predict_filling_pressure
+
+        return _with_filling_pressure_assets(predict_filling_pressure(FILLING_PRESSURE_MODEL_PATH, geometry, process))
+    except Exception:
+        return None
+
+
 def _with_filling_pressure_assets(summary: dict[str, object]) -> dict[str, object]:
     out = dict(summary)
     sample_id = str(out.get("sample_id", ""))
@@ -299,4 +314,5 @@ async def predict_sprue_pressure(
         notes=notes,
         validation_warnings=validation_warnings,
         filling_pressure=_filling_pressure_summary(geometry, process),
+        predicted_filling_pressure=_predicted_filling_pressure_summary(geometry, process),
     )

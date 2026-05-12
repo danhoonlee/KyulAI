@@ -65,5 +65,36 @@ class SimpleInjectionGointSurrogate(nn.Module):
         return self.scalar_head(shared), self.curve_head(shared)
 
 
-__all__ = ["SimpleInjectionGointSurrogate"]
+class SimpleInjectionGointRegressor(nn.Module):
+    """Multi-branch MLP for compact tabular Moldex3D targets."""
 
+    def __init__(
+        self,
+        input_dim: int,
+        output_dim: int,
+        hidden_dim: int = 48,
+        num_branches: int = 8,
+        dropout: float = 0.12,
+    ):
+        super().__init__()
+        self.branches = nn.ModuleList(
+            [PressureBranch(input_dim, hidden_dim, dropout) for _ in range(num_branches)]
+        )
+        joined_dim = hidden_dim * num_branches
+        self.head = nn.Sequential(
+            nn.LayerNorm(joined_dim),
+            nn.Dropout(dropout),
+            nn.Linear(joined_dim, hidden_dim * 3),
+            nn.LeakyReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim * 3, hidden_dim),
+            nn.LeakyReLU(),
+            nn.Linear(hidden_dim, output_dim),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        joined = torch.cat([branch(x) for branch in self.branches], dim=-1)
+        return self.head(joined)
+
+
+__all__ = ["SimpleInjectionGointRegressor", "SimpleInjectionGointSurrogate"]

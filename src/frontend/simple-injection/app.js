@@ -114,6 +114,7 @@ let shapePreviewMode = "parametric";
 let shapeAssetMap = new Map();
 let shapeLoadToken = 0;
 let latestFillingPressureSummary = null;
+let latestPredictedFillingPressureSummary = null;
 let generatedFillingAnimationFrame = null;
 let generatedFillingAnimationStart = 0;
 let generatedFillingAnimationProgress = 0;
@@ -1360,7 +1361,8 @@ function startGeneratedFillingAnimation(summary, inputs) {
   }
   fillingGeneratedAnimation.classList.remove("hidden");
   if (fillingGeneratedLabel) {
-    fillingGeneratedLabel.textContent = summary.sample_id || (IS_KO ? "예측 분포" : "Predicted distribution");
+    const prefix = IS_KO ? "AI 예측" : "AI prediction";
+    fillingGeneratedLabel.textContent = summary.sample_id ? `${prefix}: ${summary.sample_id}` : prefix;
   }
   generatedFillingAnimationSummary = summary;
   generatedFillingAnimationInputs = inputs;
@@ -1419,11 +1421,12 @@ function seekGeneratedFillingAnimation(progress) {
   updateGeneratedFillingControls();
 }
 
-function renderFillingPressure(summary, inputs = {}) {
+function renderFillingPressure(summary, inputs = {}, predictedSummary = null) {
   if (!fillingSummary) {
     return;
   }
-  if (!summary) {
+  const displaySummary = summary || predictedSummary;
+  if (!displaySummary) {
     fillingSummary.classList.add("hidden");
     stopGeneratedFillingAnimation();
     if (fillingGeneratedAnimation) {
@@ -1435,16 +1438,18 @@ function renderFillingPressure(summary, inputs = {}) {
     return;
   }
 
-  const stats = summary.stats || {};
+  const stats = displaySummary.stats || {};
   fillingSummary.classList.remove("hidden");
-  fillingSource.textContent = summary.sample_id || summary.source_file || "-";
+  fillingSource.textContent = summary
+    ? (summary.sample_id || summary.source_file || "-")
+    : (IS_KO ? "AI 예측 histogram" : "AI predicted histogram");
   fillingMin.textContent = `${formatMetric(stats.min_MPa, 3)} MPa`;
   fillingAvg.textContent = `${formatMetric(stats.avg_MPa, 3)} MPa`;
   fillingMax.textContent = `${formatMetric(stats.max_MPa, 3)} MPa`;
   fillingSd.textContent = `${formatMetric(stats.sd_MPa, 3)} MPa`;
 
   fillingHistogram.innerHTML = "";
-  const bins = summary.bins || [];
+  const bins = displaySummary.bins || [];
   const maxRatio = Math.max(...bins.map((bin) => Number(bin.volume_ratio_pct) || 0), 1);
   bins.forEach((bin) => {
     const row = document.createElement("div");
@@ -1468,8 +1473,9 @@ function renderFillingPressure(summary, inputs = {}) {
   });
 
   fillingNote.textContent = TEXT.fillingNoSpatial;
-  startGeneratedFillingAnimation(summary, inputs);
-  if (summary.animation_url && fillingAnimation && fillingAnimationImage) {
+  const animationSummary = predictedSummary || displaySummary;
+  startGeneratedFillingAnimation(animationSummary, inputs);
+  if (summary?.animation_url && fillingAnimation && fillingAnimationImage) {
     fillingAnimation.classList.remove("hidden");
     fillingAnimationLabel.textContent = summary.sample_id || "";
     fillingAnimationImage.src = summary.animation_url;
@@ -1483,6 +1489,7 @@ function renderFillingPressure(summary, inputs = {}) {
 
 function clearFillingPressureContext() {
   latestFillingPressureSummary = null;
+  latestPredictedFillingPressureSummary = null;
   stopGeneratedFillingAnimation();
   if (fillingGeneratedAnimation) {
     fillingGeneratedAnimation.classList.add("hidden");
@@ -1502,7 +1509,8 @@ function renderResult(data) {
   renderInputSummary(data.inputs);
   drawPressureCurve(data.curve);
   latestFillingPressureSummary = data.filling_pressure || null;
-  renderFillingPressure(data.filling_pressure, data.inputs);
+  latestPredictedFillingPressureSummary = data.predicted_filling_pressure || null;
+  renderFillingPressure(data.filling_pressure, data.inputs, data.predicted_filling_pressure);
   if (shapePreviewMode === "parametric" && shapePreviewState) {
     shapePreviewState.lastPayloadKey = "";
     updateShapePreview();
