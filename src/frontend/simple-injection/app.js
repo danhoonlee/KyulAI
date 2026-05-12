@@ -1602,9 +1602,7 @@ function renderFillingPressure(summary, inputs = {}, predictedSummary = null) {
     if (fillingGeneratedAnimation) {
       fillingGeneratedAnimation.classList.add("hidden");
     }
-    if (fillingAnimation) {
-      fillingAnimation.classList.add("hidden");
-    }
+    hideMoldexFillingAnimation();
     return;
   }
 
@@ -1645,15 +1643,19 @@ function renderFillingPressure(summary, inputs = {}, predictedSummary = null) {
   fillingNote.textContent = TEXT.fillingNoSpatial;
   const animationSummary = predictedSummary || displaySummary;
   startGeneratedFillingAnimation(animationSummary, inputs);
-  if (summary?.animation_url && fillingAnimation && fillingAnimationImage) {
-    fillingAnimation.classList.remove("hidden");
-    fillingAnimationLabel.textContent = summary.sample_id || "";
-    fillingAnimationImage.src = summary.animation_url;
-  } else if (fillingAnimation) {
-    fillingAnimation.classList.add("hidden");
-    if (fillingAnimationImage) {
-      fillingAnimationImage.removeAttribute("src");
-    }
+  hideMoldexFillingAnimation();
+}
+
+function hideMoldexFillingAnimation() {
+  if (!fillingAnimation) {
+    return;
+  }
+  fillingAnimation.classList.add("hidden");
+  if (fillingAnimationLabel) {
+    fillingAnimationLabel.textContent = "";
+  }
+  if (fillingAnimationImage) {
+    fillingAnimationImage.removeAttribute("src");
   }
 }
 
@@ -1661,6 +1663,7 @@ function clearFillingPressureContext() {
   latestFillingPressureSummary = null;
   latestPredictedFillingPressureSummary = null;
   stopGeneratedFillingAnimation();
+  hideMoldexFillingAnimation();
   if (fillingGeneratedAnimation) {
     fillingGeneratedAnimation.classList.add("hidden");
   }
