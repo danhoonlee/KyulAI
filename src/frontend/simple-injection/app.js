@@ -101,6 +101,8 @@ const shapeSource = document.querySelector("#shape-source");
 const shapeZoomIn = document.querySelector("#shape-zoom-in");
 const shapeZoomOut = document.querySelector("#shape-zoom-out");
 const shapeViewReset = document.querySelector("#shape-view-reset");
+const shapeStillTop = document.querySelector("#shape-still-top");
+const shapeStillGate = document.querySelector("#shape-still-gate");
 
 const CUSTOM_GEOMETRY_ID = "__custom_geometry__";
 const CUSTOM_PROCESS_ID = "__custom_process__";
@@ -656,6 +658,187 @@ function addEdges(parent, mesh, color = 0x34556d) {
   return edges;
 }
 
+function drawDimensionArrow(ctx, x1, y1, x2, y2, label) {
+  const angle = Math.atan2(y2 - y1, x2 - x1);
+  const head = 7;
+  ctx.save();
+  ctx.strokeStyle = "#61738a";
+  ctx.fillStyle = "#61738a";
+  ctx.lineWidth = 1.3;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  [0, Math.PI].forEach((offset, index) => {
+    const x = index === 0 ? x2 : x1;
+    const y = index === 0 ? y2 : y1;
+    const theta = angle + offset;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x - head * Math.cos(theta - Math.PI / 6), y - head * Math.sin(theta - Math.PI / 6));
+    ctx.lineTo(x - head * Math.cos(theta + Math.PI / 6), y - head * Math.sin(theta + Math.PI / 6));
+    ctx.closePath();
+    ctx.fill();
+  });
+  ctx.font = "700 12px system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, (x1 + x2) / 2, (y1 + y2) / 2 - 10);
+  ctx.restore();
+}
+
+function drawStillTitle(ctx, text, subtext) {
+  ctx.fillStyle = "#172033";
+  ctx.font = "800 15px system-ui, sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText(text, 22, 28);
+  ctx.fillStyle = "#607086";
+  ctx.font = "700 11px system-ui, sans-serif";
+  ctx.fillText(subtext, 22, 46);
+}
+
+function clearStillCanvas(canvas, title, subtext) {
+  if (!canvas) {
+    return null;
+  }
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#f8fbfd";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  drawStillTitle(ctx, title, subtext);
+  return ctx;
+}
+
+function drawTopStill(payload) {
+  const ctx = clearStillCanvas(
+    shapeStillTop,
+    IS_KO ? "상면 view" : "Top view",
+    IS_KO ? "L, W, 중앙 홀, gate width가 DOE 값으로 갱신됩니다." : "L, W, center hole, and gate width update from DOE values.",
+  );
+  if (!ctx) {
+    return;
+  }
+  const length = Number(payload.L_mm);
+  const width = Number(payload.W_mm);
+  const diameter = Number(payload.D_mm);
+  const gateWidth = Number(payload.gate_size_width_mm);
+  if (![length, width, diameter, gateWidth].every((value) => Number.isFinite(value) && value > 0)) {
+    return;
+  }
+  const marginX = 78;
+  const marginY = 72;
+  const maxW = shapeStillTop.width - marginX * 2;
+  const maxH = shapeStillTop.height - marginY * 2;
+  const scale = Math.min(maxW / length, maxH / width);
+  const partW = length * scale;
+  const partH = width * scale;
+  const x0 = (shapeStillTop.width - partW) / 2;
+  const y0 = (shapeStillTop.height - partH) / 2 + 16;
+  const holeR = Math.max((diameter * scale) / 2, 3);
+  const holeX = x0 + partW / 2;
+  const holeY = y0 + partH / 2;
+  const gateH = Math.max(Math.min(gateWidth * scale, partH * 0.92), 8);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x0, y0, partW, partH);
+  ctx.arc(holeX, holeY, holeR, 0, Math.PI * 2, true);
+  ctx.clip("evenodd");
+  const gradient = ctx.createLinearGradient(x0, y0, x0 + partW, y0 + partH);
+  gradient.addColorStop(0, "#dff5fb");
+  gradient.addColorStop(0.55, "#b8e1ee");
+  gradient.addColorStop(1, "#8fc8dc");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(x0, y0, partW, partH);
+  ctx.restore();
+
+  ctx.strokeStyle = "#315168";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x0, y0, partW, partH);
+  ctx.beginPath();
+  ctx.arc(holeX, holeY, holeR, 0, Math.PI * 2);
+  ctx.fillStyle = "#ffffff";
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = "#d40000";
+  ctx.fillRect(x0 - 20, y0 + partH / 2 - gateH / 2, 20, gateH);
+  ctx.strokeStyle = "#7a0000";
+  ctx.strokeRect(x0 - 20, y0 + partH / 2 - gateH / 2, 20, gateH);
+
+  drawDimensionArrow(ctx, x0, y0 + partH + 28, x0 + partW, y0 + partH + 28, `L ${formatMetric(length, 1)} mm`);
+  drawDimensionArrow(ctx, x0 + partW + 32, y0, x0 + partW + 32, y0 + partH, `W ${formatMetric(width, 1)} mm`);
+  ctx.fillStyle = "#172033";
+  ctx.font = "800 12px system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(`D ${formatMetric(diameter, 1)} mm`, holeX, holeY + holeR + 18);
+  ctx.fillStyle = "#d40000";
+  ctx.fillText(`Gate W ${formatMetric(gateWidth, 1)} mm`, x0 + 42, y0 + partH / 2 - gateH / 2 - 8);
+}
+
+function drawGateStill(payload) {
+  const ctx = clearStillCanvas(
+    shapeStillGate,
+    IS_KO ? "게이트 측면 view" : "Gate-side view",
+    IS_KO ? "두께와 gate height는 보기 쉽게 확대 표시됩니다." : "Thickness and gate height are visually exaggerated for readability.",
+  );
+  if (!ctx) {
+    return;
+  }
+  const length = Number(payload.L_mm);
+  const thickness = Number(payload.t_mm);
+  const gateHeight = Number(payload.gate_size_height_mm);
+  const gateWidth = Number(payload.gate_size_width_mm);
+  const diameter = Number(payload.D_mm);
+  if (![length, thickness, gateHeight, gateWidth, diameter].every((value) => Number.isFinite(value) && value > 0)) {
+    return;
+  }
+  const marginX = 78;
+  const yCenter = 190;
+  const partW = shapeStillGate.width - marginX * 2;
+  const visualThickness = Math.max(28, Math.min(82, thickness * 18));
+  const x0 = marginX;
+  const y0 = yCenter - visualThickness / 2;
+  const gateVisualH = Math.max(10, Math.min(visualThickness, gateHeight / Math.max(thickness, 1e-9) * visualThickness));
+  const holeX = x0 + partW / 2;
+  const projectedHoleW = Math.max(12, Math.min(partW * 0.34, diameter / Math.max(length, 1e-9) * partW));
+
+  const gradient = ctx.createLinearGradient(x0, y0, x0, y0 + visualThickness);
+  gradient.addColorStop(0, "#dff5fb");
+  gradient.addColorStop(1, "#9bcddd");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(x0, y0, partW, visualThickness);
+  ctx.strokeStyle = "#315168";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x0, y0, partW, visualThickness);
+
+  ctx.save();
+  ctx.setLineDash([5, 4]);
+  ctx.strokeStyle = "#55738a";
+  ctx.lineWidth = 1.4;
+  ctx.strokeRect(holeX - projectedHoleW / 2, y0 - 10, projectedHoleW, visualThickness + 20);
+  ctx.restore();
+
+  ctx.fillStyle = "#d40000";
+  ctx.fillRect(x0 - 28, yCenter - gateVisualH / 2, 28, gateVisualH);
+  ctx.strokeStyle = "#7a0000";
+  ctx.strokeRect(x0 - 28, yCenter - gateVisualH / 2, 28, gateVisualH);
+
+  drawDimensionArrow(ctx, x0, y0 + visualThickness + 38, x0 + partW, y0 + visualThickness + 38, `L ${formatMetric(length, 1)} mm`);
+  drawDimensionArrow(ctx, x0 + partW + 30, y0, x0 + partW + 30, y0 + visualThickness, `t ${formatMetric(thickness, 2)} mm`);
+  ctx.fillStyle = "#d40000";
+  ctx.font = "800 12px system-ui, sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText(`Gate H ${formatMetric(gateHeight, 2)} mm`, x0 - 30, yCenter + gateVisualH / 2 + 18);
+  ctx.fillStyle = "#607086";
+  ctx.fillText(`Gate W ${formatMetric(gateWidth, 1)} mm`, x0 + 8, y0 - 10);
+}
+
+function updateShapeStillViews(payload) {
+  drawTopStill(payload);
+  drawGateStill(payload);
+}
+
 function updateShapeMetrics(payload) {
   if (!shapeMetricL) {
     return;
@@ -664,6 +847,7 @@ function updateShapeMetrics(payload) {
   shapeMetricW.textContent = `${formatMetric(payload.W_mm, 1)} mm`;
   shapeMetricT.textContent = `${formatMetric(payload.t_mm, 2)} mm`;
   shapeMetricD.textContent = `${formatMetric(payload.D_mm, 1)} mm`;
+  updateShapeStillViews(payload);
 }
 
 function setShapeSource(text) {

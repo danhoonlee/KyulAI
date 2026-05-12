@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>KCLab Simple Injection Sprue Pressure Predictor</title>
-    <link rel="stylesheet" href="./styles.css?v=20260512-filling-gif-compare-ko" />
+    <link rel="stylesheet" href="./styles.css?v=20260512-parametric-stills-ko" />
   </head>
   <body>
     <main class="shell">
@@ -123,10 +123,22 @@
               <div><span>D</span><strong id="shape-metric-d">-</strong></div>
             </div>
             <div class="shape-grid">
-              <img src="../../../data/datasets/Simple_Injection/Shape/KakaoTalk_Photo_2026-04-30-13-25-16.png" alt="Simple injection 형상 메인 뷰" />
-              <img src="../../../data/datasets/Simple_Injection/Shape/KakaoTalk_Photo_2026-04-30-13-27-14.png" alt="Simple injection 형상 상단 뷰" />
-              <img src="../../../data/datasets/Simple_Injection/Shape/KakaoTalk_Photo_2026-04-30-13-26-57.png" alt="Simple injection 측면 뷰" />
-              <img src="../../../data/datasets/Simple_Injection/Shape/KakaoTalk_Photo_2026-04-30-13-27-35.png" alt="Simple injection gate 뷰" />
+              <figure class="shape-still-card shape-still-generated">
+                <canvas id="shape-still-top" width="760" height="360" aria-label="DOE 치수 기반 상면 still view"></canvas>
+                <figcaption>DOE 치수 기반 상면 view</figcaption>
+              </figure>
+              <figure class="shape-still-card shape-still-generated">
+                <canvas id="shape-still-gate" width="760" height="360" aria-label="DOE 치수 기반 gate-side still view"></canvas>
+                <figcaption>DOE 치수 기반 gate-side view</figcaption>
+              </figure>
+              <figure class="shape-still-card">
+                <img src="../../../data/datasets/Simple_Injection/Shape/KakaoTalk_Photo_2026-04-30-13-26-57.png" alt="Simple injection 측면 reference 뷰" />
+                <figcaption>참고용 측면 이미지</figcaption>
+              </figure>
+              <figure class="shape-still-card">
+                <img src="../../../data/datasets/Simple_Injection/Shape/KakaoTalk_Photo_2026-04-30-13-27-35.png" alt="Simple injection gate reference 뷰" />
+                <figcaption>참고용 gate 이미지</figcaption>
+              </figure>
             </div>
             <div class="filling-animation shape-filling-animation hidden" id="filling-animation">
               <div class="section-head">
@@ -244,6 +256,6 @@
         }
       }
     </script>
-    <script type="module" src="./app.js?v=20260512-filling-gif-compare-ko"></script>
+    <script type="module" src="./app.js?v=20260512-parametric-stills-ko"></script>
   </body>
 </html>
