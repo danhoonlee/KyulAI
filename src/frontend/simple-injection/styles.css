@@ -523,15 +523,30 @@ select:focus {
 }
 
 .shape-still-card figcaption {
-  border-top: 1px solid var(--border);
-  padding: 8px 10px;
+  display: grid;
+  gap: 3px;
+  border-bottom: 1px solid var(--border);
+  padding: 9px 10px;
   color: var(--muted);
   font-size: 0.76rem;
   font-weight: 850;
 }
 
-.shape-still-generated figcaption {
+.shape-still-card figcaption strong {
   color: var(--accent);
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.shape-still-card figcaption span {
+  color: var(--muted);
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.shape-still-card:not(.shape-still-generated) figcaption {
+  border-top: 1px solid var(--border);
+  border-bottom: 0;
 }
 
 .result {

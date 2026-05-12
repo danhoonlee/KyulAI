@@ -687,17 +687,7 @@ function drawDimensionArrow(ctx, x1, y1, x2, y2, label) {
   ctx.restore();
 }
 
-function drawStillTitle(ctx, text, subtext) {
-  ctx.fillStyle = "#172033";
-  ctx.font = "800 15px system-ui, sans-serif";
-  ctx.textAlign = "left";
-  ctx.fillText(text, 22, 28);
-  ctx.fillStyle = "#607086";
-  ctx.font = "700 11px system-ui, sans-serif";
-  ctx.fillText(subtext, 22, 46);
-}
-
-function clearStillCanvas(canvas, title, subtext) {
+function clearStillCanvas(canvas) {
   if (!canvas) {
     return null;
   }
@@ -705,16 +695,11 @@ function clearStillCanvas(canvas, title, subtext) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "#f8fbfd";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  drawStillTitle(ctx, title, subtext);
   return ctx;
 }
 
 function drawTopStill(payload) {
-  const ctx = clearStillCanvas(
-    shapeStillTop,
-    IS_KO ? "상면 view" : "Top view",
-    IS_KO ? "L, W, 중앙 홀, gate width가 DOE 값으로 갱신됩니다." : "L, W, center hole, and gate width update from DOE values.",
-  );
+  const ctx = clearStillCanvas(shapeStillTop);
   if (!ctx) {
     return;
   }
@@ -726,14 +711,14 @@ function drawTopStill(payload) {
     return;
   }
   const marginX = 78;
-  const marginY = 72;
+  const marginY = 50;
   const maxW = shapeStillTop.width - marginX * 2;
   const maxH = shapeStillTop.height - marginY * 2;
   const scale = Math.min(maxW / length, maxH / width);
   const partW = length * scale;
   const partH = width * scale;
   const x0 = (shapeStillTop.width - partW) / 2;
-  const y0 = (shapeStillTop.height - partH) / 2 + 16;
+  const y0 = (shapeStillTop.height - partH) / 2;
   const holeR = Math.max((diameter * scale) / 2, 3);
   const holeX = x0 + partW / 2;
   const holeY = y0 + partH / 2;
@@ -777,11 +762,7 @@ function drawTopStill(payload) {
 }
 
 function drawGateStill(payload) {
-  const ctx = clearStillCanvas(
-    shapeStillGate,
-    IS_KO ? "게이트 측면 view" : "Gate-side view",
-    IS_KO ? "두께와 gate height는 보기 쉽게 확대 표시됩니다." : "Thickness and gate height are visually exaggerated for readability.",
-  );
+  const ctx = clearStillCanvas(shapeStillGate);
   if (!ctx) {
     return;
   }
