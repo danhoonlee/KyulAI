@@ -8,7 +8,7 @@ import mimetypes
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from src.backend.api.v1.simple_injection import router as simple_injection_router
@@ -37,25 +37,42 @@ app.add_middleware(
 
 app.include_router(simple_injection_router, prefix="/api/v1")
 
-app.mount("/simple-injection", StaticFiles(directory=FRONTEND_DIR, html=True), name="simple-injection")
 app.mount("/data", StaticFiles(directory=DATA_DIR), name="data")
 
 
-@app.get("/")
-async def root() -> RedirectResponse:
-    return RedirectResponse(url="/simple-injection/index.ko.html")
+@app.get("/simple-injection")
+async def legacy_simple_injection_root() -> RedirectResponse:
+    return RedirectResponse(url="/")
+
+
+@app.get("/simple-injection/")
+async def legacy_simple_injection_slash() -> RedirectResponse:
+    return RedirectResponse(url="/")
+
+
+@app.get("/simple-injection/index.html")
+async def legacy_simple_injection_en() -> RedirectResponse:
+    return RedirectResponse(url="/")
+
+
+@app.get("/simple-injection/index.ko.html")
+async def legacy_simple_injection_ko() -> RedirectResponse:
+    return RedirectResponse(url="/index.ko.html")
 
 
 @app.get("/simple-injection-ko")
-async def simple_injection_ko() -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "index.ko.html")
+async def simple_injection_ko() -> RedirectResponse:
+    return RedirectResponse(url="/index.ko.html")
 
 
 @app.get("/simple-injection-en")
-async def simple_injection_en() -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "index.html")
+async def simple_injection_en() -> RedirectResponse:
+    return RedirectResponse(url="/")
 
 
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="simple-injection-root")
