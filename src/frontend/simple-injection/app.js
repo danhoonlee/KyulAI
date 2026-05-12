@@ -711,7 +711,7 @@ function drawTopStill(payload) {
     return;
   }
   const marginX = 78;
-  const marginY = 50;
+  const marginY = 42;
   const maxW = shapeStillTop.width - marginX * 2;
   const maxH = shapeStillTop.height - marginY * 2;
   const scale = Math.min(maxW / length, maxH / width);
@@ -775,7 +775,7 @@ function drawGateStill(payload) {
     return;
   }
   const marginX = 78;
-  const yCenter = 190;
+  const yCenter = 176;
   const partW = shapeStillGate.width - marginX * 2;
   const visualThickness = Math.max(28, Math.min(82, thickness * 18));
   const x0 = marginX;
