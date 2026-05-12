@@ -660,11 +660,11 @@ function addEdges(parent, mesh, color = 0x34556d) {
 
 function drawDimensionArrow(ctx, x1, y1, x2, y2, label) {
   const angle = Math.atan2(y2 - y1, x2 - x1);
-  const head = 7;
+  const head = 12;
   ctx.save();
   ctx.strokeStyle = "#61738a";
   ctx.fillStyle = "#61738a";
-  ctx.lineWidth = 1.3;
+  ctx.lineWidth = 2.4;
   ctx.beginPath();
   ctx.moveTo(x1, y1);
   ctx.lineTo(x2, y2);
@@ -680,10 +680,15 @@ function drawDimensionArrow(ctx, x1, y1, x2, y2, label) {
     ctx.closePath();
     ctx.fill();
   });
-  ctx.font = "700 12px system-ui, sans-serif";
-  ctx.textAlign = "center";
+  ctx.font = "900 28px system-ui, sans-serif";
   ctx.textBaseline = "middle";
-  ctx.fillText(label, (x1 + x2) / 2, (y1 + y2) / 2 - 10);
+  if (Math.abs(y2 - y1) > Math.abs(x2 - x1)) {
+    ctx.textAlign = "right";
+    ctx.fillText(label, (x1 + x2) / 2 - 12, (y1 + y2) / 2);
+  } else {
+    ctx.textAlign = "center";
+    ctx.fillText(label, (x1 + x2) / 2, (y1 + y2) / 2 - 24);
+  }
   ctx.restore();
 }
 
@@ -754,11 +759,11 @@ function drawTopStill(payload) {
   drawDimensionArrow(ctx, x0, y0 + partH + 28, x0 + partW, y0 + partH + 28, `L ${formatMetric(length, 1)} mm`);
   drawDimensionArrow(ctx, x0 + partW + 32, y0, x0 + partW + 32, y0 + partH, `W ${formatMetric(width, 1)} mm`);
   ctx.fillStyle = "#172033";
-  ctx.font = "800 12px system-ui, sans-serif";
+  ctx.font = "900 28px system-ui, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText(`D ${formatMetric(diameter, 1)} mm`, holeX, holeY + holeR + 18);
+  ctx.fillText(`D ${formatMetric(diameter, 1)} mm`, holeX, holeY + holeR + 40);
   ctx.fillStyle = "#d40000";
-  ctx.fillText(`Gate W ${formatMetric(gateWidth, 1)} mm`, x0 + 42, y0 + partH / 2 - gateH / 2 - 8);
+  ctx.fillText(`Gate W ${formatMetric(gateWidth, 1)} mm`, x0 + 82, y0 + partH / 2 - gateH / 2 - 22);
 }
 
 function drawGateStill(payload) {
@@ -808,11 +813,11 @@ function drawGateStill(payload) {
   drawDimensionArrow(ctx, x0, y0 + visualThickness + 38, x0 + partW, y0 + visualThickness + 38, `L ${formatMetric(length, 1)} mm`);
   drawDimensionArrow(ctx, x0 + partW + 30, y0, x0 + partW + 30, y0 + visualThickness, `t ${formatMetric(thickness, 2)} mm`);
   ctx.fillStyle = "#d40000";
-  ctx.font = "800 12px system-ui, sans-serif";
+  ctx.font = "900 28px system-ui, sans-serif";
   ctx.textAlign = "left";
-  ctx.fillText(`Gate H ${formatMetric(gateHeight, 2)} mm`, x0 - 30, yCenter + gateVisualH / 2 + 18);
+  ctx.fillText(`Gate H ${formatMetric(gateHeight, 2)} mm`, x0 - 30, yCenter + gateVisualH / 2 + 44);
   ctx.fillStyle = "#607086";
-  ctx.fillText(`Gate W ${formatMetric(gateWidth, 1)} mm`, x0 + 8, y0 - 10);
+  ctx.fillText(`Gate W ${formatMetric(gateWidth, 1)} mm`, x0 + 8, y0 - 26);
 }
 
 function updateShapeStillViews(payload) {
