@@ -70,6 +70,7 @@ const modelLabel = document.querySelector("#model-label");
 const inputSummary = document.querySelector("#input-summary");
 const notes = document.querySelector("#notes");
 const fillingSummary = document.querySelector("#filling-summary");
+const fillingSummaryEyebrow = document.querySelector("#filling-summary-eyebrow");
 const fillingSource = document.querySelector("#filling-source");
 const fillingMin = document.querySelector("#filling-min");
 const fillingAvg = document.querySelector("#filling-avg");
@@ -1656,7 +1657,11 @@ function renderFillingPressure(summary, inputs = {}, predictedSummary = null) {
   }
 
   const stats = displaySummary.stats || {};
+  const isManualInput = !inputs?.geometry_id || !inputs?.process_id;
   fillingSummary.classList.remove("hidden");
+  if (fillingSummaryEyebrow) {
+    fillingSummaryEyebrow.textContent = isManualInput ? "Generated Preview" : "Moldex3D Export";
+  }
   fillingSource.textContent = predictedSummary
     ? `${IS_KO ? "AI 예측" : "AI prediction"}${predictedSummary.sample_id ? `: ${predictedSummary.sample_id}` : ""}`
     : (summary?.sample_id || summary?.source_file || "-");
