@@ -2160,8 +2160,10 @@ function buildResultReportCanvas({ paginateForPdf = false } = {}) {
     ctx.fillText(IS_KO ? "메모" : "Notes", 64, y);
     ctx.fillStyle = "#607086";
     ctx.font = "17px system-ui, sans-serif";
-    data.notes.slice(0, 3).forEach((note, index) => {
-      drawWrappedText(ctx, `- ${localizeNote(note)}`, 64, y + 32 + index * 58, 1060, 24, 2);
+    let noteY = y + 32;
+    data.notes.slice(0, 3).forEach((note) => {
+      const usedHeight = drawWrappedText(ctx, `- ${localizeNote(note)}`, 64, noteY, 1060, 22, 2);
+      noteY += usedHeight + 8;
     });
   }
   return canvas;
