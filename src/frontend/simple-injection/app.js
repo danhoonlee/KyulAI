@@ -193,6 +193,44 @@ function setField(name, value) {
   input.value = value;
 }
 
+function formatLinkedHoleValue(value) {
+  if (!Number.isFinite(value)) {
+    return "";
+  }
+  return Number(value.toFixed(3)).toString();
+}
+
+function syncHoleDiameterRadius(changedField) {
+  const diameterInput = form.elements.D_mm;
+  const radiusInput = form.elements.R_mm;
+  if (!diameterInput || !radiusInput) {
+    return;
+  }
+
+  if (changedField === "R_mm") {
+    if (radiusInput.value === "") {
+      diameterInput.value = "";
+      return;
+    }
+    const radius = Number(radiusInput.value);
+    if (Number.isFinite(radius)) {
+      diameterInput.value = formatLinkedHoleValue(radius * 2);
+    }
+    return;
+  }
+
+  if (changedField === "D_mm") {
+    if (diameterInput.value === "") {
+      radiusInput.value = "";
+      return;
+    }
+    const diameter = Number(diameterInput.value);
+    if (Number.isFinite(diameter)) {
+      radiusInput.value = formatLinkedHoleValue(diameter / 2);
+    }
+  }
+}
+
 function applyGeometry(id) {
   if (id === CUSTOM_GEOMETRY_ID) {
     return;
@@ -1793,6 +1831,9 @@ if (shapeViewReset) {
   "gate_size_height_mm",
 ].forEach((name) => {
   form.elements[name].addEventListener("input", () => {
+    if (name === "D_mm" || name === "R_mm") {
+      syncHoleDiameterRadius(name);
+    }
     clearFillingPressureContext();
     markCustomGeometry();
     updatePreventionCheck();
