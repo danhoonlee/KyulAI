@@ -117,6 +117,10 @@ let shapeAssetMap = new Map();
 let shapeLoadToken = 0;
 let latestFillingPressureSummary = null;
 let latestPredictedFillingPressureSummary = null;
+
+function activeFillingPressureSummary() {
+  return latestPredictedFillingPressureSummary || latestFillingPressureSummary;
+}
 let generatedFillingAnimationFrame = null;
 let generatedFillingAnimationStart = 0;
 let generatedFillingAnimationProgress = 0;
@@ -1014,7 +1018,14 @@ function renderParametricShape(payload, message = "") {
   const rawDiameter = Number(payload.D_mm);
   const rawGateWidth = Number(payload.gate_size_width_mm);
   const rawGateHeight = Number(payload.gate_size_height_mm);
-  const fillingKey = latestFillingPressureSummary?.sample_id || "no-filling";
+  const fillingSummary = activeFillingPressureSummary();
+  const fillingKey = fillingSummary
+    ? [
+        fillingSummary.sample_id || fillingSummary.source_file || "filling",
+        formatMetric(fillingSummary.stats?.min_MPa, 3),
+        formatMetric(fillingSummary.stats?.max_MPa, 3),
+      ].join(":")
+    : "no-filling";
   const key = [rawLength, rawWidth, rawThickness, rawDiameter, rawGateWidth, rawGateHeight, fillingKey].join("|");
   if (shapePreviewState.lastPayloadKey === key) {
     return;
@@ -1040,7 +1051,7 @@ function renderParametricShape(payload, message = "") {
 
   clearShapeObjects();
   const plateGeometry = makePlateGeometry(length, width, thickness, holeRadius);
-  const hasContour = applyFillingVertexColors(plateGeometry, length, width, latestFillingPressureSummary);
+  const hasContour = applyFillingVertexColors(plateGeometry, length, width, fillingSummary);
   const plate = new THREE.Mesh(
     plateGeometry,
     hasContour
@@ -1633,7 +1644,7 @@ function renderFillingPressure(summary, inputs = {}, predictedSummary = null) {
   if (!fillingSummary) {
     return;
   }
-  const displaySummary = summary || predictedSummary;
+  const displaySummary = predictedSummary || summary;
   if (!displaySummary) {
     fillingSummary.classList.add("hidden");
     stopGeneratedFillingAnimation();
@@ -1646,9 +1657,9 @@ function renderFillingPressure(summary, inputs = {}, predictedSummary = null) {
 
   const stats = displaySummary.stats || {};
   fillingSummary.classList.remove("hidden");
-  fillingSource.textContent = summary
-    ? (summary.sample_id || summary.source_file || "-")
-    : (IS_KO ? "AI 예측 histogram" : "AI predicted histogram");
+  fillingSource.textContent = predictedSummary
+    ? `${IS_KO ? "AI 예측" : "AI prediction"}${predictedSummary.sample_id ? `: ${predictedSummary.sample_id}` : ""}`
+    : (summary?.sample_id || summary?.source_file || "-");
   fillingMin.textContent = `${formatMetric(stats.min_MPa, 3)} MPa`;
   fillingAvg.textContent = `${formatMetric(stats.avg_MPa, 3)} MPa`;
   fillingMax.textContent = `${formatMetric(stats.max_MPa, 3)} MPa`;
@@ -1679,8 +1690,7 @@ function renderFillingPressure(summary, inputs = {}, predictedSummary = null) {
   });
 
   fillingNote.textContent = TEXT.fillingNoSpatial;
-  const animationSummary = predictedSummary || displaySummary;
-  startGeneratedFillingAnimation(animationSummary, inputs);
+  startGeneratedFillingAnimation(displaySummary, inputs);
   hideMoldexFillingAnimation();
 }
 
