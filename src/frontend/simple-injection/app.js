@@ -1963,6 +1963,22 @@ function drawReportGeneratedFillingPreview(ctx, summary, inputs, x, y, width, he
   drawCanvasImage(ctx, tempCanvas, x, y, width, height);
 }
 
+const PDF_REPORT_PAGE_HEIGHT = Math.floor(1200 * ((297 - 20) / (210 - 20)));
+const PDF_REPORT_PAGE_TOP_PAD = 64;
+const PDF_REPORT_PAGE_BOTTOM_PAD = 56;
+
+function pdfSafeSectionY(y, sectionHeight, paginateForPdf) {
+  if (!paginateForPdf) {
+    return y;
+  }
+  const pageIndex = Math.floor(y / PDF_REPORT_PAGE_HEIGHT);
+  const pageBottom = (pageIndex + 1) * PDF_REPORT_PAGE_HEIGHT - PDF_REPORT_PAGE_BOTTOM_PAD;
+  if (y + sectionHeight <= pageBottom) {
+    return y;
+  }
+  return (pageIndex + 1) * PDF_REPORT_PAGE_HEIGHT + PDF_REPORT_PAGE_TOP_PAD;
+}
+
 function exportFileStem() {
   const inputs = latestPredictionData?.inputs || {};
   const geometry = inputs.geometry_id || "manual";
@@ -1971,7 +1987,7 @@ function exportFileStem() {
   return `simple_injection_${geometry}_${process}_${stamp}`;
 }
 
-function buildResultReportCanvas() {
+function buildResultReportCanvas({ paginateForPdf = false } = {}) {
   if (!latestPredictionData) {
     return null;
   }
@@ -1986,9 +2002,13 @@ function buildResultReportCanvas() {
   const hasFillingComparison = Boolean(comparison?.filling_pressure?.bins?.length);
 
   let totalHeight = 1080;
+  let fillingPreviewBreakExtra = 0;
   if (filling) {
+    const fillingPreviewY = 1080 + 486;
+    fillingPreviewBreakExtra = pdfSafeSectionY(fillingPreviewY, 540, paginateForPdf) - fillingPreviewY;
     totalHeight += 1080;
   }
+  totalHeight += fillingPreviewBreakExtra;
   if (comparison) {
     totalHeight += 118;
     if (hasSprueComparison) {
@@ -2060,6 +2080,7 @@ function buildResultReportCanvas() {
     drawReportCard(ctx, 874, y + 28, 246, 104, IS_KO ? "표준편차" : "SD", `${formatMetric(stats.sd_MPa, 3)} MPa`);
     drawReportHistogram(ctx, filling, 64, y + 164, 1072, 260);
     y += 486;
+    y = pdfSafeSectionY(y, 540, paginateForPdf);
     ctx.fillStyle = "#132236";
     ctx.font = "900 24px system-ui, sans-serif";
     ctx.fillText(`${TEXT.exportFillingPreview} (100%)`, 64, y);
@@ -2141,7 +2162,7 @@ function exportResultAsPng() {
 
 function exportResultAsPdf() {
   clearError();
-  const canvas = buildResultReportCanvas();
+  const canvas = buildResultReportCanvas({ paginateForPdf: true });
   if (!canvas) {
     setError(IS_KO ? "내보낼 예측 결과가 없습니다." : "No prediction result is available to export.");
     return;
