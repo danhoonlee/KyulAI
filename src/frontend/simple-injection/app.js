@@ -1882,6 +1882,87 @@ function drawReportHistogram(ctx, summary, x, y, width, height) {
   ctx.textAlign = "left";
 }
 
+function drawReportMetricGrid(ctx, metrics, items, x, y, width, columns = 3) {
+  const gap = 14;
+  const cardH = 86;
+  const cardW = (width - gap * (columns - 1)) / columns;
+  items.forEach((item, index) => {
+    const col = index % columns;
+    const row = Math.floor(index / columns);
+    drawReportCard(
+      ctx,
+      x + col * (cardW + gap),
+      y + row * (cardH + gap),
+      cardW,
+      cardH,
+      item.label,
+      `${formatMetric(item.value(metrics), item.digits ?? 3)}${item.unit ? ` ${item.unit}` : ""}`,
+    );
+  });
+  return Math.ceil(items.length / columns) * cardH + Math.max(0, Math.ceil(items.length / columns) - 1) * gap;
+}
+
+function drawReportFillingComparisonBars(ctx, rows, x, y, width, height) {
+  ctx.fillStyle = "#f8fbfd";
+  ctx.strokeStyle = "#cbd8e4";
+  ctx.lineWidth = 1;
+  ctx.fillRect(x, y, width, height);
+  ctx.strokeRect(x, y, width, height);
+  if (!rows?.length) {
+    ctx.fillStyle = "#607086";
+    ctx.font = "18px system-ui, sans-serif";
+    ctx.fillText(IS_KO ? "Filling Pressure 비교 데이터가 없습니다." : "No Filling Pressure comparison data.", x + 24, y + 48);
+    return;
+  }
+
+  const maxRatio = Math.max(
+    ...rows.flatMap((row) => [Number(row.predicted_volume_ratio_pct), Number(row.actual_volume_ratio_pct)]),
+    1,
+  );
+  const pad = { left: 74, right: 118, top: 44, bottom: 44 };
+  const rowGap = 8;
+  const rowH = (height - pad.top - pad.bottom - rowGap * (rows.length - 1)) / rows.length;
+  ctx.font = "700 15px system-ui, sans-serif";
+  ctx.textBaseline = "middle";
+  rows.forEach((row, index) => {
+    const rowY = y + pad.top + index * (rowH + rowGap);
+    const trackX = x + pad.left;
+    const trackW = width - pad.left - pad.right;
+    const predW = (Number(row.predicted_volume_ratio_pct) / maxRatio) * trackW;
+    const actualW = (Number(row.actual_volume_ratio_pct) / maxRatio) * trackW;
+
+    ctx.fillStyle = "#607086";
+    ctx.textAlign = "right";
+    ctx.fillText(`G${row.group}`, x + pad.left - 16, rowY + rowH / 2);
+
+    ctx.fillStyle = "#e6eef5";
+    ctx.fillRect(trackX, rowY, trackW, rowH);
+    ctx.fillStyle = "rgba(22, 170, 216, 0.82)";
+    ctx.fillRect(trackX, rowY + 2, Math.max(2, predW), Math.max(2, rowH / 2 - 3));
+    ctx.fillStyle = "rgba(212, 0, 0, 0.78)";
+    ctx.fillRect(trackX, rowY + rowH / 2 + 1, Math.max(2, actualW), Math.max(2, rowH / 2 - 3));
+
+    ctx.fillStyle = "#132236";
+    ctx.textAlign = "left";
+    ctx.fillText(`${formatMetric(row.error_volume_ratio_pct, 2)}%p`, x + width - pad.right + 18, rowY + rowH / 2);
+  });
+
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#16aad8";
+  ctx.font = "800 15px system-ui, sans-serif";
+  ctx.fillText(TEXT.predicted, x + pad.left, y + 22);
+  ctx.fillStyle = "#d40000";
+  ctx.fillText(TEXT.actual, x + pad.left + 96, y + 22);
+}
+
+function drawReportGeneratedFillingPreview(ctx, summary, inputs, x, y, width, height) {
+  const tempCanvas = document.createElement("canvas");
+  tempCanvas.width = 760;
+  tempCanvas.height = 360;
+  drawGeneratedFillingFrameToCanvas(tempCanvas, summary, inputs, 1);
+  drawCanvasImage(ctx, tempCanvas, x, y, width, height);
+}
+
 function exportFileStem() {
   const inputs = latestPredictionData?.inputs || {};
   const geometry = inputs.geometry_id || "manual";
@@ -1894,10 +1975,38 @@ function buildResultReportCanvas() {
   if (!latestPredictionData) {
     return null;
   }
+  if (activeFillingPressureSummary()) {
+    seekGeneratedFillingAnimation(1);
+  }
+
+  const data = latestPredictionData;
   const filling = activeFillingPressureSummary();
+  const comparison = latestComparisonData;
+  const hasSprueComparison = Boolean(comparison?.sprue_pressure?.curve?.length);
+  const hasFillingComparison = Boolean(comparison?.filling_pressure?.bins?.length);
+
+  let totalHeight = 1080;
+  if (filling) {
+    totalHeight += 1080;
+  }
+  if (comparison) {
+    totalHeight += 118;
+    if (hasSprueComparison) {
+      totalHeight += 470;
+    }
+    totalHeight += 240;
+    if (hasFillingComparison) {
+      totalHeight += 310;
+    }
+  }
+  if (data.notes?.length) {
+    totalHeight += 220;
+  }
+  totalHeight += 80;
+
   const canvas = document.createElement("canvas");
   canvas.width = 1200;
-  canvas.height = filling ? 1780 : 1220;
+  canvas.height = totalHeight;
   const ctx = canvas.getContext("2d");
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1912,7 +2021,6 @@ function buildResultReportCanvas() {
   ctx.font = "18px system-ui, sans-serif";
   ctx.fillText(`${TEXT.exportCreated}: ${new Date().toLocaleString()}`, 64, 164);
 
-  const data = latestPredictionData;
   drawReportCard(ctx, 64, 204, 330, 116, IS_KO ? "최대 압력" : "Max pressure", `${formatMetric(data.predicted_max_pressure_MPa, 3)} MPa`);
   drawReportCard(ctx, 428, 204, 330, 116, IS_KO ? "최대 시간" : "Max time", `${formatMetric(data.predicted_max_time_s, 3)} s`);
   drawReportCard(ctx, 792, 204, 330, 116, IS_KO ? "곡선 포인트" : "Curve points", String(data.curve?.length || 0));
@@ -1954,9 +2062,55 @@ function buildResultReportCanvas() {
     y += 486;
     ctx.fillStyle = "#132236";
     ctx.font = "900 24px system-ui, sans-serif";
-    ctx.fillText(TEXT.exportFillingPreview, 64, y);
-    drawCanvasImage(ctx, fillingGeneratedCanvas, 64, y + 28, 1072, 360);
-    y += 440;
+    ctx.fillText(`${TEXT.exportFillingPreview} (100%)`, 64, y);
+    drawReportGeneratedFillingPreview(ctx, filling, data.inputs || {}, 64, y + 28, 1072, 440);
+    y += 540;
+  }
+
+  if (comparison) {
+    ctx.fillStyle = "#132236";
+    ctx.font = "900 26px system-ui, sans-serif";
+    ctx.fillText(IS_KO ? "Moldex3D 결과와 비교" : "Prediction vs Moldex3D Result", 64, y);
+    ctx.fillStyle = "#607086";
+    ctx.font = "17px system-ui, sans-serif";
+    ctx.fillText(comparison.sample_id ? `${IS_KO ? "Sample" : "Sample"}: ${comparison.sample_id}` : "", 64, y + 32);
+    y += 74;
+
+    if (hasSprueComparison) {
+      ctx.fillStyle = "#132236";
+      ctx.font = "900 22px system-ui, sans-serif";
+      ctx.fillText(IS_KO ? "Sprue Pressure Overlay" : "Sprue Pressure Overlay", 64, y);
+      drawCanvasImage(ctx, comparisonSprueCanvas, 64, y + 28, 1072, 410);
+      y += 470;
+    }
+
+    const sprueMetrics = comparison.sprue_pressure?.metrics;
+    const fillingMetrics = comparison.filling_pressure?.metrics;
+    const leftItems = [
+      { label: "MAE", value: (metrics) => metrics?.mae_MPa, unit: "MPa" },
+      { label: "RMSE", value: (metrics) => metrics?.rmse_MPa, unit: "MPa" },
+      { label: IS_KO ? "Peak 오차" : "Peak error", value: (metrics) => metrics?.peak_error_MPa, unit: "MPa" },
+    ];
+    const rightItems = [
+      { label: IS_KO ? "Volume MAE" : "Volume MAE", value: (metrics) => metrics?.volume_ratio_mae_pct, unit: "%p" },
+      { label: IS_KO ? "분포 유사도" : "Similarity", value: (metrics) => metrics?.volume_ratio_cosine_similarity, unit: "", digits: 4 },
+      { label: IS_KO ? "최대 압력 오차" : "Max pressure error", value: (metrics) => metrics?.stat_errors?.max_MPa, unit: "MPa" },
+    ];
+
+    ctx.fillStyle = "#132236";
+    ctx.font = "900 22px system-ui, sans-serif";
+    ctx.fillText(IS_KO ? "오차 요약" : "Error Summary", 64, y);
+    drawReportMetricGrid(ctx, sprueMetrics || {}, leftItems, 64, y + 28, 520, 3);
+    drawReportMetricGrid(ctx, fillingMetrics || {}, rightItems, 616, y + 28, 520, 3);
+    y += 154;
+
+    if (hasFillingComparison) {
+      ctx.fillStyle = "#132236";
+      ctx.font = "900 22px system-ui, sans-serif";
+      ctx.fillText(IS_KO ? "Filling Pressure Volume Ratio 비교" : "Filling Pressure Volume Ratio Comparison", 64, y);
+      drawReportFillingComparisonBars(ctx, comparison.filling_pressure.bins, 64, y + 28, 1072, 260);
+      y += 340;
+    }
   }
 
   if (data.notes?.length) {
@@ -2037,12 +2191,12 @@ function colorCss(color) {
   return `rgb(${Math.round(color.r * 255)}, ${Math.round(color.g * 255)}, ${Math.round(color.b * 255)})`;
 }
 
-function drawGeneratedFillingFrame(summary, inputs, progress) {
-  if (!fillingGeneratedCanvas) {
+function drawGeneratedFillingFrameToCanvas(targetCanvas, summary, inputs, progress) {
+  if (!targetCanvas) {
     return;
   }
-  const ctx = fillingGeneratedCanvas.getContext("2d");
-  const { width, height } = fillingGeneratedCanvas;
+  const ctx = targetCanvas.getContext("2d");
+  const { width, height } = targetCanvas;
   ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = "#f8fbfd";
   ctx.fillRect(0, 0, width, height);
@@ -2114,6 +2268,10 @@ function drawGeneratedFillingFrame(summary, inputs, progress) {
   ctx.fillText(`${summary.sample_id || ""} generated filling preview`, x0, height - 18);
   ctx.textAlign = "right";
   ctx.fillText(`${formatMetric((Number(summary.stats?.max_MPa) || 0) * Math.min(progress * 1.1, 1), 1)} MPa`, x0 + partW, height - 18);
+}
+
+function drawGeneratedFillingFrame(summary, inputs, progress) {
+  drawGeneratedFillingFrameToCanvas(fillingGeneratedCanvas, summary, inputs, progress);
 }
 
 function startGeneratedFillingAnimation(summary, inputs) {
