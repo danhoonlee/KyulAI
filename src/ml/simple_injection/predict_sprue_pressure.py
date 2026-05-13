@@ -21,9 +21,17 @@ def _load_inputs_from_ids(data_dir: str | Path, geometry_id: str, process_id: st
     return {"geometry_id": geometry_id, **geometry}, {"process_id": process_id, **process}
 
 
+def _normalize_curve_shape(curve_norm: np.ndarray) -> np.ndarray:
+    curve = np.clip(np.asarray(curve_norm, dtype=float), 0.0, None)
+    peak = float(np.max(curve)) if curve.size else 0.0
+    if peak > 1e-9:
+        return curve / peak
+    return curve
+
+
 def _curve_payload(grid: np.ndarray, max_time: float, max_pressure: float, curve_norm: np.ndarray) -> list[dict[str, float]]:
     time = grid * max_time
-    pressure = np.clip(curve_norm, 0.0, None) * max_pressure
+    pressure = _normalize_curve_shape(curve_norm) * max_pressure
     return [
         {"time_s": float(t), "sprue_pressure_MPa": float(p)}
         for t, p in zip(time, pressure)
@@ -163,4 +171,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
