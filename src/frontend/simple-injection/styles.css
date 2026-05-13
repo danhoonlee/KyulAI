@@ -682,6 +682,125 @@ select:focus {
   line-height: 1.45;
 }
 
+.comparison-panel {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.comparison-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.comparison-submit {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.comparison-output {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.comparison-grid h4 {
+  margin: 0 0 8px;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.comparison-metrics {
+  display: grid;
+  gap: 7px;
+}
+
+.comparison-metric {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 8px 9px;
+  background: var(--surface-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.comparison-metric span {
+  color: var(--muted);
+}
+
+.comparison-metric strong {
+  color: var(--text);
+  text-align: right;
+}
+
+.comparison-filling-bars {
+  display: grid;
+  gap: 8px;
+}
+
+.comparison-bin-row {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) minmax(0, 1fr) 72px;
+  gap: 8px;
+  align-items: center;
+  color: #334155;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.comparison-bin-track {
+  overflow: hidden;
+  height: 12px;
+  border-radius: 999px;
+  background: #dce8f1;
+}
+
+.comparison-bin-fill {
+  height: 100%;
+  min-width: 2px;
+  border-radius: inherit;
+  background: var(--brand-cyan);
+}
+
+.comparison-bin-fill.actual {
+  background: var(--brand-red);
+}
+
+.comparison-chart {
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #f8fbfd;
+}
+
+.comparison-chart img {
+  display: block;
+  width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+}
+
+.comparison-chart figcaption {
+  border-top: 1px solid var(--border);
+  padding: 8px 10px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
 .filling-generated-animation,
 .filling-animation {
   margin-top: 14px;
@@ -821,7 +940,9 @@ canvas {
   .grid,
   .two-col,
   .stats,
-  .filling-stats {
+  .filling-stats,
+  .comparison-form,
+  .comparison-grid {
     grid-template-columns: 1fr;
   }
 
@@ -848,5 +969,13 @@ canvas {
 
   .shape-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .comparison-bin-row {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .comparison-bin-row strong {
+    grid-column: 1 / -1;
   }
 }

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>KCLab Simple Injection Sprue Pressure Predictor</title>
-    <link rel="stylesheet" href="./styles.css?v=20260512-dimension-labels-ko" />
+    <link rel="stylesheet" href="./styles.css?v=20260513-validation-compare-ko" />
   </head>
   <body>
     <main class="shell">
@@ -233,6 +233,53 @@
                 </div>
               </section>
 
+              <section class="comparison-panel" id="comparison-panel" aria-label="Moldex3D 검증 비교">
+                <div class="section-head">
+                  <div>
+                    <p class="eyebrow">검증</p>
+                    <h3>예측 결과 vs Moldex3D 결과</h3>
+                  </div>
+                  <span id="comparison-status">CSV 업로드</span>
+                </div>
+                <div class="comparison-form">
+                  <label>
+                    실제 sample ID
+                    <input id="comparison-sample-id" type="text" placeholder="G01_P01" />
+                  </label>
+                  <label>
+                    Sprue Pressure CSV
+                    <input id="comparison-sprue-file" type="file" accept=".csv,text/csv" />
+                  </label>
+                  <label>
+                    Filling Pressure CSV
+                    <input id="comparison-filling-file" type="file" accept=".csv,text/csv" />
+                  </label>
+                  <label>
+                    Filling Pressure chart PNG
+                    <input id="comparison-chart-file" type="file" accept="image/png,image/jpeg,image/gif" />
+                  </label>
+                </div>
+                <button type="button" class="secondary comparison-submit" id="comparison-submit">Moldex3D 결과와 비교</button>
+                <div class="comparison-output hidden" id="comparison-output">
+                  <canvas id="comparison-sprue-canvas" width="760" height="360"></canvas>
+                  <div class="comparison-grid">
+                    <div>
+                      <h4>Sprue Pressure 오차</h4>
+                      <div class="comparison-metrics" id="comparison-sprue-metrics"></div>
+                    </div>
+                    <div>
+                      <h4>Filling Pressure 오차</h4>
+                      <div class="comparison-metrics" id="comparison-filling-metrics"></div>
+                    </div>
+                  </div>
+                  <div class="comparison-filling-bars" id="comparison-filling-bars"></div>
+                  <figure class="comparison-chart hidden" id="comparison-chart">
+                    <img id="comparison-chart-image" alt="업로드한 Moldex3D filling pressure chart" />
+                    <figcaption>업로드한 Moldex3D chart 참고 이미지</figcaption>
+                  </figure>
+                </div>
+              </section>
+
               <dl class="meta">
                 <div>
                   <dt>모델</dt>
@@ -260,6 +307,6 @@
         }
       }
     </script>
-    <script type="module" src="./app.js?v=20260513-result-export-ko"></script>
+    <script type="module" src="./app.js?v=20260513-validation-compare-ko"></script>
   </body>
 </html>

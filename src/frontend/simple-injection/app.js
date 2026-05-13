@@ -45,6 +45,14 @@ const TEXT = {
   exportFillingDistribution: IS_KO ? "Filling Pressure 분포" : "Filling Pressure Distribution",
   exportFillingPreview: IS_KO ? "예측 기반 Filling Animation" : "Prediction-based Filling Animation",
   exportPdfHint: IS_KO ? "인쇄 창에서 PDF로 저장을 선택하세요." : "Choose Save as PDF in the print dialog.",
+  compareUpload: IS_KO ? "CSV 업로드" : "CSV upload",
+  compareRunning: IS_KO ? "비교 중..." : "Comparing...",
+  compareDone: IS_KO ? "비교 완료" : "Comparison ready",
+  compareNeedPrediction: IS_KO ? "먼저 예측을 진행해 주세요." : "Run a prediction first.",
+  compareNeedFile: IS_KO ? "비교할 Moldex3D CSV를 하나 이상 업로드해 주세요." : "Upload at least one Moldex3D CSV to compare.",
+  compareNoSprue: IS_KO ? "Sprue Pressure CSV를 업로드하면 overlay graph가 표시됩니다." : "Upload a Sprue Pressure CSV to draw the overlay graph.",
+  predicted: IS_KO ? "예측" : "Predicted",
+  actual: IS_KO ? "실제" : "Actual",
 };
 const MODEL_LABELS_KO = {
   "Sprue pressure - ExtraTrees + PCA": "Sprue Pressure - ExtraTrees + PCA",
@@ -96,6 +104,20 @@ const fillingGeneratedProgress = document.querySelector("#filling-generated-prog
 const fillingAnimation = document.querySelector("#filling-animation");
 const fillingAnimationLabel = document.querySelector("#filling-animation-label");
 const fillingAnimationImage = document.querySelector("#filling-animation-image");
+const comparisonPanel = document.querySelector("#comparison-panel");
+const comparisonStatus = document.querySelector("#comparison-status");
+const comparisonSampleId = document.querySelector("#comparison-sample-id");
+const comparisonSprueFile = document.querySelector("#comparison-sprue-file");
+const comparisonFillingFile = document.querySelector("#comparison-filling-file");
+const comparisonChartFile = document.querySelector("#comparison-chart-file");
+const comparisonSubmit = document.querySelector("#comparison-submit");
+const comparisonOutput = document.querySelector("#comparison-output");
+const comparisonSprueCanvas = document.querySelector("#comparison-sprue-canvas");
+const comparisonSprueMetrics = document.querySelector("#comparison-sprue-metrics");
+const comparisonFillingMetrics = document.querySelector("#comparison-filling-metrics");
+const comparisonFillingBars = document.querySelector("#comparison-filling-bars");
+const comparisonChart = document.querySelector("#comparison-chart");
+const comparisonChartImage = document.querySelector("#comparison-chart-image");
 const preventionPanel = document.querySelector("#prevention-panel");
 const preventionList = document.querySelector("#prevention-list");
 const preventionCount = document.querySelector("#prevention-count");
@@ -127,6 +149,8 @@ let shapeLoadToken = 0;
 let latestFillingPressureSummary = null;
 let latestPredictedFillingPressureSummary = null;
 let latestPredictionData = null;
+let latestComparisonData = null;
+let comparisonChartObjectUrl = null;
 
 function activeFillingPressureSummary() {
   return latestPredictedFillingPressureSummary || latestFillingPressureSummary;
@@ -1451,6 +1475,296 @@ function drawPressureCurve(points) {
   ctx.restore();
 }
 
+function drawSprueComparisonCurve(points) {
+  if (!comparisonSprueCanvas) {
+    return;
+  }
+  const ctx = comparisonSprueCanvas.getContext("2d");
+  const { width, height } = comparisonSprueCanvas;
+  const pad = { left: 58, right: 18, top: 22, bottom: 50 };
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = "#f8fbfd";
+  ctx.fillRect(0, 0, width, height);
+  if (!points || !points.length) {
+    ctx.fillStyle = "#637184";
+    ctx.font = "14px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(TEXT.compareNoSprue, width / 2, height / 2);
+    return;
+  }
+
+  const xs = points.map((point) => Number(point.time_s));
+  const ys = points.flatMap((point) => [Number(point.predicted_MPa), Number(point.actual_MPa)]);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(0, ...ys);
+  const maxY = Math.max(...ys) * 1.08;
+  const plotW = width - pad.left - pad.right;
+  const plotH = height - pad.top - pad.bottom;
+  const scaleX = (value) => pad.left + ((value - minX) / Math.max(1e-9, maxX - minX)) * plotW;
+  const scaleY = (value) => pad.top + (1 - (value - minY) / Math.max(1e-9, maxY - minY)) * plotH;
+
+  ctx.strokeStyle = "#d2dee9";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(pad.left, pad.top);
+  ctx.lineTo(pad.left, height - pad.bottom);
+  ctx.lineTo(width - pad.right, height - pad.bottom);
+  ctx.stroke();
+
+  ctx.fillStyle = "#607086";
+  ctx.font = "12px system-ui, sans-serif";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+  for (let i = 0; i <= 4; i += 1) {
+    const yValue = minY + ((maxY - minY) * i) / 4;
+    const y = scaleY(yValue);
+    ctx.strokeStyle = "#e7eef5";
+    ctx.beginPath();
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(width - pad.right, y);
+    ctx.stroke();
+    ctx.fillText(formatMetric(yValue, 1), pad.left - 8, y);
+  }
+
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  for (let i = 0; i <= 4; i += 1) {
+    const xValue = minX + ((maxX - minX) * i) / 4;
+    ctx.fillText(formatMetric(xValue, 2), scaleX(xValue), height - pad.bottom + 10);
+  }
+
+  const drawLine = (key, color, dash = []) => {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.setLineDash(dash);
+    ctx.beginPath();
+    points.forEach((point, index) => {
+      const x = scaleX(point.time_s);
+      const y = scaleY(point[key]);
+      if (index === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+  };
+  drawLine("predicted_MPa", "#0076bd");
+  drawLine("actual_MPa", "#d40000", [7, 5]);
+
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.font = "800 12px system-ui, sans-serif";
+  ctx.fillStyle = "#0076bd";
+  ctx.fillText(TEXT.predicted, pad.left + 8, pad.top + 14);
+  ctx.fillStyle = "#d40000";
+  ctx.fillText(TEXT.actual, pad.left + 88, pad.top + 14);
+  ctx.fillStyle = "#132236";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+  ctx.fillText(TEXT.timeAxis, pad.left + plotW / 2, height - 4);
+}
+
+function metricItem(label, value, unit = "", digits = 3) {
+  const row = document.createElement("div");
+  row.className = "comparison-metric";
+  const labelEl = document.createElement("span");
+  labelEl.textContent = label;
+  const valueEl = document.createElement("strong");
+  valueEl.textContent = `${formatMetric(value, digits)}${unit ? ` ${unit}` : ""}`;
+  row.append(labelEl, valueEl);
+  return row;
+}
+
+function renderComparisonMetrics(container, metrics, items) {
+  if (!container) {
+    return;
+  }
+  container.innerHTML = "";
+  if (!metrics) {
+    container.appendChild(metricItem("-", null));
+    return;
+  }
+  items.forEach((item) => {
+    container.appendChild(metricItem(item.label, item.value(metrics), item.unit, item.digits));
+  });
+}
+
+function renderFillingComparisonBars(rows) {
+  if (!comparisonFillingBars) {
+    return;
+  }
+  comparisonFillingBars.innerHTML = "";
+  if (!rows || !rows.length) {
+    return;
+  }
+  const maxRatio = Math.max(
+    ...rows.flatMap((row) => [Number(row.predicted_volume_ratio_pct), Number(row.actual_volume_ratio_pct)]),
+    1,
+  );
+  rows.forEach((row) => {
+    const wrapper = document.createElement("div");
+    wrapper.className = "comparison-bin-row";
+    const group = document.createElement("span");
+    group.textContent = `G${row.group}`;
+
+    const predTrack = document.createElement("div");
+    predTrack.className = "comparison-bin-track";
+    const predFill = document.createElement("div");
+    predFill.className = "comparison-bin-fill";
+    predFill.style.width = `${Math.max(1, (Number(row.predicted_volume_ratio_pct) / maxRatio) * 100)}%`;
+    predTrack.appendChild(predFill);
+
+    const actualTrack = document.createElement("div");
+    actualTrack.className = "comparison-bin-track";
+    const actualFill = document.createElement("div");
+    actualFill.className = "comparison-bin-fill actual";
+    actualFill.style.width = `${Math.max(1, (Number(row.actual_volume_ratio_pct) / maxRatio) * 100)}%`;
+    actualTrack.appendChild(actualFill);
+
+    const error = document.createElement("strong");
+    error.textContent = `${formatMetric(row.error_volume_ratio_pct, 2)}%p`;
+    wrapper.append(group, predTrack, actualTrack, error);
+    comparisonFillingBars.appendChild(wrapper);
+  });
+}
+
+function clearComparisonOutput() {
+  latestComparisonData = null;
+  if (comparisonOutput) {
+    comparisonOutput.classList.add("hidden");
+  }
+  if (comparisonSprueMetrics) {
+    comparisonSprueMetrics.innerHTML = "";
+  }
+  if (comparisonFillingMetrics) {
+    comparisonFillingMetrics.innerHTML = "";
+  }
+  if (comparisonFillingBars) {
+    comparisonFillingBars.innerHTML = "";
+  }
+  if (comparisonChartObjectUrl) {
+    URL.revokeObjectURL(comparisonChartObjectUrl);
+    comparisonChartObjectUrl = null;
+  }
+  if (comparisonChart) {
+    comparisonChart.classList.add("hidden");
+  }
+  if (comparisonChartImage) {
+    comparisonChartImage.removeAttribute("src");
+  }
+  if (comparisonStatus) {
+    comparisonStatus.textContent = TEXT.compareUpload;
+  }
+  drawSprueComparisonCurve([]);
+}
+
+function renderComparisonResult(data) {
+  latestComparisonData = data;
+  if (comparisonOutput) {
+    comparisonOutput.classList.remove("hidden");
+  }
+  if (comparisonStatus) {
+    comparisonStatus.textContent = data.sample_id ? `${TEXT.compareDone}: ${data.sample_id}` : TEXT.compareDone;
+  }
+
+  drawSprueComparisonCurve(data.sprue_pressure?.curve || []);
+  renderComparisonMetrics(comparisonSprueMetrics, data.sprue_pressure?.metrics, [
+    { label: "MAE", value: (metrics) => metrics.mae_MPa, unit: "MPa", digits: 3 },
+    { label: "RMSE", value: (metrics) => metrics.rmse_MPa, unit: "MPa", digits: 3 },
+    { label: IS_KO ? "최대 절대 오차" : "Max abs error", value: (metrics) => metrics.max_abs_error_MPa, unit: "MPa", digits: 3 },
+    { label: IS_KO ? "Peak 오차" : "Peak error", value: (metrics) => metrics.peak_error_MPa, unit: "MPa", digits: 3 },
+    { label: IS_KO ? "Peak 시간 오차" : "Peak time error", value: (metrics) => metrics.peak_time_error_s, unit: "s", digits: 3 },
+    { label: IS_KO ? "면적 오차" : "Area error", value: (metrics) => metrics.area_error_pct, unit: "%", digits: 2 },
+  ]);
+
+  renderComparisonMetrics(comparisonFillingMetrics, data.filling_pressure?.metrics, [
+    { label: IS_KO ? "Volume MAE" : "Volume MAE", value: (metrics) => metrics.volume_ratio_mae_pct, unit: "%p", digits: 3 },
+    { label: IS_KO ? "Volume RMSE" : "Volume RMSE", value: (metrics) => metrics.volume_ratio_rmse_pct, unit: "%p", digits: 3 },
+    { label: IS_KO ? "Volume 최대 오차" : "Volume max error", value: (metrics) => metrics.volume_ratio_max_abs_error_pct, unit: "%p", digits: 3 },
+    { label: IS_KO ? "분포 유사도" : "Similarity", value: (metrics) => metrics.volume_ratio_cosine_similarity, unit: "", digits: 4 },
+    { label: IS_KO ? "최대 압력 오차" : "Max pressure error", value: (metrics) => metrics.stat_errors?.max_MPa, unit: "MPa", digits: 3 },
+    { label: IS_KO ? "평균 압력 오차" : "Avg pressure error", value: (metrics) => metrics.stat_errors?.avg_MPa, unit: "MPa", digits: 3 },
+  ]);
+  renderFillingComparisonBars(data.filling_pressure?.bins || []);
+}
+
+function renderComparisonChartPreview(file) {
+  if (!comparisonChart || !comparisonChartImage) {
+    return;
+  }
+  if (comparisonChartObjectUrl) {
+    URL.revokeObjectURL(comparisonChartObjectUrl);
+    comparisonChartObjectUrl = null;
+  }
+  if (!file) {
+    comparisonChart.classList.add("hidden");
+    comparisonChartImage.removeAttribute("src");
+    return;
+  }
+  comparisonChartObjectUrl = URL.createObjectURL(file);
+  comparisonChartImage.src = comparisonChartObjectUrl;
+  comparisonChart.classList.remove("hidden");
+}
+
+async function submitComparison() {
+  clearError();
+  if (!latestPredictionData) {
+    setError(TEXT.compareNeedPrediction);
+    return;
+  }
+  const sprueFile = comparisonSprueFile?.files?.[0] || null;
+  const fillingFile = comparisonFillingFile?.files?.[0] || null;
+  const chartFile = comparisonChartFile?.files?.[0] || null;
+  if (!sprueFile && !fillingFile) {
+    setError(TEXT.compareNeedFile);
+    return;
+  }
+
+  if (comparisonSubmit) {
+    comparisonSubmit.disabled = true;
+  }
+  if (comparisonStatus) {
+    comparisonStatus.textContent = TEXT.compareRunning;
+  }
+  try {
+    const body = new FormData();
+    body.append("prediction_json", JSON.stringify(latestPredictionData));
+    if (comparisonSampleId?.value) {
+      body.append("sample_id", comparisonSampleId.value);
+    }
+    if (sprueFile) {
+      body.append("sprue_pressure_csv", sprueFile);
+    }
+    if (fillingFile) {
+      body.append("filling_pressure_csv", fillingFile);
+    }
+    const response = await fetch(`${API_BASE}/compare/moldex3d`, {
+      method: "POST",
+      body,
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || `HTTP ${response.status}`);
+    }
+    renderComparisonResult(data);
+    renderComparisonChartPreview(chartFile);
+  } catch (error) {
+    setError(error.message || "Comparison failed.");
+    if (comparisonStatus) {
+      comparisonStatus.textContent = TEXT.compareUpload;
+    }
+  } finally {
+    if (comparisonSubmit) {
+      comparisonSubmit.disabled = false;
+    }
+  }
+}
+
 function renderInputSummary(inputs) {
   inputSummary.innerHTML = "";
   [
@@ -1959,6 +2273,14 @@ function clearFillingPressureContext() {
 
 function renderResult(data) {
   latestPredictionData = data;
+  clearComparisonOutput();
+  if (comparisonSampleId) {
+    const geometryId = data.inputs?.geometry_id;
+    const processId = data.inputs?.process_id;
+    comparisonSampleId.value = geometryId && processId && geometryId !== "manual" && processId !== "manual"
+      ? `${geometryId}_${processId}`
+      : "";
+  }
   emptyState.classList.add("hidden");
   resultPanel.classList.remove("hidden");
   maxPressure.textContent = `${formatMetric(data.predicted_max_pressure_MPa, 3)} MPa`;
@@ -2055,6 +2377,14 @@ if (exportResultPng) {
 if (exportResultPdf) {
   exportResultPdf.addEventListener("click", exportResultAsPdf);
 }
+if (comparisonSubmit) {
+  comparisonSubmit.addEventListener("click", submitComparison);
+}
+if (comparisonChartFile) {
+  comparisonChartFile.addEventListener("change", () => {
+    renderComparisonChartPreview(comparisonChartFile.files?.[0] || null);
+  });
+}
 if (shapeZoomIn) {
   shapeZoomIn.addEventListener("click", () => {
     zoomShapePreview(1.18);
@@ -2109,4 +2439,5 @@ if (shapeViewReset) {
 form.addEventListener("submit", submitPrediction);
 initShapePreview();
 drawPressureCurve([]);
+drawSprueComparisonCurve([]);
 loadBootstrapData();
