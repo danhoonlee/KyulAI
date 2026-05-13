@@ -1829,6 +1829,26 @@ function drawReportCard(ctx, x, y, width, height, label, value) {
   drawWrappedText(ctx, value, x + 18, y + 68, width - 36, 30, 2);
 }
 
+function drawReportCompactMetricCard(ctx, x, y, width, height, label, value) {
+  ctx.fillStyle = "#f3f8fc";
+  ctx.strokeStyle = "#cbd8e4";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(x, y, width, height, 8);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = "#607086";
+  ctx.font = "800 13px system-ui, sans-serif";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  drawWrappedText(ctx, label, x + 12, y + 12, width - 24, 16, 2);
+
+  ctx.fillStyle = "#132236";
+  ctx.font = "900 19px system-ui, sans-serif";
+  drawWrappedText(ctx, value, x + 12, y + 51, width - 24, 21, 2);
+}
+
 function drawCanvasImage(ctx, sourceCanvas, x, y, width, height) {
   ctx.fillStyle = "#f8fbfd";
   ctx.strokeStyle = "#cbd8e4";
@@ -1884,12 +1904,12 @@ function drawReportHistogram(ctx, summary, x, y, width, height) {
 
 function drawReportMetricGrid(ctx, metrics, items, x, y, width, columns = 3) {
   const gap = 14;
-  const cardH = 86;
+  const cardH = 96;
   const cardW = (width - gap * (columns - 1)) / columns;
   items.forEach((item, index) => {
     const col = index % columns;
     const row = Math.floor(index / columns);
-    drawReportCard(
+    drawReportCompactMetricCard(
       ctx,
       x + col * (cardW + gap),
       y + row * (cardH + gap),

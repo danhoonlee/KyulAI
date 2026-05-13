@@ -728,6 +728,7 @@ select:focus {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  min-width: 0;
   border: 1px solid var(--border);
   border-radius: 7px;
   padding: 8px 9px;
@@ -737,12 +738,19 @@ select:focus {
 }
 
 .comparison-metric span {
+  min-width: 0;
   color: var(--muted);
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .comparison-metric strong {
+  flex: 0 1 auto;
+  min-width: 0;
   color: var(--text);
   text-align: right;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .comparison-filling-bars {
