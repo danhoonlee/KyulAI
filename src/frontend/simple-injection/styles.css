@@ -345,6 +345,22 @@ select:focus {
   opacity: 0.72;
 }
 
+.secondary {
+  min-height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0 12px;
+  color: var(--brand-blue);
+  background: #ffffff;
+  cursor: pointer;
+  font-weight: 850;
+}
+
+.secondary:hover {
+  border-color: #8ab6d8;
+  background: #f5fbff;
+}
+
 .preview-head,
 .result-head {
   display: flex;
@@ -352,6 +368,13 @@ select:focus {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 14px;
+}
+
+.result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .shape-mode-control {

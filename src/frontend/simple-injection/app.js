@@ -39,6 +39,12 @@ const TEXT = {
   exactUnavailable: IS_KO ? "선택한 DOE의 STEP GLB가 없어 parametric preview로 표시합니다." : "No STEP GLB is available for this DOE; showing the parametric preview.",
   customParametric: IS_KO ? "사용자 입력 형상은 parametric preview로 표시합니다." : "User-edited geometry is shown with the parametric preview.",
   doeParametric: IS_KO ? "DOE 치수 기반 parametric preview" : "Parametric preview from DOE dimensions",
+  exportTitle: IS_KO ? "Simple Injection 예측 리포트" : "Simple Injection Prediction Report",
+  exportCreated: IS_KO ? "생성 시간" : "Created",
+  exportSprueCurve: IS_KO ? "Sprue Pressure 곡선" : "Sprue Pressure Curve",
+  exportFillingDistribution: IS_KO ? "Filling Pressure 분포" : "Filling Pressure Distribution",
+  exportFillingPreview: IS_KO ? "예측 기반 Filling Animation" : "Prediction-based Filling Animation",
+  exportPdfHint: IS_KO ? "인쇄 창에서 PDF로 저장을 선택하세요." : "Choose Save as PDF in the print dialog.",
 };
 const MODEL_LABELS_KO = {
   "Sprue pressure - ExtraTrees + PCA": "Sprue Pressure - ExtraTrees + PCA",
@@ -66,6 +72,8 @@ const maxPressure = document.querySelector("#max-pressure");
 const maxTime = document.querySelector("#max-time");
 const curvePoints = document.querySelector("#curve-points");
 const pressureCanvas = document.querySelector("#pressure-canvas");
+const exportResultPng = document.querySelector("#export-result-png");
+const exportResultPdf = document.querySelector("#export-result-pdf");
 const modelLabel = document.querySelector("#model-label");
 const inputSummary = document.querySelector("#input-summary");
 const notes = document.querySelector("#notes");
@@ -118,6 +126,7 @@ let shapeAssetMap = new Map();
 let shapeLoadToken = 0;
 let latestFillingPressureSummary = null;
 let latestPredictedFillingPressureSummary = null;
+let latestPredictionData = null;
 
 function activeFillingPressureSummary() {
   return latestPredictedFillingPressureSummary || latestFillingPressureSummary;
@@ -1464,6 +1473,228 @@ function renderInputSummary(inputs) {
   });
 }
 
+function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight, maxLines = 4) {
+  const words = String(text || "").split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = "";
+  words.forEach((word) => {
+    const candidate = line ? `${line} ${word}` : word;
+    if (ctx.measureText(candidate).width <= maxWidth || !line) {
+      line = candidate;
+    } else {
+      lines.push(line);
+      line = word;
+    }
+  });
+  if (line) {
+    lines.push(line);
+  }
+  const visible = lines.slice(0, maxLines);
+  if (lines.length > maxLines && visible.length) {
+    visible[visible.length - 1] = `${visible[visible.length - 1].replace(/\.*$/, "")}...`;
+  }
+  visible.forEach((item, index) => {
+    ctx.fillText(item, x, y + index * lineHeight);
+  });
+  return visible.length * lineHeight;
+}
+
+function drawReportCard(ctx, x, y, width, height, label, value) {
+  ctx.fillStyle = "#f3f8fc";
+  ctx.strokeStyle = "#cbd8e4";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(x, y, width, height, 10);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = "#607086";
+  ctx.font = "700 18px system-ui, sans-serif";
+  ctx.fillText(label, x + 18, y + 30);
+  ctx.fillStyle = "#132236";
+  ctx.font = "900 28px system-ui, sans-serif";
+  drawWrappedText(ctx, value, x + 18, y + 68, width - 36, 30, 2);
+}
+
+function drawCanvasImage(ctx, sourceCanvas, x, y, width, height) {
+  ctx.fillStyle = "#f8fbfd";
+  ctx.strokeStyle = "#cbd8e4";
+  ctx.lineWidth = 1;
+  ctx.fillRect(x, y, width, height);
+  ctx.strokeRect(x, y, width, height);
+  if (!sourceCanvas) {
+    return;
+  }
+  const scale = Math.min(width / sourceCanvas.width, height / sourceCanvas.height);
+  const drawW = sourceCanvas.width * scale;
+  const drawH = sourceCanvas.height * scale;
+  ctx.drawImage(sourceCanvas, x + (width - drawW) / 2, y + (height - drawH) / 2, drawW, drawH);
+}
+
+function drawReportHistogram(ctx, summary, x, y, width, height) {
+  const bins = [...(summary?.bins || [])].sort((a, b) => Number(a.group) - Number(b.group));
+  ctx.fillStyle = "#f8fbfd";
+  ctx.strokeStyle = "#cbd8e4";
+  ctx.lineWidth = 1;
+  ctx.fillRect(x, y, width, height);
+  ctx.strokeRect(x, y, width, height);
+  if (!bins.length) {
+    return;
+  }
+  const maxRatio = Math.max(...bins.map((bin) => Number(bin.volume_ratio_pct) || 0), 1);
+  const pad = { left: 74, right: 28, top: 28, bottom: 48 };
+  const plotW = width - pad.left - pad.right;
+  const plotH = height - pad.top - pad.bottom;
+  const barGap = 8;
+  const barW = (plotW - barGap * (bins.length - 1)) / bins.length;
+  const stops = fillingColorStops();
+  bins.forEach((bin, index) => {
+    const ratio = Number(bin.volume_ratio_pct) || 0;
+    const barH = (ratio / maxRatio) * plotH;
+    const barX = x + pad.left + index * (barW + barGap);
+    const barY = y + pad.top + plotH - barH;
+    const normalized = index / Math.max(bins.length - 1, 1);
+    ctx.fillStyle = colorCss(interpolateColor(stops, normalized));
+    ctx.fillRect(barX, barY, barW, barH);
+    ctx.fillStyle = "#607086";
+    ctx.font = "13px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(String(bin.group), barX + barW / 2, y + height - 22);
+  });
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#607086";
+  ctx.font = "14px system-ui, sans-serif";
+  ctx.fillText(`${formatMetric(maxRatio, 1)}%`, x + pad.left - 10, y + pad.top + 8);
+  ctx.fillText("0%", x + pad.left - 10, y + pad.top + plotH);
+  ctx.textAlign = "left";
+}
+
+function exportFileStem() {
+  const inputs = latestPredictionData?.inputs || {};
+  const geometry = inputs.geometry_id || "manual";
+  const process = inputs.process_id || "manual";
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  return `simple_injection_${geometry}_${process}_${stamp}`;
+}
+
+function buildResultReportCanvas() {
+  if (!latestPredictionData) {
+    return null;
+  }
+  const filling = activeFillingPressureSummary();
+  const canvas = document.createElement("canvas");
+  canvas.width = 1200;
+  canvas.height = filling ? 1780 : 1220;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "#0076bd";
+  ctx.font = "900 28px system-ui, sans-serif";
+  ctx.fillText("KCLab Injection AI", 64, 72);
+  ctx.fillStyle = "#132236";
+  ctx.font = "900 46px system-ui, sans-serif";
+  ctx.fillText(TEXT.exportTitle, 64, 126);
+  ctx.fillStyle = "#607086";
+  ctx.font = "18px system-ui, sans-serif";
+  ctx.fillText(`${TEXT.exportCreated}: ${new Date().toLocaleString()}`, 64, 164);
+
+  const data = latestPredictionData;
+  drawReportCard(ctx, 64, 204, 330, 116, IS_KO ? "최대 압력" : "Max pressure", `${formatMetric(data.predicted_max_pressure_MPa, 3)} MPa`);
+  drawReportCard(ctx, 428, 204, 330, 116, IS_KO ? "최대 시간" : "Max time", `${formatMetric(data.predicted_max_time_s, 3)} s`);
+  drawReportCard(ctx, 792, 204, 330, 116, IS_KO ? "곡선 포인트" : "Curve points", String(data.curve?.length || 0));
+
+  ctx.fillStyle = "#132236";
+  ctx.font = "900 24px system-ui, sans-serif";
+  ctx.fillText(IS_KO ? "입력 조건" : "Inputs", 64, 376);
+  ctx.fillStyle = "#607086";
+  ctx.font = "18px system-ui, sans-serif";
+  const inputs = data.inputs || {};
+  const inputText = [
+    `${TEXT.geometry}: ${localizeInputValue(inputs.geometry_id)}`,
+    `${TEXT.process}: ${localizeInputValue(inputs.process_id)}`,
+    `L ${formatMetric(inputs.L_mm, 2)} mm`,
+    `W ${formatMetric(inputs.W_mm, 2)} mm`,
+    `t ${formatMetric(inputs.t_mm, 3)} mm`,
+    `D ${formatMetric(inputs.D_mm, 2)} mm`,
+    `${IS_KO ? "수지 온도" : "Melt temp"} ${formatMetric(inputs.melt_temp_C, 1)} C`,
+    `${IS_KO ? "금형 온도" : "Mold temp"} ${formatMetric(inputs.mold_temp_C, 1)} C`,
+  ].join("   |   ");
+  drawWrappedText(ctx, inputText, 64, 408, 1060, 26, 3);
+
+  ctx.fillStyle = "#132236";
+  ctx.font = "900 24px system-ui, sans-serif";
+  ctx.fillText(TEXT.exportSprueCurve, 64, 520);
+  drawCanvasImage(ctx, pressureCanvas, 64, 548, 1072, 470);
+
+  let y = 1080;
+  if (filling) {
+    const stats = filling.stats || {};
+    ctx.fillStyle = "#132236";
+    ctx.font = "900 24px system-ui, sans-serif";
+    ctx.fillText(TEXT.exportFillingDistribution, 64, y);
+    drawReportCard(ctx, 64, y + 28, 246, 104, IS_KO ? "최소" : "Min", `${formatMetric(stats.min_MPa, 3)} MPa`);
+    drawReportCard(ctx, 334, y + 28, 246, 104, IS_KO ? "평균" : "Average", `${formatMetric(stats.avg_MPa, 3)} MPa`);
+    drawReportCard(ctx, 604, y + 28, 246, 104, IS_KO ? "최대" : "Max", `${formatMetric(stats.max_MPa, 3)} MPa`);
+    drawReportCard(ctx, 874, y + 28, 246, 104, IS_KO ? "표준편차" : "SD", `${formatMetric(stats.sd_MPa, 3)} MPa`);
+    drawReportHistogram(ctx, filling, 64, y + 164, 1072, 260);
+    y += 486;
+    ctx.fillStyle = "#132236";
+    ctx.font = "900 24px system-ui, sans-serif";
+    ctx.fillText(TEXT.exportFillingPreview, 64, y);
+    drawCanvasImage(ctx, fillingGeneratedCanvas, 64, y + 28, 1072, 360);
+    y += 440;
+  }
+
+  if (data.notes?.length) {
+    ctx.fillStyle = "#132236";
+    ctx.font = "900 22px system-ui, sans-serif";
+    ctx.fillText(IS_KO ? "메모" : "Notes", 64, y);
+    ctx.fillStyle = "#607086";
+    ctx.font = "17px system-ui, sans-serif";
+    data.notes.slice(0, 3).forEach((note, index) => {
+      drawWrappedText(ctx, `- ${localizeNote(note)}`, 64, y + 32 + index * 58, 1060, 24, 2);
+    });
+  }
+  return canvas;
+}
+
+function exportResultAsPng() {
+  clearError();
+  const canvas = buildResultReportCanvas();
+  if (!canvas) {
+    setError(IS_KO ? "내보낼 예측 결과가 없습니다." : "No prediction result is available to export.");
+    return;
+  }
+  const link = document.createElement("a");
+  link.href = canvas.toDataURL("image/png");
+  link.download = `${exportFileStem()}.png`;
+  link.click();
+}
+
+function exportResultAsPdf() {
+  clearError();
+  const canvas = buildResultReportCanvas();
+  if (!canvas) {
+    setError(IS_KO ? "내보낼 예측 결과가 없습니다." : "No prediction result is available to export.");
+    return;
+  }
+  const popup = window.open("", "_blank");
+  if (!popup) {
+    setError(IS_KO ? "PDF 창을 열 수 없습니다. 팝업 차단을 확인해 주세요." : "Could not open the PDF window. Check the popup blocker.");
+    return;
+  }
+  const dataUrl = canvas.toDataURL("image/png");
+  popup.document.write(`<!doctype html><html><head><title>${TEXT.exportTitle}</title><style>
+    @page { size: A4 portrait; margin: 10mm; }
+    body { margin: 0; font-family: system-ui, sans-serif; color: #132236; }
+    img { display: block; width: 100%; height: auto; }
+    p { margin: 8px 0 0; color: #607086; font-size: 12px; }
+  </style></head><body><img src="${dataUrl}" alt="${TEXT.exportTitle}" /><p>${TEXT.exportPdfHint}</p></body></html>`);
+  popup.document.close();
+  popup.focus();
+  window.setTimeout(() => popup.print(), 300);
+}
+
 function stopGeneratedFillingAnimation() {
   if (generatedFillingAnimationFrame) {
     window.cancelAnimationFrame(generatedFillingAnimationFrame);
@@ -1715,6 +1946,7 @@ function hideMoldexFillingAnimation() {
 function clearFillingPressureContext() {
   latestFillingPressureSummary = null;
   latestPredictedFillingPressureSummary = null;
+  latestPredictionData = null;
   stopGeneratedFillingAnimation();
   hideMoldexFillingAnimation();
   if (fillingGeneratedAnimation) {
@@ -1726,6 +1958,7 @@ function clearFillingPressureContext() {
 }
 
 function renderResult(data) {
+  latestPredictionData = data;
   emptyState.classList.add("hidden");
   resultPanel.classList.remove("hidden");
   maxPressure.textContent = `${formatMetric(data.predicted_max_pressure_MPa, 3)} MPa`;
@@ -1815,6 +2048,12 @@ if (fillingGeneratedRange) {
   fillingGeneratedRange.addEventListener("input", () => {
     seekGeneratedFillingAnimation(Number(fillingGeneratedRange.value) / 100);
   });
+}
+if (exportResultPng) {
+  exportResultPng.addEventListener("click", exportResultAsPng);
+}
+if (exportResultPdf) {
+  exportResultPdf.addEventListener("click", exportResultAsPdf);
 }
 if (shapeZoomIn) {
   shapeZoomIn.addEventListener("click", () => {
