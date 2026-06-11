@@ -7,6 +7,7 @@ from src.backend.api.v1 import (
     dd_laminate,
     experiments,
     health,
+    modules,
     models,
     predictions,
     research,
@@ -22,6 +23,7 @@ router.include_router(health.router)
 router.include_router(data.router)
 router.include_router(dd_laminate.router)
 router.include_router(experiments.router)
+router.include_router(modules.router)
 router.include_router(models.router)
 router.include_router(predictions.router)
 router.include_router(visualization.router)

@@ -24,6 +24,17 @@ node_modules/
 .next/
 out/
 
+# Android / Gradle
+.gradle/
+local.properties
+
+# Swift / Xcode
+.build/
+.swiftpm/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+
 # Environment
 .env
 .env.local

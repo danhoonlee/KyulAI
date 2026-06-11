@@ -1,0 +1,120 @@
+import Foundation
+
+public struct LuveloxModuleRoute: Codable, Equatable, Sendable {
+    public let baseURL: URL
+    public let webURL: URL
+    public let apiPrefix: String
+    public let healthPath: String
+    public let modelsPath: String
+    public let primaryPredictPath: String
+
+    enum CodingKeys: String, CodingKey {
+        case baseURL = "base_url"
+        case webURL = "web_url"
+        case apiPrefix = "api_prefix"
+        case healthPath = "health_path"
+        case modelsPath = "models_path"
+        case primaryPredictPath = "primary_predict_path"
+    }
+}
+
+public struct LuveloxModule: Codable, Equatable, Identifiable, Sendable {
+    public let id: String
+    public let name: String
+    public let shortName: String
+    public let category: String
+    public let summary: String
+    public let icon: String
+    public let status: String
+    public let entitlementKey: String
+    public let defaultEnabled: Bool
+    public let tags: [String]
+    public let capabilities: [String]
+    public let route: LuveloxModuleRoute
+    public let access: String?
+    public let accessReason: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case shortName = "short_name"
+        case category
+        case summary
+        case icon
+        case status
+        case entitlementKey = "entitlement_key"
+        case defaultEnabled = "default_enabled"
+        case tags
+        case capabilities
+        case route
+        case access
+        case accessReason = "access_reason"
+    }
+
+    public var isGranted: Bool {
+        access == nil || access == "granted"
+    }
+}
+
+public struct LuveloxUserModulesResponse: Codable, Equatable, Sendable {
+    public let brand: String
+    public let licenseMode: String
+    public let modules: [LuveloxModule]
+
+    enum CodingKeys: String, CodingKey {
+        case brand
+        case licenseMode = "license_mode"
+        case modules
+    }
+}
+
+public enum LuveloxFallbackCatalog {
+    public static let modules: [LuveloxModule] = [
+        LuveloxModule(
+            id: "laminate",
+            name: "Laminate",
+            shortName: "Laminate",
+            category: "Composite",
+            summary: "Predict Double-Double laminate response, Pt, type, and force-displacement curves.",
+            icon: "layers",
+            status: "active",
+            entitlementKey: "module.laminate",
+            defaultEnabled: true,
+            tags: ["Double-Double", "Pt", "Force-displacement"],
+            capabilities: ["response_prediction", "curve_chart", "history", "comparison"],
+            route: LuveloxModuleRoute(
+                baseURL: URL(string: "https://laminate.luvelox.com")!,
+                webURL: URL(string: "https://laminate.luvelox.com")!,
+                apiPrefix: "/api/v1/dd-laminate",
+                healthPath: "/health",
+                modelsPath: "/api/v1/dd-laminate/models",
+                primaryPredictPath: "/api/v1/dd-laminate/predict/response"
+            ),
+            access: "granted",
+            accessReason: "Available in the Luvelox MVP workspace."
+        ),
+        LuveloxModule(
+            id: "injection",
+            name: "Injection",
+            shortName: "Injection",
+            category: "Molding",
+            summary: "Predict sprue pressure curves and filling pressure distributions for Simple Injection DOE.",
+            icon: "gauge",
+            status: "active",
+            entitlementKey: "module.injection",
+            defaultEnabled: true,
+            tags: ["Moldex3D", "Sprue pressure", "Filling pressure"],
+            capabilities: ["sprue_pressure", "filling_histogram", "filling_animation", "history"],
+            route: LuveloxModuleRoute(
+                baseURL: URL(string: "https://injection.luvelox.com")!,
+                webURL: URL(string: "https://injection.luvelox.com")!,
+                apiPrefix: "/api/v1/simple-injection",
+                healthPath: "/health",
+                modelsPath: "/api/v1/simple-injection/models",
+                primaryPredictPath: "/api/v1/simple-injection/predict/sprue-pressure"
+            ),
+            access: "granted",
+            accessReason: "Available in the Luvelox MVP workspace."
+        ),
+    ]
+}

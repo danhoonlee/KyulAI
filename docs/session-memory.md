@@ -2387,3 +2387,1479 @@ Operational note:
 - If DD server is restarted later, it must be started again with
   `SLACK_SIGNING_SECRET` in the environment or Slack Slash Commands will return
   service unavailable.
+
+## 2026-05-07 Injection Public URL Restored
+
+User reported `https://injection.cafedecafe.co.kr/` was not opening.
+
+Diagnosis:
+
+- Cloudflare tunnel was still running.
+- Existing Injection server process was still listening on `127.0.0.1:8010`.
+- Public URL initially returned HTTP 404, then local root showed
+  `Internal Server Error`.
+- Uvicorn logs showed the server was launched from the old temporary worktree:
+  `/private/tmp/kyulai-simple-injection`.
+- The referenced frontend file no longer existed:
+  `/private/tmp/kyulai-simple-injection/src/frontend/simple-injection/index.html`.
+
+Fix:
+
+- Restored Simple Injection app files and models from branch
+  `codex/simple-injection-predictor` into `/Users/danlee/KyulAI_codex`:
+  - `src/backend/simple_injection_app.py`
+  - `src/backend/api/v1/simple_injection.py`
+  - `src/frontend/simple-injection`
+  - `src/ml/simple_injection`
+  - `models/simple_injection_sprue_pressure_v1`
+  - `models/simple_injection_sprue_goint_v1`
+- Reapplied root behavior:
+  `/` serves English `index.html`; Korean remains at `index.ko.html`.
+- Stopped old Injection server PID `36742`.
+- Restarted Injection server from stable project directory:
+  `/Users/danlee/KyulAI_codex`
+- New Injection server PID shown by uvicorn: `56491`.
+
+Verification:
+
+- `PYTHONPYCACHEPREFIX=/tmp/kyulai_pycache python3 -m py_compile
+  src/backend/simple_injection_app.py src/backend/api/v1/simple_injection.py`
+  passed.
+- Local `http://127.0.0.1:8010/` returns English Injection HTML.
+- Local `http://127.0.0.1:8010/api/v1/simple-injection/models` returns both
+  models as available.
+- Public `https://injection.cafedecafe.co.kr/` returns HTTP 200 and English
+  Injection HTML.
+- Public `https://injection.cafedecafe.co.kr/api/v1/simple-injection/models`
+  returns both models as available.
+
+Note:
+
+- These restored Injection files are currently local working-tree changes; they
+  were intentionally not part of the prior DD-only git commit.
+
+## 2026-05-07 Slack `/kyulai` Invalid Command Troubleshooting
+
+User reported Slack says `/kyulai` is not a valid command.
+
+Important interpretation:
+
+- This error usually happens inside Slack before any request reaches the KyulAI
+  server.
+- It means the Slash Command has not been created, saved, installed, or
+  reinstalled into the active Slack workspace.
+
+Server check:
+
+- Unsigned POST to `https://dd.cafedecafe.co.kr/slack/commands` returned:
+  `{"detail":"Missing Slack signature headers."}`
+- This confirms the public endpoint is reachable and the route exists; Slack
+  still needs to register the command in the app configuration.
+
+Recommended fix:
+
+- Slack App -> `Slash Commands` -> `Create New Command`
+- Command: `/kyulai`
+- Request URL: `https://dd.cafedecafe.co.kr/slack/commands`
+- Save
+- Then go to `Install App` / `OAuth & Permissions` and reinstall the app to the
+  workspace if Slack asks.
+- Restart or refresh Slack if autocomplete does not show `/kyulai`.
+
+## 2026-05-08 DD/Injection Service Restart
+
+User asked whether both public app servers were down and requested restart if
+needed.
+
+Initial status:
+
+- DD local server on `127.0.0.1:8000` was down.
+- Injection local server on `:8010` was alive, but it was still an older
+  process returning a redirect from `/` to `/simple-injection/index.ko.html`.
+- Cloudflare tunnel metrics port `127.0.0.1:20241` was down, so both public
+  hostnames returned Cloudflare 530 before restart.
+
+Restart actions:
+
+- Restarted DD API/UI on `127.0.0.1:8000` with Slack signing verification
+  enabled through process environment only.
+- Restarted named Cloudflare tunnel from
+  `infrastructure/cloudflare/kclab-composite-ai.yml`.
+- Stopped the stale Injection process on `:8010`.
+- Restarted Injection API/UI from `/Users/danlee/KyulAI_codex` on
+  `127.0.0.1:8010`.
+
+Verification:
+
+- `https://dd.cafedecafe.co.kr/health` returns `{"status":"ok"}`.
+- `https://dd.cafedecafe.co.kr/` returns HTTP 200 through Cloudflare.
+- `https://injection.cafedecafe.co.kr/` now returns HTTP 200 and serves the
+  English Simple Injection page by default.
+- `https://injection.cafedecafe.co.kr/api/v1/simple-injection/models` returns
+  both `sprue_classical` and `sprue_goint` as available.
+
+Current expected local listeners:
+
+- DD: `127.0.0.1:8000`
+- Injection: `127.0.0.1:8010`
+- Cloudflare tunnel metrics: `127.0.0.1:20241`
+
+## 2026-05-12 DD Public Server Restart
+
+User reported `dd.cafedecafe.co.kr` appeared to be stopped and asked to keep
+both running apps online.
+
+Diagnosis:
+
+- DD local server on `127.0.0.1:8000` was down.
+- Injection local server on `:8010` was still running.
+- Cloudflare tunnel metrics on `127.0.0.1:20241` was still running.
+- Public DD health initially returned Cloudflare HTTP 502 because the tunnel
+  could not reach the local DD origin.
+- Public Injection health returned HTTP 200.
+
+Action:
+
+- Restarted DD API/UI on `127.0.0.1:8000` with Slack signing verification
+  enabled through process environment only.
+- Left the existing Injection server and Cloudflare tunnel running.
+
+Verification:
+
+- Local DD `http://127.0.0.1:8000/health` returns `{"status":"ok"}`.
+- Local Injection `http://127.0.0.1:8010/health` returns `{"status":"ok"}`.
+- Public DD `https://dd.cafedecafe.co.kr/health` returns HTTP 200.
+- Public Injection `https://injection.cafedecafe.co.kr/health` returns HTTP
+  200.
+
+Current listeners after restart:
+
+- DD: PID `95653` on `127.0.0.1:8000`
+- Injection: PID `85809` on `:8010`
+- Cloudflare tunnel: PID `25540` on `127.0.0.1:20241`
+
+## 2026-05-12 DD New Case3 Data 201-300
+
+User provided 100 new DD samples at:
+
+- `/Users/danlee/KyulAI_codex/data/datasets/DD_new/201-250`
+- `/Users/danlee/KyulAI_codex/data/datasets/DD_new/251-300`
+
+All samples are Case3:
+
+`[[±theta1]/[±theta2]/[∓theta2]/[∓theta2]]2`
+
+Work completed:
+
+- Added `scripts/dd_ingest_case3_new_batches.py`.
+- Checked sibling folder labels `1`, `2`, `3` against the current CSV
+  metadata+curve classifier.
+- Updated each new batch `transition_load.csv` with:
+  `Global_Test_ID`, final `type`, `original_type`, model prediction,
+  probabilities, confidence, data quality, and review note.
+- Created the new active curated dataset:
+  `/Users/danlee/KyulAI_codex/data/datasets/DD_curated_csv_v2`
+- Preserved the previous 400-sample dataset:
+  `/Users/danlee/KyulAI_codex/data/datasets/DD_curated_csv_v1`
+
+New-data review result:
+
+- Original sibling counts: Type1=40, Type2=51, Type3=9.
+- Model prediction counts: Type1=34, Type2=57, Type3=9.
+- Final curated counts: Type1=34, Type2=57, Type3=9.
+- Six labels changed from Type1 to Type2:
+  `Test_241`, `Test_266`, `Test_272`, `Test_291`, `Test_293`, `Test_295`.
+- Review files:
+  - `/Users/danlee/KyulAI_codex/data/datasets/DD_new/case3_201_300_classification_review.md`
+  - `/Users/danlee/KyulAI_codex/data/datasets/DD_new/case3_201_300_classification_review.csv`
+
+Current v2 label counts:
+
+- Case3: Type1=96, Type2=175, Type3=29, total=300.
+- Case4: Type1=64, Type2=116, Type3=20, total=200.
+- Total: Type1=160, Type2=291, Type3=49, total=500.
+
+Models retrained from scratch on `DD_curated_csv_v2`:
+
+- `models/dd_laminate_csv_meta_v1`: best model `random_forest`,
+  sample CV accuracy 0.9960, macro F1 0.9967.
+- `models/dd_laminate_theta_v1`: best sample model
+  `hist_gradient_boosting`, sample CV accuracy 0.9640, macro F1 0.9579.
+- `models/dd_laminate_response_surrogate_v1`: grouped CV accuracy 0.9380,
+  macro F1 0.9378, Pt MAE 261.26.
+- `models/dd_laminate_theta_goint_grouped_v1`: grouped CV accuracy 0.8975,
+  macro F1 0.8901.
+- `models/dd_laminate_response_goint_v1`: grouped CV accuracy 0.9460,
+  macro F1 0.9472, Pt MAE 533.09.
+- `models/dd_laminate_deep_sequence_grouped_v1`: grouped CV accuracy 0.9739,
+  macro F1 0.9703.
+
+Practical policy for future new DD data:
+
+- While the dataset is still in the hundreds or low thousands, prefer full
+  retraining from the curated dataset instead of incremental learning.
+- Current sklearn tree/boosting pipelines and torch models are being trained
+  from scratch for reproducibility and to avoid reinforcing old model mistakes.
+- Incremental/fine-tune workflows can become useful later when the dataset is
+  much larger and we have a stable held-out test set.
+
+Runtime verification after retraining:
+
+- Restarted DD server so model labels and files are reflected in the API.
+- Current DD listener after restart: PID `10943` on `127.0.0.1:8000`.
+- Injection remains running: PID `85809` on `:8010`.
+- Cloudflare tunnel remains running: PID `25540` on `127.0.0.1:20241`.
+- `https://dd.cafedecafe.co.kr/health` and
+  `https://injection.cafedecafe.co.kr/health` both returned `{"status":"ok"}`.
+- Local theta and curve API smoke tests returned Type2 for new reviewed sample
+  `Case3/Test_241`.
+
+## 2026-05-12 DD UI Response-First Simplification
+
+User observed that `Theta + case` and `Response estimate` use essentially the
+same inputs (`theta1`, `theta2`, `case`), while `Response estimate` returns more
+useful outputs. Decision: keep theta-only models as backend/research baselines,
+but remove the standalone theta-only tab from the user-facing UI.
+
+UI changes:
+
+- English title changed to `DD Laminate Response Predictor`.
+- Korean title changed to `DD 적층 응답 예측기`.
+- Default visible tab is now `Response estimate` / `응답 예측`.
+- Top-level tabs are now only:
+  - `Response estimate`
+  - `Curve CSV`
+- Removed the `Theta + case` / `θ + Case` tab and visible theta-only form.
+- Kept backend theta endpoints and model files unchanged for research use.
+- Updated cache-busting asset version to `20260512-response-first`.
+
+Runtime verification:
+
+- Restarted DD server after UI changes; latest DD listener PID is `15368` on
+  `127.0.0.1:8000`.
+- Browser verification confirmed:
+  - `Response estimate` is present.
+  - `Curve CSV` is present.
+  - `Theta + case` tab is absent.
+  - `theta-form` is absent from the rendered page.
+- `Curve CSV` tab click shows the post-simulation classification form and CSV
+  preview area.
+
+## 2026-05-12 DD UI Naming: Laminate Forecast
+
+User wanted a more polished name than `Response estimate`. Adopted
+`Laminate Forecast`.
+
+UI/API label changes:
+
+- English page title: `DD Laminate Forecast`.
+- English main tab: `Laminate Forecast`.
+- English form title: `Pre-Abaqus Laminate Forecast`.
+- English submit button: `Run Forecast`.
+- Response model labels now show:
+  - `Laminate Forecast - ExtraTrees + PCA + CLT`
+  - `Laminate Forecast - GointMLP NN + CLT`
+- Korean page title/tab wording changed to `DD 적층 예측` / `적층 예측`.
+- Cache-busting asset version updated to `20260512-laminate-forecast`.
+
+Verification:
+
+- `node --check src/frontend/dd-laminate/app.js` passed.
+- `PYTHONPYCACHEPREFIX=/tmp/kyulai_pycache .venv/bin/python -m py_compile
+  src/backend/api/v1/dd_laminate.py` passed.
+- Restarted DD server; current DD listener PID is `19384` on
+  `127.0.0.1:8000`.
+- Browser verification confirmed `Laminate Forecast` is present and old
+  `Response estimate` / `Estimated Response` wording is absent on the main
+  English page.
+
+## 2026-05-12 Tunnel/Injection Restart
+
+User reported the server went down again.
+
+Diagnosis:
+
+- DD local server was still running:
+  PID `19384` on `127.0.0.1:8000`.
+- Injection local server on `8010` was down.
+- Cloudflare tunnel metrics on `127.0.0.1:20241` was down.
+- Public DD and Injection health endpoints returned Cloudflare 530 / 1033,
+  indicating the named tunnel was unavailable.
+
+Action:
+
+- Restarted Injection server:
+  PID `24749` on `127.0.0.1:8010`.
+- Restarted named Cloudflare tunnel:
+  PID `24751`, metrics on `127.0.0.1:20241`.
+- Left DD server running because it was already healthy.
+
+Verification:
+
+- Local DD `http://127.0.0.1:8000/health` returned `{"status":"ok"}`.
+- Local Injection `http://127.0.0.1:8010/health` returned `{"status":"ok"}`.
+- Public DD `https://dd.cafedecafe.co.kr/health` returned HTTP 200.
+- Public Injection `https://injection.cafedecafe.co.kr/health` returned HTTP
+  200.
+
+Operational note:
+
+- Recent outages are mostly process-lifetime issues, not application-code
+  errors. A durable macOS LaunchAgent or supervisor script would be the next
+  sensible step if public access should stay up without manual restarts.
+
+## 2026-05-12 Windows Server Migration Preparation
+
+User wants to move the DD/Injection public serving setup from the Mac to a
+Windows server PC because keeping the Mac open is inconvenient.
+
+Prepared files:
+
+- `docs/windows-server-migration.md`: step-by-step migration guide.
+- `requirements-serving.txt`: minimal runtime dependencies for serving DD and
+  Injection without the full research/training stack.
+- `.env.windows.example`: local secret/env template for Windows; copy to
+  `.env.local`.
+- `infrastructure/cloudflare/kclab-composite-ai.windows.example.yml`: Windows
+  Cloudflare Tunnel config template.
+- `scripts/windows/Setup-WindowsServing.ps1`: creates `.venv`, installs serving
+  deps, installs PyTorch CPU wheel, verifies imports.
+- `scripts/windows/Start-DD.ps1`: starts DD on `127.0.0.1:8000`.
+- `scripts/windows/Start-Injection.ps1`: starts Injection on `127.0.0.1:8010`.
+- `scripts/windows/Start-CloudflareTunnel.ps1`: starts the named Cloudflare
+  tunnel from a Windows config path.
+- `scripts/windows/Start-All.ps1`: launches DD, Injection, and Cloudflare into
+  separate PowerShell processes with logs under `logs/`.
+- `scripts/windows/Check-Health.ps1`: checks local and public health endpoints.
+- `scripts/windows/Install-LogonTasks.ps1`: optional Windows Scheduled Tasks
+  setup for starting the three services at user logon.
+- `scripts/package_windows_bundle.py`: creates a portable zip including runtime
+  code, selected model artifacts, selected datasets, docs, and Windows scripts.
+
+Important migration notes:
+
+- A plain Git clone may miss `data/datasets` because the repo ignores large data
+  folders. Safest handoff is the portable zip:
+  `python3 scripts/package_windows_bundle.py --output ~/Desktop/KyulAI_windows_server_bundle.zip`.
+- The Cloudflare tunnel credential JSON is secret. Current tunnel ID is
+  `02b4b689-84ef-4459-91cd-48c81ea549ae`; copy the corresponding JSON from
+  the Mac `.cloudflared` folder to the Windows user `.cloudflared` folder and
+  point the Windows YAML `credentials-file` at it.
+- The Mac and Windows connector can run the same named tunnel at the same time
+  during migration. After Windows is confirmed stable, stop the Mac tunnel.
+- For normal prediction, `.env.local` can stay mostly empty. For Slack slash
+  commands, set `SLACK_SIGNING_SECRET` in `.env.local`.
+
+Validation done:
+
+- `node --check src/frontend/dd-laminate/app.js` previously passed after UI
+  changes.
+- `PYTHONPYCACHEPREFIX=/tmp/kyulai_pycache .venv/bin/python -m py_compile
+  scripts/package_windows_bundle.py scripts/dd_ingest_case3_new_batches.py
+  src/backend/api/v1/dd_laminate.py` passed.
+
+## 2026-05-12 Portable Bundle Consolidation
+
+User asked to merge the necessary DD and Injection work into one portable package for moving to another computer. Created a consolidated zip on the Desktop:
+
+- `/Users/danlee/Desktop/KyulAI_portable_server_20260512.zip`
+- Size after verification: about 599 MB.
+- Includes DD and Simple Injection backend/frontend/ML source, trained DD and Injection model artifacts, DD datasets (`DD`, `DD_curated_csv_v1`, `DD_curated_csv_v2`, `DD_new`), Simple Injection dataset, docs including this session memory, Cloudflare example config, and Windows setup/start scripts.
+- Excludes `.git`, `.venv`, local secret files such as `.env.local`, logs, caches, and Cloudflare credential JSON. The credential JSON must be copied separately if the Windows PC will run the named Cloudflare Tunnel.
+
+The package is intended as the safest handoff artifact because Git alone does not include ignored large data/model artifacts.
+
+## 2026-05-12 DD Laminate Forecast Pt Label UI
+
+Adjusted the Surrogate curve Pt marker label in `src/frontend/dd-laminate/app.js`:
+
+- Replaced the small one-line `Pt <value>` canvas label with a larger two-line label: `Predicted Pt` plus the numeric value.
+- Added a light callout box with more padding and a thin leader line from the Pt marker so the text is easier to read without sitting directly on the curve.
+- Restarted the local DD frontend static server on `127.0.0.1:3000`; DD API health on `127.0.0.1:8000` was OK.
+- `node --check src/frontend/dd-laminate/app.js` passed.
+
+## 2026-05-12 DD Pt Label Cache Update
+
+After the Pt callout label UI change, updated DD frontend script cache keys in both English and Korean pages:
+
+- `src/frontend/dd-laminate/index.html` now loads `app.js?v=20260512-pt-label`.
+- `src/frontend/dd-laminate/index.ko.html` now loads `app.js?v=20260512-pt-label`.
+
+This makes browsers/Cloudflare request the updated `app.js` with the larger two-line `Predicted Pt` callout. `node --check src/frontend/dd-laminate/app.js` passed and DD API health was OK.
+
+## 2026-05-15 Simple Injection Model Expansion
+
+Current code remains separated by application:
+
+- DD frontend: `src/frontend/dd-laminate`
+- DD backend/API: `src/backend/dd_laminate_app.py`, `src/backend/api/v1/dd_laminate.py`
+- DD ML source: `src/ml/dd_laminate`
+- DD models: `models/dd_laminate*`
+- Simple Injection frontend: `src/frontend/simple-injection`
+- Simple Injection backend/API: `src/backend/simple_injection_app.py`, `src/backend/api/v1/simple_injection.py`
+- Simple Injection ML source: `src/ml/simple_injection`
+- Simple Injection models: `models/simple_injection_*`
+
+Simple Injection Sprue Pressure now has three selectable model families:
+
+- `sprue_classical`: RandomForest + PCA model in `models/simple_injection_sprue_pressure_v1`
+- `sprue_goint`: GointMLP-style neural model in `models/simple_injection_sprue_goint_v1`
+- `sprue_deeponet`: DeepONet operator model in `models/simple_injection_sprue_deeponet_v1`
+
+Additional Sprue curve evaluation metrics were added in `src/ml/simple_injection/metrics.py`:
+
+- shape correlation
+- normalized AUC MAE
+- pressure-time AUC MAE
+- peak-position MAE
+- rise-slope MAE
+
+Weak physics-informed neural loss terms were added in `src/ml/simple_injection/physics.py` and wired into the neural training scripts:
+
+- nonnegative pressure penalty
+- pressure-curve oscillation suppression
+- peak-timing soft constraint
+- filling histogram ratio-sum penalty
+- filling histogram nonnegative and min/avg/max consistency penalties
+
+After physics-informed retraining:
+
+- Sprue GointMLP improved to pressure RMSE about `2.4152 MPa`.
+- Sprue DeepONet remained a research baseline with pressure RMSE about `4.3760 MPa`.
+- Filling GointMLP improved to ratio RMSE about `2.1302%` and stats MAE about `1.9005 MPa`.
+
+Simple Injection Filling Pressure now also has three model families:
+
+- `filling_classical`: ExtraTrees histogram model in `models/simple_injection_filling_pressure_v1`
+- `filling_goint`: GointMLP-style histogram model in `models/simple_injection_filling_pressure_goint_v1`
+- `filling_deeponet`: DeepONet histogram model in `models/simple_injection_filling_pressure_deeponet_v1`
+
+Latest Filling Pressure validation on 120 histogram samples:
+
+- ExtraTrees: ratio RMSE `2.1807%`, ratio MAE `1.4338%`, stats MAE `1.4318 MPa`
+- GointMLP: ratio RMSE `2.1302%`, ratio MAE `1.4425%`, stats MAE `1.9005 MPa`
+- DeepONet histogram: ratio RMSE `2.2118%`, ratio MAE `1.4918%`, stats MAE `1.8827 MPa`
+
+Frontend/API integration:
+
+- The Simple Injection UI now exposes two model selectors: one for Sprue Pressure and one for Filling Pressure.
+- A single prediction request includes both `model` and `filling_model`.
+- Prediction output is presented as combined Sprue & Filling Pressure prediction while keeping Sprue curve and Filling distribution sections separate.
+- Validation comparison titles now include the selected Sprue/Filling model labels.
+
+Validation performed:
+
+- `python -m py_compile` passed for updated Simple Injection backend/ML modules.
+- `node --check src/frontend/simple-injection/app.js` passed.
+- API `/models` returned all three Sprue models and all three Filling models.
+- Combined prediction with `sprue_goint` + `filling_deeponet` returned a valid response.
+
+## 2026-05-15 Simple Injection Filling Pressure G13-G17 Update
+
+User added Filling Pressure data for `G13` through `G17` under
+`data/datasets/Simple_Injection/Filling_Pressure`. Normalized the new file names
+from Moldex-style spaced names such as `G13_P01_Filling Pressure.csv` and
+`G13_P01_Filling Pressure.png` to the project convention:
+
+- `G##_P##_Filling_Pressure.csv`
+- `G##_P##_Filling_Pressure_chart.png`
+
+After normalization, the Filling Pressure loader sees:
+
+- 170 histogram CSV samples
+- Geometry range represented: `G01` through `G17`
+- Process combinations represented: `P01` through `P10`
+- Training matrix shape: `(170, 23)`
+- Target matrix shape: `(170, 14)`
+
+Retrained all three Simple Injection Filling Pressure model families on the
+170-sample dataset:
+
+- `filling_classical` in `models/simple_injection_filling_pressure_v1`
+  - Best model: RandomForest
+  - Ratio RMSE: `1.9880%`
+  - Ratio MAE: `1.2632%`
+  - Stats MAE: `1.4442 MPa`
+- `filling_goint` in `models/simple_injection_filling_pressure_goint_v1`
+  - Ratio RMSE: `2.0611%`
+  - Ratio MAE: `1.3026%`
+  - Stats MAE: `1.3811 MPa`
+- `filling_deeponet` in `models/simple_injection_filling_pressure_deeponet_v1`
+  - Ratio RMSE: `2.0662%`
+  - Ratio MAE: `1.2826%`
+  - Stats MAE: `1.2080 MPa`
+
+Verification performed:
+
+- Local prediction for `G13_P01` succeeded with all three filling models.
+- Predicted histogram volume-ratio sums are normalized to `100%` for all three
+  models.
+- Simple Injection API service was restarted with launchd.
+- API `/api/v1/simple-injection/models` returned all Sprue and Filling models as
+  available.
+
+## 2026-05-15 Simple Injection Filling Pressure G18-G23 Update
+
+User added Filling Pressure data for `G18` through `G23` under
+`data/datasets/Simple_Injection/Filling_Pressure`. Normalized 120 new spaced
+Moldex export names to the project convention:
+
+- `G##_P##_Filling_Pressure.csv`
+- `G##_P##_Filling_Pressure_chart.png`
+
+After normalization, the Filling Pressure loader sees:
+
+- 230 histogram CSV samples
+- Geometry range represented: `G01` through `G23`
+- Process combinations represented: `P01` through `P10`
+- Training matrix shape: `(230, 23)`
+- Target matrix shape: `(230, 14)`
+
+Retrained all three Simple Injection Filling Pressure model families on the
+230-sample dataset:
+
+- `filling_classical` in `models/simple_injection_filling_pressure_v1`
+  - Best model: ExtraTrees
+  - Ratio RMSE: `2.2550%`
+  - Ratio MAE: `1.3512%`
+  - Stats MAE: `0.8388 MPa`
+- `filling_goint` in `models/simple_injection_filling_pressure_goint_v1`
+  - Ratio RMSE: `2.3757%`
+  - Ratio MAE: `1.3645%`
+  - Stats MAE: `1.1649 MPa`
+- `filling_deeponet` in `models/simple_injection_filling_pressure_deeponet_v1`
+  - Ratio RMSE: `2.1876%`
+  - Ratio MAE: `1.2488%`
+  - Stats MAE: `0.8568 MPa`
+
+Verification performed:
+
+- Local prediction for `G23_P10` succeeded with all three filling models.
+- Predicted histogram volume-ratio sums are normalized to `100%` for all three
+  models.
+- Simple Injection API service was restarted with launchd.
+- API `/api/v1/simple-injection/models` returned all Sprue and Filling models as
+  available.
+
+## 2026-05-15 Simple Injection Filling Pressure G24-G26 Update
+
+User added Filling Pressure data for `G24` through `G26` under
+`data/datasets/Simple_Injection/Filling_Pressure`. Normalized 60 new spaced
+Moldex export names to the project convention:
+
+- `G##_P##_Filling_Pressure.csv`
+- `G##_P##_Filling_Pressure_chart.png`
+
+After normalization, the Filling Pressure loader sees:
+
+- 260 histogram CSV samples
+- Geometry range represented: `G01` through `G26`
+- Process combinations represented: `P01` through `P10`
+- Training matrix shape: `(260, 23)`
+- Target matrix shape: `(260, 14)`
+
+Retrained all three Simple Injection Filling Pressure model families on the
+260-sample dataset:
+
+- `filling_classical` in `models/simple_injection_filling_pressure_v1`
+  - Best model: RandomForest
+  - Ratio RMSE: `1.8874%`
+  - Ratio MAE: `1.2434%`
+  - Stats MAE: `0.9312 MPa`
+- `filling_goint` in `models/simple_injection_filling_pressure_goint_v1`
+  - Ratio RMSE: `2.0084%`
+  - Ratio MAE: `1.2119%`
+  - Stats MAE: `0.9572 MPa`
+- `filling_deeponet` in `models/simple_injection_filling_pressure_deeponet_v1`
+  - Ratio RMSE: `1.8568%`
+  - Ratio MAE: `1.1411%`
+  - Stats MAE: `0.8480 MPa`
+
+Verification performed:
+
+- Local prediction for `G26_P10` succeeded with all three filling models.
+- Predicted histogram volume-ratio sums are normalized to `100%` for all three
+  models.
+- Simple Injection API service was restarted with launchd.
+- API `/api/v1/simple-injection/models` returned all Sprue and Filling models as
+  available.
+
+## 2026-05-15 Simple Injection Filling Pressure G27-G30 Complete Dataset Update
+
+User added the remaining Filling Pressure data for `G27` through `G30` under
+`data/datasets/Simple_Injection/Filling_Pressure`. Normalized 80 new spaced
+Moldex export names to the project convention:
+
+- `G##_P##_Filling_Pressure.csv`
+- `G##_P##_Filling_Pressure_chart.png`
+
+After normalization, the Filling Pressure loader sees the complete planned DOE
+set:
+
+- 300 histogram CSV samples
+- Geometry range represented: `G01` through `G30`
+- Process combinations represented: `P01` through `P10`
+- Training matrix shape: `(300, 23)`
+- Target matrix shape: `(300, 14)`
+
+Retrained all three Simple Injection Filling Pressure model families on the
+300-sample complete dataset:
+
+- `filling_classical` in `models/simple_injection_filling_pressure_v1`
+  - Best model: HistGradientBoosting
+  - Ratio RMSE: `1.9283%`
+  - Ratio MAE: `1.2498%`
+  - Stats MAE: `0.8487 MPa`
+- `filling_goint` in `models/simple_injection_filling_pressure_goint_v1`
+  - Ratio RMSE: `1.8865%`
+  - Ratio MAE: `1.1528%`
+  - Stats MAE: `0.9562 MPa`
+- `filling_deeponet` in `models/simple_injection_filling_pressure_deeponet_v1`
+  - Ratio RMSE: `1.7776%`
+  - Ratio MAE: `1.0442%`
+  - Stats MAE: `0.7426 MPa`
+
+Verification performed:
+
+- Local prediction for `G30_P10` succeeded with all three filling models.
+- Predicted histogram volume-ratio sums are normalized to `100%` for all three
+  models.
+- Simple Injection API service was restarted with launchd.
+- API `/api/v1/simple-injection/models` returned all Sprue and Filling models as
+  available.
+
+## 2026-05-15 Simple Injection Supplemental V02/V03 DOE Proposal
+
+Created supplemental DOE proposal files under
+`data/datasets/Simple_Injection/DOE` to improve the current validation weak
+spots without contaminating validation#2/#3 hold-out conditions:
+
+- `supplemental_v02_v03_geometry_doe.csv`
+- `supplemental_v02_v03_process_doe.csv`
+- `supplemental_v02_v03_case_matrix_60.csv`
+
+Design:
+
+- V02-like long/thin/high-pressure region: 4 new geometries (`G31`-`G34`) x 5
+  new processes (`P11`-`P15`) = 20 cases.
+- V03-like short/thick/low-pressure region: 8 new geometries (`G35`-`G42`) x 5
+  new processes (`P16`-`P20`) = 40 cases.
+- Total: 60 proposed supplemental CAE runs.
+
+Validation performed:
+
+- Geometry rows: 12
+- Process rows: 10
+- Case matrix rows: 60
+- D/R consistency checks passed.
+- Hole diameter is smaller than the controlling L/W dimension for every
+  geometry.
+- No exact duplicate of validation#2 or validation#3 was included.
+
+## 2026-05-21 Simple Injection Validation_Set V02 Training Update
+
+User added `data/datasets/Simple_Injection/Validation_Set/V02` with 20 CAE
+results for the previously proposed V02 long-flow/thin-wall/high-pressure
+supplemental DOE. Folder mapping is:
+
+- `Validation_Set/V02/v02FAM_G01..G04` -> supplemental `G31..G34`
+- `P01..P05` folders -> supplemental `P11..P15`
+
+Updated `src/ml/simple_injection/data.py` so training loaders include
+`Validation_Set` data without adding `Prediction/validation#2` itself into
+training. The loader now maps raw validation-set folders to the supplemental
+case matrix and reads both:
+
+- `Packing-Sprue Pressure.csv`
+- `Filling_Pressure.csv` or spaced Moldex export names
+
+After parser update:
+
+- Sprue records: 320
+- Filling records: 320
+- Added samples: `G31_P11` through `G34_P15`
+
+Retrained all Simple Injection Sprue and Filling model families:
+
+Sprue Pressure, 320 samples:
+
+- `sprue_classical`: best ExtraTrees, pressure curve RMSE `2.2489 MPa`,
+  max pressure MAE `0.0784 MPa`
+- `sprue_goint`: pressure curve RMSE `3.2866 MPa`, max pressure MAE
+  `0.8690 MPa`
+- `sprue_deeponet`: pressure curve RMSE `5.1748 MPa`, max pressure MAE
+  `0.9146 MPa`
+
+Filling Pressure, 320 samples:
+
+- `filling_classical`: best RandomForest, ratio RMSE `2.0982%`, ratio MAE
+  `1.3432%`, stats MAE `1.1375 MPa`
+- `filling_goint`: ratio RMSE `2.1756%`, ratio MAE `1.1575%`, stats MAE
+  `1.2753 MPa`
+- `filling_deeponet`: ratio RMSE `2.0930%`, ratio MAE `1.0910%`, stats MAE
+  `0.8891 MPa`
+
+Hold-out `Prediction/validation#2` after V02 supplemental training:
+
+- Sprue max pressure:
+  - Classical: `85.47 MPa` vs actual `85.00 MPa` (`+0.55%`)
+  - GointMLP: `86.28 MPa` (`+1.51%`)
+  - DeepONet: `87.78 MPa` (`+3.27%`)
+- Sprue curve RMSE:
+  - Classical: `6.60 MPa`
+  - GointMLP: `7.02 MPa`
+  - DeepONet: `4.67 MPa`
+- Filling max pressure:
+  - Classical: `48.13 MPa` vs actual `54.44 MPa` (`-11.59%`)
+  - GointMLP: `49.10 MPa` (`-9.81%`)
+  - DeepONet: `51.88 MPa` (`-4.71%`)
+- Filling distribution ratio RMSE:
+  - Classical: `0.98%`
+  - GointMLP: `0.81%`
+  - DeepONet: `0.51%`
+
+Also updated API labels for classical models to generic names because the best
+classical algorithm can change after each retraining:
+
+- `Sprue pressure - Classical ML + PCA`
+- `Filling pressure - Classical ML histogram`
+
+Validation performed:
+
+- `py_compile` passed for `src/ml/simple_injection/data.py` and
+  `src/backend/api/v1/simple_injection.py`.
+- Simple Injection API service was restarted with launchd.
+- API `/api/v1/simple-injection/models` returned all Sprue and Filling models as
+  available.
+
+## 2026-05-21 Simple Injection Validation_Set V02 Sprue Exclusion Correction
+
+User clarified that supplemental validation-set Sprue results should not be
+used in training; only Filling Pressure histogram data should be added, which
+matches the earlier workflow.
+
+Corrections made:
+
+- Normalized `Validation_Set/V02` Filling filenames to mapped supplemental IDs:
+  - `G31_P11_Filling_Pressure.csv`
+  - `G31_P11_Filling_Pressure_chart.png`
+  - through `G34_P15_Filling_Pressure.csv/chart.png`
+- `Packing-Sprue Pressure.csv` files remain in the raw data folders but are now
+  ignored by the training loader.
+- Updated `src/ml/simple_injection/data.py` so `load_records()` uses only the
+  original `Result` Sprue data. `Validation_Set` is only included by the Filling
+  loader.
+
+Current intended training data split:
+
+- Sprue Pressure: 300 records, `G01_P01` through `G30_P10`; no `G31+` samples.
+- Filling Pressure: 320 records, original 300 plus V02 supplemental
+  `G31_P11` through `G34_P15`.
+
+Retrained Sprue models back on the original 300-result dataset:
+
+- `sprue_classical`: RandomForest, pressure curve RMSE `1.9396 MPa`, max
+  pressure MAE `0.0583 MPa`
+- `sprue_goint`: pressure curve RMSE `2.7063 MPa`, max pressure MAE
+  `0.6989 MPa`
+- `sprue_deeponet`: pressure curve RMSE `4.6378 MPa`, max pressure MAE
+  `0.5192 MPa`
+
+Filling models remain the 320-sample histogram-only update:
+
+- `filling_classical`: RandomForest, ratio RMSE `2.0982%`, stats MAE
+  `1.1375 MPa`
+- `filling_goint`: ratio RMSE `2.1756%`, stats MAE `1.2753 MPa`
+- `filling_deeponet`: ratio RMSE `2.0930%`, stats MAE `0.8891 MPa`
+
+Hold-out checks after correction:
+
+- `validation#2` Sprue is back to the original 300-sample behavior; DeepONet max
+  pressure is `84.86 MPa` vs actual `85.00 MPa` (`-0.16%`), curve RMSE
+  `19.24 MPa`.
+- `validation#2` Filling still benefits from the V02 histogram supplement;
+  DeepONet max pressure is `51.88 MPa` vs actual `54.44 MPa` (`-4.71%`),
+  distribution ratio RMSE `0.51%`.
+- `validation#3` Filling remains weak until V03 histogram supplement arrives;
+  best max-pressure error is still around `+27%` to `+32%`.
+
+Validation performed:
+
+- `py_compile` passed for `src/ml/simple_injection/data.py`.
+- Simple Injection API service was restarted with launchd.
+- API `/api/v1/simple-injection/models` returned all Sprue and Filling models as
+  available.
+
+## 2026-05-21 Simple Injection Validation_Set V02 Both-Target Update
+
+User clarified that `Validation_Set/V02` Sprue results should be used for
+Sprue-model training, while Filling results should be used for Filling-model
+training. The concern was only about not mixing Sprue outputs into the Filling
+target.
+
+Applied intended state:
+
+- Sprue Pressure uses original 300 Sprue runs plus V02 Sprue 20 runs:
+  `G01_P01` through `G34_P15`, 320 records.
+- Filling Pressure uses original 300 Filling histograms plus V02 Filling 20
+  histograms: `G01_P01` through `G34_P15`, 320 records.
+- No cross-target mixing: Sprue models use `Packing-Sprue Pressure.csv`; Filling
+  models use `*_Filling_Pressure.csv` histogram exports.
+
+Retrained Sprue models on 320 records:
+
+- `sprue_classical`: ExtraTrees, pressure curve RMSE `2.2489 MPa`, max pressure
+  MAE `0.0784 MPa`
+- `sprue_goint`: pressure curve RMSE `3.2866 MPa`, max pressure MAE
+  `0.8690 MPa`
+- `sprue_deeponet`: pressure curve RMSE `5.1748 MPa`, max pressure MAE
+  `0.9146 MPa`
+
+Filling models remain the 320-histogram update:
+
+- `filling_classical`: RandomForest, ratio RMSE `2.0982%`, stats MAE
+  `1.1375 MPa`
+- `filling_goint`: ratio RMSE `2.1756%`, stats MAE `1.2753 MPa`
+- `filling_deeponet`: ratio RMSE `2.0930%`, stats MAE `0.8891 MPa`
+
+Hold-out checks after applying both-target V02 update:
+
+- `validation#2` Sprue:
+  - Classical max `85.47 MPa` vs actual `85.00 MPa` (`+0.55%`), curve RMSE
+    `6.60 MPa`
+  - GointMLP max `86.28 MPa` (`+1.51%`), curve RMSE `7.02 MPa`
+  - DeepONet max `87.78 MPa` (`+3.27%`), curve RMSE `4.67 MPa`
+- `validation#2` Filling:
+  - Classical max `48.13 MPa` vs actual `54.44 MPa` (`-11.59%`), ratio RMSE
+    `0.98%`
+  - GointMLP max `49.10 MPa` (`-9.81%`), ratio RMSE `0.81%`
+  - DeepONet max `51.88 MPa` (`-4.71%`), ratio RMSE `0.51%`
+- `validation#3` remains mostly unchanged and still needs the planned V03
+  supplemental data, especially for Filling.
+
+Validation performed:
+
+- `py_compile` passed for `src/ml/simple_injection/data.py`.
+- Simple Injection API service was restarted with launchd.
+- API `/api/v1/simple-injection/models` returned all Sprue and Filling models as
+  available.
+
+## 2026-05-21 DD Laminate Page Wording Cleanup
+
+User asked to remove the word `Abaqus` from the DD Laminate page and present it simply as a prediction program. Updated DD-facing text:
+
+- `src/frontend/dd-laminate/index.html`: intro copy and response form title now say laminate prediction/program wording without tool-specific naming.
+- `src/frontend/dd-laminate/index.ko.html`: Korean intro and response form title changed to general prediction-program wording.
+- `src/frontend/dd-laminate/app.js`: result-note translation keys/messages changed from pre-tool wording to general surrogate prediction wording.
+- `src/backend/api/v1/dd_laminate.py`: model descriptions and response notes changed to remove tool-specific wording.
+- `src/frontend/dd-laminate/README.md` and `assets/dd-ply-stack.svg` also had DD-facing wording cleaned.
+- Updated `app.js` cache key to `20260521-prediction-program` in both English and Korean pages.
+
+Validation:
+
+- `rg -n "Abaqus|ABAQUS|abaqus" src/frontend/dd-laminate src/backend/api/v1/dd_laminate.py` returned no matches.
+- `node --check src/frontend/dd-laminate/app.js` passed.
+- `PYTHONPYCACHEPREFIX=/tmp/kyulai_pycache python3 -m py_compile src/backend/api/v1/dd_laminate.py` passed.
+- DD API health was OK; response prediction notes now say `Laminate Forecast is a surrogate prediction; validate promising candidates with simulation.`
+
+## 2026-05-21 Remove KCLab Text From DD and Injection
+
+User asked to remove `KCLAB/KCLab` text from both DD Laminate and Simple Injection pages. Updated front-end-facing files:
+
+- `src/frontend/dd-laminate/index.html`: title changed to `DD Laminate Forecast`; eyebrow changed to `Composite AI`.
+- `src/frontend/dd-laminate/index.ko.html`: title changed to `DD 적층 예측`; eyebrow changed to `Composite AI`.
+- `src/frontend/simple-injection/index.html`: title changed to `Simple Injection Pressure Predictor`; eyebrow changed to `Injection AI`; app.js cache key updated to `20260521-brand-cleanup`.
+- `src/frontend/simple-injection/index.ko.html`: title changed to `Simple Injection Pressure Predictor`; eyebrow changed to `Injection AI`; app.js cache key updated to `20260521-brand-cleanup-ko`.
+- `src/frontend/simple-injection/app.js`: exported report canvas title changed from `KCLab Injection AI` to `Injection AI`.
+
+Validation:
+
+- `rg -n "KCLAB|KCLab|KcLab|kclab|KC Lab" src/frontend/dd-laminate src/frontend/simple-injection` returned no matches.
+- `node --check src/frontend/dd-laminate/app.js` passed.
+- `node --check src/frontend/simple-injection/app.js` passed.
+
+## 2026-05-21 DD Title Expanded To Double-Double
+
+User asked to change the DD Laminate page wording from the abbreviation `DD` to the fuller `Double-Double` wording. Updated:
+
+- `src/frontend/dd-laminate/index.html`: title, H1, and intro copy now use `Double-Double Laminate Forecast` / `Double-Double laminate`.
+- `src/frontend/dd-laminate/index.ko.html`: title, H1, and intro copy now use `Double-Double 적층 예측` / `Double-Double 적층`.
+
+Verified the updated page text with `rg` and direct file inspection.
+
+## 2026-05-21 Double-Double Report Export
+
+User asked to add an Injection-style report feature to the Double-Double page. Implemented DD Laminate report export:
+
+- `src/frontend/dd-laminate/index.html` and `index.ko.html`: added `PNG` and `PDF` report buttons to the prediction result header.
+- `src/frontend/dd-laminate/styles.css`: added result action layout styling, including mobile stacking.
+- `src/frontend/dd-laminate/app.js`: added report-canvas generation, PNG download, and PDF print-window export. The report includes title, created time, predicted Type, confidence, Predicted Pt, curve point count, theta/case/input summary, model, Type probabilities, surrogate curve image when available, max displacement/force, and notes.
+- Updated DD HTML cache keys for `styles.css` and `app.js` to `20260521-report-export`.
+
+Validation:
+
+- `node --check src/frontend/dd-laminate/app.js` passed.
+- Local DD frontend served the new buttons and cache key at `127.0.0.1:3000`.
+- Local DD API health at `127.0.0.1:8000/health` returned OK.
+
+## 2026-05-21 Double-Double Report Download Fix
+
+User reported the Double-Double report download did not appear to work. Updated DD report export code:
+
+- `src/frontend/dd-laminate/app.js`: changed PNG export from direct `canvas.toDataURL()` + detached link click to `canvas.toBlob()` + `URL.createObjectURL()` + temporary DOM-attached download link. This is more reliable across browsers/security settings for larger canvas images.
+- Added export failure messages and try/catch handling for PNG and PDF export paths.
+- `src/frontend/dd-laminate/index.html` and `index.ko.html`: bumped app.js cache key to `20260521-report-download-fix`.
+
+Validation:
+
+- `node --check src/frontend/dd-laminate/app.js` passed.
+- Local DD frontend served `app.js?v=20260521-report-download-fix` and the updated `toBlob/createObjectURL` code.
+
+## 2026-05-27 Simple Injection Training_1/Training_2 Consolidation
+
+User reorganized Simple Injection data under `data/datasets/Simple_Injection`:
+
+- `Training_1/Filling_Pressure`: original 300 filling histogram cases.
+- `Training_1/Sprue_Pressure`: original 30 geometry files, each containing P01-P10 sprue curves.
+- `Training_2/V02` and `Training_2/V03`: supplemental V02/V03 range training data with one folder per G/P case.
+
+Cleanup and loader updates:
+
+- Renamed `Training_2/Fiiilng_Pressure_V02_V03_Set/V02` and `V03` into canonical `Training_2/V02` and `Training_2/V03`.
+- Renamed Training_2 folders/files to canonical ids:
+  - V02: `G31-G34`, `P11-P15`.
+  - V03: `G35-G42`, `P16-P20`.
+  - Files now use `G##_P##_Filling_Pressure.csv`, `G##_P##_Filling_Pressure_chart.png`, and `G##_P##_Sprue_Pressure.csv`.
+- Renamed Training_1 sprue files from `SPRUE PRESSURE` to `SPRUE_PRESSURE`.
+- Updated `src/ml/simple_injection/data.py` so default training loads:
+  - Sprue: `Training_1/Sprue_Pressure` plus `Training_2`.
+  - Filling: `Training_1/Filling_Pressure` plus `Training_2`.
+  - Old `Validation_Set` fallback is only used when `Training_2` is absent.
+- Updated Simple Injection CLI prediction helpers so `--geometry-id G31-G42` and
+  `--process-id P11-P20` resolve through supplemental DOE files as well.
+
+Verification:
+
+- Loader sees 360 Sprue records and 360 Filling records from `G01_P01` through `G42_P20`.
+- `find Training_1 Training_2 -type f -name '* *'` returned 0 after cleanup.
+- Simple Injection API was restarted and `/health` returned OK.
+
+Retrained all Simple Injection models on the consolidated 360 cases:
+
+- Sprue Classical: curve RMSE 2.555 MPa, max pressure MAE 0.065 MPa, shape corr mean 0.996.
+- Sprue GointMLP: curve RMSE 2.917 MPa, max pressure MAE 0.714 MPa, shape corr mean 0.994.
+- Sprue DeepONet: curve RMSE 5.421 MPa, max pressure MAE 0.901 MPa, shape corr mean 0.979.
+- Filling Classical: stats MAE 0.757 MPa, volume-ratio RMSE 2.071 percentage points.
+- Filling GointMLP: stats MAE 1.112 MPa, volume-ratio RMSE 2.147 percentage points.
+- Filling DeepONet: stats MAE 0.807 MPa, volume-ratio RMSE 2.071 percentage points.
+
+Validation_1 manual checks after retraining:
+
+- V01 still shows Filling max overprediction for all models; DeepONet is least high among the three.
+- V02 Filling Classical is strong on max and ratio, but Sprue max remains underpredicted.
+- V03 improved materially after adding V03 Training_2 data; Sprue max error is best with DeepONet/GointMLP and Filling max is close for all models.
+
+Follow-up cleanup on the same day:
+
+- Collapsed the standard training dataset into one canonical folder:
+  `data/datasets/Simple_Injection/Training`.
+- `Training/Filling_Pressure` now contains all 360 filling cases.
+- `Training/Sprue_Pressure` now contains all sprue data. G01-G30 remain in
+  geometry-level P01-P10 combined Moldex3D CSV files; G31-G42 use case-level
+  CSV files.
+- Removed the now-empty `Training_1` and `Training_2` folders after moving the
+  data.
+- Updated `src/ml/simple_injection/data.py` to prefer `Training` and still
+  parse both combined and one-case Sprue CSV formats.
+- Added dataset documentation at both
+  `data/datasets/Simple_Injection/DATASET.md` for local dataset browsing and
+  `docs/simple-injection-dataset.md` for git-tracked project documentation,
+  including original DOE history, why V02/V03 were added, naming rules,
+  validation usage, and future data-add rules.
+- Verified loader counts remain 360 Sprue records and 360 Filling records.
+
+Additional normalization:
+
+- Chose process-folder structure as the canonical dataset layout.
+- Moved G01-G30 Filling files into `Training/Filling_Pressure/G##/P##/`.
+- Split the original G01-G30 Sprue combined P01-P10 CSV files into 300
+  case-level files under `Training/Sprue_Pressure/G##/P##/`.
+- Moved the 30 original combined Sprue exports into
+  `Training/Source_Exports/Sprue_Pressure_Combined` so the raw Moldex3D export
+  remains available without being mixed into the active training folder.
+- Updated dataset documentation to show that both Filling and Sprue now use
+  `G##/P##/file` layout for active training files.
+
+## 2026-05-27 Simple Injection Next DOE Proposal
+
+User asked for concrete DOE combinations to run next, based on current weak
+regions. Created 55 supplemental candidate cases:
+
+- `V01_filling_refine`: `G43-G47` x `P21-P25` = 25 cases.
+  Purpose: reduce V01 Filling Pressure max overprediction.
+- `V02_sprue_refine`: `G48-G51` x `P26-P30` = 20 cases.
+  Purpose: improve long-flow/thin/high-pressure Sprue Pressure prediction.
+- `bridge_mid_range`: `G52-G53` x `P31-P35` = 10 cases.
+  Purpose: connect original DOE and supplemental V02/V03 regions.
+
+Created files:
+
+- `data/datasets/Simple_Injection/DOE/supplemental_v01_v02_bridge_geometry_doe.csv`
+- `data/datasets/Simple_Injection/DOE/supplemental_v01_v02_bridge_process_doe.csv`
+- `data/datasets/Simple_Injection/DOE/supplemental_v01_v02_bridge_case_matrix_55.csv`
+- `docs/simple-injection-next-doe-20260527.md`
+
+Validation:
+
+- DOE loader now sees 53 geometry IDs and 35 process IDs.
+- Training result loader still sees 360 Sprue and 360 Filling records because
+  the proposed G43-G53/P21-P35 result files have not been generated yet.
+
+## 2026-05-29 New Double-Double Dataset Audit
+
+User reported a major DD data update under `data/datasets/Double-Double` and asked to first inspect folders `2`, `3`, and `4` before creating new training. Audit results:
+
+- New dataset is not the same as previous `DD_curated_csv_v2`: new Case3/Case4 share `Test_001`-`Test_300` IDs but theta pairs and CSV curves differ from the old curated training set. Unordered theta-pair overlap was only 4/300 for new folder 3 vs old Case3 and 2/300 for new folder 4 vs old Case4.
+- New folders 2, 3, 4 all share the same 300 theta pairs.
+- Use `transition load P1.csv` for P1 label training; `transition load.csv` has same theta values but different Pt values for every row.
+- Case/folder 2: 300 transition rows, 300 curve CSV IDs, 300 P1 labels. Type counts: 1=108, 2=145, 3=47.
+- Case/folder 3: 300 transition rows and 300 curve CSV IDs, but only 248 P1 labels. Type counts: 1=97, 2=111, 3=40. Missing labels for 52 tests: Test_170-193 except 194, Test_195, Test_196, Test_199-214 except 215, Test_216-224, and Test_286. Full list written to `docs/dd_double_double_data_audit_2026-05-29.md`.
+- Case/folder 4: 300 transition rows, 300 curve CSV IDs, 300 P1 labels. Type counts: 1=96, 2=164, 3=40.
+- Existing training/backend code assumes only Case3/Case4 in several places; Case2 requires a new curated dataset and code updates for 3-case encoding.
+
+Created audit document: `docs/dd_double_double_data_audit_2026-05-29.md`. Recommended not to overwrite existing models. Next step is to either request/fill the 52 missing Case3 labels or train a temporary model on 848 labeled samples.
+
+## 2026-05-29 Case 3 P1 Root Images Classified
+
+User asked to re-check `data/datasets/Double-Double/3/p1` because `206` and `286` were left outside Type folders. Findings and actions:
+
+- Most previously missing Case 3 labels had been added. Only two PNGs remained directly under `data/datasets/Double-Double/3/p1`: `plot_Test_206_P1.png` and `plot_Test_286_P1.png`.
+- Visual + CSV/model check:
+  - `Test_206`: clear Type 2. Same Test ID in Case2 and Case4 was Type 2; temporary model predictions were also Type 2 with high confidence. Moved to `data/datasets/Double-Double/3/p1/2/plot_Test_206_P1.png`.
+  - `Test_286`: classified as Type 3. CSV tail metrics and nearest labeled samples strongly indicated Type 3; temporary models mostly predicted Type 3. Moved to `data/datasets/Double-Double/3/p1/3/plot_Test_286_P1.png`.
+- The p1 directories were read-only (`dr-xr-xr-x`), so write permission was temporarily enabled for `p1`, `p1/2`, `p1/3`, the files were moved, and permissions were restored to read-only.
+- Final check: Case 2, Case 3, and Case 4 each have 300 transition rows, 300 recursive curve CSV IDs, and 300 P1 image labels. Case 3 type counts are now Type1=117, Type2=136, Type3=47.
+- Updated audit document: `docs/dd_double_double_data_audit_2026-05-29.md`.
+
+## 2026-05-29 Double-Double Case2/3/4 New Training
+
+After Case 3 P1 labels were completed, created a new curated dataset from `data/datasets/Double-Double/2`, `3`, and `4` without overwriting older DD curated datasets or existing production model folders.
+
+Created dataset:
+
+- `data/datasets/DD_cases_2_3_4_curated_v1`
+- Layout: `Case2`, `Case3`, `Case4`, each with `transition_load.csv`, `csv_load/force_disp_Test_XXX.csv`, and copied P1 plot images under `Trial_1/type1..type3`.
+- Total samples: 900. Type counts: Type1=321, Type2=445, Type3=134.
+
+Created scripts:
+
+- `scripts/dd_prepare_cases_2_3_4_dataset.py`: converts the new numeric folders 2/3/4 into the DD training layout.
+- `src/ml/dd_laminate/train_cases_2_3_4_classical.py`: trains separate new Case2/3/4 classical baselines and a Laminate Forecast surrogate.
+
+New model outputs, separate from existing DD model folders:
+
+- `models/dd_laminate_cases_2_3_4_theta_v1/theta_classifier.joblib`
+- `models/dd_laminate_cases_2_3_4_csv_v1/curve_classifier.joblib`
+- `models/dd_laminate_cases_2_3_4_response_surrogate_v1/response_surrogate.joblib`
+- Report: `models/dd_laminate_cases_2_3_4_response_surrogate_v1/cases_2_3_4_training_report.md`
+
+Validation used GroupKFold by theta pair, so the same theta pair was not split across train and validation.
+
+Results:
+
+- Theta+Case Type classifier: best `random_forest`, accuracy 0.931 +/- 0.018, macro F1 0.928 +/- 0.020.
+- Curve CSV + metadata Type classifier: best `extra_trees`, accuracy 0.953 +/- 0.016, macro F1 0.949 +/- 0.019.
+- Laminate Forecast surrogate from theta+case: Type accuracy 0.924 +/- 0.011, macro F1 0.915 +/- 0.017, Pt MAE 496.22, Max. Displacement MAE 0.00051, Max. Force MAE 578.67, normalized curve RMSE 0.0096.
+
+Important: existing frontend/backend still points to the older DD production model folders unless updated separately. Next integration step is to add Case2 support and switch or expose these new model bundles in `src/backend/api/v1/dd_laminate.py` and the DD UI.
+
+## 2026-05-31 DD Case2/3/4 Model Connected to Web App
+
+Connected the newly trained Case2/Case3/Case4 DD model set to the live DD backend and UI.
+
+Code updates:
+
+- `src/backend/api/v1/dd_laminate.py`
+  - `CaseKey` now accepts `Case2`, `Case3`, `Case4`.
+  - `theta_classical` now points to `models/dd_laminate_cases_2_3_4_theta_v1/theta_classifier.joblib`.
+  - `curve_classical` now points to `models/dd_laminate_cases_2_3_4_csv_v1/curve_classifier.joblib`.
+  - `response_surrogate` now points to `models/dd_laminate_cases_2_3_4_response_surrogate_v1/response_surrogate.joblib`.
+- `src/ml/dd_laminate/predict_theta_classifier.py`, `predict_curve_classifier.py`, and `predict_response_surrogate.py` now detect the new one-hot Case2/3/4 feature schema.
+- `src/frontend/dd-laminate/index.html` and `index.ko.html` now include Case2 options and the Case2 formula `[[±θ1]/[±θ2]]4`.
+- `src/frontend/dd-laminate/app.js` includes Case2 display labels and Korean model labels for the new Case2/3/4 models.
+
+Deployment/verification:
+
+- Restarted DD server on `127.0.0.1:8000`; new PID from uvicorn output was `32633`.
+- Public `https://dd.cafedecafe.co.kr/api/v1/dd-laminate/models` returns the new Case2/3/4 model paths.
+- Public `POST https://dd.cafedecafe.co.kr/api/v1/dd-laminate/predict/response` with `theta1=-29`, `theta2=74`, `case=Case2`, `model=response_surrogate` returned Type 2, confidence 0.9525, Predicted Pt 17869.37, Max. Displacement 0.15000000596046448, Max. Force 31382.98.
+- Browser check showed `API: connected`, Case options `Case 2`, `Case 3`, `Case 4`, and response model option `Laminate Forecast - Cases 2/3/4` on `dd.cafedecafe.co.kr`.
+
+## 2026-06-05 DD Case2/3/4 GointMLP Models Trained and Connected
+
+User noticed the new Case2/Case3/Case4 dataset had only Tree models trained and asked to train the GointMLP models on the same data and connect them like the Tree models.
+
+Actions:
+
+- Added `src/ml/dd_laminate/train_cases_2_3_4_goint.py` to train GointMLP-style theta and response models on `data/datasets/DD_cases_2_3_4_curated_v1`.
+- Trained `models/dd_laminate_cases_2_3_4_theta_goint_v1/theta_goint.pt`.
+- Trained `models/dd_laminate_cases_2_3_4_response_goint_v1/response_goint.pt`.
+- Extended `src/ml/dd_laminate/predict_theta_deep_classifier.py` and `predict_response_deep_surrogate.py` so new checkpoints with `feature_columns`, `feature_mean`, and `feature_std` use the Case2/3/4 feature schema.
+- Also updated the Curve CSV deep sequence path to match the Tree curve model state:
+  - Extended `src/ml/dd_laminate/deep_sequence.py` and `train_deep_sequence_classifier.py` for new lowercase theta columns, `force_disp_Test_XXX.csv` filenames, and Case2/3/4 training.
+  - Trained `models/dd_laminate_cases_2_3_4_deep_sequence_v1/dd_goint_sequence.pt`.
+- Updated `src/backend/api/v1/dd_laminate.py` so:
+  - `theta_goint` -> `models/dd_laminate_cases_2_3_4_theta_goint_v1/theta_goint.pt`
+  - `curve_goint` -> `models/dd_laminate_cases_2_3_4_deep_sequence_v1/dd_goint_sequence.pt`
+  - `response_goint` -> `models/dd_laminate_cases_2_3_4_response_goint_v1/response_goint.pt`
+
+Metrics:
+
+- Theta GointMLP: accuracy 0.9356 +/- 0.0163, macro F1 0.9314 +/- 0.0143.
+- Response GointMLP: Type accuracy 0.9356 +/- 0.0134, macro F1 0.9338 +/- 0.0115, Pt MAE 893.28, Max. Displacement MAE 0.000376, Max. Force MAE 1651.29, normalized curve RMSE 0.02370.
+- Curve CSV GRU+GointMLP: accuracy 0.9343 +/- 0.0131, macro F1 0.9342 +/- 0.0203.
+
+Deployment/verification:
+
+- Restarted DD API on `127.0.0.1:8000`; uvicorn PID shown as `19149`.
+- Public `https://dd.cafedecafe.co.kr/api/v1/dd-laminate/models` shows all three new Case2/3/4 deep paths as available.
+- Public API smoke tests passed:
+  - `theta_goint` Case2 prediction for theta1=-29, theta2=74 returned Type2 confidence 0.999521.
+  - `response_goint` Case2 prediction for theta1=-29, theta2=74 returned Type2 confidence 0.999972 and Pt 18854.95.
+  - `curve_goint` Case2 CSV Test_001 returned Type2 confidence 0.981036.
+
+Note: Tree/ExtraTrees models still remain the safer default for Pt and curve-shape regression because their scalar/curve errors are lower, but the app now has matched new-data deep-learning options for theta, curve CSV, and Laminate Forecast.
+
+## 2026-06-06 to 2026-06-11 Laminate Mobile App Iteration Memory
+
+User continued turning the DD Laminate mobile prototype into a more app-like
+iOS/Android experience. Important product direction:
+
+- App-facing name should remain user-friendly; backend/project naming may use
+  C2ES where appropriate.
+- iOS and Android should feel like the same product. Android UI should not be a
+  plain text-only version of the iOS app.
+- Default network flow should be quiet and app-like: users should not normally
+  need to press an API connection button or see developer-style status unless
+  there is a failure.
+- Public API base URL for out-of-network phone use is
+  `https://dd.cafedecafe.co.kr`.
+
+Implemented/adjusted in the Laminate apps:
+
+- iOS and Android model selection now exposes both Tree/ExtraTrees-style and
+  GointMLP NN response models.
+- Model display names were cleaned so UI shows algorithm names such as
+  `ExtraTrees + PCA` and `GointMLP NN` rather than old surrogate/Response
+  wording.
+- iOS language switching was added in-app near API settings; localization
+  supports Korean and English.
+- Recent prediction history keeps up to 5 runs, shows ordering with latest
+  first, supports applying old inputs, comparing recent runs, and selective
+  deletion.
+- Comparison curve UI shows two curves with distinct styling and Pt markers.
+- Response curve interaction supports tap/drag coordinate tooltip; tapping
+  again clears the selected coordinate.
+- Keyboard dismissal was improved after theta input on iOS/Android.
+- Rule-based interpretation cards were added for confidence, Pt position, and
+  curve softening/stability.
+- Share text and share-image reports were added and ordered as:
+  MODEL, INPUTS, RESULTS, CHART, GRAPH.
+- Share output includes input information, readable bullet formatting, and the
+  result chart.
+- Android result UI was redesigned to match iOS more closely:
+  hero Type/Confidence card, 2x2 metric boxes, interpretation card, response
+  curve card, share buttons, and class probability bars in `type1`, `type2`,
+  `type3` order.
+- Android model selector was redesigned into iOS-like selectable cards with
+  badges/tags/descriptions; theta inputs gained better padding.
+- Android APK is rebuilt to
+  `artifacts/android/Laminate-C2ES-debug.apk` after Android changes and verified
+  with `apksigner`.
+
+Important graph/metric decisions:
+
+- Double-Double response curve Pt visualization should match the web app idea:
+  draw two fitted slope guide lines and mark their intersection/kink at Pt,
+  instead of placing a simple dot directly on the raw curve.
+- The main result metric previously labeled `Max Displacement` should instead
+  show displacement at Predicted Pt. Since the API does not return this field
+  directly, the app computes it from the response curve by linearly
+  interpolating the displacement where force equals `predictedPt`; if outside
+  the curve range, it falls back to the first/last curve point.
+- This Pt displacement value is now shown in iOS latest/result/share/compare
+  flows and Android result/share/recent-detail/compare flows.
+
+Verification from the latest Laminate app changes:
+
+- `swift test` in `ios/DDLaminateMVP` passed.
+- `xcodebuild -project ios/DDLaminateMVPApp/DDLaminateMVPHost.xcodeproj -scheme DDLaminateMVPHost -destination generic/platform=iOS\ Simulator build` passed after adding the new `PtDisplacement.swift` helper to the host Xcode project.
+- `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` passed.
+- `artifacts/android/Laminate-C2ES-debug.apk` was refreshed and verified with
+  APK Signature Scheme v2.
+
+Memory hygiene note:
+
+- User previously asked that important conversation context be recorded
+  continuously. This file is the intended long-term project/session memory, but
+  recent mobile-app UI iterations were not appended immediately during every
+  conversational turn. Keep updating this file after meaningful decisions,
+  implementation milestones, deployment changes, and unresolved risks.
+
+## 2026-06-11 Luvelox Domain Migration Started
+
+User is preparing a new company/domain direction under `luvelox.com` and wants
+to migrate public service URLs away from `cafedecafe.co.kr`.
+
+Domain/DNS state:
+
+- User bought `luvelox.com` at WHOIS and completed Cloudflare activation before
+  asking Codex to continue.
+- `luvelox.com` nameservers now resolve to Cloudflare:
+  `weston.ns.cloudflare.com` and `tegan.ns.cloudflare.com`.
+- Existing `cafedecafe.co.kr` remains on Cloudflare:
+  `sterling.ns.cloudflare.com` and `perla.ns.cloudflare.com`.
+
+Chosen public hostnames:
+
+- `https://laminate.luvelox.com` for DD Laminate.
+- `https://injection.luvelox.com` for Simple Injection.
+- Legacy hostnames stay active during migration:
+  `https://dd.cafedecafe.co.kr` and
+  `https://injection.cafedecafe.co.kr`.
+
+Cloudflare tunnel actions:
+
+- Existing named tunnel remains `kclab-composite-ai`
+  (`02b4b689-84ef-4459-91cd-48c81ea549ae`).
+- `infrastructure/cloudflare/kclab-composite-ai.yml` was updated to add
+  `laminate.luvelox.com` -> `http://127.0.0.1:8000` and
+  `injection.luvelox.com` -> `http://127.0.0.1:8010`, keeping old cafedecafe
+  ingress entries.
+- The first `cloudflared tunnel route dns kclab-composite-ai
+  laminate.luvelox.com` attempt used the old cafedecafe Cloudflare cert and
+  incorrectly reported creating `laminate.luvelox.com.cafedecafe.co.kr`.
+  If this appears in the Cloudflare cafedecafe DNS dashboard, delete it.
+- Backed up the old Cloudflare cert from
+  `/Users/danlee/.cloudflared/cert.pem` to
+  `/Users/danlee/.cloudflared/cert.cafedecafe-20260611.pem`.
+- Ran `cloudflared tunnel login`, selected/authorized the Cloudflare account for
+  `luvelox.com`, and received a new `/Users/danlee/.cloudflared/cert.pem`.
+- Successfully created DNS routes:
+  - `laminate.luvelox.com`
+  - `injection.luvelox.com`
+- Restarted local `cloudflared` with:
+  `/opt/homebrew/bin/cloudflared --config /Users/danlee/KyulAI_codex/infrastructure/cloudflare/kclab-composite-ai.yml tunnel run kclab-composite-ai`
+  New PID observed: `79529`.
+
+Code/config updates:
+
+- Laminate app defaults now use `https://laminate.luvelox.com`.
+- Injection app defaults now use `https://injection.luvelox.com`.
+- iOS app localized external URL hints were updated for both apps.
+- Android README/mobile docs were updated for the new domains.
+- `scripts/windows/Check-Health.ps1` now checks new Luvelox public URLs and
+  legacy cafedecafe URLs.
+- `infrastructure/cloudflare/kclab-composite-ai.windows.example.yml` includes
+  new Luvelox hostnames plus legacy hostnames.
+- Slack command response links were changed to the Luvelox URLs.
+
+Verification:
+
+- Existing legacy endpoints still work:
+  - `https://dd.cafedecafe.co.kr/health` -> HTTP 200
+  - `https://injection.cafedecafe.co.kr/health` -> HTTP 200
+- New Laminate endpoint works:
+  - `https://laminate.luvelox.com/health` -> HTTP 200
+- New Injection endpoint works through Cloudflare when resolving against
+  Cloudflare IP directly:
+  - `curl --resolve injection.luvelox.com:443:104.21.31.122
+    https://injection.luvelox.com/health` -> HTTP 200
+- Local default resolver briefly returned `Could not resolve host` for
+  `injection.luvelox.com`; `dig @1.1.1.1 injection.luvelox.com` already
+  returned Cloudflare IPs. Treat this as local DNS/negative-cache propagation
+  unless it persists.
+- `swift test` passed for `ios/DDLaminateMVP`.
+- `swift test` passed for `ios/InjectionMVP`.
+- `gradle :app:assembleDebug` passed for Android Laminate and Android
+  Injection.
+- Refreshed and verified APKs:
+  - `artifacts/android/Laminate-C2ES-debug.apk`
+  - `artifacts/android/Injection-C2ES-debug.apk`
+
+Follow-up branding update:
+
+- User asked to remove `C2ES` from the apps and use `Luvelox` instead.
+- User-facing app titles now show:
+  - `Luvelox Laminate Forecast` / `Luvelox 적층 예측`
+  - `Luvelox Injection Forecast` / `Luvelox 사출 예측`
+- Share text, share-image headers, generated image filenames, Android gallery
+  folder names, iOS share file names, iOS local-network permission descriptions,
+  and mobile README titles were updated from C2ES/KyulAI-facing app branding to
+  Luvelox where user-visible.
+- Internal module names, package names, and bundle IDs such as
+  `com.kyulai...` were intentionally left unchanged to avoid app identity and
+  signing churn.
+- Android APKs were rebuilt and copied to both legacy artifact names and new
+  Luvelox artifact names:
+  - `artifacts/android/Luvelox-Laminate-debug.apk`
+  - `artifacts/android/Luvelox-Injection-debug.apk`
+  - `artifacts/android/Laminate-C2ES-debug.apk`
+  - `artifacts/android/Injection-C2ES-debug.apk`
+- Verification passed:
+  - `swift test` in `ios/DDLaminateMVP`
+  - `swift test` in `ios/InjectionMVP`
+  - `gradle :app:assembleDebug` in `android/DDLaminateMVP`
+  - `gradle :app:assembleDebug` in `android/InjectionMVP`
+  - `apksigner verify` for the two Luvelox APK artifacts
+
+## 2026-06-11 Product Direction: Unified Luvelox App
+
+User raised a strategic concern that making a separate app/web surface for
+every model will not scale as Luvelox adds more models. Proposed direction:
+
+- Move toward one unified Luvelox app/web product where available models appear
+  as modules.
+- Module visibility should depend on what the user/account has purchased or
+  been granted access to.
+- Add login/account support so module entitlements can be associated with a
+  user, organization, or license.
+- Need to decide the commercial model carefully because in-app digital module
+  purchases may trigger Apple/Google in-app purchase or Play Billing rules,
+  while B2B/enterprise subscriptions can often be handled as account/license
+  entitlements purchased outside the app if the app is positioned as a companion
+  to a paid web/enterprise service.
+
+Initial product recommendation to discuss:
+
+- Build a unified "Luvelox" shell app with a module dashboard.
+- Keep each model as a backend-declared module with its own schema, UI renderer,
+  result renderer, and entitlement key.
+- Start with login + server-side entitlements, not separate app binaries.
+- Keep Laminate and Injection as modules inside the unified app once the shell
+  exists.
+
+Implementation started:
+
+- Added `GET /api/v1/modules` and `GET /api/v1/modules/me`.
+- Added `src.backend.luvelox_app:app` as a standalone unified Luvelox shell.
+- Added `src/frontend/luvelox` as a module dashboard preview.
+- Laminate and Injection are active/granted by default for the MVP.
+- Future modules can be represented as locked/planned catalog entries.
+
+Native shell MVP started:
+
+- Added `ios/LuveloxMVP`, a SwiftUI Luvelox module dashboard that reads
+  `/api/v1/modules/me` and falls back to local Laminate/Injection cards.
+- Added `android/LuveloxMVP`, a Kotlin Android Luvelox module dashboard with
+  the same module catalog behavior.
+- Both native shells currently open the existing module web apps rather than
+  embedding the full native Laminate/Injection screens.
+- The current catalog source is
+  `https://laminate.luvelox.com/api/v1/modules/me` until a dedicated
+  `api.luvelox.com` route exists.
+- Android debug artifact: `artifacts/android/Luvelox-debug.apk`.
+- Verification passed:
+  - `swift test` in `ios/LuveloxMVP`
+  - `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` in
+    `android/LuveloxMVP`
+  - `apksigner verify --verbose artifacts/android/Luvelox-debug.apk`
+
+Native Laminate module integration:
+
+- Luvelox iOS now depends on `ios/DDLaminateMVP`'s `KyulAIDDLaminateCore` and
+  includes `LaminateForecastView`.
+- Tapping the Laminate card in the Luvelox iOS shell opens the native Laminate
+  forecast screen instead of the web module.
+- Luvelox Android now includes `LaminateActivity`.
+- Tapping the Laminate card in the Luvelox Android shell opens the native
+  Laminate Activity instead of the browser.
+- The native Laminate screens support case/theta/model selection and call
+  `POST /api/v1/dd-laminate/predict/response`.
+- Injection still opens the existing web module; native Injection migration is
+  the next logical step.
+- Verification passed after this step:
+  - `swift test` and `swift build` in `ios/LuveloxMVP`
+  - `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` in
+    `android/LuveloxMVP`
+  - refreshed and verified `artifacts/android/Luvelox-debug.apk`
+
+Native Injection module integration:
+
+- Luvelox iOS now also depends on `ios/InjectionMVP`'s
+  `KyulAIInjectionCore` and includes `InjectionForecastView`.
+- Tapping the Injection card in the Luvelox iOS shell opens the native Injection
+  forecast screen instead of the web module.
+- Luvelox Android now includes `InjectionActivity`.
+- Tapping the Injection card in the Luvelox Android shell opens the native
+  Injection Activity instead of the browser.
+- The native Injection screens support geometry/process selection, sprue model
+  selection, filling model selection, DOE value preview, and
+  `POST /api/v1/simple-injection/predict/sprue-pressure`.
+- Verification passed after this step:
+  - `swift test` and `swift build` in `ios/LuveloxMVP`
+  - `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` in
+    `android/LuveloxMVP`
+  - refreshed and verified `artifacts/android/Luvelox-debug.apk`
+
+## 2026-06-11 Session Memory Reminder
+
+User explicitly reconfirmed that conversation context should keep being
+recorded. Continue treating `docs/session-memory.md` as the long-term running
+memory for important project decisions, implementation changes, deployment
+state, dataset/model status, and unresolved risks. Do not rely only on chat
+history for important context.
+
+Latest Simple Injection reminder:
+
+- The web DOE dropdown issue was not just copy text. The API `/doe` endpoint
+  previously exposed only the base DOE files, so Geometry stopped at `G30` and
+  Process stopped at `P10`.
+- The intended current web/API DOE exposure is Geometry `G01-G42` and Process
+  `P01-P20`, filtered to IDs that have normalized training results.
+- Proposed future DOE entries such as `G43+` and `P21+` should not appear in the
+  web dropdown until corresponding training results exist.
+
+## Luvelox Native App Integration Update
+
+As of 2026-06-11, the Luvelox iOS host no longer opens reduced Laminate and
+Injection screens.
+
+- `ios/DDLaminateMVP` now exposes a `KyulAIDDLaminateApp` library product.
+- `ios/InjectionMVP` now exposes a `KyulAIInjectionApp` library product.
+- The old package `@main` files were moved into separate preview executable
+  targets:
+  - `KyulAIDDLaminatePreview`
+  - `KyulAIInjectionPreview`
+- Public wrapper views were added:
+  - `DDLaminateModuleView`
+  - `InjectionModuleView`
+- `ios/LuveloxMVP` imports those app products and routes Laminate/Injection
+  cards to the full existing native app UI, preserving richer charts, history,
+  sharing, interpretation, comparison, localization, and module-specific
+  settings from the standalone apps.
+- `ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj` links both app products, not
+  only the core products.
+
+Verification passed after this integration:
+
+- `swift test` in `ios/DDLaminateMVP`
+- `swift test` in `ios/InjectionMVP`
+- `swift test` in `ios/LuveloxMVP`
+- `xcodebuild -project ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj -scheme LuveloxMVPHost -destination 'generic/platform=iOS Simulator' build`
+
+Luvelox app icon update:
+
+- Source brand board: `icons/luvelox/Luvelox_LOGO.png`.
+- Cropped reusable source icon: `icons/luvelox/Luvelox_AppIcon_Source.png`.
+- iOS AppIcon asset set added under
+  `ios/LuveloxMVPApp/LuveloxMVPHost/Assets.xcassets/AppIcon.appiconset`.
+- `LuveloxMVPHost.xcodeproj` now sets
+  `ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon`.
+- Android launcher icons were generated in the `mipmap-*` folders and
+  connected through `android:icon` / `android:roundIcon`.
+- Updated Android APK artifact: `artifacts/android/Luvelox-debug.apk`.
+- Verification passed:
+  - `xcodebuild -project ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj -scheme LuveloxMVPHost -destination 'generic/platform=iOS Simulator' build`
+  - `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug`
+  - `JAVA_HOME=/opt/homebrew/opt/openjdk@17 apksigner verify --verbose artifacts/android/Luvelox-debug.apk`

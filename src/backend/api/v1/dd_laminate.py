@@ -25,7 +25,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[4]
 ThetaModelKey = Literal["theta_classical", "theta_goint"]
 CurveModelKey = Literal["curve_classical", "curve_goint"]
 ResponseModelKey = Literal["response_surrogate", "response_goint"]
-CaseKey = Literal["Case3", "Case4"]
+CaseKey = Literal["Case2", "Case3", "Case4"]
 
 
 class ModelInfo(BaseModel):
@@ -84,45 +84,45 @@ class ResponseSurrogateResponse(PredictionResponse):
 
 THETA_MODELS: dict[str, dict[str, str]] = {
     "theta_classical": {
-        "label": "Theta + case - ExtraTrees",
-        "description": "Fast baseline from theta1/theta2/case. Best practical default before Abaqus.",
-        "path": "models/dd_laminate_theta_v1/theta_classifier.joblib",
+        "label": "RandomForest",
+        "description": "Fast Case2/Case3/Case4 baseline from theta1/theta2/case.",
+        "path": "models/dd_laminate_cases_2_3_4_theta_v1/theta_classifier.joblib",
         "requires": "joblib,sklearn,numpy",
     },
     "theta_goint": {
-        "label": "Theta + case - GointMLP-style NN",
-        "description": "Neural theta/case model inspired by GointMLP with ordinal auxiliary loss.",
-        "path": "models/dd_laminate_theta_goint_grouped_v1/theta_goint.pt",
+        "label": "GointMLP NN",
+        "description": "Case2/Case3/Case4 neural theta/case model inspired by GointMLP with ordinal auxiliary loss.",
+        "path": "models/dd_laminate_cases_2_3_4_theta_goint_v1/theta_goint.pt",
         "requires": "torch,numpy",
     },
 }
 
 CURVE_MODELS: dict[str, dict[str, str]] = {
     "curve_classical": {
-        "label": "Curve + metadata - HistGradientBoosting",
-        "description": "Highest confidence after simulation CSV is available.",
-        "path": "models/dd_laminate_csv_meta_v1/curve_classifier.joblib",
+        "label": "ExtraTrees",
+        "description": "Case2/Case3/Case4 classifier after simulation CSV is available.",
+        "path": "models/dd_laminate_cases_2_3_4_csv_v1/curve_classifier.joblib",
         "requires": "joblib,sklearn,numpy",
     },
     "curve_goint": {
-        "label": "Curve + metadata - Goint sequence NN",
-        "description": "GRU + JointMLP-style deep sequence classifier for force-displacement curves.",
-        "path": "models/dd_laminate_deep_sequence_grouped_v1/dd_goint_sequence.pt",
+        "label": "GRU + GointMLP NN",
+        "description": "Case2/Case3/Case4 GRU + JointMLP-style deep sequence classifier for force-displacement curves.",
+        "path": "models/dd_laminate_cases_2_3_4_deep_sequence_v1/dd_goint_sequence.pt",
         "requires": "torch,numpy",
     },
 }
 
 RESPONSE_MODELS: dict[str, dict[str, str]] = {
     "response_surrogate": {
-        "label": "Estimated response - ExtraTrees + PCA + CLT",
-        "description": "Predicts Type, Pt, and approximate force-displacement curve from theta/case plus CLT laminate physics features.",
-        "path": "models/dd_laminate_response_surrogate_v1/response_surrogate.joblib",
+        "label": "ExtraTrees + PCA",
+        "description": "Predicts Type, Pt, and approximate force-displacement curve from theta/case using the new Case2/Case3/Case4 dataset.",
+        "path": "models/dd_laminate_cases_2_3_4_response_surrogate_v1/response_surrogate.joblib",
         "requires": "joblib,sklearn,numpy",
     },
     "response_goint": {
-        "label": "Estimated response - GointMLP NN + CLT",
-        "description": "Deep multi-task surrogate using theta/case plus CLT laminate physics features.",
-        "path": "models/dd_laminate_response_goint_v1/response_goint.pt",
+        "label": "GointMLP NN",
+        "description": "Case2/Case3/Case4 deep multi-task surrogate for Type, Pt, max values, and curve.",
+        "path": "models/dd_laminate_cases_2_3_4_response_goint_v1/response_goint.pt",
         "requires": "torch,numpy",
     },
 }
@@ -147,7 +147,7 @@ def _clean_probabilities(probabilities: dict[str, float] | None) -> dict[str, fl
 def _notes(probabilities: dict[str, float] | None, input_mode: str) -> list[str]:
     notes: list[str] = []
     if input_mode == "theta":
-        notes.append("Theta/case prediction is a pre-Abaqus estimate; curve-based models are preferred once simulation CSV is available.")
+        notes.append("Theta/case prediction is an estimate; curve-based models are preferred once simulation CSV is available.")
     if probabilities:
         ordered = sorted((float(v), k) for k, v in probabilities.items())
         if len(ordered) >= 2 and ordered[-1][0] - ordered[-2][0] < 0.2:
@@ -267,7 +267,7 @@ async def predict_estimated_response(payload: ResponsePredictionRequest) -> Resp
 
     probabilities = _clean_probabilities(result.get("probabilities"))
     notes = _notes(probabilities, "theta")
-    notes[0] = "Estimated response is a pre-Abaqus surrogate; validate promising candidates with simulation."
+    notes[0] = f"{meta['label']} prediction; validate promising candidates with simulation."
     return ResponseSurrogateResponse(
         predicted_type=int(result["predicted_type"]),
         confidence=_probability_confidence(probabilities),

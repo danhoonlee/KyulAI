@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Luvelox</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Unified CAE-AI Workspace</p>
+          <h1>Luvelox</h1>
+        </div>
+        <div class="account-chip">
+          <span class="status-dot"></span>
+          MVP workspace
+        </div>
+      </header>
+
+      <section class="intro-band">
+        <div>
+          <h2>Prediction modules</h2>
+          <p>
+            Open Laminate, Injection, and future CAE-AI modules from one account.
+            Module access is controlled by server-side entitlements.
+          </p>
+        </div>
+        <button id="refresh-button" type="button">Refresh</button>
+      </section>
+
+      <section class="module-grid" id="module-grid" aria-live="polite"></section>
+    </main>
+
+    <template id="module-card-template">
+      <article class="module-card">
+        <div class="module-card-header">
+          <div class="module-icon"></div>
+          <div>
+            <p class="module-category"></p>
+            <h3 class="module-title"></h3>
+          </div>
+          <span class="access-badge"></span>
+        </div>
+        <p class="module-summary"></p>
+        <div class="tag-row"></div>
+        <div class="capability-list"></div>
+        <div class="module-actions">
+          <a class="primary-link" target="_self" rel="noreferrer">Open</a>
+          <span class="route-text"></span>
+        </div>
+      </article>
+    </template>
+
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>
