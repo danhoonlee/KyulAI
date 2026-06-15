@@ -5,6 +5,7 @@ public enum DDLaminateAPIError: Error, LocalizedError, Equatable, Sendable {
     case invalidResponse
     case httpStatus(Int, String)
     case decoding(String)
+    case fileRead(String)
 
     public var errorDescription: String? {
         switch self {
@@ -16,6 +17,8 @@ public enum DDLaminateAPIError: Error, LocalizedError, Equatable, Sendable {
             detail.isEmpty ? "HTTP \(code)" : "HTTP \(code): \(detail)"
         case .decoding(let detail):
             "Could not decode API response: \(detail)"
+        case .fileRead(let detail):
+            "Could not read CSV file: \(detail)"
         }
     }
 }
@@ -24,6 +27,16 @@ public protocol DDLaminateAPIClientProtocol: Sendable {
     func health(baseURL: URL) async throws -> HealthResponse
     func models(baseURL: URL) async throws -> DDLaminateModelsResponse
     func predictResponse(baseURL: URL, request: ResponsePredictionRequest) async throws -> ResponsePredictionResult
+    func predictU3Forecast(baseURL: URL, request: U3ForecastPredictionRequest) async throws -> U3PtPredictionResult
+    func predictU3Pt(
+        baseURL: URL,
+        case laminateCase: DDLaminateCase,
+        theta1: Double,
+        theta2: Double,
+        u3Bucket: String,
+        model: String,
+        csvURL: URL
+    ) async throws -> U3PtPredictionResult
 }
 
 public struct DDLaminateAPIClient: DDLaminateAPIClientProtocol {
@@ -53,6 +66,65 @@ public struct DDLaminateAPIClient: DDLaminateAPIClientProtocol {
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         urlRequest.httpBody = try encoder.encode(request)
+        return try await send(urlRequest)
+    }
+
+    public func predictU3Forecast(
+        baseURL: URL,
+        request: U3ForecastPredictionRequest
+    ) async throws -> U3PtPredictionResult {
+        var urlRequest = URLRequest(url: Self.endpoint(baseURL: baseURL, path: "/api/v1/dd-laminate/predict/u3-forecast"))
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.httpBody = try encoder.encode(request)
+        return try await send(urlRequest)
+    }
+
+    public func predictU3Pt(
+        baseURL: URL,
+        case laminateCase: DDLaminateCase,
+        theta1: Double,
+        theta2: Double,
+        u3Bucket: String,
+        model: String,
+        csvURL: URL
+    ) async throws -> U3PtPredictionResult {
+        let didAccess = csvURL.startAccessingSecurityScopedResource()
+        defer {
+            if didAccess {
+                csvURL.stopAccessingSecurityScopedResource()
+            }
+        }
+        let csvData: Data
+        do {
+            csvData = try Data(contentsOf: csvURL)
+        } catch {
+            throw DDLaminateAPIError.fileRead(error.localizedDescription)
+        }
+
+        let boundary = "Boundary-\(UUID().uuidString)"
+        var body = Data()
+        func appendField(_ name: String, _ value: String) {
+            body.appendString("--\(boundary)\r\n")
+            body.appendString("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n")
+            body.appendString("\(value)\r\n")
+        }
+        appendField("theta1", String(theta1))
+        appendField("theta2", String(theta2))
+        appendField("case", laminateCase.rawValue)
+        appendField("u3_bucket", u3Bucket)
+        appendField("test_id", csvURL.deletingPathExtension().lastPathComponent)
+        appendField("model", model)
+        body.appendString("--\(boundary)\r\n")
+        body.appendString("Content-Disposition: form-data; name=\"file\"; filename=\"\(csvURL.lastPathComponent)\"\r\n")
+        body.appendString("Content-Type: text/csv\r\n\r\n")
+        body.append(csvData)
+        body.appendString("\r\n--\(boundary)--\r\n")
+
+        var urlRequest = URLRequest(url: Self.endpoint(baseURL: baseURL, path: "/api/v1/dd-laminate/predict/u3-pt"))
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        urlRequest.httpBody = body
         return try await send(urlRequest)
     }
 
@@ -95,6 +167,12 @@ public struct DDLaminateAPIClient: DDLaminateAPIClientProtocol {
             return String(describing: detail)
         }
         return String(data: data, encoding: .utf8) ?? ""
+    }
+}
+
+private extension Data {
+    mutating func appendString(_ string: String) {
+        append(Data(string.utf8))
     }
 }
 

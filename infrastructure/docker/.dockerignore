@@ -1,0 +1,54 @@
+# Version control
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*.so
+*.egg
+*.egg-info
+dist
+build
+.eggs
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# Virtual environments
+.venv
+venv
+env
+
+# DVC
+.dvc/cache
+data/datasets
+models/checkpoints
+
+# Node
+node_modules
+.next
+
+# IDE
+.vscode
+.idea
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+.env.*
+secrets/
+
+# Large files / artifacts
+*.h5
+*.hdf5
+*.onnx
+*.pt
+*.pth
+research/
+logs/
+mlruns/

@@ -216,7 +216,7 @@ def write_report(out_dir: Path, args, summary: dict, classical: dict | None) -> 
         str(np.array(summary["confusion_matrix"])),
         "```",
     ]
-    if classical:
+    if classical and "cv_results" in classical:
         lines.extend([
             "",
             "## Comparison With Existing Models",
@@ -251,6 +251,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Train DD GointMLP-inspired sequence classifier")
     parser.add_argument("--data-dir", default="data/datasets/DD_curated_csv_v1")
     parser.add_argument("--output-dir", default="models/dd_laminate_deep_sequence_v1")
+    parser.add_argument("--cases", default="Case3,Case4")
     parser.add_argument("--seq-len", type=int, default=256)
     parser.add_argument("--splits", type=int, default=5)
     parser.add_argument("--cv-mode", choices=["sample", "grouped"], default="sample")
@@ -275,7 +276,8 @@ def main() -> None:
         device = choose_device()
     else:
         device = torch.device(args.device)
-    samples = load_sequence_samples(args.data_dir)
+    cases = tuple(case.strip() for case in args.cases.split(",") if case.strip())
+    samples = load_sequence_samples(args.data_dir, cases=cases)
     dataset = DDSequenceDataset(samples, seq_len=args.seq_len)
     labels = np.array([s.label - 1 for s in samples], dtype=int)
     groups = np.array([s.test_id for s in samples])

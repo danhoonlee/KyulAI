@@ -1,0 +1,42 @@
+{
+  "metrics": {
+    "n_samples": 900,
+    "input_dim": 11,
+    "cv_accuracy_mean": 0.9355555555555556,
+    "cv_accuracy_std": 0.016329931618554505,
+    "cv_macro_f1_mean": 0.9313967817375067,
+    "cv_macro_f1_std": 0.014342128140731453
+  },
+  "fold_metrics": [
+    {
+      "fold": 1,
+      "best_epoch": 13,
+      "accuracy": 0.9333333333333333,
+      "macro_f1": 0.9276804432464809
+    },
+    {
+      "fold": 2,
+      "best_epoch": 33,
+      "accuracy": 0.9666666666666667,
+      "macro_f1": 0.9587781058369295
+    },
+    {
+      "fold": 3,
+      "best_epoch": 22,
+      "accuracy": 0.9222222222222223,
+      "macro_f1": 0.9186730368077517
+    },
+    {
+      "fold": 4,
+      "best_epoch": 23,
+      "accuracy": 0.9333333333333333,
+      "macro_f1": 0.9305729913916786
+    },
+    {
+      "fold": 5,
+      "best_epoch": 29,
+      "accuracy": 0.9222222222222223,
+      "macro_f1": 0.9212793314046931
+    }
+  ]
+}

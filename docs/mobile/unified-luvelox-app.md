@@ -1,11 +1,11 @@
-# Unified Luvelox App Direction
+# Unified C2ES App Direction
 
-Luvelox should move from one app per model to one account-based app with
+C2ES should move from one app per model to one account-based app with
 server-controlled modules.
 
 ## Target Product Shape
 
-- One app name: Luvelox
+- One app name: C2ES
 - One module dashboard: Laminate, Injection, and future CAE-AI models
 - One login/account surface
 - Shared history, sharing, reports, language settings, and API status handling
@@ -38,7 +38,7 @@ or:
 
 1. Keep the current Laminate and Injection apps stable.
 2. Use the new module API as the shared source of truth.
-3. Build a Luvelox shell app with a module dashboard.
+3. Build a C2ES shell app with a module dashboard.
 4. Move Laminate into the shell as the first native module.
 5. Move Injection into the shell as the second native module.
 6. Add login and account/session tokens.
@@ -73,12 +73,12 @@ The first native unified shell exists in:
 
 Both apps currently:
 
-- Show a Luvelox module dashboard.
+- Show a C2ES module dashboard.
 - Fetch `GET /api/v1/modules/me`.
 - Fall back to built-in Laminate and Injection cards if the catalog request
   fails.
-- Open Laminate as a native module inside the Luvelox shell.
-- Open Injection as a native module inside the Luvelox shell.
+- Open Laminate as a native module inside the C2ES shell.
+- Open Injection as a native module inside the C2ES shell.
 
 The catalog request currently points at:
 
@@ -130,17 +130,17 @@ iOS:
   `POST /api/v1/dd-laminate/predict/response`.
 - `InjectionForecastView` runs native geometry/process/model selection and calls
   `POST /api/v1/simple-injection/predict/sprue-pressure`.
-- The Luvelox Laminate and Injection cards navigate to native views.
+- The C2ES Laminate and Injection cards navigate to native views.
 
 Android:
 
 - `android/LuveloxMVP` includes `LaminateActivity`.
 - `android/LuveloxMVP` includes `InjectionActivity`.
-- The Luvelox Laminate and Injection cards open native Activities instead of the
+- The C2ES Laminate and Injection cards open native Activities instead of the
   browser.
 - The Activity calls the same Laminate models and response prediction API.
 - The Injection Activity calls the same Simple Injection models, DOE catalog,
   and sprue/filling prediction API.
 
 The next migration step is to bring richer charts, recent history, and sharing
-from the standalone module apps into the unified Luvelox native modules.
+from the standalone module apps into the unified C2ES native modules.

@@ -19,11 +19,16 @@ public final class PredictionViewModel: ObservableObject {
     @Published public var selectedCase: DDLaminateCase = .case2
     @Published public var connectionState: ConnectionState = .idle
     @Published public var responseModels: [ModelInfo] = []
+    @Published public var u3PtModels: [ModelInfo] = []
     @Published public var selectedResponseModelKey = DDLaminateDefaults.responseModelKey
+    @Published public var selectedU3PtModelKey = DDLaminateDefaults.u3PtModelKey
     @Published public var responseModel: ModelInfo?
+    @Published public var u3PtModel: ModelInfo?
     @Published public var result: ResponsePredictionResult?
+    @Published public var u3PtResult: U3PtPredictionResult?
     @Published public var errorMessage: String?
     @Published public var isPredicting = false
+    @Published public var isPredictingU3Pt = false
     @Published public private(set) var recentRuns: [DDLaminateRecentRun] = []
 
     public init(
@@ -41,11 +46,18 @@ public final class PredictionViewModel: ObservableObject {
         !isPredicting && connectionState != .checking
     }
 
+    public var canPredictU3Pt: Bool {
+        !isPredictingU3Pt && connectionState != .checking
+    }
+
     public func resetReadiness() {
         connectionState = .idle
         responseModels = []
+        u3PtModels = []
         responseModel = nil
+        u3PtModel = nil
         result = nil
+        u3PtResult = nil
         errorMessage = nil
     }
 
@@ -56,12 +68,16 @@ public final class PredictionViewModel: ObservableObject {
             _ = try await apiClient.health(baseURL: baseURL)
             let models = try await apiClient.models(baseURL: baseURL)
             responseModels = models.responseModels
+            u3PtModels = models.u3PtModels
             normalizeModelSelection()
+            normalizeU3PtModelSelection()
             connectionState = .ready(responseSurrogateAvailable: responseModel?.available == true)
         } catch {
             connectionState = .failed(error.localizedDescription)
             responseModels = []
+            u3PtModels = []
             responseModel = nil
+            u3PtModel = nil
         }
     }
 
@@ -70,6 +86,12 @@ public final class PredictionViewModel: ObservableObject {
         responseModel = responseModels.first { $0.key == key }
         result = nil
         updateReadyStateIfNeeded()
+    }
+
+    public func selectU3PtModel(key: String) {
+        selectedU3PtModelKey = key
+        u3PtModel = u3PtModels.first { $0.key == key }
+        u3PtResult = nil
     }
 
     public func predict(baseURL: URL) async {
@@ -105,6 +127,78 @@ public final class PredictionViewModel: ObservableObject {
             }
         } catch {
             errorMessage = "Prediction failed: \(error.localizedDescription)"
+        }
+    }
+
+    public func predictU3Pt(baseURL: URL, csvURL: URL, u3Bucket: String) async {
+        guard selectedU3PtModelKey != DDLaminateDefaults.u3PtModelKey else {
+            await predictU3Forecast(baseURL: baseURL)
+            return
+        }
+        guard let theta1Value = Double(theta1), let theta2Value = Double(theta2) else {
+            errorMessage = "Enter numeric theta values."
+            return
+        }
+        guard (-90...90).contains(theta1Value), (-90...90).contains(theta2Value) else {
+            errorMessage = "Theta values must be between -90 and 90 degrees."
+            return
+        }
+        if u3PtModels.isEmpty {
+            await checkConnection(baseURL: baseURL)
+        }
+        guard u3PtModel?.available == true else {
+            errorMessage = "The selected u3 Pt model (\(DDLaminateModelDisplayLabel.cleanKey(selectedU3PtModelKey))) is unavailable. Check the API base URL or server."
+            return
+        }
+        isPredictingU3Pt = true
+        errorMessage = nil
+        defer { isPredictingU3Pt = false }
+
+        do {
+            u3PtResult = try await apiClient.predictU3Pt(
+                baseURL: baseURL,
+                case: selectedCase,
+                theta1: theta1Value,
+                theta2: theta2Value,
+                u3Bucket: u3Bucket,
+                model: selectedU3PtModelKey,
+                csvURL: csvURL
+            )
+        } catch {
+            errorMessage = "u3 Pt prediction failed: \(error.localizedDescription)"
+        }
+    }
+
+    public func predictU3Forecast(baseURL: URL) async {
+        guard let theta1Value = Double(theta1), let theta2Value = Double(theta2) else {
+            errorMessage = "Enter numeric theta values."
+            return
+        }
+        guard (-90...90).contains(theta1Value), (-90...90).contains(theta2Value) else {
+            errorMessage = "Theta values must be between -90 and 90 degrees."
+            return
+        }
+        if u3PtModels.isEmpty {
+            await checkConnection(baseURL: baseURL)
+        }
+        guard u3PtModel?.available == true else {
+            errorMessage = "The selected u3 Pt model (\(DDLaminateModelDisplayLabel.cleanKey(selectedU3PtModelKey))) is unavailable. Check the API base URL or server."
+            return
+        }
+        isPredictingU3Pt = true
+        errorMessage = nil
+        defer { isPredictingU3Pt = false }
+
+        let request = U3ForecastPredictionRequest(
+            theta1: theta1Value,
+            theta2: theta2Value,
+            case: selectedCase,
+            model: selectedU3PtModelKey
+        )
+        do {
+            u3PtResult = try await apiClient.predictU3Forecast(baseURL: baseURL, request: request)
+        } catch {
+            errorMessage = "u3 Forecast failed: \(error.localizedDescription)"
         }
     }
 
@@ -183,6 +277,14 @@ public final class PredictionViewModel: ObservableObject {
             selectedResponseModelKey = fallback.key
         }
         responseModel = responseModels.first { $0.key == selectedResponseModelKey }
+    }
+
+    private func normalizeU3PtModelSelection() {
+        if u3PtModels.first(where: { $0.key == selectedU3PtModelKey && $0.available }) == nil,
+           let fallback = u3PtModels.first(where: { $0.key == DDLaminateDefaults.u3PtModelKey && $0.available }) ?? u3PtModels.first(where: \.available) ?? u3PtModels.first {
+            selectedU3PtModelKey = fallback.key
+        }
+        u3PtModel = u3PtModels.first { $0.key == selectedU3PtModelKey }
     }
 
     private func updateReadyStateIfNeeded() {

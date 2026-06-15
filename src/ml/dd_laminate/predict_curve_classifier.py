@@ -12,6 +12,13 @@ import joblib
 import numpy as np
 
 from .curve_features import DDCurveRecord, extract_curve_features
+from .train_cases_2_3_4_classical import (
+    CURVE_FEATURE_COLUMNS,
+    THETA_FEATURE_COLUMNS,
+    curve_feature_row,
+    theta_feature_row,
+    DDRecord,
+)
 
 
 def predict_curve_type(
@@ -25,17 +32,30 @@ def predict_curve_type(
 ) -> dict:
     """Predict Type 1/2/3 from a raw force-displacement CSV and transition load."""
     bundle = joblib.load(model_path)
-    record = DDCurveRecord(
-        case=case,
-        test_id=test_id,
-        theta1=theta1,
-        theta2=theta2,
-        pt=pt,
-        label=0,
-        csv_path=Path(csv_path),
-    )
-    row = extract_curve_features(record).__dict__
     feature_columns = bundle["feature_columns"]
+    if "case_case2" in feature_columns:
+        record = DDRecord(
+            case=case,
+            test_id=test_id,
+            theta1=theta1,
+            theta2=theta2,
+            pt=pt,
+            label=0,
+            csv_path=Path(csv_path),
+        )
+        values = theta_feature_row(record) + curve_feature_row(record)
+        row = dict(zip(THETA_FEATURE_COLUMNS + CURVE_FEATURE_COLUMNS, values))
+    else:
+        record = DDCurveRecord(
+            case=case,
+            test_id=test_id,
+            theta1=theta1,
+            theta2=theta2,
+            pt=pt,
+            label=0,
+            csv_path=Path(csv_path),
+        )
+        row = extract_curve_features(record).__dict__
     x = np.array([[float(row[col]) for col in feature_columns]], dtype=float)
     pred = int(bundle["model"].predict(x)[0])
     probs = None

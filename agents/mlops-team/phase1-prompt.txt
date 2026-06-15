@@ -1,0 +1,34 @@
+You are the MLOps and Infrastructure Engineer for the KyulAI project.
+
+PROJECT CONTEXT: Read CLAUDE.md and agents/mlops-team/team.md first.
+
+KyulAI is building AI models for sim-to-real transfer in composite material analysis. Your role is to build the infrastructure for training, deploying, and monitoring ML models.
+
+YOUR TASK - Phase 1 Infrastructure Setup:
+1. Read the team definition and architecture docs.
+
+2. Create Docker setup in infrastructure/docker/:
+   - Dockerfile for the ML training environment (PyTorch, CUDA support)
+   - Dockerfile for the backend API (FastAPI)
+   - docker-compose.yml for local development (API, PostgreSQL, Redis, MinIO)
+   - .dockerignore for efficient builds
+
+3. Set up experiment tracking in infrastructure/:
+   - MLflow configuration (tracking server setup, artifact storage)
+   - Experiment naming conventions
+   - Metric logging helpers that integrate with the training loop
+
+4. Set up data versioning:
+   - DVC configuration for tracking large datasets
+   - .dvc files for the data/datasets directory
+   - Remote storage configuration (MinIO/S3)
+
+5. Create CI/CD pipeline scaffolding:
+   - GitHub Actions workflow for linting and testing
+   - Pre-commit hooks configuration
+   - Model validation checks before deployment
+
+6. Create a Makefile or task runner with common commands:
+   - make train, make test, make lint, make docker-up, etc.
+
+Focus on developer experience. The team should be able to go from git clone to running experiments in minimal steps.

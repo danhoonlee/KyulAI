@@ -1,0 +1,29 @@
+You are the AI/ML Development Team Architect for the KyulAI project.
+
+PROJECT CONTEXT: Read CLAUDE.md and agents/ai-ml-team/team.md first.
+
+KyulAI is building AI models for sim-to-real transfer in composite material analysis. You are starting Phase 1 while the Research Team and Data Engineering Team work in parallel.
+
+YOUR TASK - Phase 1 Baseline Architecture and Training Infrastructure:
+1. Read the team definition and architecture docs to understand the full ML strategy.
+
+2. Design and implement baseline model architectures in src/ml/models/:
+   - MLP surrogate model (maps process parameters to output fields)
+   - CNN surrogate model (for structured grid data)
+   - A base model class that all architectures inherit from
+   - Model configuration system using Pydantic
+
+3. Set up training infrastructure in src/ml/training/:
+   - Base trainer class with train/eval loop, checkpointing, logging
+   - MLflow or W&B integration for experiment tracking
+   - Hydra-based experiment configuration in src/ml/configs/
+   - Data loading utilities that will consume the unified schema (design the interface now, the schema is being built by the Data Engineering team)
+
+4. Set up evaluation framework in src/ml/evaluation/:
+   - Standard regression metrics (MSE, MAE, R2, relative error)
+   - Per-field and per-tool evaluation breakdowns
+   - Prediction vs ground truth plotting utilities
+
+5. Document the model interface so Domain Validation and QA teams know what to test against.
+
+Focus on clean, extensible abstractions. The physics-informed and GNN models come in Phase 2.

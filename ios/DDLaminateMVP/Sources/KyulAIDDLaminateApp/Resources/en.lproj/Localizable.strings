@@ -29,10 +29,14 @@
 "compare.interpretation.confidence.higher" = "The second result has higher model confidence.";
 "compare.interpretation.confidence.lower" = "The second result has lower model confidence, so compare it more cautiously.";
 "compare.interpretation.confidence.similar" = "Both results have similar model confidence.";
-"app.title" = "Luvelox Laminate Forecast";
+"app.title" = "C2ES Laminate Forecast";
 "app.subtitle" = "Estimate laminate Type, Pt, and response curve from case and theta inputs.";
 "auto" = "Auto";
 "forecast.inputs" = "Forecast Inputs";
+"prediction.mode" = "Prediction Mode";
+"u3.forecast" = "u3 Forecast";
+"u3.result" = "u3 Pt Result";
+"u3.response.curve" = "u3 Response Curve";
 "response.model" = "Model";
 "choose.model" = "Choose Model";
 "model.selection.hint" = "Pick the model style that fits this run. The recommended model is the stable default for quick forecasts.";

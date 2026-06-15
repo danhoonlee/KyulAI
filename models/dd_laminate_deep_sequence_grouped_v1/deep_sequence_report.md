@@ -14,14 +14,14 @@ Validation mode: `grouped`; folds: 5
 
 | Model | Accuracy | Macro F1 | Weighted F1 |
 |---|---:|---:|---:|
-| dd_goint_sequence | 0.9800 ± 0.0150 | 0.9840 ± 0.0119 | 0.9802 |
+| dd_goint_sequence | 0.9739 ± 0.0148 | 0.9703 ± 0.0252 | 0.9738 |
 
 Confusion matrix rows=true, columns=predicted `[Type1, Type2, Type3]`:
 
 ```text
-[[126   0   0]
- [  8 226   0]
- [  0   0  40]]
+[[160   0   0]
+ [ 11 280   0]
+ [  0   2  47]]
 ```
 
 ## Comparison With Existing Models
@@ -30,9 +30,9 @@ Primary table below is from the existing `models/dd_laminate_csv_meta_v1` combin
 
 | Model | Accuracy | Macro F1 | Weighted F1 |
 |---|---:|---:|---:|
-| hist_gradient_boosting | 0.9950 ± 0.0100 | 0.9958 ± 0.0083 | 0.9949 |
-| random_forest | 0.9925 ± 0.0100 | 0.9938 ± 0.0083 | 0.9924 |
-| extra_trees | 0.9800 ± 0.0061 | 0.9838 ± 0.0050 | 0.9801 |
-| neural_net_mlp_lbfgs | 0.9550 ± 0.0257 | 0.9576 ± 0.0226 | 0.9547 |
-| svc_rbf | 0.9575 ± 0.0127 | 0.9515 ± 0.0221 | 0.9582 |
-| neural_net_mlp_adam | 0.9425 ± 0.0232 | 0.9222 ± 0.0395 | 0.9411 |
+| random_forest | 0.9960 ± 0.0049 | 0.9967 ± 0.0040 | 0.9960 |
+| hist_gradient_boosting | 0.9940 ± 0.0080 | 0.9898 ± 0.0166 | 0.9938 |
+| extra_trees | 0.9820 ± 0.0075 | 0.9834 ± 0.0079 | 0.9821 |
+| neural_net_mlp_adam | 0.9760 ± 0.0120 | 0.9715 ± 0.0172 | 0.9760 |
+| neural_net_mlp_lbfgs | 0.9660 ± 0.0206 | 0.9622 ± 0.0254 | 0.9660 |
+| svc_rbf | 0.9640 ± 0.0136 | 0.9590 ± 0.0189 | 0.9642 |

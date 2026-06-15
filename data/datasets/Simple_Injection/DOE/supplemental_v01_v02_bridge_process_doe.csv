@@ -1,0 +1,16 @@
+process_id,family,melt_temp_C,mold_temp_C,injection_time_s,packing_pressure_MPa,packing_time_s
+P21,V01_filling_refine,235,55,0.80,80,4.0
+P22,V01_filling_refine,238,58,0.90,85,4.5
+P23,V01_filling_refine,240,60,1.00,90,5.0
+P24,V01_filling_refine,242,63,1.10,95,5.5
+P25,V01_filling_refine,245,65,1.20,88,6.0
+P26,V02_sprue_refine,235,60,0.70,80,4.0
+P27,V02_sprue_refine,240,65,0.90,88,4.8
+P28,V02_sprue_refine,245,70,1.10,95,5.5
+P29,V02_sprue_refine,250,75,1.40,100,6.0
+P30,V02_sprue_refine,238,58,1.60,92,5.2
+P31,bridge_mid_range,230,50,0.80,70,3.5
+P32,bridge_mid_range,235,55,0.95,75,4.2
+P33,bridge_mid_range,240,60,1.10,82,5.0
+P34,bridge_mid_range,245,65,1.30,90,5.8
+P35,bridge_mid_range,238,58,1.20,86,4.6

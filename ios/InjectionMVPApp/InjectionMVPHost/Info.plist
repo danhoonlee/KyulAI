@@ -30,7 +30,7 @@
 		<true/>
 	</dict>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Luvelox Injection connects to your local development API server for injection molding prediction.</string>
+	<string>C2ES Injection connects to your local development API server for injection molding prediction.</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>

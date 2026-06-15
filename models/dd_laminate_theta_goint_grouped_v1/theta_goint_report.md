@@ -9,23 +9,23 @@ Validation mode: `grouped`; folds: 5
 
 | Model | Accuracy | Macro F1 | Weighted F1 |
 |---|---:|---:|---:|
-| theta_goint | 0.9050 ± 0.0451 | 0.8920 ± 0.0752 | 0.9071 |
+| theta_goint | 0.8975 ± 0.0439 | 0.8901 ± 0.0445 | 0.8978 |
 
 Confusion matrix rows=true, columns=predicted `[Type1, Type2, Type3]`:
 
 ```text
-[[116  10   0]
- [ 21 206   7]
- [  0   0  40]]
+[[153   7   0]
+ [ 32 248  11]
+ [  0   1  48]]
 ```
 
 ## Classical Theta-Only Comparison
 
 | Model | Accuracy | Macro F1 | Weighted F1 |
 |---|---:|---:|---:|
-| neural_net_mlp_adam | 0.9025 ± 0.0556 | 0.9133 ± 0.0459 | 0.9026 |
-| neural_net_mlp_lbfgs | 0.8975 ± 0.0348 | 0.9055 ± 0.0391 | 0.8978 |
-| random_forest | 0.9175 ± 0.0423 | 0.8799 ± 0.0721 | 0.9164 |
-| extra_trees | 0.9025 ± 0.0357 | 0.8672 ± 0.0708 | 0.9063 |
-| hist_gradient_boosting | 0.8950 ± 0.0551 | 0.8352 ± 0.0746 | 0.8929 |
-| svc_rbf | 0.8625 ± 0.0468 | 0.8339 ± 0.0724 | 0.8663 |
+| neural_net_mlp_lbfgs | 0.9255 ± 0.0335 | 0.9180 ± 0.0458 | 0.9246 |
+| hist_gradient_boosting | 0.9298 ± 0.0337 | 0.9152 ± 0.0431 | 0.9292 |
+| random_forest | 0.9255 ± 0.0283 | 0.9109 ± 0.0326 | 0.9250 |
+| neural_net_mlp_adam | 0.8993 ± 0.0431 | 0.8867 ± 0.0564 | 0.8983 |
+| extra_trees | 0.8917 ± 0.0230 | 0.8720 ± 0.0301 | 0.8925 |
+| svc_rbf | 0.8438 ± 0.0390 | 0.8192 ± 0.0346 | 0.8461 |

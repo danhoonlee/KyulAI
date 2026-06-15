@@ -1,4 +1,4 @@
-"""Standalone Luvelox unified module shell.
+"""Standalone C2ES unified module shell.
 
 Run with:
     uvicorn src.backend.luvelox_app:app --reload --port 8000
@@ -20,9 +20,9 @@ FRONTEND_DIR = PROJECT_ROOT / "src" / "frontend" / "luvelox"
 DATA_DIR = PROJECT_ROOT / "data"
 
 app = FastAPI(
-    title="Luvelox Platform API",
+    title="C2ES Platform API",
     version="0.1.0",
-    description="Unified Luvelox module catalog and prediction API shell.",
+    description="Unified C2ES module catalog and prediction API shell.",
 )
 
 app.add_middleware(

@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simple Injection Pressure Predictor</title>
+    <link rel="stylesheet" href="./styles.css?v=20260513-error-summary-fit" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="workspace" aria-labelledby="app-title">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Injection AI</p>
+            <h1 id="app-title">Simple Injection Pressure Predictor</h1>
+          </div>
+          <div class="top-actions">
+            <a class="language-link" href="./index.ko.html">한국어</a>
+            <div class="status-pill" id="api-status">API: checking</div>
+          </div>
+        </header>
+
+        <section class="intro-panel" aria-label="Application summary">
+          <p>
+            Predict Moldex3D sprue pressure curves and filling pressure distributions from Simple Injection geometry and process inputs.
+            DOE values can be loaded first, then edited manually with prevention checks for physically invalid conditions.
+          </p>
+        </section>
+
+        <div class="grid">
+          <section class="panel input-panel" aria-label="Prediction input">
+            <form id="prediction-form" class="form">
+              <div class="form-header">
+                <h2>DOE Input</h2>
+                <p>Choose existing DOE IDs or edit the generated values directly.</p>
+              </div>
+
+              <div class="two-col">
+                <label>
+                  Sprue Pressure model
+                  <select name="model" id="model-select"></select>
+                </label>
+                <label>
+                  Filling Pressure model
+                  <select name="filling_model" id="filling-model-select"></select>
+                </label>
+              </div>
+
+              <div class="two-col">
+                <label>
+                  Geometry DOE
+                  <select id="geometry-select" name="geometry_id"></select>
+                </label>
+                <label>
+                  Process DOE
+                  <select id="process-select" name="process_id"></select>
+                </label>
+              </div>
+
+              <section class="prevention-panel hidden" id="prevention-panel" aria-live="polite">
+                <div class="prevention-head">
+                  <h3>Prevention Check</h3>
+                  <span id="prevention-count">0</span>
+                </div>
+                <ul id="prevention-list"></ul>
+              </section>
+
+              <div class="field-group">
+                <h3>Geometry</h3>
+                <div class="two-col">
+                  <label>L (mm)<input name="L_mm" type="number" step="0.001" required /></label>
+                  <label>W (mm)<input name="W_mm" type="number" step="0.001" required /></label>
+                </div>
+                <div class="two-col">
+                  <label>Thickness (mm)<input name="t_mm" type="number" step="0.001" required /></label>
+                  <label>Hole D (mm)<input name="D_mm" type="number" step="0.001" required /></label>
+                </div>
+                <div class="two-col">
+                  <label>Hole R (mm)<input name="R_mm" type="number" step="0.001" required /></label>
+                  <label>Gate type<input name="gate_type" type="text" value="edge_gate" required /></label>
+                </div>
+                <div class="two-col">
+                  <label>Gate width (mm)<input name="gate_size_width_mm" type="number" step="0.001" required /></label>
+                  <label>Gate height (mm)<input name="gate_size_height_mm" type="number" step="0.001" required /></label>
+                </div>
+              </div>
+
+              <div class="field-group">
+                <h3>Process</h3>
+                <div class="two-col">
+                  <label>Melt temp (°C)<input name="melt_temp_C" type="number" step="0.1" required /></label>
+                  <label>Mold temp (°C)<input name="mold_temp_C" type="number" step="0.1" required /></label>
+                </div>
+                <div class="two-col">
+                  <label>Packing pressure (MPa)<input name="packing_pressure_MPa" type="number" step="0.1" required /></label>
+                  <label>Packing time (s)<input name="packing_time_s" type="number" step="0.001" required /></label>
+                </div>
+                <label>Injection time (s)<input name="injection_time_s" type="number" step="0.001" required /></label>
+              </div>
+
+              <button class="primary" type="submit">Predict Sprue & Filling Pressure</button>
+            </form>
+          </section>
+
+          <section class="panel visual-panel" aria-label="Shape preview">
+            <div class="preview-head">
+              <div>
+                <p class="eyebrow">Shape Preview</p>
+                <h2>DOE-driven 3D preview</h2>
+              </div>
+            </div>
+            <div class="shape-mode-control" aria-label="3D preview mode">
+              <button type="button" class="preview-option-hidden" data-shape-mode="exact">STEP Geometry</button>
+              <button type="button" class="active" data-shape-mode="parametric">Parametric</button>
+            </div>
+            <div class="shape-preview" id="shape-preview">
+              <div class="shape-preview-status" id="shape-preview-status">Preparing 3D shape</div>
+              <div class="shape-view-controls" aria-label="3D view controls">
+                <button type="button" id="shape-zoom-in" aria-label="Zoom in">+</button>
+                <button type="button" id="shape-zoom-out" aria-label="Zoom out">-</button>
+                <button type="button" id="shape-view-reset" aria-label="Reset view">↺</button>
+              </div>
+            </div>
+            <div class="shape-source" id="shape-source">-</div>
+            <div class="shape-metrics" aria-label="Shape dimension summary">
+              <div><span>L</span><strong id="shape-metric-l">-</strong></div>
+              <div><span>W</span><strong id="shape-metric-w">-</strong></div>
+              <div><span>t</span><strong id="shape-metric-t">-</strong></div>
+              <div><span>D</span><strong id="shape-metric-d">-</strong></div>
+            </div>
+            <div class="shape-grid">
+              <figure class="shape-still-card shape-still-generated">
+                <figcaption>DOE-driven top view</figcaption>
+                <canvas id="shape-still-top" width="760" height="360" aria-label="DOE-driven top still view"></canvas>
+              </figure>
+              <figure class="shape-still-card shape-still-generated">
+                <figcaption>DOE-driven gate-side view</figcaption>
+                <canvas id="shape-still-gate" width="760" height="360" aria-label="DOE-driven gate-side still view"></canvas>
+              </figure>
+              <figure class="shape-still-card">
+                <img src="../../../data/datasets/Simple_Injection/Shape/KakaoTalk_Photo_2026-04-30-13-26-57.png" alt="Simple injection side reference view" />
+                <figcaption>Reference side image</figcaption>
+              </figure>
+              <figure class="shape-still-card">
+                <img src="../../../data/datasets/Simple_Injection/Shape/KakaoTalk_Photo_2026-04-30-13-27-35.png" alt="Simple injection gate reference view" />
+                <figcaption>Reference gate image</figcaption>
+              </figure>
+            </div>
+            <div class="filling-animation shape-filling-animation hidden" id="filling-animation">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow">Moldex3D GIF</p>
+                  <h3>Filling Pressure Evolution</h3>
+                </div>
+                <span id="filling-animation-label">-</span>
+              </div>
+              <img id="filling-animation-image" alt="Filling Pressure animation" />
+            </div>
+          </section>
+
+          <section class="panel result-panel" aria-live="polite">
+            <div class="empty-state" id="empty-state">
+              <h2>Ready for prediction</h2>
+              <p>Pick a geometry and process combination to estimate sprue and filling pressure.</p>
+            </div>
+
+            <div class="result hidden" id="result">
+              <div class="result-head">
+                <div>
+                  <p class="eyebrow">Prediction</p>
+                  <h2 id="result-title">Sprue & Filling Pressure Prediction</h2>
+                </div>
+                <div class="result-actions" aria-label="Export result">
+                  <button type="button" class="secondary" id="export-result-png">PNG</button>
+                  <button type="button" class="secondary" id="export-result-pdf">PDF</button>
+                </div>
+              </div>
+
+              <div class="section-head result-subhead">
+                <div>
+                  <p class="eyebrow">Sprue Pressure</p>
+                  <h3>Pressure Curve</h3>
+                </div>
+                <span id="sprue-model-label">-</span>
+              </div>
+
+              <div class="stats">
+                <div>
+                  <span>Max pressure</span>
+                  <strong id="max-pressure">-</strong>
+                </div>
+                <div>
+                  <span>Max time</span>
+                  <strong id="max-time">-</strong>
+                </div>
+                <div>
+                  <span>Curve points</span>
+                  <strong id="curve-points">-</strong>
+                </div>
+              </div>
+
+              <canvas id="pressure-canvas" width="760" height="360"></canvas>
+
+              <section class="filling-summary hidden" id="filling-summary" aria-label="Filling pressure distribution">
+                <div class="section-head">
+                  <div>
+                    <p class="eyebrow" id="filling-summary-eyebrow">Generated Preview</p>
+                    <h3>Filling Pressure Distribution</h3>
+                  </div>
+                  <span id="filling-source">-</span>
+                </div>
+                <div class="stats filling-stats">
+                  <div>
+                    <span>Min</span>
+                    <strong id="filling-min">-</strong>
+                  </div>
+                  <div>
+                    <span>Average</span>
+                    <strong id="filling-avg">-</strong>
+                  </div>
+                  <div>
+                    <span>Max</span>
+                    <strong id="filling-max">-</strong>
+                  </div>
+                  <div>
+                    <span>SD</span>
+                    <strong id="filling-sd">-</strong>
+                  </div>
+                </div>
+                <div class="filling-histogram" id="filling-histogram"></div>
+                <p class="filling-note" id="filling-note"></p>
+                <div class="filling-generated-animation hidden" id="filling-generated-animation">
+                  <div class="section-head">
+                    <div>
+                      <p class="eyebrow">Generated Preview</p>
+                      <h3>Prediction-based Filling Animation</h3>
+                    </div>
+                    <span id="filling-generated-label">AI prediction</span>
+                  </div>
+                  <canvas id="filling-generated-canvas" width="760" height="360"></canvas>
+                  <div class="animation-controls" aria-label="Generated filling animation controls">
+                    <button type="button" id="filling-generated-play" aria-label="Pause">||</button>
+                    <button type="button" id="filling-generated-reset" aria-label="Restart">|&lt;</button>
+                    <input id="filling-generated-range" type="range" min="0" max="100" value="0" step="0.1" />
+                    <output id="filling-generated-progress">0.0%</output>
+                  </div>
+                </div>
+              </section>
+
+              <section class="comparison-panel" id="comparison-panel" aria-label="Moldex3D validation comparison">
+                <div class="section-head">
+                  <div>
+                    <p class="eyebrow">Validation</p>
+                    <h3>Prediction vs Moldex3D Result</h3>
+                  </div>
+                  <span id="comparison-status">CSV upload</span>
+                </div>
+                <div class="comparison-form">
+                  <label>
+                    Actual sample ID
+                    <input id="comparison-sample-id" type="text" placeholder="G01_P01" />
+                  </label>
+                  <label>
+                    Sprue Pressure CSV
+                    <input id="comparison-sprue-file" type="file" accept=".csv,text/csv" />
+                  </label>
+                  <label>
+                    Filling Pressure CSV
+                    <input id="comparison-filling-file" type="file" accept=".csv,text/csv" />
+                  </label>
+                  <label>
+                    Filling Pressure chart PNG
+                    <input id="comparison-chart-file" type="file" accept="image/png,image/jpeg,image/gif" />
+                  </label>
+                </div>
+                <button type="button" class="secondary comparison-submit" id="comparison-submit">Compare with Moldex3D</button>
+                <div class="comparison-output hidden" id="comparison-output">
+                  <canvas id="comparison-sprue-canvas" width="760" height="360"></canvas>
+                  <div class="comparison-grid">
+                    <div>
+                      <h4 id="comparison-sprue-title">Sprue Pressure Error</h4>
+                      <div class="comparison-metrics" id="comparison-sprue-metrics"></div>
+                    </div>
+                    <div>
+                      <h4 id="comparison-filling-title">Filling Pressure Error</h4>
+                      <div class="comparison-metrics" id="comparison-filling-metrics"></div>
+                    </div>
+                  </div>
+                  <div class="comparison-filling-bars" id="comparison-filling-bars"></div>
+                  <figure class="comparison-chart hidden" id="comparison-chart">
+                    <img id="comparison-chart-image" alt="Uploaded Moldex3D filling pressure chart" />
+                    <figcaption>Uploaded Moldex3D chart reference</figcaption>
+                  </figure>
+                </div>
+              </section>
+
+              <dl class="meta">
+                <div>
+                  <dt>Models</dt>
+                  <dd id="model-label">-</dd>
+                </div>
+                <div>
+                  <dt>Input</dt>
+                  <dd id="input-summary">-</dd>
+                </div>
+              </dl>
+
+              <ul class="notes" id="notes"></ul>
+            </div>
+
+            <div class="error hidden" id="error"></div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./vendor/three.module.r160.js"
+        }
+      }
+    </script>
+    <script type="module" src="./app.js?v=20260602-training-range-g42"></script>
+  </body>
+</html>

@@ -1,6 +1,6 @@
 # DD CSV Curve Classifier Report
 
-Dataset: `data/datasets/DD_curated_csv_v1`
+Dataset: `data/datasets/DD_curated_csv_v2`
 
 This model classifies DD laminate response Type 1/2/3 from transition metadata plus raw force-displacement CSV-derived shape features.
 Candidate models include tree ensembles, SVC, HistGradientBoosting, and neural-network MLP baselines.
@@ -9,9 +9,9 @@ Primary validation mode: `sample`. `sample` uses shuffled StratifiedKFold; `grou
 
 ## Label Counts
 
-- Type 1: 126
-- Type 2: 234
-- Type 3: 40
+- Type 1: 160
+- Type 2: 291
+- Type 3: 49
 
 ## Feature Columns
 
@@ -21,32 +21,32 @@ Primary validation mode: `sample`. `sample` uses shuffled StratifiedKFold; `grou
 
 | Model | Accuracy | Macro F1 | Weighted F1 |
 |---|---:|---:|---:|
-| hist_gradient_boosting | 0.9950 ± 0.0100 | 0.9958 ± 0.0083 | 0.9949 |
-| random_forest | 0.9925 ± 0.0100 | 0.9938 ± 0.0083 | 0.9924 |
-| extra_trees | 0.9800 ± 0.0061 | 0.9838 ± 0.0050 | 0.9801 |
-| neural_net_mlp_lbfgs | 0.9550 ± 0.0257 | 0.9576 ± 0.0226 | 0.9547 |
-| svc_rbf | 0.9575 ± 0.0127 | 0.9515 ± 0.0221 | 0.9582 |
-| neural_net_mlp_adam | 0.9425 ± 0.0232 | 0.9222 ± 0.0395 | 0.9411 |
+| random_forest | 0.9960 ± 0.0049 | 0.9967 ± 0.0040 | 0.9960 |
+| hist_gradient_boosting | 0.9940 ± 0.0080 | 0.9898 ± 0.0166 | 0.9938 |
+| extra_trees | 0.9820 ± 0.0075 | 0.9834 ± 0.0079 | 0.9821 |
+| neural_net_mlp_adam | 0.9760 ± 0.0120 | 0.9715 ± 0.0172 | 0.9760 |
+| neural_net_mlp_lbfgs | 0.9660 ± 0.0206 | 0.9622 ± 0.0254 | 0.9660 |
+| svc_rbf | 0.9640 ± 0.0136 | 0.9590 ± 0.0189 | 0.9642 |
 
 ## Secondary Conservative Check
 
 | Model | Accuracy | Macro F1 | Weighted F1 |
 |---|---:|---:|---:|
-| random_forest | 0.9675 ± 0.0367 | 0.9738 ± 0.0264 | 0.9674 |
-| hist_gradient_boosting | 0.9650 ± 0.0464 | 0.9710 ± 0.0328 | 0.9645 |
-| extra_trees | 0.9575 ± 0.0232 | 0.9640 ± 0.0151 | 0.9574 |
-| neural_net_mlp_lbfgs | 0.9475 ± 0.0200 | 0.9491 ± 0.0209 | 0.9481 |
-| svc_rbf | 0.9600 ± 0.0348 | 0.9448 ± 0.0614 | 0.9610 |
-| neural_net_mlp_adam | 0.9350 ± 0.0561 | 0.9228 ± 0.0683 | 0.9339 |
+| svc_rbf | 0.9596 ± 0.0305 | 0.9580 ± 0.0415 | 0.9601 |
+| random_forest | 0.9703 ± 0.0291 | 0.9547 ± 0.0508 | 0.9698 |
+| extra_trees | 0.9660 ± 0.0239 | 0.9511 ± 0.0440 | 0.9654 |
+| hist_gradient_boosting | 0.9620 ± 0.0251 | 0.9477 ± 0.0464 | 0.9614 |
+| neural_net_mlp_lbfgs | 0.9495 ± 0.0365 | 0.9446 ± 0.0410 | 0.9494 |
+| neural_net_mlp_adam | 0.9564 ± 0.0399 | 0.9149 ± 0.1139 | 0.9527 |
 
-Selected model: `hist_gradient_boosting`
+Selected model: `random_forest`
 
 ## Selected Model Confusion Matrix
 
 Rows are true labels, columns are predictions `[Type1, Type2, Type3]`.
 
 ```text
-[[124   2   0]
- [  0 234   0]
- [  0   0  40]]
+[[158   2   0]
+ [  0 291   0]
+ [  0   0  49]]
 ```

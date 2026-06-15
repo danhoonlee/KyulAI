@@ -1,0 +1,37 @@
+{
+  "raw_root": "data/datasets/Double-Double",
+  "output_root": "data/datasets/DD_cases_2_3_4_curated_v1",
+  "cases": {
+    "Case2": {
+      "raw_folder": "2",
+      "records": 300,
+      "transition_table": "data/datasets/Double-Double/2/transition load P1.csv",
+      "type_counts": {
+        "type1": 108,
+        "type2": 145,
+        "type3": 47
+      }
+    },
+    "Case3": {
+      "raw_folder": "3",
+      "records": 300,
+      "transition_table": "data/datasets/Double-Double/3/transition load P1.csv",
+      "type_counts": {
+        "type1": 117,
+        "type2": 136,
+        "type3": 47
+      }
+    },
+    "Case4": {
+      "raw_folder": "4",
+      "records": 300,
+      "transition_table": "data/datasets/Double-Double/4/transition load P1.csv",
+      "type_counts": {
+        "type1": 96,
+        "type2": 164,
+        "type3": 40
+      }
+    }
+  },
+  "total_records": 900
+}

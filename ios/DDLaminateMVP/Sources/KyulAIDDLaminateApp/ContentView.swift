@@ -2,6 +2,27 @@ import KyulAIDDLaminateCore
 import SwiftUI
 
 struct ContentView: View {
+    private enum InputMode: String, CaseIterable, Identifiable {
+        case forecast
+        case u3
+
+        var id: String { rawValue }
+    }
+
+    private enum DetailRoute: Hashable, Identifiable {
+        case response(ResponsePredictionResult)
+        case u3(U3PtPredictionResult)
+
+        var id: String {
+            switch self {
+            case .response(let result):
+                "response-\(result.modelKey)-\(result.predictedPt)-\(result.curve.count)"
+            case .u3(let result):
+                "u3-\(result.modelKey)-\(result.predictedPt)-\(result.curve.count)"
+            }
+        }
+    }
+
     private enum FocusedField: Hashable {
         case theta1
         case theta2
@@ -11,7 +32,8 @@ struct ContentView: View {
     @EnvironmentObject private var settings: AppSettings
     @EnvironmentObject private var viewModel: PredictionViewModel
     @FocusState private var focusedField: FocusedField?
-    @State private var selectedResult: ResponsePredictionResult?
+    @State private var selectedDetail: DetailRoute?
+    @State private var selectedInputMode: InputMode = .forecast
     @State private var isShowingSettings = false
     @State private var isShowingResponseModelPicker = false
     @State private var isShowingComparison = false
@@ -19,127 +41,153 @@ struct ContentView: View {
     @State private var comparisonSelectionIDs: [String] = []
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    header
-                    connectionCard
-                    forecastCard
-                    recentResultsCard
-                    if let result = viewModel.result {
-                        latestResultCard(result)
-                    }
-                }
-                .padding(20)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                header
+                connectionCard
+                inputModePicker
+                selectedInputCard
+                recentResultsCard
+                selectedLatestResultCard
             }
-            #if os(iOS)
-            .scrollDismissesKeyboard(.interactively)
-            #endif
-            .simultaneousGesture(TapGesture().onEnded {
-                focusedField = nil
-            })
-            .background(AppTheme.background.ignoresSafeArea())
-            .appInlineNavigationTitle()
-            .toolbar {
-                ToolbarItemGroup(placement: toolbarTrailingPlacement) {
-                    Button {
-                        settings.toggleLanguage()
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "globe")
-                            Text(settings.languageCode.uppercased())
-                                .font(.caption.weight(.black))
-                        }
-                        .foregroundStyle(AppTheme.primary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
-                        .background(AppTheme.primary.opacity(0.10), in: Capsule())
+            .padding(20)
+        }
+        #if os(iOS)
+        .scrollDismissesKeyboard(.interactively)
+        #endif
+        .simultaneousGesture(TapGesture().onEnded {
+            focusedField = nil
+        })
+        .background(AppTheme.background.ignoresSafeArea())
+        .appInlineNavigationTitle()
+        .toolbar {
+            ToolbarItemGroup(placement: toolbarTrailingPlacement) {
+                Button {
+                    settings.toggleLanguage()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "globe")
+                        Text(settings.languageCode.uppercased())
+                            .font(.caption.weight(.black))
                     }
-                    .accessibilityLabel(L10n.t("language.toggle"))
+                    .foregroundStyle(AppTheme.primary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(AppTheme.primary.opacity(0.10), in: Capsule())
+                }
+                .accessibilityLabel(L10n.t("language.toggle"))
 
-                    Button {
-                        isShowingSettings = true
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                    }
+                Button {
+                    isShowingSettings = true
+                } label: {
+                    Image(systemName: "ellipsis.circle")
                 }
             }
-            .sheet(isPresented: $isShowingSettings) {
-                NavigationStack {
-                    settingsView
-                        .navigationTitle(L10n.t("api.settings.title"))
-                        .appInlineNavigationTitle()
-                        .toolbar {
-                            ToolbarItem(placement: .confirmationAction) {
-                                Button(L10n.t("done")) {
-                                    isShowingSettings = false
-                                }
-                            }
-                        }
-                }
-            }
-            .sheet(isPresented: $isShowingResponseModelPicker) {
-                NavigationStack {
-                    modelSelectionSheet
-                        .navigationTitle(L10n.t("choose.model"))
-                        .appInlineNavigationTitle()
-                        .toolbar {
-                            ToolbarItem(placement: .confirmationAction) {
-                                Button(L10n.t("done")) {
-                                    isShowingResponseModelPicker = false
-                                }
-                            }
-                        }
-                }
-            }
-            .sheet(isPresented: $isShowingComparison) {
-                NavigationStack {
-                    DDLaminateComparisonView(
-                        runs: viewModel.recentRuns,
-                        selectedIDs: $comparisonSelectionIDs
-                    )
-                    .navigationTitle(L10n.t("compare.results"))
+        }
+        .sheet(isPresented: $isShowingSettings) {
+            NavigationStack {
+                settingsView
+                    .navigationTitle(L10n.t("api.settings.title"))
                     .appInlineNavigationTitle()
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
                             Button(L10n.t("done")) {
-                                isShowingComparison = false
+                                isShowingSettings = false
                             }
                         }
                     }
-                }
             }
-            .sheet(isPresented: $isShowingRecentDelete) {
-                NavigationStack {
-                    RecentDeleteView(runs: viewModel.recentRuns) { selectedIDs in
-                        viewModel.deleteRecentRuns(ids: selectedIDs)
-                        isShowingRecentDelete = false
-                    }
-                    .navigationTitle(L10n.t("recent.delete.title"))
+        }
+        .sheet(isPresented: $isShowingResponseModelPicker) {
+            NavigationStack {
+                modelSelectionSheet
+                    .navigationTitle(L10n.t("choose.model"))
                     .appInlineNavigationTitle()
                     .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
+                        ToolbarItem(placement: .confirmationAction) {
                             Button(L10n.t("done")) {
-                                isShowingRecentDelete = false
+                                isShowingResponseModelPicker = false
                             }
+                        }
+                    }
+            }
+        }
+        .sheet(isPresented: $isShowingComparison) {
+            NavigationStack {
+                DDLaminateComparisonView(
+                    runs: viewModel.recentRuns,
+                    selectedIDs: $comparisonSelectionIDs
+                )
+                .navigationTitle(L10n.t("compare.results"))
+                .appInlineNavigationTitle()
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button(L10n.t("done")) {
+                            isShowingComparison = false
                         }
                     }
                 }
             }
-            .alert(L10n.t("prediction.error"), isPresented: errorBinding) {
-                Button(L10n.t("ok"), role: .cancel) { viewModel.errorMessage = nil }
-            } message: {
-                Text(friendlyErrorMessage(viewModel.errorMessage))
+        }
+        .sheet(isPresented: $isShowingRecentDelete) {
+            NavigationStack {
+                RecentDeleteView(runs: viewModel.recentRuns) { selectedIDs in
+                    viewModel.deleteRecentRuns(ids: selectedIDs)
+                    isShowingRecentDelete = false
+                }
+                .navigationTitle(L10n.t("recent.delete.title"))
+                .appInlineNavigationTitle()
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(L10n.t("done")) {
+                            isShowingRecentDelete = false
+                        }
+                    }
+                }
             }
-            .navigationDestination(item: $selectedResult) { result in
+        }
+        .alert(L10n.t("prediction.error"), isPresented: errorBinding) {
+            Button(L10n.t("ok"), role: .cancel) { viewModel.errorMessage = nil }
+        } message: {
+            Text(friendlyErrorMessage(viewModel.errorMessage))
+        }
+        .navigationDestination(item: $selectedDetail) { route in
+            switch route {
+            case .response(let result):
                 ResultDetailView(result: result)
+            case .u3(let result):
+                U3PtResultDetailView(result: result)
             }
-            .task {
-                await autoCheckConnection()
+        }
+        .task {
+            await autoCheckConnection()
+        }
+        .onChange(of: settings.apiBaseURL) {
+            viewModel.resetReadiness()
+            Task { await autoCheckConnection() }
+        }
+    }
+
+    @ViewBuilder
+    private var selectedInputCard: some View {
+        switch selectedInputMode {
+        case .forecast:
+            forecastCard
+        case .u3:
+            u3PtCard
+        }
+    }
+
+    @ViewBuilder
+    private var selectedLatestResultCard: some View {
+        switch selectedInputMode {
+        case .forecast:
+            if let result = viewModel.result {
+                latestResultCard(result)
             }
-            .onChange(of: settings.apiBaseURL) {
-                viewModel.resetReadiness()
-                Task { await autoCheckConnection() }
+        case .u3:
+            if let result = viewModel.u3PtResult {
+                u3PtResultCard(result)
             }
         }
     }
@@ -157,6 +205,16 @@ struct ContentView: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.top, 8)
+    }
+
+    private var inputModePicker: some View {
+        Picker(L10n.t("prediction.mode"), selection: $selectedInputMode) {
+            Label(L10n.t("forecast.inputs"), systemImage: "waveform.path.ecg")
+                .tag(InputMode.forecast)
+            Label(L10n.t("u3.forecast"), systemImage: "scope")
+                .tag(InputMode.u3)
+        }
+        .pickerStyle(.segmented)
     }
 
     private var connectionCard: some View {
@@ -312,6 +370,116 @@ struct ContentView: View {
                 .foregroundStyle(AppTheme.primary)
                 .frame(width: 32, height: 32)
             .background(AppTheme.primary.opacity(0.1), in: Circle())
+        }
+    }
+
+    private var u3PtCard: some View {
+        AppCard {
+            VStack(alignment: .leading, spacing: 18) {
+                HStack {
+                    Label(localText(en: "u3 Pt Forecast", ko: "u3 Pt 예측"), systemImage: "point.topleft.down.curvedto.point.bottomright.up")
+                        .font(.headline)
+                        .foregroundStyle(AppTheme.ink)
+                    Spacer()
+                    Text(localText(en: "Type predicted", ko: "Type 예측"))
+                        .font(.caption.bold())
+                        .foregroundStyle(AppTheme.primary)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 5)
+                        .background(AppTheme.primary.opacity(0.1), in: Capsule())
+                }
+
+                Text(localText(
+                    en: "Predict u3 Type, Pt, and an approximate curve from θ and Case.",
+                    ko: "θ와 Case만으로 u3 Type, Pt, 대략적인 곡선을 예측합니다."
+                ))
+                .font(.caption)
+                .foregroundStyle(AppTheme.muted)
+                .fixedSize(horizontal: false, vertical: true)
+
+                u3ModelMenu
+
+                Picker("Case", selection: $viewModel.selectedCase) {
+                    ForEach(DDLaminateCase.allCases) { laminateCase in
+                        Text(laminateCase.rawValue).tag(laminateCase)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                HStack(spacing: 12) {
+                    numericField(title: "Theta 1", value: $viewModel.theta1, field: .theta1)
+                    numericField(title: "Theta 2", value: $viewModel.theta2, field: .theta2)
+                }
+
+                Button {
+                    focusedField = nil
+                    Task { await predictU3Pt() }
+                } label: {
+                    HStack {
+                        if viewModel.isPredictingU3Pt {
+                            ProgressView()
+                                .tint(.white)
+                        } else {
+                            Image(systemName: "scope")
+                        }
+                        Text(viewModel.isPredictingU3Pt ? L10n.t("predicting") : localText(en: "Predict u3 Pt", ko: "u3 Pt 예측"))
+                            .fontWeight(.bold)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(PrimaryButtonStyle())
+                .disabled(!viewModel.canPredictU3Pt)
+            }
+        }
+    }
+
+    private var u3ModelMenu: some View {
+        let selectedModel = viewModel.u3PtModels.first { $0.key == viewModel.selectedU3PtModelKey }
+        let title = selectedModel?.displayLabel ?? viewModel.selectedU3PtModelKey
+        return VStack(alignment: .leading, spacing: 8) {
+            Text(localText(en: "u3 Pt Model", ko: "u3 Pt 모델"))
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppTheme.muted)
+            Menu {
+                ForEach(viewModel.u3PtModels) { model in
+                    Button {
+                        viewModel.selectU3PtModel(key: model.key)
+                    } label: {
+                        if model.key == viewModel.selectedU3PtModelKey {
+                            Label(model.displayLabel, systemImage: "checkmark")
+                        } else {
+                            Text(model.displayLabel)
+                        }
+                    }
+                    .disabled(!model.available)
+                }
+            } label: {
+                HStack(alignment: .center, spacing: 12) {
+                    Image(systemName: modelIcon(for: selectedModel))
+                        .font(.headline)
+                        .foregroundStyle(AppTheme.primary)
+                        .frame(width: 38, height: 38)
+                        .background(AppTheme.primary.opacity(0.10), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(title)
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(AppTheme.ink)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.78)
+                        Text(selectedModel?.description ?? localText(en: "Connect to the API to load u3 Pt models.", ko: "API에 연결하면 u3 Pt 모델을 불러옵니다."))
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.muted)
+                            .lineLimit(2)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(AppTheme.primary)
+                }
+                .padding(12)
+                .background(AppTheme.field, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
+            .buttonStyle(.plain)
         }
     }
 
@@ -647,7 +815,7 @@ struct ContentView: View {
 
                 HStack(spacing: 10) {
                     Button {
-                        selectedResult = result
+                        selectedDetail = .response(result)
                     } label: {
                         Label(L10n.t("open.full.result"), systemImage: "chart.xyaxis.line")
                             .frame(maxWidth: .infinity)
@@ -662,7 +830,7 @@ struct ContentView: View {
 
                     #if os(iOS)
                     ShareImageButton(
-                        fileName: "luvelox-laminate-forecast",
+                        fileName: "c2es-laminate-forecast",
                         report: LaminateShareImageReportView(result: result)
                     ) {
                         Label(L10n.t("share.image"), systemImage: "photo")
@@ -689,6 +857,70 @@ struct ContentView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
         .background(AppTheme.field, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private func u3PtResultCard(_ result: U3PtPredictionResult) -> some View {
+        AppCard {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(localText(en: "u3 Pt Result", ko: "u3 Pt 결과"))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(AppTheme.muted)
+                        Text("Pt \(result.predictedPt.metricText(digits: 2))")
+                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .foregroundStyle(AppTheme.ink)
+                    }
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 6) {
+                        if let predictedType = result.predictedType {
+                            Text("Type \(predictedType)")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(AppTheme.danger)
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 5)
+                                .background(AppTheme.danger.opacity(0.1), in: Capsule())
+                        }
+                        Text(result.displayModelLabel)
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(AppTheme.primary)
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 5)
+                            .background(AppTheme.primary.opacity(0.1), in: Capsule())
+                    }
+                }
+
+                HStack(spacing: 10) {
+                    if let confidence = result.confidence {
+                        miniMetric(localText(en: "Type Conf.", ko: "Type 신뢰도"), Optional(confidence).percentText)
+                    }
+                    miniMetric(L10n.t("max.force"), result.predictedMaxForce.metricText(digits: 1))
+                    miniMetric("Max. Disp.", result.predictedMaxDisplacement.metricText(digits: 5))
+                }
+
+                CurveChartView(points: result.curve, predictedPt: result.predictedPt, fitMode: .u3)
+                    .frame(height: 190)
+
+                Button {
+                    selectedDetail = .u3(result)
+                } label: {
+                    Label(L10n.t("open.full.result"), systemImage: "chart.xyaxis.line")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(SecondaryButtonStyle())
+
+                if !result.notes.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(result.notes, id: \.self) { note in
+                            Text("• \(note)")
+                                .font(.caption)
+                                .foregroundStyle(AppTheme.muted)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private var settingsView: some View {
@@ -791,11 +1023,27 @@ struct ContentView: View {
             let url = try BaseURLValidator.parse(settings.apiBaseURL)
             await viewModel.predict(baseURL: url)
             if let result = viewModel.result, viewModel.errorMessage == nil {
-                selectedResult = result
+                selectedDetail = .response(result)
             }
         } catch {
             viewModel.errorMessage = error.localizedDescription
         }
+    }
+
+    private func predictU3Pt() async {
+        do {
+            let url = try BaseURLValidator.parse(settings.apiBaseURL)
+            await viewModel.predictU3Forecast(baseURL: url)
+            if let result = viewModel.u3PtResult, viewModel.errorMessage == nil {
+                selectedDetail = .u3(result)
+            }
+        } catch {
+            viewModel.errorMessage = error.localizedDescription
+        }
+    }
+
+    private func localText(en: String, ko: String) -> String {
+        settings.languageCode == "ko" ? ko : en
     }
 
     private func friendlyConnectionMessage(_ message: String?) -> String {

@@ -12,9 +12,28 @@ import joblib
 import numpy as np
 
 
+def _theta_case_features(theta1: float, theta2: float, case: str) -> list[float]:
+    one_hot = [1.0 if case == case_name else 0.0 for case_name in ("Case2", "Case3", "Case4")]
+    return [
+        theta1,
+        theta2,
+        *one_hot,
+        abs(theta1),
+        abs(theta2),
+        theta1 - theta2,
+        theta1 + theta2,
+        theta1 * theta2,
+        abs(theta1 - theta2),
+    ]
+
+
 def predict_theta_type(model_path: str | Path, theta1: float, theta2: float, case: str = "Case4") -> dict:
     bundle = joblib.load(model_path)
-    x = np.array([[theta1, theta2, 1.0 if case == "Case4" else 0.0]], dtype=float)
+    feature_columns = bundle.get("feature_columns", [])
+    if "case_case2" in feature_columns:
+        x = np.array([_theta_case_features(theta1, theta2, case)], dtype=float)
+    else:
+        x = np.array([[theta1, theta2, 1.0 if case == "Case4" else 0.0]], dtype=float)
     model = bundle["model"]
     pred = int(model.predict(x)[0])
     probabilities = None
@@ -35,7 +54,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Predict DD Type from theta1/theta2/case")
     parser.add_argument("--theta1", type=float, required=True)
     parser.add_argument("--theta2", type=float, required=True)
-    parser.add_argument("--case", choices=["Case3", "Case4"], default="Case4")
+    parser.add_argument("--case", choices=["Case2", "Case3", "Case4"], default="Case4")
     parser.add_argument("--model", default="models/dd_laminate_theta_v1/theta_classifier.joblib")
     args = parser.parse_args()
     result = predict_theta_type(args.model, args.theta1, args.theta2, args.case)

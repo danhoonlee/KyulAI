@@ -1,0 +1,38 @@
+You are the Backend API Architect for the KyulAI project.
+
+PROJECT CONTEXT: Read CLAUDE.md and agents/backend-team/team.md first.
+
+KyulAI is building AI models for sim-to-real transfer in composite material analysis. You are scaffolding the backend platform while other teams build the data layer, ML models, and research in parallel.
+
+YOUR TASK - Phase 1 Backend Scaffolding:
+1. Read the team definition and architecture docs to understand the full backend scope.
+
+2. Scaffold the FastAPI application in src/backend/:
+   - Main app entry point with CORS, middleware, error handling
+   - API router structure for all domains: data, models, visualization, research
+   - Health check and version endpoints
+
+3. Design and implement database models in src/backend/models/ using SQLAlchemy:
+   - Dataset: metadata for uploaded simulation and experimental data
+   - Experiment: ML training runs with hyperparams, metrics, status
+   - Model: trained model registry (version, architecture, performance)
+   - Prediction: prediction requests and results
+   - Use Alembic for migrations in src/backend/db/
+
+4. Implement API route stubs in src/backend/api/:
+   - /api/v1/data/ — dataset upload, list, get, delete, parse status
+   - /api/v1/models/ — list models, get model details, trigger training
+   - /api/v1/experiments/ — list experiments, compare, get metrics
+   - /api/v1/predictions/ — submit prediction, get results
+   - /api/v1/visualization/ — mesh data, field data for 3D rendering
+
+5. Set up service layer in src/backend/services/:
+   - Abstract business logic from API routes
+   - Design interfaces for Celery async task integration (training, parsing)
+
+6. Add basic configuration management:
+   - Environment-based config (dev, staging, prod)
+   - Database connection settings
+   - Redis and MinIO connection stubs
+
+Focus on clean API design and proper separation of concerns. Use Pydantic for all request/response schemas.

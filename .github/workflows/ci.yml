@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install lint tools
+        run: pip install ruff mypy
+
+      - name: Ruff check
+        run: ruff check src/ tests/
+
+      - name: Ruff format check
+        run: ruff format --check src/ tests/
+
+      - name: Type check
+        run: mypy src/ --ignore-missing-imports
+        continue-on-error: true  # Gradual adoption
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: kyulai
+          POSTGRES_PASSWORD: kyulai
+          POSTGRES_DB: kyulai_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements-api.txt
+          pip install pytest pytest-cov pytest-asyncio
+
+      - name: Install project
+        run: pip install -e .
+
+      - name: Run tests
+        env:
+          DATABASE_URL: postgresql://kyulai:kyulai@localhost:5432/kyulai_test
+          REDIS_URL: redis://localhost:6379/0
+          MLFLOW_TRACKING_URI: ""  # Disable MLflow in CI
+        run: |
+          pytest tests/ \
+            --cov=src \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            -x \
+            -q
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: coverage.xml
+        continue-on-error: true
+
+  model-validation:
+    name: Model Validation (on main push)
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install ML dependencies (CPU only)
+        run: |
+          pip install torch==2.2.0+cpu --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements-ml.txt --no-deps
+          pip install pytest
+          pip install -e .
+
+      - name: Run model smoke tests
+        run: pytest tests/ml/ -m "not slow" -q
+
+      - name: Check physics constraints pass
+        run: python -m pytest tests/validation/ -q

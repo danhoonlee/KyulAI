@@ -2,6 +2,66 @@
 
 _Last updated: 2026-04-29_
 
+## 2026-05-12 Update: Case3 Test_201-Test_300 Added
+
+New data arrived at `/Users/danlee/KyulAI_codex/data/datasets/DD_new` in two
+50-sample batches:
+
+- `201-250`
+- `251-300`
+
+Both batches are Case 3:
+
+`[[±theta1]/[±theta2]/[∓theta2]/[∓theta2]]2`
+
+The sibling-provided folders `1`, `2`, and `3` were treated as original labels
+and checked with the existing CSV metadata+curve classifier. Six labels were
+changed from Type 1 to Type 2 based on high-confidence model disagreement and
+curve-shape metrics:
+
+- `Test_241`
+- `Test_266`
+- `Test_272`
+- `Test_291`
+- `Test_293`
+- `Test_295`
+
+The original 400-sample curated dataset remains preserved as
+`data/datasets/DD_curated_csv_v1`. The new active training dataset is:
+
+`/Users/danlee/KyulAI_codex/data/datasets/DD_curated_csv_v2`
+
+Current v2 label counts:
+
+| Case | Type 1 | Type 2 | Type 3 | Total |
+|---|---:|---:|---:|---:|
+| Case3 | 96 | 175 | 29 | 300 |
+| Case4 | 64 | 116 | 20 | 200 |
+| Total | 160 | 291 | 49 | 500 |
+
+New-data review files:
+
+- `/Users/danlee/KyulAI_codex/data/datasets/DD_new/case3_201_300_classification_review.md`
+- `/Users/danlee/KyulAI_codex/data/datasets/DD_new/case3_201_300_classification_review.csv`
+
+Updated model results from the 500-sample v2 dataset:
+
+| Model | Validation | Accuracy | Macro F1 | Notes |
+|---|---|---:|---:|---|
+| CSV curve classifier | Sample CV | 0.9960 | 0.9967 | Best model changed to RandomForest |
+| CSV curve classifier | Grouped CV | 0.9703 | 0.9547 | RandomForest conservative check |
+| Deep sequence classifier | Grouped CV | 0.9739 | 0.9703 | GRU + JointMLP-style head |
+| Theta/case classifier | Sample CV | 0.9640 | 0.9579 | Best model: HistGradientBoosting |
+| Theta/case classifier | Grouped CV | 0.9255 | 0.9180 | Best grouped model: MLP LBFGS |
+| Theta GointMLP-style NN | Grouped CV | 0.8975 | 0.8901 | Deep theta-only baseline |
+| Response surrogate | Grouped CV | 0.9380 | 0.9378 | Pt MAE 261.26, curve force RMSE 583.90 |
+| Response GointMLP-style NN | Grouped CV | 0.9460 | 0.9472 | Pt MAE 533.09, curve force RMSE 1653.11 |
+
+For future data additions, prefer full retraining from the curated dataset while
+the dataset is still small. Current classical and neural models are retrained
+from scratch, not incrementally fine-tuned. This keeps validation reproducible
+and avoids locking in early labeling/model errors.
+
 ## 1. Current Goal
 
 Double-Double laminate simulation results are being used to automate Type classification and eventually screen/optimize theta combinations before running Abaqus.

@@ -3,16 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>KCLab Composite AI DD Laminate Predictor</title>
-    <link rel="stylesheet" href="./styles.css?v=20260430-ko-page" />
+    <title>Double-Double Laminate Forecast</title>
+    <link rel="stylesheet" href="./styles.css?v=20260615-xai-more-reset" />
   </head>
   <body>
     <main class="shell">
       <section class="workspace" aria-labelledby="app-title">
         <header class="topbar">
           <div>
-            <p class="eyebrow">KCLab Composite AI</p>
-            <h1 id="app-title">DD Laminate Type Predictor</h1>
+            <p class="eyebrow">Composite AI</p>
+            <h1 id="app-title">Double-Double Laminate Forecast</h1>
           </div>
           <div class="top-actions">
             <a class="language-link" href="./index.ko.html">한국어</a>
@@ -22,57 +22,19 @@
 
         <section class="intro-panel" aria-label="Application summary">
           <p>
-            Predict DD laminate Type from pre-Abaqus theta/case inputs, estimate response curves before simulation,
-            or classify uploaded force-displacement CSV results after analysis.
+            Predict Double-Double laminate Type, Pt, and force-displacement response from θ and Case,
+            then classify uploaded force-displacement CSV results when available.
           </p>
         </section>
 
         <div class="mode-switch" role="tablist" aria-label="Prediction mode">
-          <button class="mode-button active" type="button" data-mode="theta">Theta + case</button>
-          <button class="mode-button" type="button" data-mode="response">Response estimate</button>
+          <button class="mode-button active" type="button" data-mode="response">Laminate Forecast</button>
+          <button class="mode-button" type="button" data-mode="u3">u3 Forecast</button>
           <button class="mode-button" type="button" data-mode="curve">Curve CSV</button>
         </div>
 
         <div class="grid" id="workspace-grid">
           <section class="panel input-panel" aria-label="Prediction input">
-            <form id="theta-form" class="form active">
-              <div class="form-header">
-                <h2>Pre-Abaqus Type Estimate</h2>
-                <p>Use this before simulation data exists.</p>
-              </div>
-
-              <label>
-                Model
-                <select name="model" id="theta-model"></select>
-              </label>
-
-              <div class="two-col">
-                <label>
-                  θ₁
-                  <input name="theta1" type="number" min="-90" max="90" step="0.1" value="-29" required />
-                </label>
-                <label>
-                  θ₂
-                  <input name="theta2" type="number" min="-90" max="90" step="0.1" value="74" required />
-                </label>
-              </div>
-
-              <label>
-                Case
-                <select name="case">
-                  <option value="Case3">Case 3</option>
-                  <option value="Case4" selected>Case 4</option>
-                </select>
-              </label>
-
-              <div class="case-guide" aria-label="Case formulas">
-                <p><strong>Case 3</strong> [[±θ₁]/[±θ₂]/[∓θ₂]/[∓θ₂]]₂</p>
-                <p><strong>Case 4</strong> [([±θ₁]/[±θ₂])₂ / ([∓θ₁]/[∓θ₂])₂]</p>
-              </div>
-
-              <button class="primary" type="submit">Predict Type</button>
-            </form>
-
             <form id="curve-form" class="form">
               <div class="form-header">
                 <h2>Post-Simulation Classification</h2>
@@ -103,6 +65,7 @@
                 <label>
                   Case
                   <select name="case">
+                    <option value="Case2">Case 2</option>
                     <option value="Case3">Case 3</option>
                     <option value="Case4">Case 4</option>
                     <option value="Unknown">Unknown</option>
@@ -111,6 +74,7 @@
               </div>
 
               <div class="case-guide" aria-label="Case formulas">
+                <p><strong>Case 2</strong> [[±θ₁]/[±θ₂]]₄</p>
                 <p><strong>Case 3</strong> [[±θ₁]/[±θ₂]/[∓θ₂]/[∓θ₂]]₂</p>
                 <p><strong>Case 4</strong> [([±θ₁]/[±θ₂])₂ / ([∓θ₁]/[∓θ₂])₂]</p>
               </div>
@@ -128,10 +92,50 @@
               <button class="primary" type="submit">Predict Type</button>
             </form>
 
-            <form id="response-form" class="form">
+            <form id="u3-pt-form" class="form">
               <div class="form-header">
-                <h2>Pre-Abaqus Response Estimate</h2>
-                <p>Estimate Type, Pt, and force-displacement curve from angles and case.</p>
+                <h2>u3 Pt Forecast</h2>
+                <p>Predict u3 Type, Pt, and an approximate curve from θ and Case.</p>
+              </div>
+
+              <label>
+                Model
+                <select name="model" id="u3-pt-model"></select>
+              </label>
+
+              <div class="two-col">
+                <label>
+                  θ₁
+                  <input name="theta1" type="number" min="-90" max="90" step="0.1" value="65" required />
+                </label>
+                <label>
+                  θ₂
+                  <input name="theta2" type="number" min="-90" max="90" step="0.1" value="19" required />
+                </label>
+              </div>
+
+              <label>
+                Case
+                <select name="case">
+                  <option value="Case2">Case 2</option>
+                  <option value="Case3" selected>Case 3</option>
+                  <option value="Case4">Case 4</option>
+                </select>
+              </label>
+
+              <div class="case-guide" aria-label="Case formulas">
+                <p><strong>Case 2</strong> [[±θ₁]/[±θ₂]]₄</p>
+                <p><strong>Case 3</strong> [[±θ₁]/[±θ₂]/[∓θ₂]/[∓θ₂]]₂</p>
+                <p><strong>Case 4</strong> [([±θ₁]/[±θ₂])₂ / ([∓θ₁]/[∓θ₂])₂]</p>
+              </div>
+
+              <button class="primary" type="submit">Predict u3 Pt</button>
+            </form>
+
+            <form id="response-form" class="form active">
+              <div class="form-header">
+                <h2>Laminate Prediction Program</h2>
+                <p>Forecast Type, Pt, and force-displacement curve from angles and case.</p>
               </div>
 
               <label>
@@ -153,17 +157,19 @@
               <label>
                 Case
                 <select name="case">
+                  <option value="Case2">Case 2</option>
                   <option value="Case3">Case 3</option>
                   <option value="Case4" selected>Case 4</option>
                 </select>
               </label>
 
               <div class="case-guide" aria-label="Case formulas">
+                <p><strong>Case 2</strong> [[±θ₁]/[±θ₂]]₄</p>
                 <p><strong>Case 3</strong> [[±θ₁]/[±θ₂]/[∓θ₂]/[∓θ₂]]₂</p>
                 <p><strong>Case 4</strong> [([±θ₁]/[±θ₂])₂ / ([∓θ₁]/[∓θ₂])₂]</p>
               </div>
 
-              <button class="primary" type="submit">Estimate Response</button>
+              <button class="primary" type="submit">Run Forecast</button>
             </form>
           </section>
 
@@ -209,7 +215,7 @@
           <section class="panel result-panel" aria-live="polite">
             <div class="empty-state" id="empty-state">
               <h2>Ready for input</h2>
-              <p>Enter theta values or upload a CSV to see Type probabilities.</p>
+              <p>Enter theta values to forecast response, or upload a CSV after simulation.</p>
             </div>
 
             <div class="result hidden" id="result">
@@ -218,7 +224,13 @@
                   <p class="eyebrow">Prediction</p>
                   <h2 id="predicted-type">Type -</h2>
                 </div>
-                <div class="confidence" id="confidence">-</div>
+                <div class="result-side">
+                  <div class="confidence" id="confidence">-</div>
+                  <div class="result-actions" aria-label="Export report">
+                    <button type="button" class="secondary" id="export-report-png">PNG</button>
+                    <button type="button" class="secondary" id="export-report-pdf">PDF</button>
+                  </div>
+                </div>
               </div>
 
               <div class="bars" id="probability-bars"></div>
@@ -237,8 +249,8 @@
               <section class="response-estimate hidden" id="response-estimate">
                 <div class="preview-head">
                   <div>
-                    <p class="eyebrow">Estimated Response</p>
-                    <h2 id="response-curve-title">Surrogate curve</h2>
+                    <p class="eyebrow">Laminate Forecast</p>
+                    <h2 id="response-curve-title">Predicted curve</h2>
                   </div>
                 </div>
 
@@ -261,9 +273,22 @@
                 <div class="curve-legend" aria-label="Response curve legend">
                   <span><i class="legend-swatch curve"></i>Predicted curve</span>
                   <span><i class="legend-swatch guide"></i>Linear fits</span>
-                  <span><i class="legend-swatch kink"></i>Kink line</span>
+                  <span><i class="legend-swatch kink"></i>Fit intersection</span>
                   <span><i class="legend-swatch pt"></i>Predicted Pt</span>
                 </div>
+              </section>
+
+              <section class="xai-panel hidden" id="xai-panel">
+                <div class="preview-head">
+                  <div>
+                    <p class="eyebrow">XAI</p>
+                    <h2 id="xai-title">Why this prediction?</h2>
+                  </div>
+                </div>
+                <p class="xai-summary" id="xai-summary"></p>
+                <div class="xai-method" id="xai-method"></div>
+                <div class="xai-features" id="xai-features"></div>
+                <ul class="xai-notes" id="xai-notes"></ul>
               </section>
 
               <ul class="notes" id="notes"></ul>
@@ -275,6 +300,6 @@
       </section>
     </main>
 
-    <script src="./app.js?v=20260430-ko-page"></script>
+    <script src="./app.js?v=20260615-xai-more-reset"></script>
   </body>
 </html>

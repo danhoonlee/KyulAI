@@ -30,7 +30,7 @@
 		<true/>
 	</dict>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Luvelox Laminate connects to your local development API server for laminate prediction.</string>
+	<string>C2ES Laminate connects to your local development API server for laminate prediction.</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>

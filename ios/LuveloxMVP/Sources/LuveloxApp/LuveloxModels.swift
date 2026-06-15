@@ -59,12 +59,83 @@ public struct LuveloxModule: Codable, Equatable, Identifiable, Sendable {
 public struct LuveloxUserModulesResponse: Codable, Equatable, Sendable {
     public let brand: String
     public let licenseMode: String
+    public let user: LuveloxAccountUser?
     public let modules: [LuveloxModule]
 
     enum CodingKeys: String, CodingKey {
         case brand
         case licenseMode = "license_mode"
+        case user
         case modules
+    }
+}
+
+public struct LuveloxAccountUser: Codable, Equatable, Sendable {
+    public let id: String
+    public let email: String
+    public let name: String
+    public let company: String?
+}
+
+public struct LuveloxAuthSession: Codable, Equatable, Sendable {
+    public let accessToken: String
+    public let tokenType: String
+    public let user: LuveloxAccountUser
+    public let entitlements: [String]
+
+    enum CodingKeys: String, CodingKey {
+        case accessToken = "access_token"
+        case tokenType = "token_type"
+        case user
+        case entitlements
+    }
+
+    public static let demo = LuveloxAuthSession(
+        accessToken: "demo-token",
+        tokenType: "bearer",
+        user: LuveloxAccountUser(
+            id: "demo-user",
+            email: "demo@luvelox.com",
+            name: "Demo Account",
+            company: "C2ES MVP"
+        ),
+        entitlements: ["module.laminate", "module.injection"]
+    )
+
+    public static let danlee = LuveloxAuthSession(
+        accessToken: "danlee-token",
+        tokenType: "bearer",
+        user: LuveloxAccountUser(
+            id: "danlee",
+            email: "danlee@luvelox.com",
+            name: "Dan Lee",
+            company: "C2ES"
+        ),
+        entitlements: ["module.laminate", "module.injection", "module.optimization"]
+    )
+}
+
+public struct LuveloxAccessRequestPayload: Encodable, Equatable, Sendable {
+    public let moduleId: String
+    public let message: String
+
+    enum CodingKeys: String, CodingKey {
+        case moduleId = "module_id"
+        case message
+    }
+}
+
+public struct LuveloxAccessRequestResponse: Codable, Equatable, Sendable {
+    public let status: String
+    public let moduleId: String
+    public let message: String
+    public let user: LuveloxAccountUser?
+
+    enum CodingKeys: String, CodingKey {
+        case status
+        case moduleId = "module_id"
+        case message
+        case user
     }
 }
 
@@ -91,7 +162,7 @@ public enum LuveloxFallbackCatalog {
                 primaryPredictPath: "/api/v1/dd-laminate/predict/response"
             ),
             access: "granted",
-            accessReason: "Available in the Luvelox MVP workspace."
+            accessReason: "Available in the C2ES MVP workspace."
         ),
         LuveloxModule(
             id: "injection",
@@ -114,7 +185,30 @@ public enum LuveloxFallbackCatalog {
                 primaryPredictPath: "/api/v1/simple-injection/predict/sprue-pressure"
             ),
             access: "granted",
-            accessReason: "Available in the Luvelox MVP workspace."
+            accessReason: "Available in the C2ES MVP workspace."
+        ),
+        LuveloxModule(
+            id: "optimization",
+            name: "Optimization",
+            shortName: "Optimize",
+            category: "Design",
+            summary: "Explore candidate designs and rank promising simulation settings across enabled modules.",
+            icon: "sparkles",
+            status: "planned",
+            entitlementKey: "module.optimization",
+            defaultEnabled: false,
+            tags: ["DOE", "Ranking", "Design space"],
+            capabilities: ["candidate_ranking", "batch_prediction"],
+            route: LuveloxModuleRoute(
+                baseURL: URL(string: "https://api.luvelox.com")!,
+                webURL: URL(string: "https://luvelox.com")!,
+                apiPrefix: "/api/v1/optimization",
+                healthPath: "/health",
+                modelsPath: "/api/v1/optimization/models",
+                primaryPredictPath: "/api/v1/optimization/search"
+            ),
+            access: "locked",
+            accessReason: "Planned module; not available in this workspace yet."
         ),
     ]
 }

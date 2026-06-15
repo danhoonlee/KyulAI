@@ -1,0 +1,350 @@
+"""Train a DeepONet-style Simple Injection sprue pressure surrogate."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import random
+from pathlib import Path
+
+import numpy as np
+import torch
+import torch.nn.functional as F
+from sklearn.metrics import mean_absolute_error
+from sklearn.model_selection import GroupKFold, KFold
+from torch.utils.data import DataLoader, Dataset, Subset
+
+from .data import DEFAULT_DATA_DIR, load_training_arrays
+from .metrics import normalize_curve_shape, sprue_curve_shape_metrics
+from .model import SimpleInjectionDeepONetSurrogate
+from .physics import sprue_physics_loss
+
+
+class PressureDataset(Dataset):
+    def __init__(self, x: np.ndarray, y_scalars_norm: np.ndarray, y_curve: np.ndarray):
+        self.x = torch.tensor(x, dtype=torch.float32)
+        self.y_scalars_norm = torch.tensor(y_scalars_norm, dtype=torch.float32)
+        self.y_curve = torch.tensor(y_curve, dtype=torch.float32)
+
+    def __len__(self) -> int:
+        return len(self.x)
+
+    def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
+        return {
+            "x": self.x[idx],
+            "scalars": self.y_scalars_norm[idx],
+            "curve": self.y_curve[idx],
+        }
+
+
+def set_seed(seed: int) -> None:
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+
+
+def normalize(train: np.ndarray, values: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    mean = train.mean(axis=0)
+    std = train.std(axis=0)
+    std = np.where(std < 1e-9, 1.0, std)
+    return (values - mean) / std, mean, std
+
+
+def denormalize_scalars(values_norm: np.ndarray, mean: np.ndarray, std: np.ndarray) -> np.ndarray:
+    return np.expm1(values_norm * std + mean)
+
+
+def split_iter(cv_mode: str, splits: int, seed: int, x: np.ndarray, groups: np.ndarray):
+    if cv_mode == "grouped":
+        n_splits = min(splits, len(np.unique(groups)))
+        if n_splits < 2:
+            raise ValueError("Grouped CV needs at least two geometry groups.")
+        yield from GroupKFold(n_splits=n_splits).split(x, groups=groups)
+    elif cv_mode == "sample":
+        n_splits = min(splits, len(x))
+        if n_splits < 2:
+            raise ValueError("Sample CV needs at least two samples.")
+        yield from KFold(n_splits=n_splits, shuffle=True, random_state=seed).split(x)
+    else:
+        raise ValueError(cv_mode)
+
+
+def make_model(args, input_dim: int, device: torch.device) -> SimpleInjectionDeepONetSurrogate:
+    return SimpleInjectionDeepONetSurrogate(
+        input_dim=input_dim,
+        latent_dim=args.latent_dim,
+        branch_hidden_dim=args.branch_hidden_dim,
+        trunk_hidden_dim=args.trunk_hidden_dim,
+        dropout=args.dropout,
+        fourier_features=args.fourier_features,
+    ).to(device)
+
+
+def run_epoch(model, loader, optimizer, grid, device, train: bool, args):
+    model.train(mode=train)
+    total_loss = 0.0
+    total_n = 0
+    scalar_pred = []
+    scalar_true = []
+    curve_pred = []
+    curve_true = []
+    for batch in loader:
+        x = batch["x"].to(device)
+        scalars = batch["scalars"].to(device)
+        curve = batch["curve"].to(device)
+        if train:
+            optimizer.zero_grad(set_to_none=True)
+        pred_scalars, pred_curve = model(x, grid)
+        pred_shape = pred_curve / torch.clamp(torch.amax(pred_curve, dim=1, keepdim=True), min=1e-6)
+        scalar_loss = F.smooth_l1_loss(pred_scalars, scalars)
+        curve_loss = F.smooth_l1_loss(pred_shape, curve)
+        peak_loss = F.smooth_l1_loss(torch.amax(pred_curve, dim=1), torch.ones_like(pred_curve[:, 0]))
+        smooth_loss = F.smooth_l1_loss(pred_curve[:, 1:], pred_curve[:, :-1])
+        physics_loss = sprue_physics_loss(pred_curve, curve, grid, args)
+        loss = (
+            args.scalar_weight * scalar_loss
+            + args.curve_weight * curve_loss
+            + args.peak_weight * peak_loss
+            + args.smoothness_weight * smooth_loss
+            + args.physics_weight * physics_loss
+        )
+        if train:
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 3.0)
+            optimizer.step()
+        total_loss += float(loss.detach().cpu()) * x.shape[0]
+        total_n += x.shape[0]
+        scalar_pred.append(pred_scalars.detach().cpu().numpy())
+        scalar_true.append(scalars.detach().cpu().numpy())
+        curve_pred.append(pred_curve.detach().cpu().numpy())
+        curve_true.append(curve.detach().cpu().numpy())
+    return {
+        "loss": total_loss / max(1, total_n),
+        "scalar_pred_norm": np.concatenate(scalar_pred, axis=0),
+        "scalar_true_norm": np.concatenate(scalar_true, axis=0),
+        "curve_pred": np.concatenate(curve_pred, axis=0),
+        "curve_true": np.concatenate(curve_true, axis=0),
+    }
+
+
+def metric_row(eval_out, scalar_mean: np.ndarray, scalar_std: np.ndarray, grid: np.ndarray) -> dict[str, float]:
+    pred_scalars = np.maximum(
+        denormalize_scalars(eval_out["scalar_pred_norm"], scalar_mean, scalar_std),
+        1e-9,
+    )
+    true_scalars = np.maximum(
+        denormalize_scalars(eval_out["scalar_true_norm"], scalar_mean, scalar_std),
+        1e-9,
+    )
+    pred_curve = normalize_curve_shape(eval_out["curve_pred"])
+    true_curve = eval_out["curve_true"]
+    pred_pressure = pred_curve * np.maximum(pred_scalars[:, 1:2], 1e-9)
+    true_pressure = true_curve * np.maximum(true_scalars[:, 1:2], 1e-9)
+    row = {
+        "max_time_mae": float(mean_absolute_error(true_scalars[:, 0], pred_scalars[:, 0])),
+        "max_pressure_mae": float(mean_absolute_error(true_scalars[:, 1], pred_scalars[:, 1])),
+        "curve_norm_rmse": float(np.sqrt(np.mean((pred_curve - true_curve) ** 2))),
+        "curve_pressure_rmse": float(np.sqrt(np.mean((pred_pressure - true_pressure) ** 2))),
+    }
+    row.update(sprue_curve_shape_metrics(true_scalars, true_curve, pred_scalars, pred_curve, grid))
+    return row
+
+
+def train_one_fold(dataset, train_idx, val_idx, args, device, grid, scalar_mean, scalar_std):
+    train_loader = DataLoader(Subset(dataset, train_idx.tolist()), batch_size=args.batch_size, shuffle=True)
+    val_loader = DataLoader(Subset(dataset, val_idx.tolist()), batch_size=args.batch_size, shuffle=False)
+    model = make_model(args, dataset.x.shape[1], device)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.55, patience=12)
+    best_state = None
+    best_loss = float("inf")
+    best_epoch = 0
+    stale = 0
+    for epoch in range(1, args.epochs + 1):
+        run_epoch(model, train_loader, optimizer, grid, device, train=True, args=args)
+        val_out = run_epoch(model, val_loader, optimizer, grid, device, train=False, args=args)
+        val_loss = float(val_out["loss"])
+        scheduler.step(val_loss)
+        if val_loss < best_loss:
+            best_loss = val_loss
+            best_epoch = epoch
+            best_state = {key: value.detach().cpu().clone() for key, value in model.state_dict().items()}
+            stale = 0
+        else:
+            stale += 1
+        if stale >= args.patience:
+            break
+    if best_state is not None:
+        model.load_state_dict(best_state)
+    val_out = run_epoch(model, val_loader, optimizer, grid, device, train=False, args=args)
+    row = metric_row(val_out, scalar_mean, scalar_std, grid.detach().cpu().numpy())
+    row["best_epoch"] = best_epoch
+    return row
+
+
+def train_final(dataset, args, device, grid):
+    loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
+    model = make_model(args, dataset.x.shape[1], device)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+    for _ in range(args.final_epochs):
+        run_epoch(model, loader, optimizer, grid, device, train=True, args=args)
+    return model
+
+
+def write_report(output_dir: Path, args, metrics: dict) -> None:
+    lines = [
+        "# Simple Injection DeepONet Sprue Pressure Report",
+        "",
+        "This is a DeepONet-style operator surrogate for Moldex3D sprue pressure.",
+        "The branch network encodes DOE features, and the trunk network encodes normalized time.",
+        "",
+        f"- Samples: {metrics['n_samples']}",
+        f"- Input dimension: {metrics['input_dim']}",
+        f"- Sequence length: {metrics['seq_len']}",
+        f"- Validation mode: `{args.cv_mode}`; folds: {args.splits}",
+        "",
+        "| Metric | Mean | Std |",
+        "|---|---:|---:|",
+        f"| Pressure curve RMSE (MPa) | {metrics['cv_curve_pressure_rmse_mean']:.4f} | {metrics['cv_curve_pressure_rmse_std']:.4f} |",
+        f"| Max pressure MAE (MPa) | {metrics['cv_max_pressure_mae_mean']:.4f} | {metrics['cv_max_pressure_mae_std']:.4f} |",
+        f"| Max time MAE (s) | {metrics['cv_max_time_mae_mean']:.4f} | {metrics['cv_max_time_mae_std']:.4f} |",
+        f"| Normalized curve RMSE | {metrics['cv_curve_norm_rmse_mean']:.5f} | {metrics['cv_curve_norm_rmse_std']:.5f} |",
+        f"| Shape correlation | {metrics['cv_shape_corr_mean_mean']:.4f} | {metrics['cv_shape_corr_mean_std']:.4f} |",
+        f"| Normalized AUC MAE | {metrics['cv_norm_auc_mae_mean']:.5f} | {metrics['cv_norm_auc_mae_std']:.5f} |",
+        f"| Pressure-time AUC MAE (MPa*s) | {metrics['cv_pressure_time_auc_mae_mean']:.4f} | {metrics['cv_pressure_time_auc_mae_std']:.4f} |",
+        f"| Peak position MAE (normalized time) | {metrics['cv_peak_position_mae_norm_time_mean']:.5f} | {metrics['cv_peak_position_mae_norm_time_std']:.5f} |",
+        f"| Rise slope MAE (normalized) | {metrics['cv_rise_slope_mae_norm_mean']:.4f} | {metrics['cv_rise_slope_mae_norm_std']:.4f} |",
+        "",
+        "Weak physics-informed penalties are enabled for nonnegative pressure, peak timing, and oscillation suppression.",
+        "",
+        "This model is intended for shape-aware curve behavior on user-edited DOE combinations.",
+    ]
+    (output_dir / "sprue_pressure_deeponet_report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def train_deeponet_surrogate(data_dir: str | Path, output_dir: str | Path, args) -> dict:
+    records, x_raw, y_scalars, y_curve, grid_np, feature_columns, gate_types = load_training_arrays(
+        data_dir,
+        seq_len=args.seq_len,
+    )
+    x_norm, feature_mean, feature_std = normalize(x_raw, x_raw)
+    y_scalars_log = np.log1p(y_scalars)
+    y_scalars_norm, scalar_mean, scalar_std = normalize(y_scalars_log, y_scalars_log)
+    dataset = PressureDataset(x_norm, y_scalars_norm, y_curve)
+    groups = np.asarray([record.geometry_id for record in records])
+    grid = torch.tensor(grid_np, dtype=torch.float32, device=args.device_torch)
+
+    fold_rows = []
+    for fold, (train_idx, val_idx) in enumerate(
+        split_iter(args.cv_mode, args.splits, args.seed, x_norm, groups),
+        start=1,
+    ):
+        print(f"Starting fold {fold}/{args.splits}...")
+        row = train_one_fold(dataset, train_idx, val_idx, args, args.device_torch, grid, scalar_mean, scalar_std)
+        row["fold"] = fold
+        fold_rows.append(row)
+        print(
+            f"Fold {fold}: pressure_rmse={row['curve_pressure_rmse']:.4f}, "
+            f"max_pressure_mae={row['max_pressure_mae']:.4f}, best_epoch={row['best_epoch']}"
+        )
+
+    metrics: dict[str, float | int] = {
+        "n_samples": len(records),
+        "seq_len": args.seq_len,
+        "input_dim": int(x_norm.shape[1]),
+    }
+    for key in [
+        "max_time_mae",
+        "max_pressure_mae",
+        "curve_norm_rmse",
+        "curve_pressure_rmse",
+        "shape_corr_mean",
+        "shape_corr_min",
+        "norm_auc_mae",
+        "pressure_time_auc_mae",
+        "peak_position_mae_norm_time",
+        "rise_slope_mae_norm",
+    ]:
+        values = [row[key] for row in fold_rows]
+        metrics[f"cv_{key}_mean"] = float(np.mean(values))
+        metrics[f"cv_{key}_std"] = float(np.std(values))
+
+    final_model = train_final(dataset, args, args.device_torch, grid)
+    out = Path(output_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    model_path = out / "sprue_pressure_deeponet.pt"
+    torch.save(
+        {
+            "model_state_dict": final_model.state_dict(),
+            "model_config": {
+                "input_dim": int(x_norm.shape[1]),
+                "latent_dim": args.latent_dim,
+                "branch_hidden_dim": args.branch_hidden_dim,
+                "trunk_hidden_dim": args.trunk_hidden_dim,
+                "dropout": args.dropout,
+                "fourier_features": args.fourier_features,
+                "physics_weight": args.physics_weight,
+                "nonnegative_weight": args.nonnegative_weight,
+                "oscillation_weight": args.oscillation_weight,
+                "peak_timing_weight": args.peak_timing_weight,
+            },
+            "feature_columns": feature_columns,
+            "gate_types": gate_types,
+            "feature_mean": feature_mean,
+            "feature_std": feature_std,
+            "scalar_columns": ["max_time_s", "max_pressure_MPa"],
+            "scalar_log_mean": scalar_mean,
+            "scalar_log_std": scalar_std,
+            "grid": grid_np,
+            "metrics": metrics,
+            "fold_metrics": fold_rows,
+            "sample_ids": [record.sample_id for record in records],
+        },
+        model_path,
+    )
+    (out / "sprue_pressure_deeponet_metrics.json").write_text(
+        json.dumps({"metrics": metrics, "fold_metrics": fold_rows}, indent=2),
+        encoding="utf-8",
+    )
+    write_report(out, args, metrics)
+    return {"model_path": str(model_path), "metrics": metrics}
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Train Simple Injection DeepONet sprue pressure surrogate")
+    parser.add_argument("--data-dir", default=str(DEFAULT_DATA_DIR))
+    parser.add_argument("--output-dir", default="models/simple_injection_sprue_deeponet_v1")
+    parser.add_argument("--seq-len", type=int, default=128)
+    parser.add_argument("--splits", type=int, default=5)
+    parser.add_argument("--cv-mode", choices=["grouped", "sample"], default="grouped")
+    parser.add_argument("--epochs", type=int, default=260)
+    parser.add_argument("--final-epochs", type=int, default=160)
+    parser.add_argument("--patience", type=int, default=36)
+    parser.add_argument("--batch-size", type=int, default=24)
+    parser.add_argument("--latent-dim", type=int, default=96)
+    parser.add_argument("--branch-hidden-dim", type=int, default=96)
+    parser.add_argument("--trunk-hidden-dim", type=int, default=96)
+    parser.add_argument("--fourier-features", type=int, default=8)
+    parser.add_argument("--dropout", type=float, default=0.08)
+    parser.add_argument("--lr", type=float, default=7e-4)
+    parser.add_argument("--weight-decay", type=float, default=7e-4)
+    parser.add_argument("--scalar-weight", type=float, default=0.38)
+    parser.add_argument("--curve-weight", type=float, default=0.62)
+    parser.add_argument("--peak-weight", type=float, default=0.08)
+    parser.add_argument("--smoothness-weight", type=float, default=0.01)
+    parser.add_argument("--physics-weight", type=float, default=0.10)
+    parser.add_argument("--nonnegative-weight", type=float, default=0.04)
+    parser.add_argument("--oscillation-weight", type=float, default=0.04)
+    parser.add_argument("--peak-timing-weight", type=float, default=0.12)
+    parser.add_argument("--peak-temperature", type=float, default=35.0)
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--device", choices=["cpu", "mps", "cuda"], default="cpu")
+    args = parser.parse_args()
+    set_seed(args.seed)
+    args.device_torch = torch.device(args.device)
+    result = train_deeponet_surrogate(args.data_dir, args.output_dir, args)
+    print(json.dumps(result, indent=2))
+
+
+if __name__ == "__main__":
+    main()

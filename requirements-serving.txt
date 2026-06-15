@@ -1,0 +1,15 @@
+# Minimal runtime dependencies for the DD Laminate and Simple Injection web apps.
+# This is intentionally smaller than requirements-ml.txt, which is for research/training.
+
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+pydantic==2.6.4
+python-multipart==0.0.9
+
+joblib==1.4.2
+numpy==1.26.4
+scipy==1.13.0
+scikit-learn==1.7.2
+
+# Install torch separately on Windows with the CPU wheel index:
+#   python -m pip install torch==2.2.0 --index-url https://download.pytorch.org/whl/cpu

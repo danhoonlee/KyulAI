@@ -1,0 +1,65 @@
+{
+  "metrics": {
+    "n_samples": 900,
+    "seq_len": 128,
+    "cv_accuracy_mean": 0.9244444444444445,
+    "cv_accuracy_std": 0.010886621079036348,
+    "cv_macro_f1_mean": 0.9154051361009776,
+    "cv_macro_f1_std": 0.016742727647364786,
+    "cv_pt_mae_mean": 496.2151016717747,
+    "cv_pt_mae_std": 75.83695260522927,
+    "cv_max_displacement_mae_mean": 0.000507785214504434,
+    "cv_max_displacement_mae_std": 0.00029960584356326686,
+    "cv_max_force_mae_mean": 578.6684201933408,
+    "cv_max_force_mae_std": 87.61744850182141,
+    "cv_curve_norm_rmse_mean": 0.009584810909596304,
+    "cv_curve_norm_rmse_std": 0.001958624368228023
+  },
+  "fold_metrics": [
+    {
+      "fold": 1,
+      "accuracy": 0.9277777777777778,
+      "macro_f1": 0.9299442502345935,
+      "pt_mae": 444.29283431448596,
+      "max_displacement_mae": 0.0005748418535071392,
+      "max_force_mae": 590.6092249641841,
+      "curve_norm_rmse": 0.010938043876094846
+    },
+    {
+      "fold": 2,
+      "accuracy": 0.9388888888888889,
+      "macro_f1": 0.9300161303837774,
+      "pt_mae": 501.2975331720359,
+      "max_displacement_mae": 0.0009888475041974472,
+      "max_force_mae": 560.7148035636973,
+      "curve_norm_rmse": 0.012083186326939487
+    },
+    {
+      "fold": 3,
+      "accuracy": 0.9222222222222223,
+      "macro_f1": 0.8926026207359761,
+      "pt_mae": 406.9572619822135,
+      "max_displacement_mae": 0.000589649387704278,
+      "max_force_mae": 718.240984983836,
+      "curve_norm_rmse": 0.010311747896900831
+    },
+    {
+      "fold": 4,
+      "accuracy": 0.9277777777777778,
+      "macro_f1": 0.9270067748633174,
+      "pt_mae": 630.6198485795337,
+      "max_displacement_mae": 0.00013050525814846715,
+      "max_force_mae": 580.8797264880546,
+      "curve_norm_rmse": 0.007516843047904356
+    },
+    {
+      "fold": 5,
+      "accuracy": 0.9055555555555556,
+      "macro_f1": 0.8974559042872232,
+      "pt_mae": 497.9080303106039,
+      "max_displacement_mae": 0.00025508206896483906,
+      "max_force_mae": 442.897360966932,
+      "curve_norm_rmse": 0.007074233400141996
+    }
+  ]
+}

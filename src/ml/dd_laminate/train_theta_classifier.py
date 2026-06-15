@@ -201,7 +201,7 @@ def write_report(out: Path, data_dir: str, best: str, primary: dict, secondary: 
         "## Intrinsic Ambiguity",
         "",
         f"There are {len(conflicts)} theta pairs with conflicting labels across Case3/Case4.",
-        f"The deterministic theta-only ceiling on the 400-row dataset is approximately {max_deterministic_accuracy:.4f} if one label must be assigned per theta pair.",
+        f"The deterministic theta-only ceiling on the {len(rows)}-row dataset is approximately {max_deterministic_accuracy:.4f} if one label must be assigned per theta pair.",
         "",
     ]
     if conflicts:

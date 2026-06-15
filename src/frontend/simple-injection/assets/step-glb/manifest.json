@@ -1,0 +1,277 @@
+{
+  "asset_type": "simple_injection_step_glb",
+  "generator": "scripts/simple_injection/convert_step_to_glb.py",
+  "count": 30,
+  "geometries": [
+    {
+      "geometry_id": "G01",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G01.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G01.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 18034,
+      "output_bytes": 21412
+    },
+    {
+      "geometry_id": "G02",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G02.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G02.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 18091,
+      "output_bytes": 21412
+    },
+    {
+      "geometry_id": "G03",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G03.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G03.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 18048,
+      "output_bytes": 21408
+    },
+    {
+      "geometry_id": "G04",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G04.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G04.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 17955,
+      "output_bytes": 21444
+    },
+    {
+      "geometry_id": "G05",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G05.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G05.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 17960,
+      "output_bytes": 21444
+    },
+    {
+      "geometry_id": "G06",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G06.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G06.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 17955,
+      "output_bytes": 21444
+    },
+    {
+      "geometry_id": "G07",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G07.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G07.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 17960,
+      "output_bytes": 21444
+    },
+    {
+      "geometry_id": "G08",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G08.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G08.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 17955,
+      "output_bytes": 21444
+    },
+    {
+      "geometry_id": "G09",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G09.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G09.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 17960,
+      "output_bytes": 21444
+    },
+    {
+      "geometry_id": "G10",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G10.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G10.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 17977,
+      "output_bytes": 21412
+    },
+    {
+      "geometry_id": "G11",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G11.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G11.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 18134,
+      "output_bytes": 21412
+    },
+    {
+      "geometry_id": "G12",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G12.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G12.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 18148,
+      "output_bytes": 21428
+    },
+    {
+      "geometry_id": "G13",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G13.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G13.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 18148,
+      "output_bytes": 21428
+    },
+    {
+      "geometry_id": "G14",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G14.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G14.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 18139,
+      "output_bytes": 21388
+    },
+    {
+      "geometry_id": "G15",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G15.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G15.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 18144,
+      "output_bytes": 21388
+    },
+    {
+      "geometry_id": "G16",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G16.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G16.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 17989,
+      "output_bytes": 21400
+    },
+    {
+      "geometry_id": "G17",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G17.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G17.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 17989,
+      "output_bytes": 21400
+    },
+    {
+      "geometry_id": "G18",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G18.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G18.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 17989,
+      "output_bytes": 21400
+    },
+    {
+      "geometry_id": "G19",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G19.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G19.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 17989,
+      "output_bytes": 21400
+    },
+    {
+      "geometry_id": "G20",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G20.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G20.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 17989,
+      "output_bytes": 21400
+    },
+    {
+      "geometry_id": "G21",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G21.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G21.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 17984,
+      "output_bytes": 21400
+    },
+    {
+      "geometry_id": "G22",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G22.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G22.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 17984,
+      "output_bytes": 21400
+    },
+    {
+      "geometry_id": "G23",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G23.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G23.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 17989,
+      "output_bytes": 21400
+    },
+    {
+      "geometry_id": "G24",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G24.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G24.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 18004,
+      "output_bytes": 21400
+    },
+    {
+      "geometry_id": "G25",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G25.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G25.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 17989,
+      "output_bytes": 21400
+    },
+    {
+      "geometry_id": "G26",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G26.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G26.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 17989,
+      "output_bytes": 21400
+    },
+    {
+      "geometry_id": "G27",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G27.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G27.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 17989,
+      "output_bytes": 21400
+    },
+    {
+      "geometry_id": "G28",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G28.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G28.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 17985,
+      "output_bytes": 21400
+    },
+    {
+      "geometry_id": "G29",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G29.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G29.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 17990,
+      "output_bytes": 21400
+    },
+    {
+      "geometry_id": "G30",
+      "source": "data/datasets/Simple_Injection/step/G01-G30 STEP FILE/G30.stp",
+      "output": "src/frontend/simple-injection/assets/step-glb/G30.glb",
+      "status": "converted",
+      "message": "",
+      "source_bytes": 17990,
+      "output_bytes": 21400
+    }
+  ]
+}

@@ -12,7 +12,7 @@ final class DDLaminateCoreTests: XCTestCase {
         XCTAssertEqual(fixture.request.case, .case2)
         XCTAssertEqual(fixture.request.model, DDLaminateDefaults.responseModelKey)
         XCTAssertEqual(fixture.response.modelKey, DDLaminateDefaults.responseModelKey)
-        XCTAssertEqual(fixture.response.displayModelLabel, "ExtraTrees + PCA")
+        XCTAssertEqual(fixture.response.displayModelLabel, "Laminate Forecast - Tree + Physics XAI")
         XCTAssertEqual(fixture.response.inputMode, "response")
         XCTAssertEqual(fixture.response.predictedType, 2)
         XCTAssertEqual(fixture.response.inputs["case"], .string("Case2"))
@@ -159,7 +159,7 @@ final class DDLaminateCoreTests: XCTestCase {
         await viewModel.predict(baseURL: URL(string: "http://127.0.0.1:8000")!)
 
         XCTAssertNil(viewModel.result)
-        XCTAssertEqual(viewModel.errorMessage, "The selected model (ExtraTrees + PCA) is unavailable. Check the API base URL or server.")
+        XCTAssertEqual(viewModel.errorMessage, "The selected model (Laminate Forecast - Tree + Physics XAI) is unavailable. Check the API base URL or server.")
     }
 }
 
@@ -167,6 +167,7 @@ private struct MockAPIClient: DDLaminateAPIClientProtocol {
     let healthResponse: HealthResponse
     let modelsResponse: DDLaminateModelsResponse
     let predictionResponse: ResponsePredictionResult
+    let u3PtPredictionResponse: U3PtPredictionResult? = nil
 
     func health(baseURL: URL) async throws -> HealthResponse {
         healthResponse
@@ -181,5 +182,30 @@ private struct MockAPIClient: DDLaminateAPIClientProtocol {
         request: ResponsePredictionRequest
     ) async throws -> ResponsePredictionResult {
         predictionResponse
+    }
+
+    func predictU3Forecast(
+        baseURL: URL,
+        request: U3ForecastPredictionRequest
+    ) async throws -> U3PtPredictionResult {
+        if let u3PtPredictionResponse {
+            return u3PtPredictionResponse
+        }
+        throw DDLaminateAPIError.fileRead("No u3 Forecast fixture configured.")
+    }
+
+    func predictU3Pt(
+        baseURL: URL,
+        case laminateCase: DDLaminateCase,
+        theta1: Double,
+        theta2: Double,
+        u3Bucket: String,
+        model: String,
+        csvURL: URL
+    ) async throws -> U3PtPredictionResult {
+        if let u3PtPredictionResponse {
+            return u3PtPredictionResponse
+        }
+        throw DDLaminateAPIError.fileRead("No u3 Pt fixture configured.")
     }
 }

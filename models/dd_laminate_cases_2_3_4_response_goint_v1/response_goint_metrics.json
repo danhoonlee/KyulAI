@@ -1,0 +1,78 @@
+{
+  "metrics": {
+    "n_samples": 900,
+    "seq_len": 128,
+    "input_dim": 11,
+    "cv_accuracy_mean": 0.9355555555555556,
+    "cv_accuracy_std": 0.013425606637327296,
+    "cv_macro_f1_mean": 0.9337905307944387,
+    "cv_macro_f1_std": 0.011498830113125193,
+    "cv_pt_mae_mean": 893.2813939872101,
+    "cv_pt_mae_std": 80.47181188523265,
+    "cv_max_displacement_mae_mean": 0.00037636032255207853,
+    "cv_max_displacement_mae_std": 0.00024132801428262645,
+    "cv_max_force_mae_mean": 1651.2932520463899,
+    "cv_max_force_mae_std": 360.75364936739527,
+    "cv_curve_norm_rmse_mean": 0.023704198747873308,
+    "cv_curve_norm_rmse_std": 0.005080562516122615,
+    "cv_curve_force_rmse_mean": 1553.9864841669482,
+    "cv_curve_force_rmse_std": 333.8337249771193
+  },
+  "fold_metrics": [
+    {
+      "accuracy": 0.9333333333333333,
+      "macro_f1": 0.9342188554478444,
+      "pt_mae": 963.828913241142,
+      "max_displacement_mae": 0.0006056537203033321,
+      "max_force_mae": 1335.0445694499106,
+      "curve_norm_rmse": 0.02649039402604103,
+      "curve_force_rmse": 1402.7554417376666,
+      "fold": 1,
+      "best_epoch": 28
+    },
+    {
+      "accuracy": 0.9611111111111111,
+      "macro_f1": 0.9542097998619737,
+      "pt_mae": 778.5168410176955,
+      "max_displacement_mae": 0.0007298875566806196,
+      "max_force_mae": 1304.739346369958,
+      "curve_norm_rmse": 0.01856505312025547,
+      "curve_force_rmse": 1259.9512628976418,
+      "fold": 2,
+      "best_epoch": 41
+    },
+    {
+      "accuracy": 0.9222222222222223,
+      "macro_f1": 0.9215237862296686,
+      "pt_mae": 995.1587562511677,
+      "max_displacement_mae": 0.00018007912507994313,
+      "max_force_mae": 2287.3890270572324,
+      "curve_norm_rmse": 0.032337628304958344,
+      "curve_force_rmse": 2182.4683103991397,
+      "fold": 3,
+      "best_epoch": 7
+    },
+    {
+      "accuracy": 0.9333333333333333,
+      "macro_f1": 0.9348244348244349,
+      "pt_mae": 897.537131266932,
+      "max_displacement_mae": 0.00016883562011684743,
+      "max_force_mae": 1551.4462237137764,
+      "curve_norm_rmse": 0.021124565973877907,
+      "curve_force_rmse": 1327.9840172947358,
+      "fold": 4,
+      "best_epoch": 49
+    },
+    {
+      "accuracy": 0.9277777777777778,
+      "macro_f1": 0.9241757776082719,
+      "pt_mae": 831.3653281591129,
+      "max_displacement_mae": 0.00019734559057965048,
+      "max_force_mae": 1777.8470936410715,
+      "curve_norm_rmse": 0.02000335231423378,
+      "curve_force_rmse": 1596.773388505557,
+      "fold": 5,
+      "best_epoch": 28
+    }
+  ]
+}

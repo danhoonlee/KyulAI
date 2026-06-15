@@ -1,0 +1,171 @@
+{
+  "best_model": "extra_trees",
+  "metrics": {
+    "extra_trees": {
+      "accuracy_mean": 0.9533333333333334,
+      "accuracy_std": 0.016329931618554516,
+      "macro_f1_mean": 0.948836639604284,
+      "macro_f1_std": 0.01869202079628582
+    },
+    "random_forest": {
+      "accuracy_mean": 0.9477777777777778,
+      "accuracy_std": 0.01594744454934146,
+      "macro_f1_mean": 0.9473051295392827,
+      "macro_f1_std": 0.020332426852190822
+    },
+    "hist_gradient_boosting": {
+      "accuracy_mean": 0.9522222222222222,
+      "accuracy_std": 0.017777777777777767,
+      "macro_f1_mean": 0.9476417962171373,
+      "macro_f1_std": 0.021691108196233565
+    },
+    "mlp_classifier": {
+      "accuracy_mean": 0.9122222222222222,
+      "accuracy_std": 0.025915341754868038,
+      "macro_f1_mean": 0.8994570796105604,
+      "macro_f1_std": 0.028132757230429017
+    }
+  },
+  "fold_metrics": [
+    {
+      "model": "extra_trees",
+      "fold": 1,
+      "accuracy": 0.9722222222222222,
+      "macro_f1": 0.9737866092203245,
+      "validation_samples": 180
+    },
+    {
+      "model": "extra_trees",
+      "fold": 2,
+      "accuracy": 0.9722222222222222,
+      "macro_f1": 0.9655675230650406,
+      "validation_samples": 180
+    },
+    {
+      "model": "extra_trees",
+      "fold": 3,
+      "accuracy": 0.95,
+      "macro_f1": 0.9480090107997086,
+      "validation_samples": 180
+    },
+    {
+      "model": "extra_trees",
+      "fold": 4,
+      "accuracy": 0.9333333333333333,
+      "macro_f1": 0.9305729913916786,
+      "validation_samples": 180
+    },
+    {
+      "model": "extra_trees",
+      "fold": 5,
+      "accuracy": 0.9388888888888889,
+      "macro_f1": 0.9262470635446679,
+      "validation_samples": 180
+    },
+    {
+      "model": "random_forest",
+      "fold": 1,
+      "accuracy": 0.9555555555555556,
+      "macro_f1": 0.9655343827671913,
+      "validation_samples": 180
+    },
+    {
+      "model": "random_forest",
+      "fold": 2,
+      "accuracy": 0.9722222222222222,
+      "macro_f1": 0.9692626873778454,
+      "validation_samples": 180
+    },
+    {
+      "model": "random_forest",
+      "fold": 3,
+      "accuracy": 0.95,
+      "macro_f1": 0.9542367924277473,
+      "validation_samples": 180
+    },
+    {
+      "model": "random_forest",
+      "fold": 4,
+      "accuracy": 0.9333333333333333,
+      "macro_f1": 0.9306188338789331,
+      "validation_samples": 180
+    },
+    {
+      "model": "random_forest",
+      "fold": 5,
+      "accuracy": 0.9277777777777778,
+      "macro_f1": 0.9168729512446964,
+      "validation_samples": 180
+    },
+    {
+      "model": "hist_gradient_boosting",
+      "fold": 1,
+      "accuracy": 0.9666666666666667,
+      "macro_f1": 0.9695087866401146,
+      "validation_samples": 180
+    },
+    {
+      "model": "hist_gradient_boosting",
+      "fold": 2,
+      "accuracy": 0.9666666666666667,
+      "macro_f1": 0.9570859623215645,
+      "validation_samples": 180
+    },
+    {
+      "model": "hist_gradient_boosting",
+      "fold": 3,
+      "accuracy": 0.9666666666666667,
+      "macro_f1": 0.9674442658152426,
+      "validation_samples": 180
+    },
+    {
+      "model": "hist_gradient_boosting",
+      "fold": 4,
+      "accuracy": 0.9333333333333333,
+      "macro_f1": 0.9286699713967356,
+      "validation_samples": 180
+    },
+    {
+      "model": "hist_gradient_boosting",
+      "fold": 5,
+      "accuracy": 0.9277777777777778,
+      "macro_f1": 0.9154999949120289,
+      "validation_samples": 180
+    },
+    {
+      "model": "mlp_classifier",
+      "fold": 1,
+      "accuracy": 0.8833333333333333,
+      "macro_f1": 0.8770555577534255,
+      "validation_samples": 180
+    },
+    {
+      "model": "mlp_classifier",
+      "fold": 2,
+      "accuracy": 0.9555555555555556,
+      "macro_f1": 0.9516742912747912,
+      "validation_samples": 180
+    },
+    {
+      "model": "mlp_classifier",
+      "fold": 3,
+      "accuracy": 0.9111111111111111,
+      "macro_f1": 0.8811447811447811,
+      "validation_samples": 180
+    },
+    {
+      "model": "mlp_classifier",
+      "fold": 4,
+      "accuracy": 0.8888888888888888,
+      "macro_f1": 0.8809129938162196,
+      "validation_samples": 180
+    },
+    {
+      "model": "mlp_classifier",
+      "fold": 5,
+      "accuracy": 0.9222222222222223,
+      "macro_f1": 0.906497774063585,
+      "validation_samples": 180
+    }
+  ]
+}

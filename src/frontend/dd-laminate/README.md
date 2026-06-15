@@ -48,6 +48,6 @@ http://localhost:8000/api/v1/dd-laminate
 
 ## Notes
 
-- Theta-only prediction is a screening estimate before Abaqus.
+- Theta-only prediction is a screening estimate from laminate inputs.
 - Curve CSV prediction is the preferred classifier after simulation results exist.
 - The standalone API uses `src.backend.dd_laminate_app:app` so it can run without the platform database.

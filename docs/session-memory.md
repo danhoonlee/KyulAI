@@ -1398,6 +1398,38 @@ Updated:
 Verification:
 
 - `node --check src/frontend/dd-laminate/app.js` passed.
+
+## 2026-06-15 - Git handoff preparation for Windows PC
+
+User requested a Git upload containing the current work plus data, so the
+project can be cloned on a Windows PC and continued there.
+
+Preparation:
+
+- Audited repository size and found `data` at about 1.3GB and `models` at about
+  3.6GB before compression.
+- Git LFS is not installed in the current Mac environment, so large `joblib`
+  models were recompressed with stronger `joblib`/LZMA compression instead of
+  relying on LFS.
+- After compression, `models` was reduced to about 811MB.
+- Confirmed no files larger than 95MB remained under `data`, `models`,
+  `reports`, `extra`, or `artifacts`, which avoids the normal GitHub 100MB
+  single-file push limit.
+- Verified representative compressed model files still load with `joblib`.
+- Added `docs/WINDOWS_GIT_QUICKSTART.md` with Git clone and PowerShell setup
+  steps for a fresh Windows PC.
+- Updated `docs/windows-server-migration.md` to include the Git-based handoff
+  path before the older zip-bundle path.
+- Added `.dvc/` and `.dvcignore` to `.gitignore`; current handoff commits data
+  directly through Git and does not include local DVC config or credentials.
+
+Important:
+
+- Cloudflare tunnel JSON credentials and `.env.local` remain local-only and are
+  not committed.
+- The Windows user should clone the branch, run
+  `scripts\windows\Setup-WindowsServing.ps1`, then start DD and Injection with
+  the provided PowerShell scripts.
 - Browser smoke passed for `Response estimate` using default inputs:
   result rendered Type 2, no console errors.
 
@@ -3863,3 +3895,1437 @@ Luvelox app icon update:
   - `xcodebuild -project ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj -scheme LuveloxMVPHost -destination 'generic/platform=iOS Simulator' build`
   - `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug`
   - `JAVA_HOME=/opt/homebrew/opt/openjdk@17 apksigner verify --verbose artifacts/android/Luvelox-debug.apk`
+
+## 2026-06-12 Luvelox Account MVP
+
+Luvelox now has a first login/account MVP, intentionally implemented as a
+replaceable demo-auth layer before integrating Supabase/Firebase/Auth0 or a
+production identity provider.
+
+Backend:
+
+- `src/backend/api/v1/modules.py` now exposes
+  `POST /api/v1/modules/auth/demo-login`.
+- Demo users:
+  - `demo@luvelox.com` -> Laminate + Injection
+  - `danlee@luvelox.com` -> Laminate + Injection + Optimization
+- `GET /api/v1/modules/me` now accepts `Authorization: Bearer <token>` and
+  includes a `user` object in the response when a demo token is present.
+
+iOS:
+
+- `ios/LuveloxMVP` now has a sign-in screen before the module workspace.
+- The auth session is stored in `UserDefaults` as `luvelox.auth.session.v1`.
+- Module catalog calls now send the bearer token.
+- The signed-in workspace shows an account band and a menu with refresh/sign
+  out.
+- If the demo login endpoint is offline, the app can still create the local
+  demo session for MVP testing.
+
+Android:
+
+- `android/LuveloxMVP` now has the same login-first flow.
+- The auth session is stored in `SharedPreferences`.
+- Module catalog calls send the bearer token.
+- `artifacts/android/Luvelox-debug.apk` was refreshed after the auth changes.
+
+Verification passed:
+
+- `.venv/bin/pytest tests/backend/test_luvelox_modules.py`
+- `swift test` in `ios/LuveloxMVP`
+- `xcodebuild -project ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj -scheme LuveloxMVPHost -destination 'generic/platform=iOS Simulator' build`
+- `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` in
+  `android/LuveloxMVP`
+- `JAVA_HOME=/opt/homebrew/opt/openjdk@17 /opt/homebrew/share/android-commandlinetools/build-tools/35.0.0/apksigner verify --verbose artifacts/android/Luvelox-debug.apk`
+
+## 2026-06-12 Luvelox Account/Access UX
+
+Next account-layer step:
+
+- Backend now exposes `POST /api/v1/modules/request-access` for module access
+  requests. It validates the module id and returns a structured `received`
+  response with the current demo user when a bearer token is present.
+- iOS Luvelox app now has:
+  - Account details sheet from the account menu/account band.
+  - Module access list with granted/locked status and access reasons.
+  - Locked module detail sheet with entitlement key, capabilities, and a
+    request-access action.
+- Android Luvelox app now mirrors the same account/access flow with native
+  dialogs and clickable locked-module request buttons.
+- Offline fallback catalog includes the planned Optimization module so the
+  access UX can be tested without the module catalog server.
+
+## 2026-06-12 DD u3 Pt Regression Dataset and Models
+
+New Double-Double u3 data was inspected under
+`data/datasets/Double-Double/u3`.
+
+- Raw folders:
+  - Case2: `2-2`, `2-3`
+  - Case3: `3-2`, `3-3`
+  - Case4: `4-2`, `4-3`
+- Each folder contains two-column force/displacement CSVs plus plot PNGs.
+- u3 Pt labels are not compatible with the older
+  `Double-Double/{2,3,4}/transition load P1.csv` values. Example:
+  Case2 Test001 old table Pt is about `19662`, while u3 plot title Pt is
+  about `8697`.
+- macOS Vision OCR was added in `scripts/dd_u3_ocr.swift` to read plot titles.
+- `scripts/dd_prepare_u3_pt_dataset.py` builds the curated u3 Pt manifest by:
+  - OCR-reading Pt from P1/transition plot titles.
+  - Reusing theta1/theta2 from the old transition tables.
+  - Copying labeled CSVs into the curated dataset.
+- Final clean curated dataset is `data/datasets/DD_u3_pt_v2`.
+  - Records: 566 labeled CSVs.
+  - Missing labels: 14 CSVs with no usable plot label.
+  - Case counts: Case2 190, Case3 174, Case4 202.
+  - Pt range after OCR cleanup: about 3858 to 13258 kips.
+- A first `DD_u3_pt_v1` dataset/model run was created, but OCR had three
+  decimal-loss outliers (`913357`, `869442`, `869418`). Treat v1 as superseded
+  by v2.
+- `src/ml/dd_laminate/train_u3_pt_models.py` trains u3-specific Pt regressors.
+  It uses Test ID group CV to reduce leakage across repeated angle/case
+  variants.
+- Final v2 model outputs:
+  - Classical ML: `models/dd_laminate_u3_pt_ml_v2/u3_pt_regressor.joblib`
+  - Deep Goint-style PyTorch: `models/dd_laminate_u3_pt_goint_v2/u3_pt_goint.pt`
+  - Combined report: `reports/dd_u3_pt_v2/summary.json`
+- v2 validation summary:
+  - ExtraTrees best classical model: CV MAE about `164.90` kips, R2 about
+    `0.937`.
+  - PyTorch Goint-style model: CV MAE about `163.81` kips, R2 about `0.943`.
+  - HistGradientBoosting CV MAE about `198.88` kips.
+  - sklearn MLP CV MAE about `781.01` kips.
+- Recommendation: use the v2 models as the current u3 Pt baseline. Prefer a
+  fresh u3-specific model over fine-tuning the older DD response model because
+  the Pt label definition and curve family differ from the previous P1 data.
+
+## 2026-06-12 DD u3 Pt Finder Web/App Integration
+
+The current u3 Pt baseline was connected to the Double-Double prediction
+surfaces.
+
+- Backend:
+  - Added `src/ml/dd_laminate/predict_u3_pt.py`.
+  - Added `POST /api/v1/dd-laminate/predict/u3-pt`.
+  - Added `u3_pt_models` to `GET /api/v1/dd-laminate/models`.
+  - Supported models:
+    - `u3_pt_classical`: `models/dd_laminate_u3_pt_ml_v2/u3_pt_regressor.joblib`
+    - `u3_pt_goint`: `models/dd_laminate_u3_pt_goint_v2/u3_pt_goint.pt`
+  - Endpoint input is multipart form data with CSV file, `theta1`, `theta2`,
+    `case`, `u3_bucket` (`2` or `3`), optional `test_id`, and model key.
+  - CSV reading now tolerates header/non-numeric rows by using `genfromtxt`.
+- Web:
+  - Added a third DD web tab, `u3 Pt Finder`, in both English and Korean pages.
+  - The tab uploads a force-displacement CSV, selects Case and u3 bucket, and
+    renders predicted Pt on the uploaded curve using the existing curve panel.
+  - Report export now tolerates u3 Pt results without a predicted Type.
+- iOS DD app:
+  - Added u3 model list decoding and `U3PtPredictionResult`.
+  - Added multipart CSV upload API client support.
+  - Added a `u3 Pt Finder` card with CSV file picker, Case/theta/u3-bucket
+    controls, model selection, and a Pt result chart.
+- Verification:
+  - `node --check src/frontend/dd-laminate/app.js`
+  - FastAPI TestClient: `/models` returns `u3_pt_models`, and
+    `/predict/u3-pt` returns Pt for `force_disp_Test_001.csv`.
+  - Direct sample predictions:
+    - Classical: about `8697.15` kips for Case2/u3-2/Test001.
+    - Goint: about `8438.75` kips for the same sample.
+  - `swift test` in `ios/DDLaminateMVP`: 9 tests passed.
+
+## 2026-06-12 Luvelox App Icon Refresh
+
+The Luvelox app icon was regenerated from the new logo file
+`icons/luvelox/Luvelox_LOGO_Fin.jpeg`.
+
+- Used the left-side Luvelox symbol: dark `L`, diagonal crossing orbit shape,
+  and the red star at the orbit tip.
+- After review, regenerated the crop to keep the red star and mask only the
+  leftover wordmark/tagline fragments at the right and bottom edges.
+- Regenerated the reusable source icon:
+  `icons/luvelox/Luvelox_AppIcon_Source.png`.
+- Updated iOS Luvelox app icon assets under
+  `ios/LuveloxMVPApp/LuveloxMVPHost/Assets.xcassets/AppIcon.appiconset`.
+- Updated Android Luvelox launcher icons under
+  `android/LuveloxMVP/app/src/main/res/mipmap-*`.
+- Refreshed Android debug APK artifacts:
+  - `artifacts/android/Luvelox-debug.apk`
+  - `artifacts/android/Luvelox-Laminate-debug.apk`
+- Verification:
+  - `swift test` in `ios/LuveloxMVP`: 4 tests passed.
+  - `xcodebuild -project ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj -scheme LuveloxMVPHost -destination generic/platform=iOS Simulator build`: succeeded.
+  - `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` in `android/LuveloxMVP`: succeeded.
+
+## 2026-06-12 DD u3 Forecast Without CSV
+
+The u3 workflow was extended so it can predict before a force-displacement CSV
+exists, similar to the Laminate Forecast tab.
+
+- Added a CSV-free u3 forecast model trained from
+  `data/datasets/DD_u3_pt_v2/manifest.csv`.
+- Inputs: `theta1`, `theta2`, `Case2/3/4`, and `u3_bucket` (`2` or `3`).
+- Outputs: predicted Pt, predicted max displacement, predicted max force, and
+  an approximate 192-point force-displacement curve.
+- New model artifact:
+  `models/dd_laminate_u3_forecast_v1/u3_forecast.joblib`.
+- New report:
+  `reports/dd_u3_forecast_v1/u3_forecast_report.md`.
+- Validation summary:
+  - Best scalar model: `extra_trees`.
+  - Pt MAE: about `219.31 +/- 28.80` kips.
+  - Pt R2: about `0.896`.
+  - Max. Displacement MAE: about `0.00568`.
+  - Max. Force MAE: about `437.24` kips.
+  - Normalized curve RMSE: about `0.0094`.
+- Added backend endpoint `POST /api/v1/dd-laminate/predict/u3-forecast`.
+- Added `u3_forecast` to DD model discovery before the CSV-based u3 Finder
+  models.
+- Updated the DD web u3 tab:
+  - CSV upload is now optional.
+  - `u3 Forecast - ExtraTrees + PCA` runs without CSV.
+  - Existing `u3 Pt Finder` models still require CSV and remain available for
+    post-simulation refinement.
+- Updated the iOS DD module:
+  - Default u3 model is now `u3_forecast`.
+  - Added JSON client support for `/predict/u3-forecast`.
+  - The u3 card can run without CSV when the Forecast model is selected.
+  - CSV upload is still available for the u3 Finder models.
+- Verification:
+  - `node --check src/frontend/dd-laminate/app.js`.
+  - `PYTHONPYCACHEPREFIX=/private/tmp/kyulai_pycache python -m py_compile ...`.
+  - FastAPI router TestClient: `/models` returns `u3_forecast`; `/predict/u3-forecast`
+    returns Pt and a 192-point curve.
+  - `swift test` in `ios/DDLaminateMVP`: 9 tests passed.
+
+## 2026-06-12 DD u3 Forecast Cache Fix
+
+The web page could show the backend error `Use /predict/u3-forecast for
+CSV-free u3 forecast predictions.` when selecting `u3 Forecast - ExtraTrees +
+PCA`.
+
+- Cause: `index.html` and `index.ko.html` still referenced the old
+  `app.js?v=20260605-response-model-picker` cache key, so browsers could keep
+  using stale JavaScript that submitted all u3 models to `/predict/u3-pt`.
+- Fix: bumped both pages to `app.js?v=20260612-u3-forecast`.
+- Verification:
+  - `node --check src/frontend/dd-laminate/app.js`
+  - `rg` confirmed both English and Korean pages reference the new cache key.
+
+## 2026-06-12 DD u3 Forecast Only With ML/DL Options
+
+The u3 page was simplified per user request: CSV-based `u3 Pt Finder` is hidden
+from the DD web/app workflow for now, and only CSV-free `u3 Forecast` remains.
+
+- Retrained `src/ml/dd_laminate/train_u3_forecast_models.py` and added a
+  GointMLP-style deep forecast model for the same input/output contract as the
+  existing ML forecast.
+- Active u3 Forecast model options:
+  - `u3_forecast`: ExtraTrees + PCA, stored at
+    `models/dd_laminate_u3_forecast_v1/u3_forecast.joblib`.
+  - `u3_forecast_goint`: GointMLP NN, stored at
+    `models/dd_laminate_u3_forecast_v1/u3_forecast_goint.pt`.
+- Training data: `data/datasets/DD_u3_pt_v2/manifest.csv`, `566` samples.
+- Validation summary:
+  - ML ExtraTrees + PCA: Pt MAE `219.31 +/- 28.80` kips, Pt R2 `0.896`,
+    normalized curve RMSE `0.0094`.
+  - DL GointMLP Forecast: Pt MAE `181.74 +/- 48.54` kips, Pt R2 `0.918`,
+    normalized curve RMSE `0.0101`.
+- Backend:
+  - `/api/v1/dd-laminate/models` now exposes only `u3_forecast` and
+    `u3_forecast_goint` under `u3_pt_models`.
+  - `/api/v1/dd-laminate/predict/u3-forecast` supports both ML and DL forecast
+    models.
+  - Legacy CSV Finder endpoint remains internally available but is no longer
+    advertised to the UI model list.
+- Web:
+  - English/Korean u3 tab renamed to `u3 Forecast`.
+  - Removed u3 CSV upload and optional Test ID field from the page.
+  - Bumped page cache key to `app.js?v=20260612-u3-forecast-only`.
+- iOS:
+  - Removed u3 CSV picker flow from the DD Laminate app card.
+  - u3 prediction now always calls the forecast endpoint with the selected
+    forecast model.
+- Verification:
+  - `node --check src/frontend/dd-laminate/app.js`.
+  - `PYTHONPYCACHEPREFIX=/private/tmp/kyulai_pycache /Users/danlee/KyulAI_codex/.venv/bin/python -m py_compile ...`.
+  - FastAPI router TestClient: model list returns
+    `['u3_forecast', 'u3_forecast_goint']`; both forecast models return HTTP
+    `200` and a `192`-point curve.
+  - `swift test` in `ios/DDLaminateMVP`: 9 tests passed.
+
+## 2026-06-12 DD Web u3 Result Layout Fix
+
+The u3 Forecast result page looked broken because the middle laminate reference
+panel remained visible after prediction, leaving the result/chart panel too
+narrow.
+
+- Added `.grid.u3-active` to make u3 mode use a two-column layout:
+  input panel + wide result panel.
+- Updated mode switching so u3 hides the reference panel and CSV preview panel.
+- Bumped web cache keys to `20260612-u3-layout` for both English and Korean
+  DD pages.
+- Verification:
+  - `node --check src/frontend/dd-laminate/app.js`.
+  - Browser check at `http://127.0.0.1:3000/`: ML and DL u3 Forecast results
+    render with a wide chart, clean legend, and readable notes.
+
+## 2026-06-12 DD App Laminate/u3 UX Cleanup
+
+The Luvelox/DD app Laminate screen was reorganized so users choose between the
+standard laminate forecast and u3 forecast instead of seeing both input cards
+stacked vertically.
+
+- Added a segmented input-mode picker:
+  - `Forecast Inputs`
+  - `u3 Forecast`
+- The selected mode now shows only its corresponding input card.
+- u3 forecast results now open a dedicated detail page, matching the standard
+  forecast result flow.
+- Added `U3PtResultDetailView` with Pt, max force, max displacement, curve
+  chart, and notes.
+- Removed the nested `NavigationStack` from the DD Laminate content view so
+  Luvelox navigation owns the stack. This keeps result-page back navigation
+  returning to the Laminate screen instead of the Laminate/Injection module
+  picker.
+- Standalone DD preview app now wraps `DDLaminateModuleView` in its own
+  `NavigationStack`.
+- Verification:
+  - `swift test` in `ios/DDLaminateMVP`: 9 tests passed.
+  - `swift test` in `ios/LuveloxMVP`: 4 tests passed.
+
+## 2026-06-12 DD/u3 Bilinear Pt Marker Fix
+
+The u3 forecast graph was corrected so the plotted Pt marker is based on the
+intersection of the two fitted linear guide lines, not the point where the
+predicted Pt force happens to cross the predicted response curve.
+
+- Web:
+  - `src/frontend/dd-laminate/app.js` now computes the raw first/second fit
+    line intersection, validates it within the usable kink range, and uses that
+    intersection force/displacement for the red Pt marker and purple guide.
+  - The model's scalar `predicted_pt` is still shown in the metric card, while
+    the graph marker represents the bilinear-fit intersection used visually.
+  - Bumped English/Korean DD page script cache key to
+    `app.js?v=20260612-u3-kink`.
+- iOS:
+  - `CurveChartView.swift` uses the same bilinear intersection rule for the
+    app chart.
+- Verification:
+  - `node --check src/frontend/dd-laminate/app.js`.
+  - `swift test` in `ios/DDLaminateMVP`: 9 tests passed.
+  - Local API `POST /api/v1/dd-laminate/predict/u3-forecast` returned HTTP
+    `200` with a 192-point curve and predicted Pt/max values.
+
+## 2026-06-12 DD/u3 Row-Window Linear Fit Correction
+
+The previous u3 graph correction still used an envelope/tail style right-side
+fit, which did not match the fitted lines in the raw u3 plot images.
+
+- Checked the raw u3 reference plot
+  `data/datasets/Double-Double/u3/2-2/plot/plot_Test_001_P1.png`.
+- The reference plot explicitly labels:
+  - `P1 Initial fit (rows 1-3)`
+  - `P1 Second fit (rows 125-128)`
+- The raw CSV has 1001 points, so rows 125-128 correspond to about 12.4% of
+  the curve length, not the far tail.
+- Updated web u3 graph rendering:
+  - Added `buildU3BilinearFit(points)` in
+    `src/frontend/dd-laminate/app.js`.
+  - u3 uses first 3 points for the initial line.
+  - u3 uses the 12.4%-position 4-point window for the second line.
+  - The Pt marker is the intersection of those two row-window fitted lines.
+  - Standard Laminate Forecast keeps its existing standard fit logic.
+  - Bumped web cache key to `app.js?v=20260612-u3-row-fit`.
+- Updated iOS:
+  - Added `CurveFitMode.standard` / `.u3` to `CurveChartView.swift`.
+  - u3 cards/details pass `fitMode: .u3`; standard forecast charts remain
+    unchanged.
+- Numeric check with local u3 forecast sample
+  `theta1=65`, `theta2=19`, `Case3`, `u3_bucket=2`:
+  - predicted Pt: `8768.69`
+  - u3 fit second window on the 192-point predicted curve: rows `25-28`
+  - fitted-line intersection: displacement `0.01461`, force `8767.72`
+- Verification:
+  - `node --check src/frontend/dd-laminate/app.js`.
+  - `swift test` in `ios/DDLaminateMVP`: 9 tests passed.
+  - Local frontend `http://127.0.0.1:3000/` returned HTTP `200`.
+
+## 2026-06-12 DD/u3 Forecast Type Clarification
+
+The user clarified that the u3 source folders named `x-2` and `x-3`
+(`x` = Case2/Case3/Case4) actually represent the previously separated
+Type2/Type3 groups. They are not known inputs for a future prediction.
+
+Decision:
+
+- u3 Forecast should take only `theta1`, `theta2`, and `Case`.
+- u3 Type2/Type3 should be predicted as an output when possible.
+- Pt prediction remains the primary target; Type prediction is useful but
+  secondary.
+- The old UI selector for `u3-2` / `u3-3` was conceptually wrong because it
+  asked the user to provide a label-like value before prediction.
+
+Implementation:
+
+- Trained new u3 forecast v2 models from `data/datasets/DD_u3_pt_v2/manifest.csv`
+  without using `u3_bucket` as an input feature.
+- Added an ExtraTrees Type2/Type3 classifier inside
+  `models/dd_laminate_u3_forecast_v2/u3_forecast.joblib`.
+- Updated the backend `/api/v1/dd-laminate/predict/u3-forecast` contract so
+  `u3_bucket` is legacy/optional and not passed into the model.
+- Updated web and iOS UI to remove the u3 Dataset selector and show predicted
+  u3 Type plus Type confidence/probabilities.
+
+Latest u3 forecast v2 metrics:
+
+- Samples: 566
+- ML ExtraTrees + PCA:
+  - Pt MAE: `220.22 +/- 28.26` kips
+  - Pt R2: `0.894`
+  - Max displacement MAE: `0.00571`
+  - Max force MAE: `439.09`
+  - normalized curve RMSE: `0.0095`
+  - Type accuracy: `0.972`
+  - Type macro F1: `0.956`
+- DL GointMLP:
+  - Pt MAE: `180.05 +/- 39.44` kips
+  - Pt R2: `0.913`
+  - Max displacement MAE: `0.00263`
+  - Max force MAE: `373.24`
+  - normalized curve RMSE: `0.0106`
+
+Verification:
+
+- `python -m py_compile` for updated training, prediction, and backend files
+  passed with `PYTHONPYCACHEPREFIX=/private/tmp/kyulai_pycache`.
+- Direct CLI prediction with `theta1=65`, `theta2=19`, `Case3` returned
+  predicted Type2, Pt `8768.69`, and a 192-point curve.
+- FastAPI TestClient for `/predict/u3-forecast` returned HTTP `200`.
+- Live local API `POST http://127.0.0.1:8000/api/v1/dd-laminate/predict/u3-forecast`
+  returned HTTP `200` with predicted Type2, confidence `1.0`, Pt `8768.69`,
+  and v2 model metrics.
+- `node --check src/frontend/dd-laminate/app.js` passed.
+- `swift test` in `ios/DDLaminateMVP`: 9 tests passed.
+
+## 2026-06-15 C2ES Branding Pass
+
+The user asked to change app-visible `Luvelox` branding back to `C2ES`, while
+keeping the option to return to `Luvelox` later.
+
+Implementation approach:
+
+- Changed user-visible product/app text to `C2ES`.
+- Kept internal package, folder, type, and route identifiers such as
+  `LuveloxMVP`, `LuveloxModule`, `com.luvelox.app`, and `luvelox.com` URLs
+  unchanged so the current builds, package IDs, and Cloudflare routes stay
+  stable and the branding can be reversed later with a small text pass.
+- Updated the unified module catalog API brand response from `Luvelox` to
+  `C2ES`.
+- Updated iOS/Android app titles, login/workspace headers, access messages,
+  share/report titles, and report image filenames where they were visible to
+  users.
+- Updated selected mobile docs that described the app name.
+
+New Android debug APK artifacts:
+
+- `artifacts/android/C2ES-debug.apk`
+- `artifacts/android/C2ES-Laminate-debug.apk`
+- `artifacts/android/C2ES-Injection-debug.apk`
+
+Verification:
+
+- `.venv/bin/pytest tests/backend/test_luvelox_modules.py`: 6 passed.
+- `swift test` in `ios/LuveloxMVP`: 4 passed.
+- `swift test` in `ios/DDLaminateMVP`: 9 passed.
+- `swift test` in `ios/InjectionMVP`: 8 passed.
+- `gradle :app:assembleDebug` in `android/LuveloxMVP`: build successful.
+- `gradle :app:assembleDebug` in `android/DDLaminateMVP`: build successful.
+- `gradle :app:assembleDebug` in `android/InjectionMVP`: build successful.
+- `apksigner verify --verbose` passed for all three new `C2ES-*.apk`
+  artifacts using APK Signature Scheme v2.
+
+## 2026-06-15 C2ES App Icon Refresh
+
+The user added C2ES logo files under `icons/C2ES` and asked to use only the
+left atom-like symbol as the app icon, without the text.
+
+Implementation:
+
+- Used `icons/C2ES/C2ES Logo(ssy).png` as the source because it has the highest
+  resolution.
+- Cropped the left atom-like symbol and removed the text block.
+- Flattened the icon to RGB/no-alpha PNG for iOS app icon compatibility.
+- Saved reusable source icon:
+  `icons/C2ES/C2ES_AppIcon_Source.png`.
+- Updated the unified app icon assets:
+  - iOS: `ios/LuveloxMVPApp/LuveloxMVPHost/Assets.xcassets/AppIcon.appiconset`
+  - Android: `android/LuveloxMVP/app/src/main/res/mipmap-*`
+- Refreshed Android APK artifacts:
+  - `artifacts/android/C2ES-debug.apk`
+  - `artifacts/android/Luvelox-debug.apk` kept as a compatibility filename
+    with the same refreshed build.
+
+Verification:
+
+- `sips -g hasAlpha` confirmed the source, iOS 1024 icon, and Android xxxhdpi
+  icon have no alpha channel.
+- `gradle :app:assembleDebug` in `android/LuveloxMVP`: build successful.
+- `xcodebuild -project ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj -scheme
+  LuveloxMVPHost -destination 'generic/platform=iOS Simulator' build`:
+  succeeded.
+- `apksigner verify --verbose artifacts/android/C2ES-debug.apk`: passed using
+  APK Signature Scheme v2.
+
+## 2026-06-15 C2ES Demo Account Name Cleanup
+
+The user noticed `Luvelox Demo` still appearing inside the C2ES app.
+
+Root cause:
+
+- New code had already moved most visible branding to C2ES, but an installed
+  app could still restore an older persisted auth session whose saved display
+  name was `Luvelox Demo`.
+
+Implementation:
+
+- Changed demo account display name from `C2ES Demo` to the neutral
+  `Demo Account`.
+- Updated backend demo-login response, iOS fallback session, Android fallback
+  session, and iOS test fixtures.
+- Added session-name normalization/migration:
+  - iOS converts saved `Luvelox Demo` or `C2ES Demo` to `Demo Account` when
+    loading or saving sessions.
+  - Android converts saved/server `Luvelox Demo` or `C2ES Demo` to
+    `Demo Account`.
+- The only remaining `Luvelox Demo` string is inside the migration mapping and
+  should not be displayed.
+
+Verification:
+
+- `.venv/bin/pytest tests/backend/test_luvelox_modules.py`: 6 passed.
+- `swift test` in `ios/LuveloxMVP`: 4 passed.
+- `gradle :app:assembleDebug` in `android/LuveloxMVP`: build successful.
+- Refreshed `artifacts/android/C2ES-debug.apk`.
+- `apksigner verify --verbose artifacts/android/C2ES-debug.apk`: passed.
+## 2026-06-15 DD u3 XAI First Pass
+
+User asked whether XAI can be applied now and what information would help the
+Physics Feature Pack.
+
+Current conclusion:
+
+- XAI is immediately possible for the current u3 forecast Tree model because
+  `models/dd_laminate_u3_forecast_v2/u3_forecast.joblib` stores ExtraTrees
+  scalar, curve, and type models plus feature names.
+- First-pass XAI should explain the existing theta/case feature model; deeper
+  physics explanations require retraining with CLT/ABD/lamination-parameter
+  features.
+- Existing `src/ml/dd_laminate/laminate_physics.py` already computes a base ABD
+  feature vector for Case3/Case4, but Case2 and richer lamination descriptors
+  still need to be added before retraining the Case2/3/4 u3 forecast models.
+
+Implemented:
+
+- Added `scripts/dd_u3_xai_report.py`.
+- Generated `reports/dd_u3_xai_v1/u3_xai_report.md`.
+- Generated `reports/dd_u3_xai_v1/u3_feature_importance.csv`.
+- Generated `reports/dd_u3_xai_v1/u3_local_sensitivity.csv`.
+
+First-pass finding from current model:
+
+- Top global drivers are trigonometric/absolute angle features, especially
+  `theta1_cos_2`, `theta2_cos_4`, `theta2_cos_2`, `abs_theta1`, and
+  `abs_theta2`.
+- Case one-hot features are currently low in native feature importance, which
+  may mean the current learned response is dominated by angle descriptors, or
+  that case effects are indirectly entangled with sampled angle/data
+  distributions. This should be rechecked after adding physics features.
+
+Information useful from the user/brother for Physics Feature Pack:
+
+- Confirm exact stacking sequence expansion for Case2, Case3, Case4, and any
+  future cases.
+- Confirm material properties and units: E11, E22, G12, nu12, ply thickness,
+  panel dimensions, boundary conditions, load direction, and whether values are
+  constant across all simulations.
+- Provide any Abaqus outputs beyond force-displacement if available: buckling
+  modes, stress/strain fields, displacement fields, damage variables, element or
+  nodal CSV/ODB exports, and whether Pt fitting line locations are saved.
+- If only force-displacement CSV and transition_load.csv exist, that is still
+  enough for the next physics-feature retraining pass.
+## 2026-06-15 DD PPT Basis And Physics Feature Model
+
+User pointed to `data/PPT/Final ver2.pptx` as the detailed Double-Double
+Laminate basis used for the Abaqus simulations and asked to summarize/apply it.
+
+PPT extraction summary:
+
+- Problem setup: 6 in x 4 in flat rectangular panel, lateral simply-supported
+  edges, x=0/a clamped, load from x=a.
+- Material: Toray T800/3900S, ply thickness 0.0075 in, total 16 plies.
+- Type rules:
+  - Type 1: clear bilinear force-displacement curve; Pt from force-line
+    intersection.
+  - Type 2: force curve second region bends; Pt from average of force-plot and
+    u3-plot intersections.
+  - Type 3: force bilinear fit unreliable; Pt from u3-plot intersection.
+- Cases 2/3/4 form PPT Pattern II: four-corner peak surface with a low center
+  region, dominated by nonzero +/-45 degree angle families.
+- Reported high-performing region is near theta1 ~= 44.13 deg and theta2 ~=
+  -49.42 deg.
+- Transition-load best among Case2/3/4: Case3, about 15,916.5 lbs.
+- Weighted cost-function best among Case2/3/4: Case2, about 2.998788, using
+  70% buckling / 30% flexural-rigidity proxy.
+
+Implemented from PPT basis:
+
+- Added `docs/DD_Laminate_PPT_Basis.md`.
+- Updated `src/ml/dd_laminate/laminate_physics.py`:
+  - Case2 stack support: `[[+t1/-t1/+t2/-t2]] x 4`.
+  - Added `EXTENDED_PHYSICS_FEATURE_COLUMNS`.
+  - Added `extended_physics_feature_vector()` with ABD terms, B-coupling,
+    bending/membrane anisotropy, angle center/spread, balance/symmetry
+    descriptors, and Case2/3/4 flags.
+- Updated `src/ml/dd_laminate/train_u3_forecast_models.py`:
+  - Existing `theta` feature set remains model-compatible.
+  - New `theta_physics` feature set adds the extended physics pack.
+  - Saved models now record `feature_builder`.
+- Updated `src/ml/dd_laminate/predict_u3_forecast.py` so prediction chooses
+  the saved feature builder automatically.
+- Updated `scripts/dd_u3_xai_report.py` so XAI works for both `theta` and
+  `theta_physics` model bundles.
+
+New physics-feature model artifacts:
+
+- `models/dd_laminate_u3_forecast_physics_v1/u3_forecast.joblib`
+- `models/dd_laminate_u3_forecast_physics_v1/u3_forecast_goint.pt`
+- `reports/dd_u3_forecast_physics_v1/u3_forecast_report.md`
+- `reports/dd_u3_xai_physics_v1/u3_xai_report.md`
+- `reports/dd_u3_xai_physics_v1/u3_feature_importance.csv`
+- `reports/dd_u3_xai_physics_v1/u3_local_sensitivity.csv`
+
+Validation/results:
+
+- Python compile passed for laminate physics, u3 training, u3 prediction, and
+  XAI script.
+- Smoke check passed for Case2/Case3/Case4 physics feature vectors.
+- Existing `theta` model prediction still works.
+- `theta_physics` model trained on 566 u3 samples.
+- Physics Tree model: Pt MAE 218.29 kips, Pt R2 0.913, Type accuracy 0.974,
+  curve norm RMSE 0.0070.
+- Physics GointMLP: Pt MAE 163.35 +/- 28.59 kips, Pt R2 0.926, max
+  displacement MAE 0.00262, max force MAE 361.35, curve norm RMSE 0.0104.
+- Physics XAI top global drivers now include interpretable laminate terms:
+  `angle_min_abs`, `d11`, `a11_a22_ratio`, `a11`, `d12`, `d11_d22_ratio`,
+  `d66`, and `bending_anisotropy`.
+
+Important caveat:
+
+- The physics model was trained as a separate artifact and does not yet replace
+  the production DD web/app default model. Next UI/API step is to add the
+  physics model as an optional or default model after checking visual behavior.
+
+Follow-up:
+
+- User approved installing `python-pptx`; installed `python-pptx==1.0.2` in the
+  project venv and added it to `requirements-ml.txt`.
+- Rechecked `data/PPT/Final ver2.pptx` with `python-pptx` to verify slide
+  tables and grouped text. Main extracted results matched the earlier XML
+  extraction.
+- Updated `docs/DD_Laminate_PPT_Basis.md` with the extraction note and the
+  slide-25 value caveat: table/repeated overview use Case2 cost best
+  `2.998788`, while a nearby text object appears as `2.988788`.
+
+## 2026-06-15 DD XAI Web/App Display
+
+User asked to make the XAI content visible in the web and app so visitors can
+understand why the laminate prediction behaves the way it does.
+
+Implemented:
+
+- Backend `src/backend/api/v1/dd_laminate.py`:
+  - Added `XAIExplanation` / `XAIFeature` response models.
+  - Added `u3_forecast_physics` to the u3 forecast model registry.
+  - Added `/api/v1/dd-laminate/xai/u3/{model_key}`.
+  - `POST /predict/u3-forecast` now includes `xai` for the original u3
+    forecast and the new PPT/CLT physics-feature model when reports exist.
+  - XAI reads `reports/dd_u3_xai_physics_v1/u3_feature_importance.csv` and
+    maps key features like `angle_min_abs`, `d11`, `a11_a22_ratio`, `d12`,
+    `d66`, and `bending_anisotropy` to readable explanations.
+- Web DD page:
+  - Added an XAI panel to both English and Korean pages.
+  - u3 forecast results now show summary, method, feature set, top feature
+    importance bars, and validation notes.
+  - Bumped DD web asset query strings to `20260615-xai-panel` so browsers load
+    the new CSS/JS instead of cached files.
+- iOS DD app:
+  - Added Codable XAI models.
+  - u3 result detail screen now shows a "Why this prediction?" card with top
+    feature drivers.
+- Android unified app:
+  - Added optional XAI decoding/rendering so future laminate responses with
+    `xai` do not break and can show explanation cards.
+
+Verification:
+
+- `node --check src/frontend/dd-laminate/app.js` passed.
+- Backend AST parse passed without writing `__pycache__`.
+- Direct backend smoke for `u3_forecast_physics` returned Pt `10127.63`, Type
+  `2`, and `xai=True`.
+- Local server smoke passed:
+  - `http://127.0.0.1:3000/` serves the new XAI panel markup and asset version.
+  - `http://127.0.0.1:8000/api/v1/dd-laminate/xai/u3/u3_forecast_physics`
+    returns the XAI report JSON.
+- `swift test` in `ios/DDLaminateMVP` passed: 9 tests.
+- Android `gradle :app:assembleDebug` did not run to code compilation because
+  this Mac has no Java 17 runtime/toolchain configured.
+
+Follow-up:
+
+- User said XAI output was hard to read and asked for percent display.
+- Updated web, iOS, and Android XAI feature rows so importance is displayed as
+  percentage text, e.g. `Angle · 39.3%` instead of raw decimals like
+  `0.393317`.
+- Bumped DD web asset query strings to `20260615-xai-percent`.
+- Verification:
+  - `node --check src/frontend/dd-laminate/app.js` passed.
+  - `swift test` in `ios/DDLaminateMVP` passed: 9 tests.
+  - Local DD HTML serves `20260615-xai-percent`.
+
+Clarification:
+
+- User asked whether there is also a GointMLP XAI model.
+- Current state: u3 GointMLP models exist, including
+  `models/dd_laminate_u3_forecast_physics_v1/u3_forecast_goint.pt`, but the
+  generated XAI artifacts and API display currently explain the Tree/joblib
+  u3 forecast bundles only.
+- To add GointMLP XAI later, use neural-network methods such as permutation
+  importance, gradient saliency, integrated gradients, or occlusion sensitivity
+  over the same theta/physics feature set.
+
+## 2026-06-15 DD GointMLP XAI
+
+User asked to create GointMLP XAI as well and rename the models so Tree XAI and
+GointMLP XAI are not confused.
+
+Implemented:
+
+- Updated `scripts/dd_u3_xai_report.py`:
+  - Existing Tree mode remains `--model-kind tree`.
+  - Added `--model-kind goint`.
+  - GointMLP XAI uses feature occlusion sensitivity: each normalized feature is
+    masked to its training mean, then Pt/max-value and curve-head movement is
+    measured.
+  - Still writes `u3_feature_importance.csv`, `u3_local_sensitivity.csv`, and
+    `u3_xai_report.md`.
+- Generated GointMLP physics XAI artifacts:
+  - `reports/dd_u3_xai_goint_physics_v1/u3_feature_importance.csv`
+  - `reports/dd_u3_xai_goint_physics_v1/u3_local_sensitivity.csv`
+  - `reports/dd_u3_xai_goint_physics_v1/u3_xai_report.md`
+- Top GointMLP + Physics XAI global drivers:
+  - `angle_min_abs` 8.54%
+  - `angle_abs_std` 4.46%
+  - `a66_geom_ratio` 3.89%
+  - `theta2_cos_4` 3.49%
+  - `theta1_cos_4` 2.99%
+  - `bending_anisotropy` 2.69%
+- Renamed/clarified u3 model labels in API/UI:
+  - `u3 Forecast - Tree (Theta)`
+  - `u3 Forecast - Tree + Physics XAI`
+  - `u3 Forecast - GointMLP (Theta)`
+  - `u3 Forecast - GointMLP + Physics XAI`
+- Added backend model key:
+  - `u3_forecast_goint_physics`
+  - Path: `models/dd_laminate_u3_forecast_physics_v1/u3_forecast_goint.pt`
+- `/predict/u3-forecast` now serves XAI for `u3_forecast_goint_physics`.
+- `/xai/u3/u3_forecast_goint_physics` now returns the GointMLP XAI report.
+- Updated web/iOS/Android display aliases and Korean text for the new labels.
+- Bumped DD web asset query string to `20260615-goint-xai`.
+
+Verification:
+
+- AST parse passed for `src/backend/api/v1/dd_laminate.py` and
+  `scripts/dd_u3_xai_report.py`.
+- `node --check src/frontend/dd-laminate/app.js` passed.
+- `swift test` in `ios/DDLaminateMVP` passed: 9 tests.
+- Local API `/models` returns all four renamed u3 forecast models.
+- Local API `/xai/u3/u3_forecast_goint_physics` returns XAI JSON.
+- Local API prediction smoke:
+  - Input: theta1 `30`, theta2 `-30`, Case3,
+    model `u3_forecast_goint_physics`.
+  - Result: Pt `10649.18`, label `u3 Forecast - GointMLP + Physics XAI`,
+    `xai=True`.
+
+## 2026-06-15 DD XAI Retraining v2
+
+User noted that when XAI is applied, retraining may be needed and asked to
+proceed if so. Decision: the XAI display itself is post-hoc, but the physics
+feature model is the part that truly requires training. To make the lineage
+clean, retrained the physics-feature u3 forecast models into v2 artifacts
+without overwriting v1.
+
+New model artifacts:
+
+- `models/dd_laminate_u3_forecast_physics_v2/u3_forecast.joblib`
+- `models/dd_laminate_u3_forecast_physics_v2/u3_forecast_goint.pt`
+- `models/dd_laminate_u3_forecast_physics_v2/u3_forecast_metrics.json`
+- `models/dd_laminate_u3_forecast_physics_v2/u3_forecast_goint_metrics.json`
+
+New report/XAI artifacts:
+
+- `reports/dd_u3_forecast_physics_v2/u3_forecast_report.md`
+- `reports/dd_u3_xai_physics_v2/u3_feature_importance.csv`
+- `reports/dd_u3_xai_physics_v2/u3_local_sensitivity.csv`
+- `reports/dd_u3_xai_physics_v2/u3_xai_report.md`
+- `reports/dd_u3_xai_goint_physics_v2/u3_feature_importance.csv`
+- `reports/dd_u3_xai_goint_physics_v2/u3_local_sensitivity.csv`
+- `reports/dd_u3_xai_goint_physics_v2/u3_xai_report.md`
+
+Retraining results:
+
+- Dataset: `data/datasets/DD_u3_pt_v2/manifest.csv`
+- Samples: 566
+- Feature set: `theta_physics`
+- Tree/ExtraTrees:
+  - Pt MAE: `218.29 +/- 5.08`
+  - Pt R2: `0.913`
+  - Type accuracy: `0.974`
+  - Type macro F1: `0.960`
+  - Curve normalized RMSE: `0.0070`
+- GointMLP:
+  - Pt MAE: `163.35 +/- 28.59`
+  - Pt R2: `0.926`
+  - Max. Displacement MAE: `0.00262`
+  - Max. Force MAE: `361.35`
+  - Curve normalized RMSE: `0.0104`
+
+API switched to v2:
+
+- `u3_forecast_physics` now uses
+  `models/dd_laminate_u3_forecast_physics_v2/u3_forecast.joblib`
+  and `reports/dd_u3_xai_physics_v2/u3_feature_importance.csv`.
+- `u3_forecast_goint_physics` now uses
+  `models/dd_laminate_u3_forecast_physics_v2/u3_forecast_goint.pt`
+  and `reports/dd_u3_xai_goint_physics_v2/u3_feature_importance.csv`.
+
+Verification:
+
+- Backend syntax parse passed.
+- Local function smoke:
+  - Tree + Physics XAI first XAI importance: `0.393317`.
+  - GointMLP + Physics XAI first XAI importance: `0.08538`.
+  - GointMLP + Physics XAI prediction for theta1 `30`, theta2 `-30`,
+    Case3: Pt `10649.18`, `xai=True`.
+- Local API `/models` returns v2 paths for both physics XAI models.
+- Local API prediction smoke:
+  - `u3_forecast_physics`: Pt `10127.63`, label
+    `u3 Forecast - Tree + Physics XAI`.
+  - `u3_forecast_goint_physics`: Pt `10649.18`, label
+    `u3 Forecast - GointMLP + Physics XAI`.
+
+## 2026-06-15 DD XAI Compact UI
+
+User said the XAI section was hard to read because each feature consumed too
+much space.
+
+Implemented:
+
+- Web DD XAI feature rows are now compact:
+  - Removed always-visible long per-feature explanation text.
+  - Kept feature label, category/percentage badge, and compact importance bar.
+  - Long explanation remains available as a hover tooltip via `title`.
+  - Reduced XAI summary/method typography and spacing.
+  - Added mobile fallback so feature rows stack cleanly on narrow screens.
+- iOS DD app:
+  - Removed always-visible feature explanation text from the XAI card.
+  - Feature rows now show label, category/percentage, and progress bar only.
+- Android app:
+  - Removed per-feature explanation paragraph under each XAI metric box.
+- Bumped DD web asset query string to `20260615-xai-compact`.
+
+Verification:
+
+- `node --check src/frontend/dd-laminate/app.js` passed.
+- `swift test` in `ios/DDLaminateMVP` passed: 9 tests.
+- Local DD HTML serves `20260615-xai-compact`.
+
+## 2026-06-15 DD GointMLP Theta XAI + Korean XAI Text
+
+User asked whether `Tree (Theta)` already had XAI and why
+`GointMLP (Theta)` did not show explanations. They also asked for XAI
+explanations to be translated when the Korean page is selected.
+
+Findings:
+
+- `Tree (Theta)` already had XAI through `u3_forecast`.
+- `GointMLP (Theta)` did not have its own XAI report/loader.
+- `GointMLP + Physics XAI` was separate and did not cover the plain
+  theta/case GointMLP model.
+
+Implemented:
+
+- Generated a new GointMLP theta/case XAI report from
+  `models/dd_laminate_u3_forecast_v2/u3_forecast_goint.pt`.
+- New artifacts:
+  - `reports/dd_u3_xai_goint_v2/u3_feature_importance.csv`
+  - `reports/dd_u3_xai_goint_v2/u3_local_sensitivity.csv`
+  - `reports/dd_u3_xai_goint_v2/u3_xai_report.md`
+- Backend now loads XAI for `u3_forecast_goint`.
+- Added feature explanations for theta periodic features such as
+  `cos(2θ)`, `cos(4θ)`, `sin(4θ)`, `|θ|`, `|θ₁ - θ₂|`, and `θ₁ × θ₂`.
+- Web Korean mode now localizes XAI summaries, method labels, feature-set
+  names, feature labels, categories, notes, and common explanations.
+- iOS result detail XAI card now localizes feature-set names, categories,
+  and expanded XAI labels/explanations.
+- Bumped DD web asset query string to `20260615-xai-ko-goint`.
+
+GointMLP Theta XAI top drivers:
+
+- `cos(4θ₂)`: `16.73%`
+- `cos(4θ₁)`: `15.86%`
+- `|θ₁|`: `8.37%`
+- `cos(2θ₂)`: `8.24%`
+- `|θ₂|`: `8.13%`
+- `cos(2θ₁)`: `7.50%`
+
+Verification:
+
+- GointMLP theta/case XAI generation completed successfully.
+- Backend AST parse passed.
+- Web JS syntax check passed.
+- Direct loader smoke:
+  - `u3_forecast`: `tree True cos(2θ₁)`
+  - `u3_forecast_goint`: `goint True cos(4θ₂) 0.167251`
+- Local API `/api/v1/dd-laminate/xai/u3/u3_forecast` returns Tree Theta
+  XAI.
+- Local API `/api/v1/dd-laminate/xai/u3/u3_forecast_goint` returns
+  GointMLP Theta XAI.
+- Local API `/predict/u3-forecast` with model `u3_forecast_goint` includes
+  the `xai` block in the prediction response.
+- `swift test` in `ios/DDLaminateMVP` passed: 9 tests.
+- Local Korean DD HTML serves `20260615-xai-ko-goint`.
+
+Clarification for model naming:
+
+- `Theta` models do not use raw `theta1` and `theta2` only. They use 19
+  theta/case-derived features:
+  `theta1`, `theta2`, absolute/sum/difference/product terms,
+  sin/cos periodic descriptors, and Case2/Case3/Case4 one-hot flags.
+- `Physics XAI` models are separate retrained models with a different input
+  feature set. They use the same 19 theta/case features plus 47 PPT/CLT-based
+  laminate physics descriptors, for 66 total features.
+- Physics descriptors include ABD stiffness terms, A/D ratios, coupling norms,
+  ply count, total thickness, panel aspect/slenderness, B-matrix terms,
+  membrane/bending anisotropy, DD angle center/spread, stack symmetry/balance,
+  and case flags.
+- Therefore `Theta` vs `Physics XAI` is not only a different explanation layer;
+  it is a different trained feature space. XAI explains the feature space used
+  by each selected model.
+
+## 2026-06-15 DD XAI Feature Description Restore
+
+User clarified that the compact XAI UI went too far: each feature still needs
+to show both its influence percentage and what the feature means. The previous
+compact pass had hidden feature explanations behind hover/tooltips, which made
+the XAI section much less useful.
+
+Implemented:
+
+- Web DD XAI feature cards now show:
+  - feature label,
+  - category + percentage,
+  - percent bar,
+  - concise feature meaning below the percent bar.
+- Kept the card compact, but restored visible explanation text.
+- Korean web mode uses the existing translated feature explanations.
+- iOS DD XAI feature rows now also show the feature explanation below the
+  progress bar.
+- Added missing Korean iOS translations for the common theta and physics
+  feature explanations.
+- Bumped DD web asset query string to `20260615-xai-desc`.
+
+Verification:
+
+- `node --check src/frontend/dd-laminate/app.js` passed.
+- Backend AST parse passed.
+- `swift test` in `ios/DDLaminateMVP` passed: 9 tests.
+
+## 2026-06-15 Laminate Forecast Physics XAI Models
+
+User requested the same XAI direction used for u3 Forecast to be applied to
+Laminate Forecast as well, for both ML and DL models. The old non-XAI models
+must remain available separately, while web/app defaults should show the XAI
+models.
+
+Implemented:
+
+- Added `src/ml/dd_laminate/response_feature_sets.py` for Laminate Forecast
+  feature construction.
+- Added PPT/CLT physics-augmented Laminate Forecast models:
+  - `models/dd_laminate_response_physics_xai_v1/response_surrogate.joblib`
+  - `models/dd_laminate_response_goint_physics_xai_v1/response_goint.pt`
+- Added training/report scripts:
+  - `scripts/dd_response_physics_xai_train.py`
+  - `scripts/dd_response_xai_report.py`
+- Added XAI reports:
+  - `reports/dd_response_xai_physics_v1/response_feature_importance.csv`
+  - `reports/dd_response_xai_physics_v1/response_local_sensitivity.csv`
+  - `reports/dd_response_xai_physics_v1/response_xai_report.md`
+  - `reports/dd_response_xai_goint_physics_v1/response_feature_importance.csv`
+  - `reports/dd_response_xai_goint_physics_v1/response_local_sensitivity.csv`
+  - `reports/dd_response_xai_goint_physics_v1/response_xai_report.md`
+- Backend model list now keeps both model families:
+  - XAI defaults:
+    `response_surrogate_physics`, `response_goint_physics`
+  - Old non-XAI models:
+    `response_surrogate`, `response_goint`
+- Web defaults and labels now show:
+  - `Laminate Forecast - Tree + Physics XAI`
+  - `Laminate Forecast - GointMLP + Physics XAI`
+  - `Laminate Forecast - Tree (Theta)`
+  - `Laminate Forecast - GointMLP (Theta)`
+- iOS DD app now defaults to `response_surrogate_physics`, decodes XAI, and
+  shows the same compact XAI card on Laminate Forecast and u3 result screens.
+- Android DD MVP now parses the response XAI block and displays a compact XAI
+  card with percent bars and feature explanations.
+- Windows bundle packaging includes the new response XAI model and report
+  directories.
+
+Training results:
+
+- Tree + Physics XAI:
+  - Type accuracy: `0.9433 +/- 0.0181`
+  - Type macro F1: `0.9364 +/- 0.0211`
+  - Pt MAE: `434.98`
+  - Curve normalized RMSE: `0.00714`
+- GointMLP + Physics XAI:
+  - Type accuracy: `0.9456 +/- 0.0181`
+  - Type macro F1: `0.9438 +/- 0.0183`
+  - Pt MAE: `663.09`
+  - Curve normalized RMSE: `0.02386`
+
+Default/runtime behavior verified:
+
+- `/api/v1/dd-laminate/models` response order:
+  - Response models:
+    `response_surrogate_physics`, `response_goint_physics`,
+    `response_surrogate`, `response_goint`
+  - u3 models:
+    `u3_forecast_physics`, `u3_forecast_goint_physics`,
+    `u3_forecast`, `u3_forecast_goint`
+- `/predict/response` with no model now defaults to
+  `response_surrogate_physics` and returns an XAI block.
+- `/predict/response` with old `response_surrogate` still works and returns
+  `xai: null`, confirming the non-XAI model is preserved separately.
+
+Verification:
+
+- Python compile passed for the backend, response predictors, feature builder,
+  and new training/XAI scripts.
+- `node --check src/frontend/dd-laminate/app.js` passed.
+- API smoke passed:
+  `response_surrogate_physics`, label
+  `Laminate Forecast - Tree + Physics XAI`, XAI returned with top feature
+  `Minimum |θ|`.
+- `swift test` in `ios/DDLaminateMVP` passed: 9 tests.
+- Android DD MVP Gradle compile could not run on this Mac because no Java
+  runtime/JDK 17 is installed:
+  `Unable to locate a Java Runtime`.
+
+## 2026-06-15 DD XAI Korean Feature Translation Coverage
+
+User noticed that some XAI feature names/descriptions were still appearing in
+English in Korean mode, especially `A12 membrane coupling`.
+
+Implemented:
+
+- Expanded backend `FEATURE_EXPLANATIONS` so more CLT/PPT physics features get
+  readable labels instead of fallback raw names:
+  - `A12 membrane coupling`
+  - `A22 membrane stiffness`
+  - `A66 shear stiffness`
+  - `A16/A26 extension-shear coupling`
+  - `B11/B22/B12/B66 membrane-bending coupling`
+  - `B16/B26` and `D16/D26 bend-twist coupling`
+  - `A/B/D-matrix coupling norm`
+  - stack balance, symmetry mismatch, DD angle center, panel geometry, and
+    Case flag features.
+- Added Korean web translations for the expanded XAI labels and explanations.
+- Added the same Korean iOS translations in `XAIExplanationCard`.
+
+Verification:
+
+- Backend Python compile passed.
+- Web `node --check src/frontend/dd-laminate/app.js` passed.
+- iOS `swift test` passed: 9 tests.
+
+## 2026-06-15 - DD XAI list and tab-state cleanup
+
+User requested two DD Laminate UI adjustments:
+
+- XAI feature importance should not show every feature at once.
+- Switching from Laminate Forecast results to the u3 Forecast tab should clear
+  the previous result instead of leaving stale values visible.
+
+Changes:
+
+- DD web `renderXai()` now sorts features by importance, shows the top 10 by
+  default, and places the remaining features inside a collapsible "more"
+  section.
+- The same shared XAI renderer is used for both Laminate Forecast and u3
+  Forecast, so both views get the top-10/default behavior.
+- DD web mode-tab clicks now reset the prediction/result panel when changing
+  modes, preventing Laminate Forecast results from remaining visible after
+  switching to u3 Forecast.
+- Added compact styling for the XAI "more features" disclosure.
+- Bumped DD web asset key to `20260615-xai-more-reset`.
+
+Verification:
+
+- `node --check src/frontend/dd-laminate/app.js` passed.
+
+## 2026-06-15 Compact Physics Feature Pack v2
+
+User noticed that the Physics XAI feature pack had duplicate/static features.
+
+Implemented:
+
+- Added `COMPACT_PHYSICS_FEATURE_COLUMNS` and
+  `compact_physics_feature_vector()` in `src/ml/dd_laminate/laminate_physics.py`.
+- Added `theta_physics_v2` support for Laminate Forecast response features.
+- Added `theta_physics_v2` support for u3 Forecast features.
+- Updated Laminate Forecast physics-XAI training script to accept
+  `--feature-set theta_physics_v2`.
+- Trained new compact models without overwriting v1:
+  - `models/dd_laminate_response_physics_xai_v2`
+  - `models/dd_laminate_response_goint_physics_xai_v2`
+  - `models/dd_laminate_u3_forecast_physics_v3`
+- Generated new XAI reports:
+  - `reports/dd_response_xai_physics_v2`
+  - `reports/dd_response_xai_goint_physics_v2`
+  - `reports/dd_u3_xai_physics_v3`
+  - `reports/dd_u3_xai_goint_physics_v3`
+- Added the new compact models to the DD API model registry as selectable
+  options rather than replacing the existing defaults.
+- Added new model/report paths to the Windows bundle packaging script.
+
+Feature count:
+
+- Laminate Forecast Physics XAI: 58 -> 35 features.
+- u3 Forecast Physics XAI: 66 -> 43 features.
+
+Training results:
+
+- Laminate Forecast Tree compact v2:
+  - Type accuracy: 0.9422
+  - Macro F1: 0.9372
+  - Pt MAE: 438.15 kips
+  - Curve normalized RMSE: 0.00701
+- Laminate Forecast GointMLP compact v2:
+  - Type accuracy: 0.9400
+  - Macro F1: 0.9362
+  - Pt MAE: 801.35 kips
+  - Curve normalized RMSE: 0.03223
+- u3 Forecast Tree compact v2:
+  - Best scalar model: ExtraTrees
+  - Pt MAE: 223.79 kips
+  - Type accuracy: 0.9753
+- u3 Forecast GointMLP compact v2:
+  - Pt MAE: 168.65 kips
+  - Pt R2: 0.9226
+  - Curve normalized RMSE: 0.01018
+
+Interpretation:
+
+- Compact v2 is much cleaner for XAI.
+- Laminate Forecast Tree performance is nearly unchanged from v1.
+- Laminate Forecast GointMLP got worse than v1, so keep v1 available.
+- u3 compact v2 remains strong; GointMLP is still better than Tree for Pt MAE.
+
+Follow-up:
+
+- User asked why Laminate Forecast GointMLP compact v2 got worse.
+- Compared v1/v2 XAI and trained probe variants.
+- Removed features with nonzero v1 GointMLP importance accounted for:
+  - Combined importance: 27.88%
+  - Scalar/Pt importance: 23.92%
+  - Curve importance: 27.65%
+  - Type importance: 32.07%
+- Full 58-feature model reproduced v1 exactly, confirming the difference was
+  feature-set driven, not random training drift.
+- Built a GointMLP-specific `theta_physics_nn_v2` feature pack:
+  - 47 features.
+  - Keeps compact physics descriptors.
+  - Restores selected neural basis terms:
+    `a66_geom_ratio`, `b11`, `b22`, `b12`, `b66`,
+    `b11_d11_ratio`, `b22_d22_ratio`, `dd_angle_center`,
+    `dd_angle_spread`, `case2_flag`, `case3_flag`, `case4_flag`.
+  - Still removes static/zero descriptors such as panel geometry constants,
+    `a16`, `a26`, `a_coupling_norm`, `angle_mean`,
+    `stack_balance_sin_sum`, and `case_pattern_ii`.
+- Trained final hidden-96 NN-friendly GointMLP:
+  - Model path: `models/dd_laminate_response_goint_physics_nn_v2`
+  - XAI path: `reports/dd_response_xai_goint_physics_nn_v2`
+  - Feature builder: `theta_physics_nn_v2`
+  - Input dim: 47
+  - Type accuracy: 0.9389
+  - Macro F1: 0.9383
+  - Pt MAE: 661.41 kips
+  - Curve normalized RMSE: 0.02131
+- This slightly improves Pt MAE over the original 58-feature GointMLP v1
+  (663.09 kips), while using fewer and more explainable features.
+
+UI cleanup:
+
+- User said the Laminate Forecast model dropdown had too many models.
+- Web DD now filters the Laminate Forecast model select to primary models only:
+  - `response_surrogate_physics_v2`
+  - `response_goint_physics_nn_v2`
+- Legacy/experimental response models remain available in the backend/API for
+  comparison, but they are hidden from the normal web dropdown.
+- Display labels were shortened:
+  - `Tree + Compact XAI`
+  - `GointMLP + NN-Friendly XAI`
+- Web asset cache key bumped to `20260615-model-cleanup`.
+
+Third follow-up:
+
+- User noticed that forcing both red slope guides through `Predicted Pt` made
+  the slopes collapse visually into almost one line.
+- Revised the chart definition:
+  - The red dashed two-line guide is again a visual bilinear fit/intersection
+    that explains the predicted curve shape.
+  - The red `Predicted Pt` dot/label is now a separate marker placed on the
+    predicted curve at the scalar `predicted_pt` force.
+  - The guide kink and the predicted marker intentionally may have different
+    coordinates; this avoids hiding the two-slope shape while keeping the Pt
+    number consistent with the metric card.
+- Applied the separation to:
+  - Web DD chart: `buildBilinearFit()` returns both `kink` and
+    `predictedPoint`; drawing uses `predictedPoint` for the dot/label.
+  - iOS DD chart: `BilinearFit` now includes optional `predictedPoint`, and
+    the dot uses it when available.
+  - Android DD MVP chart: same `predictedPoint` separation.
+- Bumped DD web asset key to `20260615-pt-separate`.
+- Verification:
+  - `node --check src/frontend/dd-laminate/app.js` passed.
+  - `swift test` in `ios/DDLaminateMVP` passed: 9 tests.
+  - Local static server serves `styles.css?v=20260615-pt-separate` and
+    `app.js?v=20260615-pt-separate`.
+  - `git diff --check` passed for the touched DD chart/cache/memory files.
+  - Android compile was attempted with system Gradle, but this Mac has no Java
+    17 toolchain configured for `android/DDLaminateMVP`.
+
+Fourth follow-up:
+
+- User asked whether the two-slope calculation can stay as-is, while moving
+  the two guide lines as much as possible toward `Predicted Pt`.
+- Updated the standard Laminate Forecast chart rule:
+  - Left/right slope values are still computed from the visual bilinear
+    fit/envelope method.
+  - After the slopes are computed, the final two red dashed guide lines are
+    translated so both pass through the predicted curve point at scalar
+    `predicted_pt`.
+  - This preserves two distinct slope angles while making the line crossing
+    align with the displayed `Predicted Pt`.
+- Applied to web, iOS DD chart, and Android DD MVP chart.
+- Bumped DD web asset key to `20260615-pt-slope-anchor`.
+
+Fifth follow-up:
+
+- User rejected the slope-translation experiment because the slope guide itself
+  should stay in its fitted position.
+- Reverted the standard Laminate Forecast chart behavior back to the previous
+  separated design:
+  - Red dashed slope guides use the visual bilinear fit/intersection position.
+  - `Predicted Pt` remains a separate red dot/label on the predicted curve.
+  - The slopes are not translated to pass through the predicted point.
+- Applied the rollback to web, iOS DD chart, and Android DD MVP chart.
+- Bumped DD web asset key to `20260615-pt-separate-restore`.
+
+Sixth follow-up:
+
+- User noted that the two red slope lines visibly meet at one point, but that
+  point differs from the red model `Predicted Pt` marker.
+- Clarified the web chart by making both meanings visible:
+  - Red circle/label remains `Predicted Pt`, the model scalar Pt placed on the
+    predicted curve.
+  - Purple diamond/label is now `Fit intersection`, the visual crossing point
+    of the two linear fit guides.
+  - The legend now names `Fit intersection` instead of the vague kink line.
+- This keeps the slope fit intact while preventing viewers from assuming the
+  two points are the same quantity.
+- Bumped DD web asset key to `20260615-pt-fit-vs-predicted`.
+
+Seventh follow-up:
+
+- User asked to apply the same `Predicted Pt` vs `Fit intersection`
+  distinction to u3.
+- Updated u3 chart handling:
+  - Web `buildU3BilinearFit()` now receives `predicted_pt` and returns
+    `predictedPoint` from the predicted curve.
+  - u3 web charts now show red `Predicted Pt` and purple `Fit intersection`
+    separately when the points differ, using the same legend as Laminate
+    Forecast.
+  - iOS u3 `CurveChartView` now passes `predictedPt` into
+    `buildU3BilinearFit()` so the red marker uses the model Pt instead of the
+    fit intersection.
+- Bumped DD web asset key to `20260615-u3-fit-vs-predicted`.
+
+## 2026-06-15 XAI Feature Density Cleanup
+
+User noted that the XAI feature explanations were shown as separate large
+cards, making it hard to inspect all features at once.
+
+Implemented:
+
+- Web DD XAI panel:
+  - Replaced per-feature cards with one compact feature list.
+  - Removed the `top_features.slice(0, 6)` display cap; all API-provided
+    features are rendered.
+  - Each row now shows feature label, category pill, short explanation, a
+    compact percentage value, and a thin importance bar.
+  - Bumped DD web asset key to `20260615-xai-compact-list`.
+- iOS DD app:
+  - Reworked `XAIExplanationCard` from large feature cards into compact rows.
+  - Removed the `.prefix(5)` cap so all provided features are visible.
+- Android DD MVP and unified Android Laminate screen:
+  - Replaced metric-box style XAI feature cards with compact rows.
+  - Removed the `.take(5)` cap and kept the feature explanation visible.
+
+Verification:
+
+- `node --check src/frontend/dd-laminate/app.js` passed.
+- Local static server serves `styles.css?v=20260615-xai-compact-list` and
+  `app.js?v=20260615-xai-compact-list`.
+- `swift test` in `ios/DDLaminateMVP` passed: 9 tests.
+- `git diff --check` passed for the touched web/iOS/Android/memory files.
+- Android Gradle compile was attempted, but this Mac still lacks the Java 17
+  toolchain required by `android/DDLaminateMVP`.
+
+## 2026-06-15 Live Local XAI Fix
+
+User noticed that XAI percentages did not change between predictions. This was
+correct: the API was returning static global importance CSV rows from
+`reports/.../feature_importance.csv`, so the UI could not change when
+theta/case inputs changed.
+
+Implemented:
+
+- Backend DD API now computes local XAI during prediction for Laminate Forecast
+  and u3 Forecast XAI models.
+- For the current theta/case input, the API builds the model feature vector,
+  masks one feature at a time, re-evaluates the model output, and scores how
+  much Type/scalar/curve outputs move.
+- The local score is blended with a small global prior so known global drivers
+  remain visible, but the displayed percentages now change by input.
+- Applied to:
+  - `response_surrogate_physics`
+  - `response_goint_physics`
+  - `u3_forecast_physics`
+  - `u3_forecast_goint_physics`
+  - the theta-only u3 XAI variants when selected.
+- Backend still supports static global XAI through `/xai/u3/{model_key}` for
+  model-level explanation, but prediction responses now use live local XAI.
+- Added caching/one-time model setup inside local XAI so GointMLP models are
+  not rebuilt once per feature.
+- Added Korean UI translations for the new local XAI method/notes.
+- Bumped DD web asset key to `20260615-local-xai`.
+- Restarted the DD API server on port `8000`.
+
+Verification:
+
+- `PYTHONPYCACHEPREFIX=/private/tmp/kyulai_pycache .venv/bin/python -m py_compile src/backend/api/v1/dd_laminate.py` passed.
+- `node --check src/frontend/dd-laminate/app.js` passed.
+- `git diff --check` passed for the touched backend/frontend/memory files.
+- FastAPI TestClient confirmed different XAI rankings/percentages for two
+  different inputs on Tree and GointMLP, Laminate Forecast and u3 Forecast.
+- Live API confirmed different XAI for:
+  - `theta1=-29`, `theta2=74`, `Case4`
+  - `theta1=65`, `theta2=19`, `Case3`
+- Live server health check `/api/v1/dd-laminate/models` returned OK after
+  restart.
+- API smoke for `response_goint_physics` now returns:
+  - `a12 => A12 membrane coupling`
+  - explanation:
+    `In-plane membrane coupling term from the laminate A matrix.`
+- Static search confirmed Korean mappings:
+  - `A12 membrane coupling` -> `A12 막 커플링`
+  - `In-plane membrane coupling term...` ->
+    `적층 A 행렬의 평면 내 막 커플링 항입니다.`
+
+## 2026-06-15 Laminate Forecast Pt Chart Consistency
+
+User noticed that the `Predicted Pt` metric in Laminate Forecast and the value
+shown inside the predicted curve graph did not match.
+
+Root cause:
+
+- The metric card used the API/model scalar value `predicted_pt`.
+- The graph label used `bilinearFit.kink.force`, a force value recomputed from
+  the visual two-line fit/intersection.
+- Because Laminate Forecast predicts Pt and the surrogate curve with separate
+  model heads, the visual bilinear intersection can differ from the scalar Pt.
+  The UI then mislabeled the visual-fit value as `Predicted Pt`.
+
+Implemented:
+
+- Web DD chart:
+  - Standard Laminate Forecast `buildBilinearFit()` now anchors the visual
+    kink force and both guide lines to `predicted_pt`.
+  - The graph label and metric card therefore use the same Pt force value.
+- iOS DD chart:
+  - Standard `ChartLayout.buildBilinearFit()` now anchors `kinkForce` and both
+    guide lines to `predictedPt`.
+- u3-specific fit logic was not changed because it uses a separate early-kink
+  definition.
+- Android DD MVP already anchored the standard fit to `predictedPt`; no change
+  was needed there.
+
+Verification:
+
+- `node --check src/frontend/dd-laminate/app.js` passed.
+- `swift test` in `ios/DDLaminateMVP` passed: 9 tests.
+
+Follow-up:
+
+- User still saw a mismatch after the first fix:
+  metric `17,964.27` vs graph label `17,309.57`.
+- Tightened the web drawing code so the graph label explicitly formats
+  `predictedPtValue`, not `bilinearFit.kink.force`.
+- Bumped DD HTML asset query strings from `20260615-response-xai` to
+  `20260615-pt-sync` so browsers stop using the cached chart code.
+- Verified local static server now serves:
+  - `styles.css?v=20260615-pt-sync`
+  - `app.js?v=20260615-pt-sync`
+- Verified served `app.js` includes:
+  - `const displayPt = Number.isFinite(Number(predictedPtValue)) ...`
+  - `const ptValue = formatMetric(displayPt, 2)`
+
+Second follow-up:
+
+- User clarified that the red point itself should be the predicted point on the
+  predicted curve, and the two red slope guides should be adjusted to pass
+  through that point.
+- Updated standard Laminate Forecast chart logic:
+  - Web: `buildBilinearFit()` now anchors `kinkX` to
+    `pointAtForce(points, predictedPt).displacement` and `kinkForce` to
+    `predictedPt`.
+  - iOS: `ChartLayout.buildBilinearFit()` now uses the same curve-on-Pt anchor.
+  - Android DD MVP: `CurveChartView.kt` now starts `kinkX` from
+    `ptOnCurve.displacement` instead of solving it from the first fitted slope.
+- The two red slope guide lines are recomputed to pass through the anchored
+  predicted Pt point.
+- Bumped DD web asset key to `20260615-pt-anchor`.
+
+Verification:
+
+- Web `node --check src/frontend/dd-laminate/app.js` passed.
+- Local static server serves:
+  - `styles.css?v=20260615-pt-anchor`
+  - `app.js?v=20260615-pt-anchor`
+- Served JS contains:
+  - `const kinkX = clampNumber(ptOnCurve.displacement, minKinkX, maxKinkX)`
+  - `const displayPt = Number.isFinite(Number(predictedPtValue)) ...`
+  - `const ptValue = formatMetric(displayPt, 2)`
+- iOS `swift test` passed: 9 tests.

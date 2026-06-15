@@ -1,0 +1,6 @@
+*.ckpt
+*.csv
+*.pyc
+*.json
+*.DS_Store
+*.pkl

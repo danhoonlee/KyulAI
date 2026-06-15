@@ -1,20 +1,20 @@
 # DD Theta-Only Type Predictor Report
 
-Dataset: `data/datasets/DD_curated_csv_v1`
+Dataset: `data/datasets/DD_curated_csv_v2`
 
 This model predicts Type 1/2/3 using only `theta1`, `theta2`, and `case`. It does not use Pt or force-displacement curves.
 Because this is a pre-Abaqus surrogate, performance is expected to be lower than curve-based models.
 
 ## Label Counts
 
-- Type 1: 126
-- Type 2: 234
-- Type 3: 40
+- Type 1: 160
+- Type 2: 291
+- Type 3: 49
 
 ## Intrinsic Ambiguity
 
 There are 2 theta pairs with conflicting labels across Case3/Case4.
-The deterministic theta-only ceiling on the 400-row dataset is approximately 0.9950 if one label must be assigned per theta pair.
+The deterministic theta-only ceiling on the 500-row dataset is approximately 0.9960 if one label must be assigned per theta pair.
 
 | theta1 | theta2 | samples |
 |---:|---:|---|
@@ -25,12 +25,12 @@ The deterministic theta-only ceiling on the 400-row dataset is approximately 0.9
 
 | Model | Accuracy | Macro F1 | Weighted F1 |
 |---|---:|---:|---:|
-| hist_gradient_boosting | 0.9625 ± 0.0158 | 0.9624 ± 0.0250 | 0.9622 |
-| neural_net_mlp_adam | 0.9025 ± 0.0184 | 0.9072 ± 0.0244 | 0.9015 |
-| neural_net_mlp_lbfgs | 0.9000 ± 0.0335 | 0.8980 ± 0.0306 | 0.8993 |
-| random_forest | 0.9125 ± 0.0177 | 0.8927 ± 0.0179 | 0.9125 |
-| extra_trees | 0.8775 ± 0.0289 | 0.8601 ± 0.0320 | 0.8796 |
-| svc_rbf | 0.8575 ± 0.0451 | 0.8410 ± 0.0451 | 0.8587 |
+| hist_gradient_boosting | 0.9640 ± 0.0136 | 0.9579 ± 0.0184 | 0.9637 |
+| random_forest | 0.9320 ± 0.0133 | 0.9195 ± 0.0331 | 0.9314 |
+| neural_net_mlp_lbfgs | 0.9220 ± 0.0098 | 0.9194 ± 0.0173 | 0.9216 |
+| extra_trees | 0.8980 ± 0.0271 | 0.8817 ± 0.0344 | 0.8993 |
+| neural_net_mlp_adam | 0.8900 ± 0.0303 | 0.8812 ± 0.0386 | 0.8891 |
+| svc_rbf | 0.8340 ± 0.0273 | 0.8158 ± 0.0374 | 0.8373 |
 
 ## Secondary Grouped CV
 
@@ -38,12 +38,12 @@ This grouped check keeps matching Case3/Case4 Test_ID pairs together and is the 
 
 | Model | Accuracy | Macro F1 | Weighted F1 |
 |---|---:|---:|---:|
-| neural_net_mlp_adam | 0.9025 ± 0.0556 | 0.9133 ± 0.0459 | 0.9026 |
-| neural_net_mlp_lbfgs | 0.8975 ± 0.0348 | 0.9055 ± 0.0391 | 0.8978 |
-| random_forest | 0.9175 ± 0.0423 | 0.8799 ± 0.0721 | 0.9164 |
-| extra_trees | 0.9025 ± 0.0357 | 0.8672 ± 0.0708 | 0.9063 |
-| hist_gradient_boosting | 0.8950 ± 0.0551 | 0.8352 ± 0.0746 | 0.8929 |
-| svc_rbf | 0.8625 ± 0.0468 | 0.8339 ± 0.0724 | 0.8663 |
+| neural_net_mlp_lbfgs | 0.9255 ± 0.0335 | 0.9180 ± 0.0458 | 0.9246 |
+| hist_gradient_boosting | 0.9298 ± 0.0337 | 0.9152 ± 0.0431 | 0.9292 |
+| random_forest | 0.9255 ± 0.0283 | 0.9109 ± 0.0326 | 0.9250 |
+| neural_net_mlp_adam | 0.8993 ± 0.0431 | 0.8867 ± 0.0564 | 0.8983 |
+| extra_trees | 0.8917 ± 0.0230 | 0.8720 ± 0.0301 | 0.8925 |
+| svc_rbf | 0.8438 ± 0.0390 | 0.8192 ± 0.0346 | 0.8461 |
 
 Selected production theta/case model: `hist_gradient_boosting` from primary CV.
 
@@ -52,7 +52,7 @@ Selected production theta/case model: `hist_gradient_boosting` from primary CV.
 Rows=true, columns=predicted `[Type1, Type2, Type3]`.
 
 ```text
-[[118   8   0]
- [  5 229   0]
- [  0   2  38]]
+[[154   6   0]
+ [  7 283   1]
+ [  0   4  45]]
 ```

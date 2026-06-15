@@ -26,7 +26,7 @@ struct ResultDetailView: View {
             }
             #if os(iOS)
             ShareImageButton(
-                fileName: "luvelox-injection-forecast",
+                fileName: "c2es-injection-forecast",
                 report: InjectionShareImageReportView(result: result)
             ) {
                 Image(systemName: "photo")
@@ -188,7 +188,7 @@ struct ResultDetailView: View {
 extension SpruePressurePredictionResult {
     var shareSummaryText: String {
         var lines = [
-            "Luvelox Injection Forecast",
+            "C2ES Injection Forecast",
             "",
             "MODEL",
             "• Sprue: \(displayModelLabel)",

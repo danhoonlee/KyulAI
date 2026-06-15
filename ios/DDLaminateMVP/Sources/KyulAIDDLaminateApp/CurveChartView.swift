@@ -4,14 +4,16 @@ import SwiftUI
 struct CurveChartView: View {
     let points: [ResponseCurvePoint]
     let predictedPt: Double?
+    let fitMode: CurveFitMode
     @State private var selectedPoint: ResponseCurvePoint?
     @State private var gestureInitialPoint: ResponseCurvePoint?
     @State private var isTrackingGesture = false
     @State private var gestureDidMove = false
 
-    init(points: [ResponseCurvePoint], predictedPt: Double? = nil) {
+    init(points: [ResponseCurvePoint], predictedPt: Double? = nil, fitMode: CurveFitMode = .standard) {
         self.points = points
         self.predictedPt = predictedPt
+        self.fitMode = fitMode
     }
 
     var body: some View {
@@ -20,7 +22,7 @@ struct CurveChartView: View {
                 RoundedRectangle(cornerRadius: 14)
                     .fill(AppTheme.field)
                 Canvas { context, size in
-                    guard let layout = ChartLayout(points: points, size: size, predictedPt: predictedPt) else { return }
+                    guard let layout = ChartLayout(points: points, size: size, predictedPt: predictedPt, fitMode: fitMode) else { return }
                     if let bilinearFit = layout.bilinearFit {
                         drawBilinearFit(context: context, layout: layout, fit: bilinearFit)
                     }
@@ -38,7 +40,7 @@ struct CurveChartView: View {
                         drawPtKink(context: context, layout: layout, fit: bilinearFit)
                     }
                 }
-                if let layout = ChartLayout(points: points, size: proxy.size, predictedPt: predictedPt), let selectedPoint {
+                if let layout = ChartLayout(points: points, size: proxy.size, predictedPt: predictedPt, fitMode: fitMode), let selectedPoint {
                     selectionOverlay(point: selectedPoint, layout: layout)
                 }
                 if let predictedPt {
@@ -78,7 +80,7 @@ struct CurveChartView: View {
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
-                        if let layout = ChartLayout(points: points, size: proxy.size, predictedPt: predictedPt) {
+                        if let layout = ChartLayout(points: points, size: proxy.size, predictedPt: predictedPt, fitMode: fitMode) {
                             if !isTrackingGesture {
                                 gestureInitialPoint = selectedPoint
                                 isTrackingGesture = true
@@ -91,7 +93,7 @@ struct CurveChartView: View {
                         }
                     }
                     .onEnded { value in
-                        if let layout = ChartLayout(points: points, size: proxy.size, predictedPt: predictedPt) {
+                        if let layout = ChartLayout(points: points, size: proxy.size, predictedPt: predictedPt, fitMode: fitMode) {
                             let nearestPoint = layout.nearestPoint(to: value.location)
                             if !gestureDidMove && gestureInitialPoint != nil {
                                 selectedPoint = nil
@@ -133,8 +135,9 @@ struct CurveChartView: View {
     }
 
     private func drawPtKink(context: GraphicsContext, layout: ChartLayout, fit: BilinearFit) {
-        let kink = layout.coordinate(displacement: fit.kink.displacement, force: fit.kink.force)
-        let dot = CGRect(x: kink.x - 6, y: kink.y - 6, width: 12, height: 12)
+        let marker = fit.predictedPoint ?? fit.kink
+        let coordinate = layout.coordinate(displacement: marker.displacement, force: marker.force)
+        let dot = CGRect(x: coordinate.x - 6, y: coordinate.y - 6, width: 12, height: 12)
         context.fill(Path(ellipseIn: dot), with: .color(AppTheme.danger))
         context.stroke(Path(ellipseIn: dot), with: .color(.white), lineWidth: 2)
     }
@@ -176,6 +179,11 @@ struct CurveChartView: View {
     }
 }
 
+enum CurveFitMode {
+    case standard
+    case u3
+}
+
 private struct ChartLayout {
     let path: Path
     let plotFrame: CGRect
@@ -186,7 +194,7 @@ private struct ChartLayout {
     private let minY: Double
     private let maxY: Double
 
-    init?(points: [ResponseCurvePoint], size: CGSize, predictedPt: Double?) {
+    init?(points: [ResponseCurvePoint], size: CGSize, predictedPt: Double?, fitMode: CurveFitMode = .standard) {
         let inset: CGFloat = 28
         let plotFrame = CGRect(
             x: inset,
@@ -204,7 +212,9 @@ private struct ChartLayout {
             return nil
         }
 
-        let bilinearFit = Self.buildBilinearFit(points: points, predictedPt: predictedPt)
+        let bilinearFit = fitMode == .u3
+            ? Self.buildU3BilinearFit(points: points, predictedPt: predictedPt)
+            : Self.buildBilinearFit(points: points, predictedPt: predictedPt)
         var yValues = points.map(\.force)
         if let predictedPt, predictedPt.isFinite {
             yValues.append(predictedPt)
@@ -325,39 +335,106 @@ private struct ChartLayout {
             return nil
         }
 
-        var kinkX = (predictedPt - firstFit.intercept) / firstFit.slope
         let minKinkX = minX + spanX * 0.08
         let maxKinkX = minX + spanX * 0.78
-        if !kinkX.isFinite || kinkX < minKinkX || kinkX > maxKinkX {
-            kinkX = ptOnCurve.displacement
+        let rawIntersection = lineIntersection(firstFit, secondFit)
+        let rawIsUsable = rawIntersection.map {
+            $0.displacement >= minKinkX && $0.displacement <= maxKinkX && $0.force > 0
+        } ?? false
+        let fallbackKinkX = min(maxKinkX, max(minKinkX, ptOnCurve.displacement))
+        var kinkX = rawIsUsable ? rawIntersection!.displacement : fallbackKinkX
+        var kinkForce = rawIsUsable ? rawIntersection!.force : firstFit.y(at: fallbackKinkX)
+        if !kinkForce.isFinite || kinkForce <= 0 {
+            kinkForce = predictedPt
         }
 
         let leftEnvelopeSamples = points.filter {
-            $0.displacement < kinkX - spanX * 0.006 && $0.force <= predictedPt
+            $0.displacement < kinkX - spanX * 0.006 && $0.force <= kinkForce
         }
         let rightEnvelopeSamples = points.filter {
-            $0.displacement > kinkX + spanX * 0.006 && $0.force >= predictedPt * 0.96
+            $0.displacement > kinkX + spanX * 0.006 && $0.force >= kinkForce * 0.96
         }
         let firstSlope = leftUpperEnvelopeSlope(
             points: leftEnvelopeSamples,
             kinkX: kinkX,
-            kinkForce: predictedPt,
+            kinkForce: kinkForce,
             proposedSlope: firstFit.slope
         )
         let secondSlope = rightUpperEnvelopeSlope(
             points: rightEnvelopeSamples,
             kinkX: kinkX,
-            kinkForce: predictedPt,
+            kinkForce: kinkForce,
             proposedSlope: secondFit.slope
         )
+        let firstLine = FittedLine(slope: firstSlope, intercept: kinkForce - firstSlope * kinkX)
+        let secondLine = FittedLine(slope: secondSlope, intercept: kinkForce - secondSlope * kinkX)
+        if let finalIntersection = lineIntersection(firstLine, secondLine),
+           finalIntersection.displacement >= minKinkX,
+           finalIntersection.displacement <= maxKinkX,
+           finalIntersection.force > 0 {
+            kinkX = finalIntersection.displacement
+            kinkForce = finalIntersection.force
+        } else {
+            kinkX = fallbackKinkX
+            kinkForce = firstFit.y(at: fallbackKinkX)
+            if !kinkForce.isFinite || kinkForce <= 0 {
+                kinkForce = predictedPt
+            }
+        }
+        let finalFirstLine = FittedLine(slope: firstSlope, intercept: kinkForce - firstSlope * kinkX)
+        let finalSecondLine = FittedLine(slope: secondSlope, intercept: kinkForce - secondSlope * kinkX)
 
         return BilinearFit(
-            kink: CurveCoordinate(displacement: kinkX, force: predictedPt),
-            firstLine: FittedLine(slope: firstSlope, intercept: predictedPt - firstSlope * kinkX),
-            secondLine: FittedLine(slope: secondSlope, intercept: predictedPt - secondSlope * kinkX),
+            kink: CurveCoordinate(displacement: kinkX, force: kinkForce),
+            predictedPoint: CurveCoordinate(displacement: ptOnCurve.displacement, force: predictedPt),
+            firstLine: finalFirstLine,
+            secondLine: finalSecondLine,
             firstStartX: minX,
             firstEndX: min(maxX, kinkX + spanX * 0.045),
             secondStartX: max(minX, kinkX - spanX * 0.025),
+            secondEndX: maxX
+        )
+    }
+
+    private static func buildU3BilinearFit(points: [ResponseCurvePoint], predictedPt: Double?) -> BilinearFit? {
+        guard points.count >= 8,
+              let minX = points.map(\.displacement).min(),
+              let maxX = points.map(\.displacement).max() else {
+            return nil
+        }
+        let spanX = max(maxX - minX, 1e-9)
+        guard let firstFit = linearFit(Array(points.prefix(3))) else {
+            return nil
+        }
+
+        let maxSecondStart = max(3, points.count - 5)
+        let secondStart = min(maxSecondStart, max(3, Int((Double(points.count) * 0.124).rounded())))
+        let secondSamples = Array(points.dropFirst(secondStart).prefix(4))
+        guard let secondFit = linearFit(secondSamples),
+              firstFit.slope > 0,
+              secondFit.slope > 0,
+              let intersection = lineIntersection(firstFit, secondFit) else {
+            return nil
+        }
+
+        let minKinkX = minX + spanX * 0.002
+        let maxKinkX = minX + spanX * 0.2
+        guard intersection.displacement >= minKinkX,
+              intersection.displacement <= maxKinkX,
+              intersection.force > 0 else {
+            return nil
+        }
+
+        return BilinearFit(
+            kink: intersection,
+            predictedPoint: predictedPt.flatMap {
+                $0.isFinite ? pointAtForce(points: points, force: $0) : nil
+            },
+            firstLine: firstFit,
+            secondLine: secondFit,
+            firstStartX: minX,
+            firstEndX: min(maxX, intersection.displacement + spanX * 0.035),
+            secondStartX: max(minX, intersection.displacement - spanX * 0.015),
             secondEndX: maxX
         )
     }
@@ -437,6 +514,19 @@ private struct ChartLayout {
         }
         return max(cappedSlope, proposedSlope * 0.72)
     }
+
+    private static func lineIntersection(_ firstLine: FittedLine, _ secondLine: FittedLine) -> CurveCoordinate? {
+        let denominator = firstLine.slope - secondLine.slope
+        guard denominator.isFinite, abs(denominator) >= 1e-9 else {
+            return nil
+        }
+        let displacement = (secondLine.intercept - firstLine.intercept) / denominator
+        let force = firstLine.y(at: displacement)
+        guard displacement.isFinite, force.isFinite else {
+            return nil
+        }
+        return CurveCoordinate(displacement: displacement, force: force)
+    }
 }
 
 private struct CurveCoordinate {
@@ -455,6 +545,7 @@ private struct FittedLine {
 
 private struct BilinearFit {
     let kink: CurveCoordinate
+    let predictedPoint: CurveCoordinate?
     let firstLine: FittedLine
     let secondLine: FittedLine
     let firstStartX: Double

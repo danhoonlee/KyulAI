@@ -1,0 +1,37 @@
+# DVC-tracked datasets
+
+This directory is managed by DVC. Do not commit large files directly.
+
+## Structure
+
+```
+data/datasets/
+  abaqus/       — Abaqus .odb/.inp exports (HDF5)
+  moldex3d/     — Moldex3D flow simulation results
+  aniform/      — AniForm draping outputs
+  digimat/      — Digimat micromechanics results
+  simutence/    — Simutence multi-process outputs
+  cadfil/       — cadfil filament winding data
+  experimental/ — Scarce real-world test data (ground truth)
+```
+
+## Usage
+
+```bash
+# Pull latest datasets
+dvc pull
+
+# Pull a specific subdirectory
+dvc pull data/datasets/abaqus
+
+# Push new data
+dvc add data/datasets/abaqus/new_batch/
+dvc push
+git add data/datasets/abaqus/new_batch.dvc .gitignore
+git commit -m "data: add new Abaqus batch"
+```
+
+## Remote
+
+- Local dev: MinIO at http://localhost:9000 (bucket: dvc-store)
+- Production: MinIO at $MINIO_ENDPOINT_URL (bucket: dvc-store-prod)

@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <!-- θ1 ply fiber pattern: +45deg lines -->
+    <pattern id="fiber1" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse" patternTransform="rotate(0)">
+      <line x1="0" y1="28" x2="28" y2="0" stroke="#5B82C4" stroke-width="2.5" opacity="0.55"/>
+    </pattern>
+    <!-- θ2 ply fiber pattern: -45deg lines -->
+    <pattern id="fiber2" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="0" x2="28" y2="28" stroke="#3A6BAF" stroke-width="2.5" opacity="0.45"/>
+    </pattern>
+
+    <!-- K left stem clip -->
+    <clipPath id="clipStem">
+      <rect x="148" y="120" width="210" height="760" rx="18"/>
+    </clipPath>
+    <!-- K upper arm clip -->
+    <clipPath id="clipUpperArm">
+      <polygon points="370,120 710,120 710,490 358,490"/>
+    </clipPath>
+    <!-- K lower arm clip -->
+    <clipPath id="clipLowerArm">
+      <polygon points="358,534 710,534 710,900 370,900"/>
+    </clipPath>
+
+    <!-- Glow for curve -->
+    <filter id="curveGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- ── Background ── -->
+  <rect width="1024" height="1024" rx="224" fill="#0B1830"/>
+  <!-- Subtle inner vignette -->
+  <rect width="1024" height="1024" rx="224" fill="url(#bgGrad)" opacity="0.3"/>
+
+  <!-- ══════════════════════════════════
+       K  —  LEFT VERTICAL STEM
+       Layered ply slabs with θ1 fibers
+  ══════════════════════════════════ -->
+
+  <!-- Stem base shape -->
+  <rect x="148" y="120" width="210" height="760" rx="18" fill="#142240"/>
+  <!-- Horizontal ply dividers (stem) -->
+  <g clip-path="url(#clipStem)">
+    <!-- ply slab fills alternating depth -->
+    <rect x="148" y="120" width="210" height="62" rx="0" fill="#1A2E55"/>
+    <rect x="148" y="182" width="210" height="62" rx="0" fill="#142240"/>
+    <rect x="148" y="244" width="210" height="62" rx="0" fill="#1A2E55"/>
+    <rect x="148" y="306" width="210" height="62" rx="0" fill="#142240"/>
+    <rect x="148" y="368" width="210" height="62" rx="0" fill="#1A2E55"/>
+    <rect x="148" y="430" width="210" height="62" rx="0" fill="#142240"/>
+    <rect x="148" y="492" width="210" height="62" rx="0" fill="#1A2E55"/>
+    <rect x="148" y="554" width="210" height="62" rx="0" fill="#142240"/>
+    <rect x="148" y="616" width="210" height="62" rx="0" fill="#1A2E55"/>
+    <rect x="148" y="678" width="210" height="62" rx="0" fill="#142240"/>
+    <rect x="148" y="740" width="210" height="62" rx="0" fill="#1A2E55"/>
+    <rect x="148" y="802" width="210" height="78" rx="0" fill="#142240"/>
+    <!-- Fiber overlay -->
+    <rect x="148" y="120" width="210" height="760" fill="url(#fiber1)"/>
+    <!-- Slab border lines -->
+    <line x1="148" y1="182" x2="358" y2="182" stroke="#243D6A" stroke-width="2"/>
+    <line x1="148" y1="244" x2="358" y2="244" stroke="#243D6A" stroke-width="2"/>
+    <line x1="148" y1="306" x2="358" y2="306" stroke="#243D6A" stroke-width="2"/>
+    <line x1="148" y1="368" x2="358" y2="368" stroke="#243D6A" stroke-width="2"/>
+    <line x1="148" y1="430" x2="358" y2="430" stroke="#243D6A" stroke-width="2"/>
+    <line x1="148" y1="492" x2="358" y2="492" stroke="#243D6A" stroke-width="2"/>
+    <line x1="148" y1="554" x2="358" y2="554" stroke="#243D6A" stroke-width="2"/>
+    <line x1="148" y1="616" x2="358" y2="616" stroke="#243D6A" stroke-width="2"/>
+    <line x1="148" y1="678" x2="358" y2="678" stroke="#243D6A" stroke-width="2"/>
+    <line x1="148" y1="740" x2="358" y2="740" stroke="#243D6A" stroke-width="2"/>
+    <line x1="148" y1="802" x2="358" y2="802" stroke="#243D6A" stroke-width="2"/>
+  </g>
+  <!-- Stem outline -->
+  <rect x="148" y="120" width="210" height="760" rx="18" fill="none" stroke="#2B5BA8" stroke-width="4"/>
+
+  <!-- ══════════════════════════════════
+       K — UPPER DIAGONAL ARM  (θ1: +angle)
+  ══════════════════════════════════ -->
+  <polygon points="370,120 690,120 690,486 358,486" fill="#142240"/>
+  <g clip-path="url(#clipUpperArm)">
+    <!-- Ply slabs along the diagonal — horizontal cuts -->
+    <rect x="358" y="120" width="332" height="62" fill="#1A2E55"/>
+    <rect x="358" y="182" width="332" height="62" fill="#142240"/>
+    <rect x="358" y="244" width="332" height="62" fill="#1A2E55"/>
+    <rect x="358" y="306" width="332" height="62" fill="#142240"/>
+    <rect x="358" y="368" width="332" height="62" fill="#1A2E55"/>
+    <rect x="358" y="430" width="332" height="62" fill="#142240"/>
+    <!-- θ1 fiber texture -->
+    <rect x="358" y="120" width="332" height="370" fill="url(#fiber1)"/>
+    <!-- slab lines -->
+    <line x1="358" y1="182" x2="690" y2="182" stroke="#243D6A" stroke-width="2"/>
+    <line x1="358" y1="244" x2="690" y2="244" stroke="#243D6A" stroke-width="2"/>
+    <line x1="358" y1="306" x2="690" y2="306" stroke="#243D6A" stroke-width="2"/>
+    <line x1="358" y1="368" x2="690" y2="368" stroke="#243D6A" stroke-width="2"/>
+    <line x1="358" y1="430" x2="690" y2="430" stroke="#243D6A" stroke-width="2"/>
+  </g>
+  <polygon points="370,120 690,120 690,486 358,486" fill="none" stroke="#2B5BA8" stroke-width="4"/>
+
+  <!-- ══════════════════════════════════
+       K — LOWER DIAGONAL ARM  (θ2: -angle, mirrored fibers)
+  ══════════════════════════════════ -->
+  <polygon points="358,538 690,538 690,900 370,900" fill="#0F1A38"/>
+  <g clip-path="url(#clipLowerArm)">
+    <rect x="358" y="538" width="332" height="62" fill="#172030"/>
+    <rect x="358" y="600" width="332" height="62" fill="#0F1A38"/>
+    <rect x="358" y="662" width="332" height="62" fill="#172030"/>
+    <rect x="358" y="724" width="332" height="62" fill="#0F1A38"/>
+    <rect x="358" y="786" width="332" height="62" fill="#172030"/>
+    <rect x="358" y="848" width="332" height="52" fill="#0F1A38"/>
+    <!-- θ2 fiber texture (mirror direction) -->
+    <rect x="358" y="538" width="332" height="362" fill="url(#fiber2)"/>
+    <!-- slab lines -->
+    <line x1="358" y1="600" x2="690" y2="600" stroke="#1E3357" stroke-width="2"/>
+    <line x1="358" y1="662" x2="690" y2="662" stroke="#1E3357" stroke-width="2"/>
+    <line x1="358" y1="724" x2="690" y2="724" stroke="#1E3357" stroke-width="2"/>
+    <line x1="358" y1="786" x2="690" y2="786" stroke="#1E3357" stroke-width="2"/>
+    <line x1="358" y1="848" x2="690" y2="848" stroke="#1E3357" stroke-width="2"/>
+  </g>
+  <polygon points="358,538 690,538 690,900 370,900" fill="none" stroke="#185FA5" stroke-width="4"/>
+
+  <!-- ══════════════════════════════════
+       F-D CURVE  (bottom right corner)
+  ══════════════════════════════════ -->
+  <!-- Axis lines -->
+  <line x1="700" y1="870" x2="700" y2="660" stroke="#1E3A6E" stroke-width="5" stroke-linecap="round"/>
+  <line x1="700" y1="870" x2="920" y2="870" stroke="#1E3A6E" stroke-width="5" stroke-linecap="round"/>
+  <!-- Curve: F-D shape with clear inflection -->
+  <path d="M704 868 Q740 840 768 790 Q790 750 800 720 Q818 680 900 648"
+        fill="none" stroke="#4DA3F5" stroke-width="9" stroke-linecap="round"/>
+  <!-- Pt red dot on the curve inflection -->
+  <circle cx="800" cy="720" r="22" fill="#E24B4A"/>
+  <circle cx="800" cy="720" r="9"  fill="#FFFFFF" opacity="0.9"/>
+
+  <!-- ══════════════════════════════════
+       OUTER BORDER (subtle polish)
+  ══════════════════════════════════ -->
+  <rect width="1024" height="1024" rx="224" fill="none" stroke="#1E3A6E" stroke-width="6" opacity="0.6"/>
+</svg>

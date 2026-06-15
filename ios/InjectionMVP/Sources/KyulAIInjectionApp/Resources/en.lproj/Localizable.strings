@@ -4,7 +4,7 @@
 "prediction.error" = "Prediction error";
 "recent.inputs" = "Recent";
 "recent.clear" = "Clear recent";
-"app.title" = "Luvelox Injection Forecast";
+"app.title" = "C2ES Injection Forecast";
 "app.subtitle" = "Predict sprue pressure, peak timing, and filling pressure summary from Moldex3D DOE inputs.";
 "sprue.prefix" = "Sprue";
 "filling.prefix" = "Filling";

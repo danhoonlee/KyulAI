@@ -1,6 +1,6 @@
 #!/bin/bash
 # KyulAI Agent Team Launcher
-# Launches parallel agent teams in tmux panes
+# Launches parallel agent teams in tmux panes (all visible in one screen)
 
 SESSION="kyulai"
 PROJECT_DIR="/Users/danlee/KyulAI"
@@ -8,12 +8,15 @@ PROJECT_DIR="/Users/danlee/KyulAI"
 # Kill existing session if any
 tmux kill-session -t "$SESSION" 2>/dev/null
 
-# Create new tmux session with the Orchestrator window
-tmux new-session -d -s "$SESSION" -n "orchestrator" -c "$PROJECT_DIR"
+# Create new tmux session — first pane becomes the orchestrator
+tmux new-session -d -s "$SESSION" -n "agents" -c "$PROJECT_DIR"
 
-# ── Window 1: Research Team (Sonnet) ──
-tmux new-window -t "$SESSION" -n "research" -c "$PROJECT_DIR"
-tmux send-keys -t "$SESSION:research" "claude --model sonnet \"$(cat <<'PROMPT'
+# Label the orchestrator pane
+tmux send-keys -t "$SESSION:agents" "echo '── Orchestrator ──'" Enter
+
+# ── Pane 1 (right): Research Team (Sonnet) ──
+tmux split-window -h -t "$SESSION:agents" -c "$PROJECT_DIR"
+tmux send-keys -t "$SESSION:agents.1" "claude --model sonnet \"$(cat <<'PROMPT'
 You are the Research & Paper Analysis Team for the KyulAI project.
 
 PROJECT CONTEXT: Read CLAUDE.md and agents/research-team/team.md first.
@@ -46,9 +49,9 @@ Start by reading the team definition, then begin searching.
 PROMPT
 )\"" Enter
 
-# ── Window 2: Data Engineering Team (Opus) ──
-tmux new-window -t "$SESSION" -n "data-eng" -c "$PROJECT_DIR"
-tmux send-keys -t "$SESSION:data-eng" "claude --model opus \"$(cat <<'PROMPT'
+# ── Pane 2 (bottom-left): Data Engineering Team (Opus) ──
+tmux split-window -v -t "$SESSION:agents.0" -c "$PROJECT_DIR"
+tmux send-keys -t "$SESSION:agents.2" "claude --model opus \"$(cat <<'PROMPT'
 You are the Data Engineering Schema Architect for the KyulAI project.
 
 PROJECT CONTEXT: Read CLAUDE.md, agents/data-engineering-team/team.md, and the unified data schema section in docs/architecture/agent-team-architecture.md first.
@@ -78,25 +81,24 @@ The schema must be flexible enough to handle all 6 tools but strict enough to gu
 PROMPT
 )\"" Enter
 
-# ── Back to orchestrator window ──
-tmux select-window -t "$SESSION:orchestrator"
-tmux send-keys -t "$SESSION:orchestrator" "echo '╔══════════════════════════════════════════════════════╗'" Enter
-tmux send-keys -t "$SESSION:orchestrator" "echo '║  KyulAI Agent Teams Launched                         ║'" Enter
-tmux send-keys -t "$SESSION:orchestrator" "echo '║                                                      ║'" Enter
-tmux send-keys -t "$SESSION:orchestrator" "echo '║  Window 1: orchestrator  (this window)               ║'" Enter
-tmux send-keys -t "$SESSION:orchestrator" "echo '║  Window 2: research     (Research Team - Sonnet)     ║'" Enter
-tmux send-keys -t "$SESSION:orchestrator" "echo '║  Window 3: data-eng     (Data Engineering - Opus)    ║'" Enter
-tmux send-keys -t "$SESSION:orchestrator" "echo '║                                                      ║'" Enter
-tmux send-keys -t "$SESSION:orchestrator" "echo '║  Navigation:                                         ║'" Enter
-tmux send-keys -t "$SESSION:orchestrator" "echo '║    Ctrl+b n  → next window                           ║'" Enter
-tmux send-keys -t "$SESSION:orchestrator" "echo '║    Ctrl+b p  → previous window                       ║'" Enter
-tmux send-keys -t "$SESSION:orchestrator" "echo '║    Ctrl+b 1  → research team                         ║'" Enter
-tmux send-keys -t "$SESSION:orchestrator" "echo '║    Ctrl+b 2  → data engineering                      ║'" Enter
-tmux send-keys -t "$SESSION:orchestrator" "echo '║    Ctrl+b w  → window list                           ║'" Enter
-tmux send-keys -t "$SESSION:orchestrator" "echo '╚══════════════════════════════════════════════════════╝'" Enter
+# ── Layout: orchestrator top-left, data-eng bottom-left, research right ──
+# Set pane titles for easy identification
+tmux select-pane -t "$SESSION:agents.0" -T "orchestrator"
+tmux select-pane -t "$SESSION:agents.1" -T "research (sonnet)"
+tmux select-pane -t "$SESSION:agents.2" -T "data-eng (opus)"
+
+# Enable pane border labels
+tmux set-option -t "$SESSION" pane-border-status top
+tmux set-option -t "$SESSION" pane-border-format " #{pane_title} "
+
+# Focus back on orchestrator pane
+tmux select-pane -t "$SESSION:agents.0"
 
 echo ""
-echo "✓ KyulAI tmux session created with 3 windows"
+echo "KyulAI tmux session created — all agents in one window"
 echo ""
-echo "Attach with:  tmux attach -t kyulai"
+echo "  Attach:          tmux attach -t kyulai"
+echo "  Switch pane:     Ctrl+b arrow-keys"
+echo "  Zoom one pane:   Ctrl+b z  (toggle)"
+echo "  Resize pane:     Ctrl+b Alt+arrow-keys"
 echo ""

@@ -4,7 +4,7 @@
 "prediction.error" = "예측 오류";
 "recent.inputs" = "최근";
 "recent.clear" = "최근 기록 삭제";
-"app.title" = "Luvelox 사출 예측";
+"app.title" = "C2ES 사출 예측";
 "app.subtitle" = "Moldex3D DOE 입력으로 스프루 압력, 피크 시간, 충전 압력 요약을 예측합니다.";
 "sprue.prefix" = "스프루";
 "filling.prefix" = "충전";

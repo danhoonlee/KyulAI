@@ -1,0 +1,12 @@
+geometry_id,family,L_mm,W_mm,t_mm,D_mm,R_mm,gate_type,gate_size (Width)_mm,gate_size (Hieght)_mm
+G43,V01_filling_refine,160,65,1.60,18,9,edge_gate,10,1.5
+G44,V01_filling_refine,170,70,1.75,22,11,edge_gate,10,1.5
+G45,V01_filling_refine,180,75,1.90,24,12,edge_gate,10,1.5
+G46,V01_filling_refine,190,80,2.05,26,13,edge_gate,10,1.5
+G47,V01_filling_refine,175,68,2.10,20,10,edge_gate,10,1.5
+G48,V02_sprue_refine,120,65,1.20,18,9,edge_gate,10,1.5
+G49,V02_sprue_refine,135,58,1.35,21,10.5,edge_gate,10,1.5
+G50,V02_sprue_refine,155,55,1.50,23,11.5,edge_gate,10,1.5
+G51,V02_sprue_refine,170,50,1.70,25,12.5,edge_gate,10,1.5
+G52,bridge_mid_range,110,70,1.80,20,10,edge_gate,10,1.5
+G53,bridge_mid_range,145,85,2.50,26,13,edge_gate,10,1.5

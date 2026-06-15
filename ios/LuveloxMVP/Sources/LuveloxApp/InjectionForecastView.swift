@@ -36,7 +36,7 @@ struct InjectionForecastView: View {
                 .foregroundStyle(.teal)
             Text("Sprue Pressure Forecast")
                 .font(.system(size: 32, weight: .black, design: .rounded))
-            Text("Run Moldex3D-style sprue pressure and filling pressure prediction directly inside Luvelox.")
+            Text("Run Moldex3D-style sprue pressure and filling pressure prediction directly inside C2ES.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
         }

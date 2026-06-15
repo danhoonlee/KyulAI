@@ -11,6 +11,8 @@ import torch
 
 from .curve_features import DDCurveRecord
 from .response_deep import DDResponseGointSurrogate, predict_from_logits
+from .response_feature_sets import feature_set_from_columns, prediction_feature_matrix
+from .train_cases_2_3_4_classical import DDRecord, theta_feature_row
 from .train_response_surrogate import make_feature_matrix
 
 
@@ -46,16 +48,23 @@ def predict_response_deep(
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
 
-    record = DDCurveRecord(
-        case=case,
-        test_id="Estimated",
-        theta1=theta1,
-        theta2=theta2,
-        pt=0.0,
-        label=0,
-        csv_path=Path(""),
-    )
-    x_raw = make_feature_matrix([record])
+    feature_columns = list(checkpoint.get("feature_columns") or [])
+    feature_builder = str(checkpoint.get("feature_builder") or "")
+    if feature_builder:
+        x_raw = prediction_feature_matrix(theta1, theta2, case, feature_builder)
+    elif "case_case2" in feature_columns:
+        x_raw = prediction_feature_matrix(theta1, theta2, case, feature_set_from_columns(feature_columns))
+    else:
+        record = DDCurveRecord(
+            case=case,
+            test_id="Estimated",
+            theta1=theta1,
+            theta2=theta2,
+            pt=0.0,
+            label=0,
+            csv_path=Path(""),
+        )
+        x_raw = make_feature_matrix([record])
     feature_mean = np.asarray(checkpoint["feature_mean"], dtype=float)
     feature_std = np.asarray(checkpoint["feature_std"], dtype=float)
     x_norm = (x_raw - feature_mean) / np.maximum(feature_std, 1e-9)
@@ -97,7 +106,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Predict DD response with GointMLP-style surrogate")
     parser.add_argument("--theta1", type=float, required=True)
     parser.add_argument("--theta2", type=float, required=True)
-    parser.add_argument("--case", choices=["Case3", "Case4"], required=True)
+    parser.add_argument("--case", choices=["Case2", "Case3", "Case4"], required=True)
     parser.add_argument("--model", default="models/dd_laminate_response_goint_v1/response_goint.pt")
     parser.add_argument("--device", default="cpu")
     args = parser.parse_args()

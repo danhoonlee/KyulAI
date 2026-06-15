@@ -31,6 +31,35 @@ class DDSequenceSample:
     csv_path: Path
 
 
+def _row_value(row: dict[str, str], *keys: str) -> str:
+    normalized = {key.lower().replace("_", ""): value for key, value in row.items()}
+    for key in keys:
+        if key in row:
+            return row[key]
+        compact = key.lower().replace("_", "")
+        if compact in normalized:
+            return normalized[compact]
+    raise KeyError(f"Missing one of {keys}. Available columns: {list(row.keys())}")
+
+
+def _curve_csv_path(case_dir: Path, test_id: str) -> Path:
+    candidates = [
+        case_dir / "csv_load" / f"force_disp_Test_{test_id}.csv",
+        case_dir / "csv_load" / f"force_disp_{test_id}.csv",
+    ]
+    if test_id.startswith("Test_"):
+        candidates.extend(
+            [
+                case_dir / "csv_load" / f"force_disp_{test_id}.csv",
+                case_dir / "csv_load" / f"force_disp_{test_id.replace('Test_', '')}.csv",
+            ]
+        )
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return candidates[0]
+
+
 def load_sequence_samples(data_dir: str | Path, cases: Iterable[str] = ("Case3", "Case4")) -> list[DDSequenceSample]:
     data_path = Path(data_dir)
     samples: list[DDSequenceSample] = []
@@ -38,16 +67,16 @@ def load_sequence_samples(data_dir: str | Path, cases: Iterable[str] = ("Case3",
         case_dir = data_path / case
         with (case_dir / "transition_load.csv").open(newline="") as f:
             for row in csv.DictReader(f):
-                test_id = row["Test_ID"]
+                test_id = _row_value(row, "Test_ID", "test_id")
                 samples.append(
                     DDSequenceSample(
                         case=case,
                         test_id=test_id,
-                        theta1=float(row["Theta1"]),
-                        theta2=float(row["Theta2"]),
-                        pt=float(row["Pt"]),
+                        theta1=float(_row_value(row, "Theta1", "theta1")),
+                        theta2=float(_row_value(row, "Theta2", "theta2")),
+                        pt=float(_row_value(row, "Pt", "pt")),
                         label=int(row["type"]),
-                        csv_path=case_dir / "csv_load" / f"force_disp_{test_id}.csv",
+                        csv_path=_curve_csv_path(case_dir, test_id),
                     )
                 )
     return samples
@@ -109,7 +138,8 @@ class DDSequenceDataset(Dataset):
         theta1 = np.full(self.seq_len, sample.theta1 / 90.0)
         theta2 = np.full(self.seq_len, sample.theta2 / 90.0)
         pt = np.full(self.seq_len, sample.pt / self.pt_scale)
-        case_id = np.full(self.seq_len, 0.0 if sample.case == "Case3" else 1.0)
+        case_id_map = {"Case2": 0.0, "Case3": 0.5, "Case4": 1.0}
+        case_id = np.full(self.seq_len, case_id_map.get(sample.case, 0.5))
         load_to_pt = y_resampled / max(1e-9, sample.pt)
 
         features = np.stack(

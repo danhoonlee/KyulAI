@@ -11,9 +11,13 @@ Design, implement, train, and evaluate AI models for sim-to-real prediction in c
 
 ## Phased Strategy
 1. **Baseline**: MLP/CNN surrogates + basic transfer learning
-2. **Physics-Informed**: PINNs, Neural Operators, GNNs
-3. **Sim-to-Real**: Domain adaptation (DANN), few-shot fine-tuning, Bayesian UQ
-4. **Novel Methods**: Hybrid architectures, publishable approaches
+2. **Physics-Informed**: PINNs, Neural Operators (FNO/PINO), MeshGraphNets
+3. **Sim-to-Real**: Fine-tuning + importance weighting (BW/RULSIF) — NOT DANN/MMD/CORAL
+   - Research Team finding (MaterialDA, arXiv 2308.02937): adversarial domain adaptation
+     (DANN, MMD, CORAL) consistently fails or shows marginal gains in materials science OOD.
+   - Use: pretraining on simulation → fine-tuning on experimental data (10–50 samples).
+   - Supplementary: importance weighting (RULSIF) for distribution shift correction.
+4. **Novel Methods**: Multi-fidelity NARGP fusion, PINO process chain surrogates
 
 ## Key Dependencies
 - Requires unified data from Data Engineering Team

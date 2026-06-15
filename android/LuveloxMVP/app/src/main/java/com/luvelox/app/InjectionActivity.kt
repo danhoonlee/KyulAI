@@ -53,7 +53,7 @@ class InjectionActivity : Activity() {
 
         root.addView(label("INJECTION MODULE", color(0x127C82), 12f, Typeface.BOLD))
         root.addView(label("Sprue Pressure Forecast", color(0x17202A), 32f, Typeface.BOLD))
-        root.addView(paragraph("Run Moldex3D-style sprue pressure and filling pressure prediction directly inside Luvelox."), margin(top = 8, bottom = 16))
+        root.addView(paragraph("Run Moldex3D-style sprue pressure and filling pressure prediction directly inside C2ES."), margin(top = 8, bottom = 16))
 
         val inputCard = card()
         val header = LinearLayout(this).apply {

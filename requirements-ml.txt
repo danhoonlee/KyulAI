@@ -31,3 +31,4 @@ dvc-s3==3.2.0
 tqdm==4.66.2
 rich==13.7.1
 pydantic==2.6.4
+python-pptx==1.0.2

@@ -1,0 +1,43 @@
+{
+  "raw_double_double_root": "/Users/danlee/KyulAI_codex/data/datasets/Double-Double",
+  "raw_u3_root": "/Users/danlee/KyulAI_codex/data/datasets/Double-Double/u3",
+  "output_root": "/Users/danlee/KyulAI_codex/data/datasets/DD_u3_pt_v1",
+  "manifest": "/Users/danlee/KyulAI_codex/data/datasets/DD_u3_pt_v1/manifest.csv",
+  "records": 566,
+  "case_counts": {
+    "Case2": 190,
+    "Case3": 174,
+    "Case4": 202
+  },
+  "folder_counts": {
+    "2-2": 143,
+    "2-3": 47,
+    "3-2": 134,
+    "3-3": 40,
+    "4-2": 162,
+    "4-3": 40
+  },
+  "pt_source_counts": {
+    "p1_plot_title": 505,
+    "transition_plot_title": 61
+  },
+  "missing_label_count": 14,
+  "missing_theta_count": 0,
+  "missing_label_examples": [
+    "/Users/danlee/KyulAI_codex/data/datasets/Double-Double/u3/2-2/csv/force_disp_Test_013.csv",
+    "/Users/danlee/KyulAI_codex/data/datasets/Double-Double/u3/2-2/csv/force_disp_Test_206.csv",
+    "/Users/danlee/KyulAI_codex/data/datasets/Double-Double/u3/3-2/csv/force_disp_Test_153.csv",
+    "/Users/danlee/KyulAI_codex/data/datasets/Double-Double/u3/3-2/csv/force_disp_Test_196.csv",
+    "/Users/danlee/KyulAI_codex/data/datasets/Double-Double/u3/3-2/csv/force_disp_Test_206.csv",
+    "/Users/danlee/KyulAI_codex/data/datasets/Double-Double/u3/3-3/csv/force_disp_Test_171.csv",
+    "/Users/danlee/KyulAI_codex/data/datasets/Double-Double/u3/3-3/csv/force_disp_Test_204.csv",
+    "/Users/danlee/KyulAI_codex/data/datasets/Double-Double/u3/3-3/csv/force_disp_Test_210.csv",
+    "/Users/danlee/KyulAI_codex/data/datasets/Double-Double/u3/3-3/csv/force_disp_Test_218.csv",
+    "/Users/danlee/KyulAI_codex/data/datasets/Double-Double/u3/3-3/csv/force_disp_Test_220.csv",
+    "/Users/danlee/KyulAI_codex/data/datasets/Double-Double/u3/3-3/csv/force_disp_Test_224.csv",
+    "/Users/danlee/KyulAI_codex/data/datasets/Double-Double/u3/4-2/csv/force_disp_Test_181.csv",
+    "/Users/danlee/KyulAI_codex/data/datasets/Double-Double/u3/4-2/csv/force_disp_Test_184.csv",
+    "/Users/danlee/KyulAI_codex/data/datasets/Double-Double/u3/4-2/csv/force_disp_Test_206.csv"
+  ],
+  "missing_theta_examples": []
+}

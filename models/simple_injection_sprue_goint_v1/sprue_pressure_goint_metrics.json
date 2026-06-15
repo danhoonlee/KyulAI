@@ -1,0 +1,71 @@
+{
+  "metrics": {
+    "n_samples": 360,
+    "seq_len": 128,
+    "input_dim": 23,
+    "cv_max_time_mae_mean": 0.1544765945251101,
+    "cv_max_time_mae_std": 0.03243460263630622,
+    "cv_max_pressure_mae_mean": 0.7136843833050852,
+    "cv_max_pressure_mae_std": 0.3371109374588873,
+    "cv_curve_norm_rmse_mean": 0.04039631793095695,
+    "cv_curve_norm_rmse_std": 0.012297548044417508,
+    "cv_curve_pressure_rmse_mean": 2.916647839606344,
+    "cv_curve_pressure_rmse_std": 1.031606901325457,
+    "cv_shape_corr_mean_mean": 0.994052943594868,
+    "cv_shape_corr_mean_std": 0.004215083875271095,
+    "cv_shape_corr_min_mean": 0.8174311950497101,
+    "cv_shape_corr_min_std": 0.2171469259643682,
+    "cv_norm_auc_mae_mean": 0.006521046620126008,
+    "cv_norm_auc_mae_std": 0.001719673598238127,
+    "cv_pressure_time_auc_mae_mean": 9.916509459591815,
+    "cv_pressure_time_auc_mae_std": 3.9939980343636097,
+    "cv_peak_position_mae_norm_time_mean": 0.08672353455818023,
+    "cv_peak_position_mae_norm_time_std": 0.003948777004042508,
+    "cv_rise_slope_mae_norm_mean": 5.887611672278339,
+    "cv_rise_slope_mae_norm_std": 0.9966930708370291
+  },
+  "fold_metrics": [
+    {
+      "max_time_mae": 0.20030754503781803,
+      "max_pressure_mae": 1.17732195541002,
+      "curve_norm_rmse": 0.05778752972839017,
+      "curve_pressure_rmse": 4.375560082887673,
+      "shape_corr_mean": 0.9880919322342625,
+      "shape_corr_min": 0.5105746265391846,
+      "norm_auc_mae": 0.00892822532818377,
+      "pressure_time_auc_mae": 15.55676834687792,
+      "peak_position_mae_norm_time": 0.08858267716535433,
+      "rise_slope_mae_norm": 5.224043290043292,
+      "best_epoch": 198,
+      "fold": 1
+    },
+    {
+      "max_time_mae": 0.13318843410888728,
+      "max_pressure_mae": 0.3857103710239006,
+      "curve_norm_rmse": 0.031762728318407624,
+      "curve_pressure_rmse": 2.1864859585537575,
+      "shape_corr_mean": 0.9970459305573233,
+      "shape_corr_min": 0.9812741782982759,
+      "norm_auc_mae": 0.005617513806304005,
+      "pressure_time_auc_mae": 7.358372785015278,
+      "peak_position_mae_norm_time": 0.08123359580052494,
+      "rise_slope_mae_norm": 5.142430976430977,
+      "best_epoch": 112,
+      "fold": 2
+    },
+    {
+      "max_time_mae": 0.12993380442862498,
+      "max_pressure_mae": 0.5780208234813349,
+      "curve_norm_rmse": 0.03163869574607306,
+      "curve_pressure_rmse": 2.1878974773776023,
+      "shape_corr_mean": 0.9970209679930184,
+      "shape_corr_min": 0.9604447803116696,
+      "norm_auc_mae": 0.005017400725890248,
+      "pressure_time_auc_mae": 6.834387246882246,
+      "peak_position_mae_norm_time": 0.09035433070866142,
+      "rise_slope_mae_norm": 7.29636075036075,
+      "best_epoch": 186,
+      "fold": 3
+    }
+  ]
+}

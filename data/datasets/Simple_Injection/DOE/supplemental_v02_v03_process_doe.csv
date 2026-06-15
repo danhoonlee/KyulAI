@@ -1,0 +1,11 @@
+process_id,family,melt_temp_C,mold_temp_C,injection_time_s,packing_pressure_MPa,packing_time_s
+P11,V02_long_thin,224,44,1.35,80,4.5
+P12,V02_long_thin,228,50,1.55,88,5.2
+P13,V02_long_thin,232,42,1.75,92,5.8
+P14,V02_long_thin,220,55,1.25,76,4.2
+P15,V02_long_thin,235,47,1.45,84,5.5
+P16,V03_short_thick,238,60,0.60,50,2.5
+P17,V03_short_thick,242,65,0.75,60,3.2
+P18,V03_short_thick,245,70,0.85,70,4.5
+P19,V03_short_thick,235,58,0.68,45,3.8
+P20,V03_short_thick,240,62,0.90,75,5.0

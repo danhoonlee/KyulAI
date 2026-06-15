@@ -46,7 +46,7 @@ struct LaminateForecastView: View {
                 .foregroundStyle(.teal)
             Text("Double-Double Forecast")
                 .font(.system(size: 32, weight: .black, design: .rounded))
-            Text("Run Type, Pt, and force-displacement response prediction directly inside Luvelox.")
+            Text("Run Type, Pt, and force-displacement response prediction directly inside C2ES.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
         }

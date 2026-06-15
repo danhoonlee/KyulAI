@@ -5,7 +5,9 @@ import SwiftUI
 struct KyulAIDDLaminatePreviewApp: App {
     var body: some Scene {
         WindowGroup {
-            DDLaminateModuleView()
+            NavigationStack {
+                DDLaminateModuleView()
+            }
         }
     }
 }

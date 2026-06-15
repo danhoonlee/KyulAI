@@ -433,7 +433,7 @@ struct ContentView: View {
 
                     #if os(iOS)
                     ShareImageButton(
-                        fileName: "luvelox-injection-forecast",
+                        fileName: "c2es-injection-forecast",
                         report: InjectionShareImageReportView(result: result)
                     ) {
                         Label(L10n.t("share.image"), systemImage: "photo")

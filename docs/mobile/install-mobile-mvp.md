@@ -1,4 +1,4 @@
-# Luvelox Laminate Mobile MVP Install Notes
+# C2ES Laminate Mobile MVP Install Notes
 
 ## iPhone
 

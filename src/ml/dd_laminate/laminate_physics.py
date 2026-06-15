@@ -49,12 +49,85 @@ PHYSICS_FEATURE_COLUMNS = [
     "b_slenderness",
 ]
 
+EXTENDED_PHYSICS_FEATURE_COLUMNS = [
+    *PHYSICS_FEATURE_COLUMNS,
+    "b11",
+    "b22",
+    "b12",
+    "b66",
+    "b11_d11_ratio",
+    "b22_d22_ratio",
+    "membrane_anisotropy",
+    "bending_anisotropy",
+    "dd_angle_center",
+    "dd_angle_spread",
+    "angle_mean",
+    "angle_abs_mean",
+    "angle_abs_std",
+    "angle_min_abs",
+    "angle_max_abs",
+    "stack_symmetry_mismatch",
+    "stack_balance_sin_sum",
+    "stack_balance_cos_sum",
+    "case_pattern_ii",
+    "case2_flag",
+    "case3_flag",
+    "case4_flag",
+]
+
+COMPACT_PHYSICS_FEATURE_COLUMNS = [
+    "a11",
+    "a22",
+    "a12",
+    "a66",
+    "b16",
+    "b26",
+    "d11",
+    "d22",
+    "d12",
+    "d66",
+    "d16",
+    "d26",
+    "a11_a22_ratio",
+    "d11_d22_ratio",
+    "b_coupling_norm",
+    "d_coupling_norm",
+    "membrane_anisotropy",
+    "bending_anisotropy",
+    "angle_abs_mean",
+    "angle_abs_std",
+    "angle_min_abs",
+    "angle_max_abs",
+    "stack_symmetry_mismatch",
+    "stack_balance_cos_sum",
+]
+
+NN_FRIENDLY_PHYSICS_FEATURE_COLUMNS = [
+    *COMPACT_PHYSICS_FEATURE_COLUMNS,
+    # These are intentionally retained for neural models. They are partially
+    # redundant for trees, but they gave GointMLP useful nonlinear basis terms.
+    "a66_geom_ratio",
+    "b11",
+    "b22",
+    "b12",
+    "b66",
+    "b11_d11_ratio",
+    "b22_d22_ratio",
+    "dd_angle_center",
+    "dd_angle_spread",
+    "case2_flag",
+    "case3_flag",
+    "case4_flag",
+]
+
 
 def _case_stack(case: str, theta1: float, theta2: float) -> list[float]:
     pm1 = [theta1, -theta1]
     pm2 = [theta2, -theta2]
     mp1 = [-theta1, theta1]
     mp2 = [-theta2, theta2]
+    if case == "Case2":
+        return (pm1 + pm2) * 4
     if case == "Case3":
         return (pm1 + pm2 + mp2 + mp2) * 2
     if case == "Case4":
@@ -171,10 +244,107 @@ def physics_feature_vector(
     return np.asarray(values, dtype=float)
 
 
+def extended_physics_feature_vector(
+    case: str,
+    theta1: float,
+    theta2: float,
+    material: MaterialProperties = DEFAULT_MATERIAL,
+) -> np.ndarray:
+    """Return CLT features plus PPT-driven layup descriptors.
+
+    The original feature vector is kept stable for older saved models.  This
+    extended vector adds Case2 support and explicit terms for the transition
+    load discussion in the PPT: membrane-bending coupling, bending/membrane
+    anisotropy, symmetry mismatch, and balanced angle descriptors.
+    """
+
+    base = physics_feature_vector(case, theta1, theta2, material)
+    a, b, d, stack = abd_matrices(case, theta1, theta2, material)
+    h = material.ply_thickness_in * len(stack)
+    b_norm = b / max(h**2, 1e-12)
+    d_norm = d / max(h**3, 1e-12)
+    eps = 1e-9
+    stack_arr = np.asarray(stack, dtype=float)
+    mirror = stack_arr[::-1]
+    symmetry_mismatch = float(np.mean(np.abs(stack_arr - mirror)) / 180.0)
+    radians_2 = np.deg2rad(2.0 * stack_arr)
+    dd_center = 0.5 * (theta1 + theta2)
+    dd_spread = abs(theta1 - theta2)
+    extras = [
+        b_norm[0, 0],
+        b_norm[1, 1],
+        b_norm[0, 1],
+        b_norm[2, 2],
+        b_norm[0, 0] / max(abs(d_norm[0, 0]), eps),
+        b_norm[1, 1] / max(abs(d_norm[1, 1]), eps),
+        (a[0, 0] - a[1, 1]) / max(abs(a[0, 0]) + abs(a[1, 1]), eps),
+        (d[0, 0] - d[1, 1]) / max(abs(d[0, 0]) + abs(d[1, 1]), eps),
+        dd_center,
+        dd_spread,
+        float(np.mean(stack_arr)),
+        float(np.mean(np.abs(stack_arr))),
+        float(np.std(np.abs(stack_arr))),
+        float(np.min(np.abs(stack_arr))),
+        float(np.max(np.abs(stack_arr))),
+        symmetry_mismatch,
+        float(np.sum(np.sin(radians_2)) / len(stack_arr)),
+        float(np.sum(np.cos(radians_2)) / len(stack_arr)),
+        1.0 if case in {"Case2", "Case3", "Case4"} else 0.0,
+        1.0 if case == "Case2" else 0.0,
+        1.0 if case == "Case3" else 0.0,
+        1.0 if case == "Case4" else 0.0,
+    ]
+    return np.concatenate([base, np.asarray(extras, dtype=float)])
+
+
+def compact_physics_feature_vector(
+    case: str,
+    theta1: float,
+    theta2: float,
+    material: MaterialProperties = DEFAULT_MATERIAL,
+) -> np.ndarray:
+    """Return the de-duplicated physics feature pack for XAI v2 models."""
+
+    values = dict(
+        zip(
+            EXTENDED_PHYSICS_FEATURE_COLUMNS,
+            extended_physics_feature_vector(case, theta1, theta2, material),
+        )
+    )
+    return np.asarray([values[name] for name in COMPACT_PHYSICS_FEATURE_COLUMNS], dtype=float)
+
+
+def nn_friendly_physics_feature_vector(
+    case: str,
+    theta1: float,
+    theta2: float,
+    material: MaterialProperties = DEFAULT_MATERIAL,
+) -> np.ndarray:
+    """Return the GointMLP-oriented physics feature pack.
+
+    This keeps compact physics descriptors plus a small set of redundant basis
+    terms that improved the neural multi-task surrogate.
+    """
+
+    values = dict(
+        zip(
+            EXTENDED_PHYSICS_FEATURE_COLUMNS,
+            extended_physics_feature_vector(case, theta1, theta2, material),
+        )
+    )
+    return np.asarray([values[name] for name in NN_FRIENDLY_PHYSICS_FEATURE_COLUMNS], dtype=float)
+
+
 __all__ = [
     "DEFAULT_MATERIAL",
+    "COMPACT_PHYSICS_FEATURE_COLUMNS",
+    "NN_FRIENDLY_PHYSICS_FEATURE_COLUMNS",
     "MaterialProperties",
     "PHYSICS_FEATURE_COLUMNS",
+    "EXTENDED_PHYSICS_FEATURE_COLUMNS",
     "abd_matrices",
+    "compact_physics_feature_vector",
+    "nn_friendly_physics_feature_vector",
+    "extended_physics_feature_vector",
     "physics_feature_vector",
 ]

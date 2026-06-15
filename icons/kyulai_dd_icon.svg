@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <clipPath id="roundedClip">
+      <rect width="1024" height="1024" rx="230" ry="230"/>
+    </clipPath>
+  </defs>
+
+  <!-- App icon background with iOS/Android rounded rect -->
+  <rect width="1024" height="1024" rx="230" ry="230" fill="#0D1B3E"/>
+
+  <!-- ======== UPPER HALF: θ1/θ2 DD Ply Stack ======== -->
+
+  <!-- θ1 ply block -->
+  <rect x="112" y="148" width="800" height="148" rx="16" fill="#122040" stroke="#2B5BA8" stroke-width="4"/>
+  <!-- θ1 diagonal fiber lines (top-left to bottom-right = +θ) -->
+  <clipPath id="ply1clip"><rect x="112" y="148" width="800" height="148" rx="16"/></clipPath>
+  <g clip-path="url(#ply1clip)" stroke="#378ADD" stroke-width="6" opacity="0.85">
+    <line x1="60"  y1="148" x2="208" y2="296"/>
+    <line x1="148" y1="148" x2="296" y2="296"/>
+    <line x1="236" y1="148" x2="384" y2="296"/>
+    <line x1="324" y1="148" x2="472" y2="296"/>
+    <line x1="412" y1="148" x2="560" y2="296"/>
+    <line x1="500" y1="148" x2="648" y2="296"/>
+    <line x1="588" y1="148" x2="736" y2="296"/>
+    <line x1="676" y1="148" x2="824" y2="296"/>
+    <line x1="764" y1="148" x2="912" y2="296"/>
+    <line x1="852" y1="148" x2="1000" y2="296"/>
+  </g>
+
+  <!-- θ2 ply block -->
+  <rect x="112" y="316" width="800" height="148" rx="16" fill="#0F1A38" stroke="#185FA5" stroke-width="4"/>
+  <!-- θ2 diagonal fiber lines (top-right to bottom-left = -θ, mirror) -->
+  <clipPath id="ply2clip"><rect x="112" y="316" width="800" height="148" rx="16"/></clipPath>
+  <g clip-path="url(#ply2clip)" stroke="#85B7EB" stroke-width="6" opacity="0.75">
+    <line x1="208"  y1="316" x2="60"  y2="464"/>
+    <line x1="296"  y1="316" x2="148" y2="464"/>
+    <line x1="384"  y1="316" x2="236" y2="464"/>
+    <line x1="472"  y1="316" x2="324" y2="464"/>
+    <line x1="560"  y1="316" x2="412" y2="464"/>
+    <line x1="648"  y1="316" x2="500" y2="464"/>
+    <line x1="736"  y1="316" x2="588" y2="464"/>
+    <line x1="824"  y1="316" x2="676" y2="464"/>
+    <line x1="912"  y1="316" x2="764" y2="464"/>
+    <line x1="1000" y1="316" x2="852" y2="464"/>
+  </g>
+
+  <!-- Divider between ply section and curve section -->
+  <line x1="112" y1="494" x2="912" y2="494" stroke="#2B5BA8" stroke-width="3" stroke-dasharray="18,12"/>
+
+  <!-- ======== LOWER HALF: F-D Curve + Pt Marker ======== -->
+
+  <!-- Axis lines -->
+  <line x1="148" y1="870" x2="148" y2="548" stroke="#1E3A6E" stroke-width="5" stroke-linecap="round"/>
+  <line x1="148" y1="870" x2="900" y2="870" stroke="#1E3A6E" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- Subtle horizontal grid -->
+  <line x1="148" y1="760" x2="900" y2="760" stroke="#1A2E55" stroke-width="2" stroke-dasharray="12,10"/>
+  <line x1="148" y1="660" x2="900" y2="660" stroke="#1A2E55" stroke-width="2" stroke-dasharray="12,10"/>
+
+  <!-- F-D Curve: rises steeply then kinks at Pt, then flattens -->
+  <path d="M160 868 L340 620 L470 568 Q620 530 880 512"
+        fill="none" stroke="#4DA3F5" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Pt marker: red circle at the kink point (340, 620) -->
+  <circle cx="340" cy="620" r="28" fill="#E24B4A"/>
+  <!-- Inner white dot for clarity at small sizes -->
+  <circle cx="340" cy="620" r="11" fill="#FFFFFF" opacity="0.9"/>
+
+  <!-- Pt label -->
+  <text x="384" y="606" font-family="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+        font-size="52" font-weight="700" fill="#E24B4A" letter-spacing="-1">Pt</text>
+
+  <!-- Axis labels -->
+  <text x="96" y="548" font-family="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+        font-size="46" font-weight="500" fill="#85B7EB" text-anchor="middle">F</text>
+  <text x="920" y="882" font-family="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+        font-size="46" font-weight="500" fill="#85B7EB">δ</text>
+
+</svg>

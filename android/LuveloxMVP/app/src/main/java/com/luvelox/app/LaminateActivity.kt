@@ -6,9 +6,11 @@ import android.graphics.Typeface
 import android.os.Bundle
 import android.text.InputType
 import android.view.Gravity
+import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Spinner
@@ -20,7 +22,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 private const val LAMINATE_BASE_URL = "https://laminate.luvelox.com"
-private const val DEFAULT_RESPONSE_MODEL = "response_surrogate"
+private const val DEFAULT_RESPONSE_MODEL = "response_surrogate_physics"
 
 class LaminateActivity : Activity() {
     private lateinit var theta1Input: EditText
@@ -48,7 +50,7 @@ class LaminateActivity : Activity() {
 
         root.addView(label("LAMINATE MODULE", color(0x127C82), 12f, Typeface.BOLD))
         root.addView(label("Double-Double Forecast", color(0x17202A), 32f, Typeface.BOLD))
-        root.addView(paragraph("Run Type, Pt, and force-displacement response prediction directly inside Luvelox."), margin(top = 8, bottom = 16))
+        root.addView(paragraph("Run Type, Pt, and force-displacement response prediction directly inside C2ES."), margin(top = 8, bottom = 16))
 
         val inputCard = card()
         val header = LinearLayout(this).apply {
@@ -171,6 +173,14 @@ class LaminateActivity : Activity() {
         result.probabilities.toSortedMap().forEach { (label, value) ->
             card.addView(label("$label  ${value.percentText()}", color(0x647084), 13f, Typeface.BOLD), margin(top = 6))
         }
+        result.xai?.let { xai ->
+            card.addView(label("Why this prediction?", color(0x17202A), 18f, Typeface.BOLD), margin(top = 18))
+            card.addView(paragraph(xai.summary), margin(top = 6))
+            card.addView(label("Method: ${xai.method} · ${xai.featureSet}", color(0x127C82), 12f, Typeface.BOLD), margin(top = 8))
+            xai.topFeatures.forEach { feature ->
+                card.addView(xaiFeatureRow(feature), margin(top = 6))
+            }
+        }
         resultContainer.addView(card)
     }
 
@@ -204,6 +214,45 @@ class LaminateActivity : Activity() {
         background = rounded(color(0xF4F8FA), dp(8))
         addView(label(title, color(0x647084), 12f, Typeface.BOLD))
         addView(label(value, color(0x17202A), 16f, Typeface.BOLD))
+    }
+
+    private fun xaiFeatureRow(feature: LaminateXaiFeature): LinearLayout = LinearLayout(this).apply {
+        val safeImportance = feature.importance.coerceIn(0.0, 1.0)
+        orientation = LinearLayout.VERTICAL
+        setPadding(0, dp(6), 0, dp(6))
+        addView(LinearLayout(this@LaminateActivity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(label(feature.label, color(0x17202A), 12f, Typeface.BOLD).apply {
+                maxLines = 1
+            }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            addView(label(feature.category, color(0x127C82), 10f, Typeface.BOLD).apply {
+                setPadding(dp(6), dp(2), dp(6), dp(2))
+                background = rounded(color(0xDCF4F0), dp(999))
+            })
+        })
+        addView(LinearLayout(this@LaminateActivity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(FrameLayout(this@LaminateActivity).apply {
+                background = rounded(color(0xE8EEF5), dp(999))
+                addView(View(this@LaminateActivity).apply {
+                    background = rounded(color(0x127C82), dp(999))
+                    layoutParams = FrameLayout.LayoutParams(dp(6), FrameLayout.LayoutParams.MATCH_PARENT)
+                })
+                post {
+                    val fill = getChildAt(0)
+                    val params = fill.layoutParams as FrameLayout.LayoutParams
+                    params.width = maxOf(dp(6), (width * safeImportance).toInt())
+                    fill.layoutParams = params
+                    fill.requestLayout()
+                }
+            }, LinearLayout.LayoutParams(0, dp(5), 1f))
+            addView(label(safeImportance.percentText(), color(0x127C82), 11f, Typeface.BOLD).apply {
+                gravity = Gravity.END
+            }, LinearLayout.LayoutParams(dp(56), LinearLayout.LayoutParams.WRAP_CONTENT))
+        }, margin(top = 4))
+        addView(label(feature.explanation, color(0x647084), 11f, Typeface.NORMAL), margin(top = 3))
     }
 
     private fun card(): LinearLayout = LinearLayout(this).apply {
@@ -264,10 +313,26 @@ private data class LaminateResult(
     val modelLabel: String,
     val probabilities: Map<String, Double>,
     val curve: List<LaminateCurvePoint>,
+    val xai: LaminateXai?,
 ) {
     val displayModelLabel: String get() = modelLabel.cleanModelLabel()
     val predictedPtDisplacement: Double? get() = curve.displacementAtForce(predictedPt)
 }
+
+private data class LaminateXai(
+    val title: String,
+    val summary: String,
+    val method: String,
+    val featureSet: String,
+    val topFeatures: List<LaminateXaiFeature>,
+)
+
+private data class LaminateXaiFeature(
+    val label: String,
+    val importance: Double,
+    val category: String,
+    val explanation: String,
+)
 
 private class LaminateApi {
     fun models(): List<LaminateModelInfo> {
@@ -300,6 +365,7 @@ private class LaminateApi {
             modelLabel = json.optString("model_label"),
             probabilities = json.optJSONObject("probabilities").toDoubleMap(),
             curve = json.optJSONArray("curve").toCurvePoints(),
+            xai = json.optJSONObject("xai").toLaminateXai(),
         )
     }
 
@@ -340,10 +406,42 @@ private fun org.json.JSONArray?.toCurvePoints(): List<LaminateCurvePoint> {
 
 private fun JSONObject.optionalDouble(key: String): Double? = if (has(key) && !isNull(key)) optDouble(key) else null
 
+private fun JSONObject?.toLaminateXai(): LaminateXai? {
+    if (this == null) return null
+    val featureArray = optJSONArray("top_features")
+    val features = if (featureArray == null) {
+        emptyList()
+    } else {
+        List(featureArray.length()) { index ->
+            val item = featureArray.getJSONObject(index)
+            LaminateXaiFeature(
+                label = item.optString("label", item.optString("name")),
+                importance = item.optDouble("importance"),
+                category = item.optString("category"),
+                explanation = item.optString("explanation"),
+            )
+        }
+    }
+    return LaminateXai(
+        title = optString("title", "Why this prediction?"),
+        summary = optString("summary"),
+        method = optString("method"),
+        featureSet = optString("feature_set"),
+        topFeatures = features,
+    )
+}
+
 private fun String.cleanModelLabel(): String {
     return when (trim().lowercase()) {
         "laminate forecast - cases 2/3/4", "extra trees + pca", "extratrees + pca" -> "ExtraTrees + PCA"
         "laminate forecast - gointmlp nn + clt (legacy case3/4)", "gointmlp-style nn" -> "GointMLP NN"
+        "laminate forecast - tree (theta)" -> "Laminate Forecast - Tree (Theta)"
+        "laminate forecast - gointmlp (theta)" -> "Laminate Forecast - GointMLP (Theta)"
+        "laminate forecast - tree + physics xai" -> "Laminate Forecast - Tree + Physics XAI"
+        "laminate forecast - gointmlp + physics xai" -> "Laminate Forecast - GointMLP + Physics XAI"
+        "u3 forecast - extratrees + pca" -> "u3 Forecast - Tree (Theta)"
+        "u3 forecast - physics xai" -> "u3 Forecast - Tree + Physics XAI"
+        "u3 forecast - gointmlp nn" -> "u3 Forecast - GointMLP (Theta)"
         else -> trim()
     }
 }
@@ -367,5 +465,6 @@ private fun List<LaminateCurvePoint>.displacementAtForce(targetForce: Double?): 
 }
 
 private fun Double?.metricText(digits: Int): String = this?.let { "%.${digits}f".format(it) } ?: "-"
+private fun Double.metricText(digits: Int): String = "%.${digits}f".format(this)
 private fun Double?.percentText(): String = this?.let { "%.1f%%".format(it * 100.0) } ?: "-"
 private fun Double.percentText(): String = "%.1f%%".format(this * 100.0)
