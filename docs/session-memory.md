@@ -10217,3 +10217,31 @@ Follow-up in same debugging pass:
     then `/ready` validation, then Cloudflare config/startup.
 - Added backend tests covering the new DD and Simple Injection readiness
   endpoints.
+
+## 2026-06-23 - Windows Portable Bundle Created
+
+- Created a Windows handoff zip at
+  `dist/KyulAI_windows_server_bundle_2026-06-23.zip`.
+- Bundle size/count:
+  - Size: about 1.3 GB.
+  - Entries: 9,867 files.
+- Bundle includes:
+  - DD Laminate, Simple Injection, and Luvelox/C2ES backend/frontend runtime code.
+  - Windows serving scripts under `scripts/windows`.
+  - Serving requirements and `.env.windows.example`.
+  - Current API-referenced DD and Simple Injection model directories.
+  - Current DD/Double-Double/u3 and Simple Injection datasets selected by
+    `scripts/package_windows_bundle.py`.
+  - Windows/server migration docs.
+- Verification performed:
+  - `unzip -t dist/KyulAI_windows_server_bundle_2026-06-23.zip` passed with no
+    compressed-data errors.
+  - Zip file list check found no `.git`, `.venv`, `.env.local`,
+    `.cloudflared`, `__pycache__`, `.pyc`, or `.DS_Store` entries.
+  - Targeted secret-pattern scan over text files inside the zip found 0 hits
+    for the prior Slack webhook/signing-secret values.
+- Deliberately not included:
+  - `models/dd_laminate_response_tabular_challengers_v1/extra_trees.joblib`
+  - `models/dd_laminate_response_tabular_challengers_v1/random_forest.joblib`
+  - These two remain untracked because they are 453 MB / 215 MB research-only
+    challenger artifacts and are not active serving registry defaults.
