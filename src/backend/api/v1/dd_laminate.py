@@ -102,6 +102,16 @@ class LocalXAIRequest(BaseModel):
     model: str
 
 
+DesignSpaceScope = Literal["response", "u3"]
+
+
+class DesignSpaceRequest(BaseModel):
+    theta1: float = Field(..., ge=-90, le=90)
+    theta2: float = Field(..., ge=-90, le=90)
+    case: CaseKey
+    scope: DesignSpaceScope = "response"
+
+
 class PredictionResponse(BaseModel):
     predicted_type: int
     confidence: float | None
@@ -162,6 +172,48 @@ class U3PtPredictionResponse(BaseModel):
     notes: list[str] = []
     metrics: dict[str, float | int | str] = {}
     xai: XAIExplanation | None = None
+
+
+class DesignSpacePoint(BaseModel):
+    theta1: float
+    theta2: float
+    case: CaseKey
+    test_id: str
+    pt: float
+    type: int | None = None
+    distance: float
+    source: Literal["curated_response", "curated_u3"]
+
+
+class DesignSpaceCaseSummary(BaseModel):
+    case: CaseKey
+    count: int
+    mean_pt: float
+    median_pt: float
+    max_pt: float
+    type_rates: dict[str, float]
+    risk_score: float
+    risk_label: Literal["low", "medium", "high"]
+
+
+class DesignSpaceRecommendation(BaseModel):
+    theta1: float
+    theta2: float
+    case: CaseKey
+    expected_pt: float
+    observed_type: int | None = None
+    score: float
+    rationale: str
+
+
+class DesignSpaceResponse(BaseModel):
+    scope: DesignSpaceScope
+    inputs: dict[str, float | str]
+    map_points: list[DesignSpacePoint]
+    nearest_points: list[DesignSpacePoint]
+    case_summaries: list[DesignSpaceCaseSummary]
+    recommendations: list[DesignSpaceRecommendation]
+    notes: list[str]
 
 
 THETA_MODELS: dict[str, dict[str, str]] = {
@@ -1167,9 +1219,257 @@ def _load_xai_for_model(model_key: str) -> XAIExplanation | None:
     )
 
 
+def _csv_float(row: dict[str, str], *keys: str) -> float | None:
+    for key in keys:
+        value = row.get(key)
+        if value is None or value == "":
+            continue
+        try:
+            parsed = float(value)
+        except ValueError:
+            continue
+        if math.isfinite(parsed):
+            return parsed
+    return None
+
+
+def _csv_int(row: dict[str, str], *keys: str) -> int | None:
+    value = _csv_float(row, *keys)
+    return None if value is None else int(value)
+
+
+def _median(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    mid = len(ordered) // 2
+    if len(ordered) % 2:
+        return ordered[mid]
+    return (ordered[mid - 1] + ordered[mid]) / 2.0
+
+
+def _risk_label(score: float) -> Literal["low", "medium", "high"]:
+    if score < 0.3:
+        return "low"
+    if score < 0.58:
+        return "medium"
+    return "high"
+
+
+def _distance(theta1: float, theta2: float, row: dict[str, Any]) -> float:
+    return math.hypot(theta1 - float(row["theta1"]), theta2 - float(row["theta2"]))
+
+
+@lru_cache(maxsize=2)
+def _design_space_rows(scope: DesignSpaceScope) -> list[dict[str, Any]]:
+    if scope == "u3":
+        manifest_path = PROJECT_ROOT / "data/datasets/DD_u3_pt_v2/manifest.csv"
+        source = "curated_u3"
+    else:
+        manifest_path = PROJECT_ROOT / "data/datasets/DD_cases_2_3_4_curated_v1/label_manifest.csv"
+        source = "curated_response"
+
+    if not manifest_path.exists():
+        return []
+
+    rows: list[dict[str, Any]] = []
+    with manifest_path.open("r", encoding="utf-8-sig", newline="") as handle:
+        for raw in csv.DictReader(handle):
+            case = raw.get("case")
+            if case not in {"Case2", "Case3", "Case4"}:
+                continue
+            theta1 = _csv_float(raw, "theta1")
+            theta2 = _csv_float(raw, "theta2")
+            pt = _csv_float(raw, "pt", "Pt")
+            if theta1 is None or theta2 is None or pt is None:
+                continue
+            type_value = _csv_int(raw, "type", "u3_bucket")
+            if scope == "u3" and type_value is None:
+                folder = raw.get("u3_folder", "")
+                if folder.endswith("-2") or folder.endswith("-3"):
+                    type_value = int(folder[-1])
+            rows.append(
+                {
+                    "theta1": theta1,
+                    "theta2": theta2,
+                    "case": case,
+                    "test_id": raw.get("test_id") or raw.get("Test_ID") or "",
+                    "pt": pt,
+                    "type": type_value,
+                    "source": source,
+                }
+            )
+    return rows
+
+
+def _space_point(row: dict[str, Any], theta1: float, theta2: float) -> DesignSpacePoint:
+    return DesignSpacePoint(
+        theta1=round(float(row["theta1"]), 4),
+        theta2=round(float(row["theta2"]), 4),
+        case=cast(CaseKey, row["case"]),
+        test_id=str(row.get("test_id") or ""),
+        pt=round(float(row["pt"]), 4),
+        type=cast(int | None, row.get("type")),
+        distance=round(_distance(theta1, theta2, row), 4),
+        source=cast(Literal["curated_response", "curated_u3"], row["source"]),
+    )
+
+
+def _case_summaries(rows: list[dict[str, Any]], scope: DesignSpaceScope) -> list[DesignSpaceCaseSummary]:
+    global_median = _median([float(row["pt"]) for row in rows])
+    summaries: list[DesignSpaceCaseSummary] = []
+    for case in ("Case2", "Case3", "Case4"):
+        case_rows = [row for row in rows if row["case"] == case]
+        if not case_rows:
+            continue
+        pts = [float(row["pt"]) for row in case_rows]
+        type_counts: dict[str, int] = {}
+        for row in case_rows:
+            type_value = row.get("type")
+            if type_value is None:
+                continue
+            type_counts[f"type{int(type_value)}"] = type_counts.get(f"type{int(type_value)}", 0) + 1
+        total = len(case_rows)
+        type_rates = {key: round(count / total, 4) for key, count in sorted(type_counts.items())}
+        low_pt_rate = sum(pt < global_median for pt in pts) / total
+        if scope == "u3":
+            type_risk = type_rates.get("type3", 0.0)
+            risk_score = 0.55 * type_risk + 0.45 * low_pt_rate
+        else:
+            nonlinear_rate = 0.45 * type_rates.get("type2", 0.0) + type_rates.get("type3", 0.0)
+            risk_score = 0.65 * nonlinear_rate + 0.35 * low_pt_rate
+        risk_score = max(0.0, min(1.0, risk_score))
+        summaries.append(
+            DesignSpaceCaseSummary(
+                case=cast(CaseKey, case),
+                count=total,
+                mean_pt=round(sum(pts) / total, 4),
+                median_pt=round(_median(pts), 4),
+                max_pt=round(max(pts), 4),
+                type_rates=type_rates,
+                risk_score=round(risk_score, 4),
+                risk_label=_risk_label(risk_score),
+            )
+        )
+    return summaries
+
+
+def _recommendations(
+    rows: list[dict[str, Any]],
+    theta1: float,
+    theta2: float,
+    scope: DesignSpaceScope,
+) -> list[DesignSpaceRecommendation]:
+    scoring_rows = rows
+    if scope == "response":
+        type1_rows = [row for row in rows if row.get("type") == 1]
+        if len(type1_rows) >= 8:
+            scoring_rows = type1_rows
+    pts = [float(row["pt"]) for row in rows]
+    pt_min = min(pts)
+    pt_span = max(max(pts) - pt_min, 1.0)
+    scored: list[tuple[float, dict[str, Any], str]] = []
+    for row in scoring_rows:
+        pt_norm = (float(row["pt"]) - pt_min) / pt_span
+        type_value = row.get("type")
+        if scope == "u3":
+            type_bonus = 0.7 if type_value == 2 else 0.5 if type_value == 3 else 0.35
+            rationale = "High observed u3 Pt in the curated u3 dataset; Type is shown as curve-family context."
+        else:
+            type_bonus = 1.0 if type_value == 1 else 0.45 if type_value == 2 else 0.1
+            rationale = (
+                "High observed Pt with Type 1 preference in the curated Case2/3/4 simulations."
+                if type_value == 1
+                else "High observed Pt candidate; Type shape should be reviewed before simulation follow-up."
+            )
+        proximity = 1.0 / (1.0 + _distance(theta1, theta2, row) / 90.0)
+        score = 0.72 * pt_norm + 0.18 * type_bonus + 0.10 * proximity
+        scored.append((score, row, rationale))
+
+    recommendations: list[DesignSpaceRecommendation] = []
+    seen: set[tuple[str, int, int]] = set()
+    for score, row, rationale in sorted(scored, key=lambda item: item[0], reverse=True):
+        key = (str(row["case"]), round(float(row["theta1"])), round(float(row["theta2"])))
+        if key in seen:
+            continue
+        seen.add(key)
+        recommendations.append(
+            DesignSpaceRecommendation(
+                theta1=round(float(row["theta1"]), 4),
+                theta2=round(float(row["theta2"]), 4),
+                case=cast(CaseKey, row["case"]),
+                expected_pt=round(float(row["pt"]), 4),
+                observed_type=cast(int | None, row.get("type")),
+                score=round(score, 4),
+                rationale=rationale,
+            )
+        )
+        if len(recommendations) >= 8:
+            break
+    return recommendations
+
+
+def _map_rows(rows: list[dict[str, Any]], theta1: float, theta2: float, case: str) -> list[dict[str, Any]]:
+    same_case = [row for row in rows if row["case"] == case]
+    nearest = sorted(rows, key=lambda row: _distance(theta1, theta2, row))[:180]
+    top_pt = sorted(rows, key=lambda row: float(row["pt"]), reverse=True)[:180]
+    selected: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    for row in [*same_case, *nearest, *top_pt]:
+        key = (str(row["case"]), str(row["test_id"]))
+        if key in seen:
+            continue
+        seen.add(key)
+        selected.append(row)
+        if len(selected) >= 520:
+            break
+    return selected
+
+
 @router.get("/models", response_model=DDLaminateModelsResponse, summary="List DD laminate models")
 async def list_dd_laminate_models() -> DDLaminateModelsResponse:
     return _models_response()
+
+
+@router.post(
+    "/design-space",
+    response_model=DesignSpaceResponse,
+    summary="Summarize theta/case design-space context for a forecast input",
+)
+async def summarize_design_space(payload: DesignSpaceRequest) -> DesignSpaceResponse:
+    rows = _design_space_rows(payload.scope)
+    if not rows:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No curated design-space data is available for scope: {payload.scope}",
+        )
+
+    nearest_rows = sorted(rows, key=lambda row: _distance(payload.theta1, payload.theta2, row))[:8]
+    map_points = [_space_point(row, payload.theta1, payload.theta2) for row in _map_rows(rows, payload.theta1, payload.theta2, payload.case)]
+    nearest_points = [_space_point(row, payload.theta1, payload.theta2) for row in nearest_rows]
+    summaries = _case_summaries(rows, payload.scope)
+    recommendations = _recommendations(rows, payload.theta1, payload.theta2, payload.scope)
+    if payload.scope == "u3":
+        notes = [
+            "u3 design-space context is based on the curated u3 Pt dataset; Type 2/3 is treated as curve-family context.",
+            "Recommendations are simulation-backed observed candidates, not new finite-element simulations.",
+            "Use high-Pt candidates as screening leads and validate final choices with simulation.",
+        ]
+    else:
+        notes = [
+            "Laminate Forecast design-space context is based on the curated Case2/3/4 response dataset.",
+            "Risk combines nonlinear Type 2/3 prevalence and below-median Pt prevalence within each Case.",
+            "Recommendations favor high observed Pt and Type 1 behavior, then proximity to the current theta input.",
+        ]
+    return DesignSpaceResponse(
+        scope=payload.scope,
+        inputs={"theta1": payload.theta1, "theta2": payload.theta2, "case": payload.case},
+        map_points=map_points,
+        nearest_points=nearest_points,
+        case_summaries=summaries,
+        recommendations=recommendations,
+        notes=notes,
+    )
 
 
 @router.post("/predict/theta", response_model=PredictionResponse, summary="Predict Type from theta1/theta2/case")

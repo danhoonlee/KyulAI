@@ -10245,3 +10245,35 @@ Follow-up in same debugging pass:
   - `models/dd_laminate_response_tabular_challengers_v1/random_forest.joblib`
   - These two remain untracked because they are 453 MB / 215 MB research-only
     challenger artifacts and are not active serving registry defaults.
+
+## 2026-06-23 - Laminate Research Insight Panel
+
+- User approved moving from XAI-only explanations toward a more
+  research-oriented view explaining where a prediction sits in the design
+  space.
+- Added DD backend endpoint:
+  - `POST /api/v1/dd-laminate/design-space`
+  - Inputs: `theta1`, `theta2`, `case`, and `scope` (`response` or `u3`).
+  - Response includes:
+    - `map_points`: curated data points for plotting θ₁/θ₂ design-space
+      position.
+    - `nearest_points`: nearest existing simulations around the current input.
+    - `case_summaries`: Case2/3/4 count, median/max Pt, Type rates, and
+      compact risk label.
+    - `recommendations`: simulation-backed candidate angle/case suggestions.
+    - `notes`: interpretation caveats.
+- Recommendation behavior:
+  - Laminate Forecast recommendations now prioritize observed Type 1 candidates
+    because Type 1 bilinear behavior is the research target.
+  - u3 recommendations prioritize high observed u3 Pt while showing Type 2/3 as
+    curve-family context.
+- Updated DD v2 web UI:
+  - Added a compact `Research Insight` panel below XAI.
+  - Panel draws a θ₁/θ₂ map, highlights the current input, shows Case risk
+    cards, nearest simulations, and recommended candidates.
+  - Korean page receives the same panel structure and Korean labels.
+- Verification:
+  - `ruff check src/backend/api/v1/dd_laminate.py tests/backend/test_dd_laminate_ios_contract.py`
+  - `mypy --explicit-package-bases src/backend/api/v1/dd_laminate.py --ignore-missing-imports`
+  - `pytest tests/backend/test_dd_laminate_ios_contract.py -q` -> 16 passed.
+  - `node --check src/frontend/dd-laminate/app-v2.js`

@@ -93,6 +93,39 @@ def test_standalone_dd_laminate_app_health_and_models_for_mobile(client: TestCli
     assert "available" in u3_pt_models["u3_forecast_physics_v2"]
 
 
+def test_design_space_endpoint_returns_research_context(client: TestClient) -> None:
+    response = client.post(
+        "/api/v1/dd-laminate/design-space",
+        json={"theta1": 30, "theta2": -30, "case": "Case2", "scope": "response"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["scope"] == "response"
+    assert data["inputs"] == {"theta1": 30.0, "theta2": -30.0, "case": "Case2"}
+    assert data["map_points"]
+    assert data["nearest_points"]
+    assert len(data["case_summaries"]) == 3
+    assert data["recommendations"]
+    assert {"case", "risk_score", "risk_label", "type_rates"}.issubset(data["case_summaries"][0])
+
+
+def test_u3_design_space_endpoint_returns_curve_family_context(client: TestClient) -> None:
+    response = client.post(
+        "/api/v1/dd-laminate/design-space",
+        json={"theta1": -20, "theta2": 74, "case": "Case4", "scope": "u3"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["scope"] == "u3"
+    assert data["map_points"]
+    assert data["nearest_points"]
+    assert data["case_summaries"]
+    assert data["recommendations"]
+    assert all(point["source"] == "curated_u3" for point in data["nearest_points"])
+
+
 def test_public_root_serves_legacy_ui_for_cafedecafe(client: TestClient) -> None:
     for host in ("laminate.cafedecafe.co.kr", "cafedecafe.co.kr"):
         response = client.get("/", headers={"host": host})

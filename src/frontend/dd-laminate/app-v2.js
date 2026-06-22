@@ -50,6 +50,22 @@ const TEXT = {
     ? "XAI 설명을 불러오지 못했습니다. 예측 결과는 정상적으로 사용할 수 있습니다."
     : "Could not load the XAI explanation. The prediction result is still usable.",
   xaiMore: (count) => IS_KO ? `나머지 ${count}개 feature 더보기` : `Show ${count} more features`,
+  researchLoadingTitle: IS_KO ? "설계 공간 분석 중" : "Loading design-space insight",
+  researchLoadingSummary: IS_KO
+    ? "현재 θ/Case 입력이 학습 데이터 공간 어디에 있는지 계산하고 있습니다."
+    : "Checking where this theta/case input sits in the curated design space.",
+  researchFailed: IS_KO
+    ? "설계 공간 분석을 불러오지 못했습니다. 예측 결과는 정상적으로 사용할 수 있습니다."
+    : "Could not load design-space insight. The prediction result is still usable.",
+  designSpaceTitle: IS_KO ? "설계 공간 해석" : "Design-space context",
+  caseRisk: IS_KO ? "Case 위험도" : "Case risk",
+  nearestSimulations: IS_KO ? "가까운 해석 데이터" : "Nearest simulations",
+  recommendedCandidates: IS_KO ? "추천 후보" : "Recommended candidates",
+  riskLow: IS_KO ? "낮음" : "Low",
+  riskMedium: IS_KO ? "중간" : "Medium",
+  riskHigh: IS_KO ? "높음" : "High",
+  observedType: IS_KO ? "관측 Type" : "Observed Type",
+  score: IS_KO ? "점수" : "Score",
 };
 const MODEL_LABELS_KO = {
   "Theta + case - ExtraTrees": "θ + Case - ExtraTrees",
@@ -161,10 +177,19 @@ const xaiSummary = document.querySelector("#xai-summary");
 const xaiMethod = document.querySelector("#xai-method");
 const xaiFeatures = document.querySelector("#xai-features");
 const xaiNotes = document.querySelector("#xai-notes");
+const researchPanel = document.querySelector("#research-panel");
+const researchTitle = document.querySelector("#research-title");
+const researchSummary = document.querySelector("#research-summary");
+const researchMapCanvas = document.querySelector("#research-map-canvas");
+const researchCaseList = document.querySelector("#research-case-list");
+const researchNearestList = document.querySelector("#research-nearest-list");
+const researchRecommendations = document.querySelector("#research-recommendations");
+const researchNotes = document.querySelector("#research-notes");
 const exportReportPng = document.querySelector("#export-report-png");
 const exportReportPdf = document.querySelector("#export-report-pdf");
 let latestPredictionData = null;
 let xaiRequestSerial = 0;
+let researchRequestSerial = 0;
 
 const PRIMARY_RESPONSE_MODEL_KEYS = [
   "response_surrogate_physics_v2",
@@ -614,6 +639,7 @@ function renderResult(data) {
   responseEstimate.classList.add("hidden");
   xaiRequestSerial += 1;
   renderXai(null);
+  renderResearchHidden();
 
   notes.innerHTML = "";
   data.notes.forEach((note) => {
@@ -672,6 +698,7 @@ function resetPredictionState() {
   clearResponseCurveCanvas();
   xaiRequestSerial += 1;
   renderXai(null);
+  renderResearchHidden();
 }
 
 function xaiCategoryLabel(category) {
@@ -1054,6 +1081,265 @@ function createXaiFeatureItem(feature, maxImportance) {
   score.append(percentText, bar);
   item.append(main, score);
   return item;
+}
+
+function riskLabel(value) {
+  const labels = {
+    low: TEXT.riskLow,
+    medium: TEXT.riskMedium,
+    high: TEXT.riskHigh,
+  };
+  return labels[value] || value;
+}
+
+function typeLabel(typeValue) {
+  return typeValue === null || typeValue === undefined ? "-" : `Type ${typeValue}`;
+}
+
+function localizeResearchText(text) {
+  if (!IS_KO || !text) {
+    return text || "";
+  }
+  const map = {
+    "Laminate Forecast design-space context is based on the curated Case2/3/4 response dataset.":
+      "Laminate Forecast 설계 공간은 정리된 Case2/3/4 응답 데이터셋을 기준으로 계산했습니다.",
+    "Risk combines nonlinear Type 2/3 prevalence and below-median Pt prevalence within each Case.":
+      "위험도는 각 Case 안에서 비선형 Type 2/3 비율과 중앙값보다 낮은 Pt 비율을 함께 반영합니다.",
+    "Recommendations favor high observed Pt and Type 1 behavior, then proximity to the current theta input.":
+      "추천 후보는 높은 관측 Pt와 Type 1 거동을 우선하고, 그 다음 현재 θ 입력과의 거리를 반영합니다.",
+    "u3 design-space context is based on the curated u3 Pt dataset; Type 2/3 is treated as curve-family context.":
+      "u3 설계 공간은 정리된 u3 Pt 데이터셋을 기준으로 계산했으며, Type 2/3은 곡선 계열 정보로 표시합니다.",
+    "Recommendations are simulation-backed observed candidates, not new finite-element simulations.":
+      "추천 후보는 이미 수행된 해석 데이터 기반이며, 새 유한요소 해석 결과는 아닙니다.",
+    "Use high-Pt candidates as screening leads and validate final choices with simulation.":
+      "Pt가 높은 후보는 선별용 리드로 사용하고, 최종 후보는 해석으로 다시 검증해 주세요.",
+    "High observed Pt with Type 1 preference in the curated Case2/3/4 simulations.":
+      "정리된 Case2/3/4 해석에서 높은 Pt와 Type 1 선호 조건을 만족한 후보입니다.",
+    "High observed Pt candidate; Type shape should be reviewed before simulation follow-up.":
+      "관측 Pt가 높은 후보입니다. 추가 해석 전에 Type 곡선 형태를 함께 확인하는 것이 좋습니다.",
+    "High observed u3 Pt in the curated u3 dataset; Type is shown as curve-family context.":
+      "정리된 u3 데이터셋에서 관측 Pt가 높은 후보입니다. Type은 곡선 계열 정보로 표시합니다.",
+  };
+  return map[text] || text;
+}
+
+function renderResearchHidden() {
+  researchRequestSerial += 1;
+  if (!researchPanel) {
+    return;
+  }
+  researchPanel.classList.add("hidden");
+  if (researchMapCanvas) {
+    const ctx = researchMapCanvas.getContext("2d");
+    ctx.clearRect(0, 0, researchMapCanvas.width, researchMapCanvas.height);
+  }
+}
+
+function renderResearchLoading() {
+  if (!researchPanel) {
+    return;
+  }
+  researchPanel.classList.remove("hidden");
+  researchTitle.textContent = TEXT.researchLoadingTitle;
+  researchSummary.textContent = TEXT.researchLoadingSummary;
+  researchCaseList.innerHTML = "";
+  researchNearestList.innerHTML = "";
+  researchRecommendations.innerHTML = "";
+  researchNotes.innerHTML = "";
+  drawDesignSpaceMap([], null);
+}
+
+function renderResearchFailed() {
+  if (!researchPanel) {
+    return;
+  }
+  researchPanel.classList.remove("hidden");
+  researchTitle.textContent = TEXT.designSpaceTitle;
+  researchSummary.textContent = TEXT.researchFailed;
+  researchCaseList.innerHTML = "";
+  researchNearestList.innerHTML = "";
+  researchRecommendations.innerHTML = "";
+  researchNotes.innerHTML = "";
+  drawDesignSpaceMap([], null);
+}
+
+async function requestDesignSpace(data, scope) {
+  const inputs = data?.inputs || {};
+  if (inputs.theta1 === undefined || inputs.theta2 === undefined || !inputs.case) {
+    renderResearchHidden();
+    return;
+  }
+
+  const serial = ++researchRequestSerial;
+  renderResearchLoading();
+  try {
+    const insight = await postJson("/design-space", {
+      theta1: Number(inputs.theta1),
+      theta2: Number(inputs.theta2),
+      case: inputs.case,
+      scope,
+    });
+    if (serial === researchRequestSerial) {
+      renderDesignSpace(insight);
+    }
+  } catch (error) {
+    if (serial === researchRequestSerial) {
+      renderResearchFailed();
+    }
+  }
+}
+
+function drawDesignSpaceMap(points, inputs) {
+  if (!researchMapCanvas) {
+    return;
+  }
+  const canvas = researchMapCanvas;
+  const ctx = canvas.getContext("2d");
+  const width = canvas.width;
+  const height = canvas.height;
+  const pad = { left: 46, right: 18, top: 18, bottom: 42 };
+  const plotW = width - pad.left - pad.right;
+  const plotH = height - pad.top - pad.bottom;
+  const xMin = -90;
+  const xMax = 90;
+  const yMin = -90;
+  const yMax = 90;
+  const x = (value) => pad.left + ((Number(value) - xMin) / (xMax - xMin)) * plotW;
+  const y = (value) => pad.top + plotH - ((Number(value) - yMin) / (yMax - yMin)) * plotH;
+
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = "#f8fbfe";
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.strokeStyle = "#dfe8f2";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let tick = -90; tick <= 90; tick += 30) {
+    ctx.moveTo(x(tick), pad.top);
+    ctx.lineTo(x(tick), pad.top + plotH);
+    ctx.moveTo(pad.left, y(tick));
+    ctx.lineTo(pad.left + plotW, y(tick));
+  }
+  ctx.stroke();
+
+  ctx.strokeStyle = "#94a3b8";
+  ctx.strokeRect(pad.left, pad.top, plotW, plotH);
+
+  const colors = {
+    1: "#0f9f6e",
+    2: "#0c8fd8",
+    3: "#df4b3f",
+  };
+  (points || []).forEach((point) => {
+    const type = point.type || 0;
+    const radius = 3.5 + Math.min(3, Math.max(0, Number(point.pt || 0) / 12000));
+    ctx.beginPath();
+    ctx.fillStyle = colors[type] || "#708195";
+    ctx.globalAlpha = point.case === inputs?.case ? 0.78 : 0.32;
+    ctx.arc(x(point.theta1), y(point.theta2), radius, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+
+  if (inputs) {
+    ctx.save();
+    ctx.translate(x(inputs.theta1), y(inputs.theta2));
+    ctx.fillStyle = "#7c3aed";
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#111827";
+    ctx.font = "700 12px system-ui, sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText(IS_KO ? "현재 입력" : "Current input", 12, -10);
+    ctx.restore();
+  }
+
+  ctx.fillStyle = "#617086";
+  ctx.font = "700 12px system-ui, sans-serif";
+  ctx.textAlign = "center";
+  for (let tick = -90; tick <= 90; tick += 30) {
+    ctx.fillText(String(tick), x(tick), height - 18);
+  }
+  ctx.textAlign = "right";
+  for (let tick = -90; tick <= 90; tick += 30) {
+    ctx.fillText(String(tick), pad.left - 9, y(tick) + 4);
+  }
+  ctx.textAlign = "center";
+  ctx.fillText("θ₁", pad.left + plotW / 2, height - 3);
+  ctx.save();
+  ctx.translate(15, pad.top + plotH / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText("θ₂", 0, 0);
+  ctx.restore();
+}
+
+function renderDesignSpace(insight) {
+  if (!researchPanel) {
+    return;
+  }
+  const inputs = insight.inputs || {};
+  researchPanel.classList.remove("hidden");
+  researchTitle.textContent = TEXT.designSpaceTitle;
+  researchSummary.textContent = insight.scope === "u3"
+    ? (IS_KO ? "현재 θ 조합이 u3 Pt 데이터 공간 어디에 있는지와 Case별 위험도를 보여줍니다." : "Shows where the current theta pair sits in the u3 Pt design space.")
+    : (IS_KO ? "현재 θ 조합이 Case2/3/4 응답 데이터 공간 어디에 있는지와 Type/Pt 경향을 보여줍니다." : "Shows where the current theta pair sits in the Case2/3/4 response design space.");
+
+  drawDesignSpaceMap(insight.map_points || [], inputs);
+
+  researchCaseList.innerHTML = "";
+  (insight.case_summaries || []).forEach((summary) => {
+    const item = document.createElement("article");
+    item.className = `case-risk-card risk-${summary.risk_label}`;
+    const rates = Object.entries(summary.type_rates || {})
+      .map(([key, value]) => `${key.replace("type", "Type ")} ${percent(value)}`)
+      .join(" · ");
+    item.innerHTML = `
+      <div>
+        <strong>${summary.case.replace("Case", "Case ")}</strong>
+        <span>${riskLabel(summary.risk_label)} · ${percent(summary.risk_score)}</span>
+      </div>
+      <p>Median Pt ${formatMetric(summary.median_pt, 0)} · Max ${formatMetric(summary.max_pt, 0)}</p>
+      <small>${rates || "-"}</small>
+    `;
+    researchCaseList.appendChild(item);
+  });
+
+  researchNearestList.innerHTML = "";
+  (insight.nearest_points || []).slice(0, 6).forEach((point) => {
+    const item = document.createElement("div");
+    item.className = "nearest-item";
+    item.innerHTML = `
+      <strong>${point.case.replace("Case", "Case ")} · θ₁ ${formatMetric(point.theta1, 0)} / θ₂ ${formatMetric(point.theta2, 0)}</strong>
+      <span>${typeLabel(point.type)} · Pt ${formatMetric(point.pt, 0)} · Δθ ${formatMetric(point.distance, 1)}</span>
+    `;
+    researchNearestList.appendChild(item);
+  });
+
+  researchRecommendations.innerHTML = "";
+  (insight.recommendations || []).slice(0, 5).forEach((candidate, index) => {
+    const item = document.createElement("article");
+    item.className = "recommendation-card";
+    item.innerHTML = `
+      <div class="recommendation-rank">${index + 1}</div>
+      <div>
+        <strong>${candidate.case.replace("Case", "Case ")} · θ₁ ${formatMetric(candidate.theta1, 0)} / θ₂ ${formatMetric(candidate.theta2, 0)}</strong>
+        <span>Pt ${formatMetric(candidate.expected_pt, 0)} · ${TEXT.observedType} ${candidate.observed_type ?? "-"} · ${TEXT.score} ${percent(candidate.score)}</span>
+        <p>${localizeResearchText(candidate.rationale)}</p>
+      </div>
+    `;
+    researchRecommendations.appendChild(item);
+  });
+
+  researchNotes.innerHTML = "";
+  (insight.notes || []).forEach((note) => {
+    const item = document.createElement("li");
+    item.textContent = localizeResearchText(note);
+    researchNotes.appendChild(item);
+  });
 }
 
 function pointAtForce(points, targetForce) {
@@ -1781,6 +2067,7 @@ function renderResponseEstimate(data) {
   } else {
     requestLazyXai(data);
   }
+  requestDesignSpace(data, "response");
 }
 
 function renderU3PtResult(data) {
@@ -1842,6 +2129,7 @@ function renderU3PtResult(data) {
   } else {
     requestLazyXai(data);
   }
+  requestDesignSpace(data, "u3");
 
   notes.innerHTML = "";
   (data.notes || []).forEach((note) => {
