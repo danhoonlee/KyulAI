@@ -6,6 +6,7 @@ import argparse
 import csv
 import json
 from pathlib import Path
+from typing import Any, cast
 
 import joblib
 import numpy as np
@@ -14,22 +15,28 @@ import torch.nn as nn
 import torch.nn.functional as F
 from sklearn.decomposition import PCA
 from sklearn.ensemble import ExtraTreesClassifier, ExtraTreesRegressor, RandomForestRegressor
-from sklearn.metrics import accuracy_score, f1_score, mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import (
+    accuracy_score,
+    f1_score,
+    mean_absolute_error,
+    mean_squared_error,
+    r2_score,
+)
 from sklearn.model_selection import GroupKFold
 from torch.utils.data import DataLoader, Dataset, Subset
 
+from src.ml.dd_laminate.laminate_physics import (
+    COMPACT_PHYSICS_FEATURE_COLUMNS,
+    EXTENDED_PHYSICS_FEATURE_COLUMNS,
+    compact_physics_feature_vector,
+    extended_physics_feature_vector,
+)
 from src.ml.dd_laminate.train_u3_pt_models import (
     CASES,
     FOLDERS,
     GRID_LEN,
     curve_arrays,
     load_records,
-)
-from src.ml.dd_laminate.laminate_physics import (
-    COMPACT_PHYSICS_FEATURE_COLUMNS,
-    EXTENDED_PHYSICS_FEATURE_COLUMNS,
-    compact_physics_feature_vector,
-    extended_physics_feature_vector,
 )
 
 
@@ -123,7 +130,7 @@ def regression_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, floa
     }
 
 
-def scalar_candidates(seed: int) -> dict[str, object]:
+def scalar_candidates(seed: int) -> dict[str, Any]:
     return {
         "extra_trees": ExtraTreesRegressor(
             n_estimators=900,
@@ -149,7 +156,7 @@ def type_probabilities(classifier, x: np.ndarray) -> tuple[np.ndarray, list[dict
     probs = classifier.predict_proba(x)
     labels = []
     for row in probs:
-        labels.append({f"type{cls}": float(prob) for cls, prob in zip(classes, row)})
+        labels.append({f"type{cls}": float(prob) for cls, prob in zip(classes, row, strict=True)})
     return np.asarray(classes, dtype=int)[np.argmax(probs, axis=1)], labels
 
 
@@ -340,7 +347,7 @@ def train_goint_forecast(
         _run_goint_epoch(final_model, final_loader, optimizer, device, train=True)
 
     metrics = {
-        "n_samples": int(len(x)),
+        "n_samples": len(x),
         "grid_len": int(y_curve.shape[1]),
         "cv_pt_mae_mean": float(np.mean([row["pt_mae"] for row in fold_rows])),
         "cv_pt_mae_std": float(np.std([row["pt_mae"] for row in fold_rows])),
@@ -399,23 +406,22 @@ def train_forecast(
     candidate_rows: dict[str, list[dict[str, float]]] = {}
     oof_rows: list[dict[str, object]] = []
     for name, estimator in scalar_candidates(seed).items():
-        rows = []
+        rows: list[dict[str, float]] = []
         for fold, (train_idx, val_idx) in enumerate(splitter.split(x, y_pt, groups), start=1):
-            model = estimator
             from sklearn.base import clone
 
-            model = clone(estimator)
+            model = cast(Any, clone(estimator))
             model.fit(x[train_idx], y_scalars[train_idx])
             pred_scalars = np.asarray(model.predict(x[val_idx]), dtype=float)
-            metrics = {
+            fold_metrics = {
                 "fold": fold,
                 "pt_mae": float(mean_absolute_error(y_scalars[val_idx, 0], pred_scalars[:, 0])),
                 "max_displacement_mae": float(mean_absolute_error(y_scalars[val_idx, 1], pred_scalars[:, 1])),
                 "max_force_mae": float(mean_absolute_error(y_scalars[val_idx, 2], pred_scalars[:, 2])),
                 "pt_r2": float(r2_score(y_scalars[val_idx, 0], pred_scalars[:, 0])),
             }
-            rows.append(metrics)
-            for idx, pred_value in zip(val_idx, pred_scalars[:, 0]):
+            rows.append(fold_metrics)
+            for idx, pred_value in zip(val_idx, pred_scalars[:, 0], strict=True):
                 oof_rows.append(
                     {
                         "model": name,
@@ -431,7 +437,7 @@ def train_forecast(
         candidate_rows[name] = rows
         print(f"{name}: pt_mae={np.mean([row['pt_mae'] for row in rows]):.2f}", flush=True)
 
-    metrics_by_model = {
+    metrics_by_model: dict[str, dict[str, Any]] = {
         name: {
             "cv_pt_mae_mean": float(np.mean([row["pt_mae"] for row in rows])),
             "cv_pt_mae_std": float(np.std([row["pt_mae"] for row in rows])),
@@ -442,7 +448,7 @@ def train_forecast(
         }
         for name, rows in candidate_rows.items()
     }
-    best_name = min(metrics_by_model, key=lambda key: metrics_by_model[key]["cv_pt_mae_mean"])
+    best_name = min(metrics_by_model, key=lambda key: float(metrics_by_model[key]["cv_pt_mae_mean"]))
 
     type_fold_rows = []
     type_oof_rows: list[dict[str, object]] = []
@@ -476,13 +482,13 @@ def train_forecast(
                     "test_id": records[int(idx)].test_id,
                     "type_true": int(y_type[idx]),
                     "type_pred": int(pred_type[local_index]),
-                    **{f"prob_type{cls}": float(prob) for cls, prob in zip(class_values, pred_proba[local_index])},
+                    **{f"prob_type{cls}": float(prob) for cls, prob in zip(class_values, pred_proba[local_index], strict=True)},
                 }
             )
 
     final_scalar_model = scalar_candidates(seed)[best_name]
 
-    final_scalar_model = clone(final_scalar_model)
+    final_scalar_model = cast(Any, clone(final_scalar_model))
     final_scalar_model.fit(x, y_scalars)
     final_type_model = clone(type_model)
     final_type_model.fit(x, y_type)
@@ -517,8 +523,8 @@ def train_forecast(
         )
     curve_model.fit(x, curve_scores)
 
-    metrics = {
-        "n_samples": int(len(records)),
+    metrics: dict[str, Any] = {
+        "n_samples": len(records),
         "grid_len": GRID_LEN,
         "best_scalar_model": best_name,
         "models": metrics_by_model,
@@ -612,7 +618,7 @@ def train_forecast(
             f"- `{name}`: Pt MAE {row['cv_pt_mae_mean']:.2f}, Pt R2 {row['cv_pt_r2_mean']:.3f}"
         )
     (report_dir / "u3_forecast_report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    return metrics
+    return cast(dict[str, object], metrics)
 
 
 def main() -> None:

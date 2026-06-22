@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>C2ES Dynamic Ply Stack Demo</title>
+    <link rel="stylesheet" href="./ply-stack-angle-demo.css?v=20260618-angle-demo" />
+  </head>
+  <body>
+    <main class="demo-shell" aria-labelledby="demo-title">
+      <header class="demo-header">
+        <div class="title-block">
+          <p class="eyebrow">Dynamic laminate visualization</p>
+          <h1 id="demo-title">Angle-Aware Ply Stack</h1>
+          <p>
+            A standalone prototype for showing how case, theta 1, and theta 2
+            could drive the displayed Double-Double laminate stack before this
+            renderer is applied to the main app.
+          </p>
+        </div>
+        <nav class="header-links" aria-label="Prototype links">
+          <a href="./greenfield-flow.html">Greenfield flow</a>
+          <a href="./index-v2.html">Wanted v2</a>
+        </nav>
+      </header>
+
+      <section class="demo-grid">
+        <aside class="panel control-panel" aria-label="Stack controls">
+          <div class="panel-head">
+            <p class="eyebrow">Inputs</p>
+            <h2>Build candidate stack</h2>
+          </div>
+
+          <fieldset class="case-control">
+            <legend>Case</legend>
+            <div class="segmented" role="radiogroup" aria-label="Laminate case">
+              <button class="active" type="button" data-case="Case2" aria-pressed="true">Case 2</button>
+              <button type="button" data-case="Case3" aria-pressed="false">Case 3</button>
+              <button type="button" data-case="Case4" aria-pressed="false">Case 4</button>
+            </div>
+          </fieldset>
+
+          <div class="angle-control" data-angle-control="theta1">
+            <label for="theta1-range">
+              <span>Theta 1</span>
+              <strong id="theta1-readout">30 deg</strong>
+            </label>
+            <input id="theta1-range" name="theta1-range" type="range" min="-90" max="90" step="1" value="30" />
+            <input id="theta1-number" name="theta1-number" type="number" min="-90" max="90" step="1" value="30" />
+          </div>
+
+          <div class="angle-control" data-angle-control="theta2">
+            <label for="theta2-range">
+              <span>Theta 2</span>
+              <strong id="theta2-readout">-30 deg</strong>
+            </label>
+            <input id="theta2-range" name="theta2-range" type="range" min="-90" max="90" step="1" value="-30" />
+            <input id="theta2-number" name="theta2-number" type="number" min="-90" max="90" step="1" value="-30" />
+          </div>
+
+          <div class="preset-grid" aria-label="Angle presets">
+            <button type="button" data-preset="balanced">Balanced</button>
+            <button type="button" data-preset="asymmetric">Asymmetric</button>
+            <button type="button" data-preset="cross">Cross-ply</button>
+            <button type="button" data-preset="sparse">Sparse edge</button>
+          </div>
+
+          <div class="formula-card" aria-live="polite">
+            <span>Current formula</span>
+            <strong id="case-formula">[[+/-θ1]/[+/-θ2]] x 4</strong>
+          </div>
+
+          <div class="metric-grid" aria-label="Stack summary">
+            <div>
+              <span>Plies</span>
+              <strong id="ply-count">16</strong>
+            </div>
+            <div>
+              <span>Positive</span>
+              <strong id="positive-count">8</strong>
+            </div>
+            <div>
+              <span>Negative</span>
+              <strong id="negative-count">8</strong>
+            </div>
+            <div>
+              <span>Families</span>
+              <strong id="family-count">2</strong>
+            </div>
+          </div>
+        </aside>
+
+        <section class="panel visual-panel" aria-label="Dynamic ply stack preview">
+          <div class="visual-head">
+            <div>
+              <p class="eyebrow">Live SVG preview</p>
+              <h2>Each ply uses the entered angle</h2>
+            </div>
+            <div class="legend-row" aria-label="Legend">
+              <span><i class="family-one"></i>Theta 1 family</span>
+              <span><i class="family-two"></i>Theta 2 family</span>
+              <span><i class="positive"></i>positive angle</span>
+              <span><i class="negative"></i>negative angle</span>
+            </div>
+          </div>
+
+          <div id="stack-visual" class="stack-visual" aria-live="polite"></div>
+
+          <div class="visual-note">
+            <strong>Prototype behavior</strong>
+            <span>
+              The layer position is stylized for readability. The hatch angle,
+              labels, and sequence are driven by the actual case/theta inputs.
+            </span>
+          </div>
+        </section>
+
+        <aside class="panel inspector-panel" aria-label="Ply sequence inspector">
+          <div class="panel-head inspector-head">
+            <div>
+              <p class="eyebrow">Sequence inspector</p>
+              <h2>Top-to-bottom ply list</h2>
+            </div>
+            <button
+              id="sequence-toggle"
+              class="sequence-toggle"
+              type="button"
+              aria-expanded="true"
+              aria-controls="sequence-list sequence-help"
+            >
+              <span id="sequence-toggle-text">Hide list</span>
+            </button>
+          </div>
+
+          <ol id="sequence-list" class="sequence-list"></ol>
+
+          <div id="sequence-help" class="read-card">
+            <span>How to read it</span>
+            <p>
+              Color identifies the angle family. The small line pattern inside
+              each layer rotates with the actual signed angle.
+            </p>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <script src="./ply-stack-angle-demo.js?v=20260618-angle-demo"></script>
+  </body>
+</html>

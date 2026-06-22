@@ -5,14 +5,16 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from typing import Any
 
 import joblib
 import numpy as np
 import torch
 
-from src.ml.dd_laminate.train_u3_pt_models import U3Record
-from src.ml.dd_laminate.train_u3_forecast_models import U3ForecastGointMLP, u3_feature_matrix
 from src.ml.dd_laminate.predict_u3_pt import _case_id
+from src.ml.dd_laminate.pt_curve_consistency import enforce_pt_curve_consistency, kink_fit_details
+from src.ml.dd_laminate.train_u3_forecast_models import U3ForecastGointMLP, u3_feature_matrix
+from src.ml.dd_laminate.train_u3_pt_models import U3Record
 
 
 def _smooth_monotonic_curve(values: np.ndarray) -> np.ndarray:
@@ -42,7 +44,7 @@ def _record(theta1: float, theta2: float, case: str) -> U3Record:
     )
 
 
-def _features(records: list[U3Record], metadata: dict[str, object] | None) -> np.ndarray:
+def _features(records: list[U3Record], metadata: dict[str, Any] | None) -> np.ndarray:
     feature_set = "theta"
     if metadata:
         feature_set = str(metadata.get("feature_builder") or "theta")
@@ -50,14 +52,17 @@ def _features(records: list[U3Record], metadata: dict[str, object] | None) -> np
     return x
 
 
-def _type_prediction(bundle: dict[str, object], x: np.ndarray) -> tuple[int | None, float | None, dict[str, float] | None]:
+def _type_prediction(bundle: dict[str, Any], x: np.ndarray) -> tuple[int | None, float | None, dict[str, float] | None]:
     type_model = bundle.get("type_model")
     if type_model is None:
         return None, None, None
     probabilities = type_model.predict_proba(x)[0]
     classes = [int(value) for value in type_model.classes_]
     predicted_type = int(classes[int(np.argmax(probabilities))])
-    probability_map = {f"type{label}": float(probability) for label, probability in zip(classes, probabilities)}
+    probability_map = {
+        f"type{label}": float(probability)
+        for label, probability in zip(classes, probabilities, strict=True)
+    }
     return predicted_type, float(max(probabilities)), probability_map
 
 
@@ -71,6 +76,14 @@ def _type_prediction_from_sibling(model_path: str | Path, x: np.ndarray) -> tupl
         return None, None, None
 
 
+def build_u3_forecast_deep_model(checkpoint: dict[str, Any], device: str = "cpu") -> U3ForecastGointMLP:
+    model = U3ForecastGointMLP(**checkpoint["model_config"])
+    model.load_state_dict(checkpoint["model_state_dict"])
+    model.to(device)
+    model.eval()
+    return model
+
+
 def predict_u3_forecast(
     model_path: str | Path,
     theta1: float,
@@ -79,6 +92,16 @@ def predict_u3_forecast(
     u3_bucket: str | int | None = None,
 ) -> dict[str, object]:
     bundle = joblib.load(model_path)
+    return predict_u3_forecast_from_bundle(bundle, theta1, theta2, case, u3_bucket)
+
+
+def predict_u3_forecast_from_bundle(
+    bundle: dict[str, Any],
+    theta1: float,
+    theta2: float,
+    case: str,
+    u3_bucket: str | int | None = None,
+) -> dict[str, object]:
     record = _record(theta1, theta2, case)
     x = _features([record], bundle)
 
@@ -90,6 +113,15 @@ def predict_u3_forecast(
     curve_scores = bundle["curve_model"].predict(x)
     curve_norm = _smooth_monotonic_curve(bundle["pca"].inverse_transform(curve_scores)[0])
     grid = np.asarray(bundle["grid"], dtype=float)
+    consistency = enforce_pt_curve_consistency(
+        curve_norm=curve_norm,
+        grid=grid,
+        max_displacement=max_displacement,
+        max_force=max_force,
+        predicted_pt=predicted_pt,
+    )
+    curve_norm = consistency.curve_norm
+    max_force = consistency.max_force
     displacement = grid * max_displacement
     force = curve_norm * max_force
 
@@ -106,8 +138,9 @@ def predict_u3_forecast(
         "predicted_max_force": max_force,
         "curve": [
             {"displacement": float(d), "force": float(f)}
-            for d, f in zip(displacement, force)
+            for d, f in zip(displacement, force, strict=True)
         ],
+        "curve_fit": kink_fit_details(displacement, force),
         "metrics": {
             "pt_force_ratio": predicted_pt / max(max_force, 1e-9),
             "scalar_model": str(best),
@@ -116,6 +149,7 @@ def predict_u3_forecast(
             "curve_cv_norm_rmse_mean": float(metrics.get("curve_cv_norm_rmse_mean", 0.0)),
             "type_accuracy_mean": float(metrics.get("type_accuracy_mean", 0.0)),
             "type_macro_f1_mean": float(metrics.get("type_macro_f1_mean", 0.0)),
+            **consistency.flat_metrics(),
         },
     }
 
@@ -129,16 +163,26 @@ def predict_u3_forecast_deep(
     device: str = "cpu",
 ) -> dict[str, object]:
     checkpoint = torch.load(model_path, map_location=device, weights_only=False)
-    config = checkpoint["model_config"]
-    model = U3ForecastGointMLP(**config)
-    model.load_state_dict(checkpoint["model_state_dict"])
-    model.to(device)
-    model.eval()
+    model = build_u3_forecast_deep_model(checkpoint, device)
+    sibling = Path(model_path).with_name("u3_forecast.joblib")
+    type_bundle = joblib.load(sibling) if sibling.exists() else None
+    return predict_u3_forecast_deep_from_artifacts(checkpoint, model, type_bundle, theta1, theta2, case, u3_bucket, device)
 
+
+def predict_u3_forecast_deep_from_artifacts(
+    checkpoint: dict[str, Any],
+    model: U3ForecastGointMLP,
+    type_bundle: dict[str, Any] | None,
+    theta1: float,
+    theta2: float,
+    case: str,
+    u3_bucket: str | int | None = None,
+    device: str = "cpu",
+) -> dict[str, object]:
     record = _record(theta1, theta2, case)
     x = _features([record], checkpoint)
     x_norm = (x - np.asarray(checkpoint["feature_mean"], dtype=float)) / np.asarray(checkpoint["feature_std"], dtype=float)
-    with torch.no_grad():
+    with torch.inference_mode():
         pred_scalars_norm, pred_curve_norm = model(torch.tensor(x_norm, dtype=torch.float32, device=device))
 
     scalar_log = pred_scalars_norm.cpu().numpy()[0] * np.asarray(checkpoint["scalar_log_std"], dtype=float) + np.asarray(
@@ -152,10 +196,19 @@ def predict_u3_forecast_deep(
 
     curve_norm = _smooth_monotonic_curve(pred_curve_norm.cpu().numpy()[0])
     grid = np.asarray(checkpoint["grid"], dtype=float)
+    consistency = enforce_pt_curve_consistency(
+        curve_norm=curve_norm,
+        grid=grid,
+        max_displacement=max_displacement,
+        max_force=max_force,
+        predicted_pt=predicted_pt,
+    )
+    curve_norm = consistency.curve_norm
+    max_force = consistency.max_force
     displacement = grid * max_displacement
     force = curve_norm * max_force
     metrics = checkpoint.get("metrics", {})
-    predicted_type, type_confidence, type_probabilities = _type_prediction_from_sibling(model_path, x)
+    predicted_type, type_confidence, type_probabilities = _type_prediction(type_bundle, x) if type_bundle else (None, None, None)
     return {
         "predicted_type": predicted_type,
         "type_confidence": type_confidence,
@@ -165,8 +218,9 @@ def predict_u3_forecast_deep(
         "predicted_max_force": max_force,
         "curve": [
             {"displacement": float(d), "force": float(f)}
-            for d, f in zip(displacement, force)
+            for d, f in zip(displacement, force, strict=True)
         ],
+        "curve_fit": kink_fit_details(displacement, force),
         "metrics": {
             "pt_force_ratio": predicted_pt / max(max_force, 1e-9),
             "scalar_model": "goint_forecast",
@@ -175,6 +229,7 @@ def predict_u3_forecast_deep(
             "curve_cv_norm_rmse_mean": float(metrics.get("curve_cv_norm_rmse_mean", 0.0)),
             "type_accuracy_mean": float(metrics.get("type_accuracy_mean", 0.0)),
             "type_macro_f1_mean": float(metrics.get("type_macro_f1_mean", 0.0)),
+            **consistency.flat_metrics(),
         },
     }
 

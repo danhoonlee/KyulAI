@@ -4959,6 +4959,43 @@ Verification:
 - Web `node --check src/frontend/dd-laminate/app.js` passed.
 - iOS `swift test` passed: 9 tests.
 
+## 2026-06-15 Luvelox Web Login
+
+Luvelox unified web workspace now has a browser login flow aligned with the
+iOS/Android account MVP.
+
+Implemented:
+
+- `src/frontend/luvelox/index.html`
+  - Login-first layout for Luvelox.
+  - Workspace is hidden until a session exists.
+  - Account and module access dialogs were added.
+- `src/frontend/luvelox/app.js`
+  - Uses `POST /api/v1/modules/auth/demo-login`.
+  - Stores the demo auth session in `localStorage` under
+    `luvelox.auth.session.v1`.
+  - Sends `Authorization: Bearer <token>` to `GET /api/v1/modules/me`.
+  - Supports local fallback demo sessions for `demo@luvelox.com` and
+    `danlee@luvelox.com`.
+  - Adds request-access behavior through
+    `POST /api/v1/modules/request-access`.
+- `src/frontend/luvelox/styles.css`
+  - Added responsive login, account band, modal, and access-list styling.
+- `DESIGN.md`
+  - Updated source-of-truth surface list to include the Luvelox web workspace.
+- Backend Luvelox branding cleanup:
+  - `src/backend/api/v1/modules.py` response brand, demo user display names,
+    error messages, and access-request copy now say `Luvelox`.
+  - `src/backend/luvelox_app.py` FastAPI title/description now say
+    `Luvelox Platform API`.
+
+Verification:
+
+- `node --check src/frontend/luvelox/app.js` passed.
+- `.venv/bin/pytest tests/backend/test_luvelox_modules.py` passed: 6 tests.
+- Local server on `http://127.0.0.1:8011` returned Luvelox-branded login,
+  module, request-access, and health responses.
+
 ## 2026-06-15 - DD XAI list and tab-state cleanup
 
 User requested two DD Laminate UI adjustments:
@@ -5329,3 +5366,4854 @@ Verification:
   - `const displayPt = Number.isFinite(Number(predictedPtValue)) ...`
   - `const ptValue = formatMetric(displayPt, 2)`
 - iOS `swift test` passed: 9 tests.
+
+## 2026-06-17 No-Curve CSV Model Upgrade Review
+
+User provided `codex_model_upgrade_no_curve_csv_prompt.md` for critical review.
+The detailed review summary was written separately because this session memory
+file is already long:
+
+- `docs/model-upgrade-no-curve-csv-review-summary-2026-06-17.md`
+
+Key conclusions:
+
+- Keep Curve CSV classifier work out of scope for this model-upgrade pass.
+- Current strongest Laminate Forecast baseline is `response_surrogate_physics_v2`
+  with 900 samples, compact physics features, Type accuracy around 0.942,
+  macro F1 around 0.937, Pt MAE around 438, and normalized curve RMSE around
+  0.007.
+- GointMLP physics variants are not clearly better than the tree baseline on
+  scalar and curve metrics, even though Type metrics are close.
+- `xgboost`, `lightgbm`, `catboost`, and `tabpfn` are not installed in the
+  current environment; challenger scripts should skip those gracefully unless
+  optional research dependencies are intentionally added.
+- Recommended next step is a research-only Laminate Forecast challenger
+  evaluation harness before any backend registry or UI default changes.
+
+## 2026-06-17 Laminate Forecast Tabular Challenger Suite v1
+
+Implemented the first no-Curve-CSV model-upgrade pass:
+
+- Added design doc:
+  - `docs/design/dd_laminate_model_upgrade_no_curve_csv.md`
+- Added evaluation script:
+  - `scripts/dd_response_tabular_challengers_train.py`
+- Generated research artifacts:
+  - `models/dd_laminate_response_tabular_challengers_v1/`
+  - `reports/dd_response_tabular_challengers_v1/model_comparison.md`
+  - `reports/dd_response_tabular_challengers_v1/model_comparison.json`
+
+Evaluation setup:
+
+- Dataset: `data/datasets/DD_cases_2_3_4_curated_v1`
+- Feature set: `theta_physics_v2`
+- Samples: 900
+- Validation: 5-fold `GroupKFold` by theta pair
+- Reference models: `response_surrogate_physics_v2` and
+  `response_goint_physics_nn_v2`
+
+Key results:
+
+- Best challenger was `extra_trees`: Type accuracy 0.9456, macro F1 0.9397,
+  Pt MAE 441.40, curve norm RMSE 0.00702, curve force RMSE 484.95.
+- Current `response_surrogate_physics_v2` remains stronger overall: Type
+  accuracy 0.9422, macro F1 0.9372, Pt MAE 438.15, curve norm RMSE 0.00701,
+  curve force RMSE 479.43.
+- `random_forest`, `hist_gradient_boosting`, `ridge_linear`, and
+  `elastic_net_linear` did not beat the current reference.
+- `xgboost`, `lightgbm`, `catboost`, and `tabpfn` were skipped because modules
+  are not installed.
+
+Recommendation:
+
+- Do not add a backend model key yet.
+- Keep public API/UI defaults unchanged.
+- Curve CSV classifier files and behavior were not modified.
+
+Follow-up with optional dependencies installed:
+
+- Installed in the active miniforge Python environment:
+  - `xgboost` 3.2.0
+  - `lightgbm` 4.6.0
+  - `catboost` 1.2.10
+  - `tabpfn` 8.0.8
+  - `torch` was upgraded in that environment to 2.12.0 as a TabPFN dependency.
+- Updated `scripts/dd_response_tabular_challengers_train.py` so
+  `--include-optional` actually trains XGBoost, LightGBM, CatBoost, and attempts
+  TabPFN.
+- Re-ran:
+  - `python scripts/dd_response_tabular_challengers_train.py --include-optional`
+
+Additional results:
+
+- `xgboost`: Type accuracy 0.9422, macro F1 0.9371, Pt MAE 472.34, curve norm
+  RMSE 0.00774, curve force RMSE 530.79.
+- `lightgbm`: Type accuracy 0.9367, macro F1 0.9320, Pt MAE 499.55, curve norm
+  RMSE 0.00756, curve force RMSE 524.21.
+- `catboost`: Type accuracy 0.9411, macro F1 0.9340, Pt MAE 466.33, curve norm
+  RMSE 0.00751, curve force RMSE 502.09.
+- `tabpfn`: package installed, but evaluation failed because Prior Labs requires
+  one-time license acceptance and `TABPFN_TOKEN` for non-interactive model
+  weight download.
+
+Updated recommendation:
+
+- `response_surrogate_physics_v2` remains the best overall reference.
+- Installed boosted-tree challengers do not justify a backend key yet.
+- `extra_trees` remains the closest challenger, but its Pt/curve metrics are
+  still slightly worse than the current reference and its artifact is large
+  (about 453 MB).
+
+Fair-comparison follow-up:
+
+- Confirmed and documented that all trained challenger models use the same
+  comparison contract as the current ExtraTrees reference:
+  - feature set fixed to `theta_physics_v2`
+  - compact CLT/ABD physics features, 35 columns
+  - scalar targets fixed to `pt`, `max_displacement`, and `max_force`
+  - curve target fixed to the 128-point normalized response curve
+  - PCA curve surrogate fixed to 18 components
+  - learner family is the intended variable
+- Updated `reports/dd_response_tabular_challengers_v1/model_comparison.md` with
+  a "Fair Comparison Contract" section.
+- Added `src/ml/dd_laminate/zero_based_classifier.py` and changed
+  `scripts/dd_response_tabular_challengers_train.py` to import it so XGBoost
+  challenger artifacts no longer pickle the adapter as `__main__`.
+- Regenerated challenger artifacts with `--include-optional`.
+- Verified every trained `.joblib` artifact loads successfully and reports
+  `theta_physics_v2`, 35 feature columns, `PCA`, 18 components, and a curve
+  model.
+- Confirmed no Curve CSV classifier, DD Laminate frontend, `predict_curve`, or
+  `deep_sequence` files changed in this pass.
+
+Deep-learning note from the original prompt:
+
+- The prompt mentions existing `GointMLP` neural models and `DeepONet` for
+  Simple Injection as current project context.
+- It explicitly forbids adding Curve CSV sequence/deep-learning classifiers
+  such as MiniRocket, InceptionTime, TCN, CNN, or GRU in this task.
+- For Laminate Forecast, the prompt asks to compare against
+  `response_goint_physics_nn_v2` and optionally use `theta_physics_nn_v2` where
+  neural-friendly features are relevant, but the first implementation priority
+  is a tabular challenger suite.
+- For u3, the prompt suggests a possible stacked/blended Tree + GointMLP
+  direction after the Laminate Forecast challenger work.
+
+## 2026-06-17 Laminate Forecast DL Challenger Suite v1
+
+User asked to do the same kind of challenger comparison for the GointMLP neural
+model that was done for tree/tabular models.
+
+Implemented:
+
+- Added `scripts/dd_response_dl_challengers_train.py`
+- Updated `docs/design/dd_laminate_model_upgrade_no_curve_csv.md` with a
+  Deep-Learning Challenger Suite section.
+- Generated artifacts:
+  - `models/dd_laminate_response_dl_challengers_v1/`
+  - `reports/dd_response_dl_challengers_v1/model_comparison.md`
+  - `reports/dd_response_dl_challengers_v1/model_comparison.json`
+
+Fair comparison contract:
+
+- Compare against `response_goint_physics_nn_v2`.
+- Keep feature set fixed to `theta_physics_nn_v2`.
+- Keep direct 128-point normalized response curve head, not the Tree/PCA curve
+  surrogate.
+- Keep class, ordinal, scalar, and curve loss structure aligned with the
+  existing GointMLP trainer.
+- Change only the neural architecture.
+
+DL candidates trained:
+
+- `plain_mlp`
+- `residual_mlp`
+- `gated_mlp`
+
+Results:
+
+- `plain_mlp`: macro F1 0.9380, Pt MAE 936.90, curve norm RMSE 0.02569.
+- `residual_mlp`: macro F1 0.9374, Pt MAE 890.09, curve norm RMSE 0.03672.
+- `gated_mlp`: macro F1 0.9396, Pt MAE 726.62, curve norm RMSE 0.02740.
+- Current `response_goint_physics_nn_v2`: macro F1 0.9383, Pt MAE 661.41,
+  curve norm RMSE 0.02131.
+- Current `response_surrogate_physics_v2`: macro F1 0.9372, Pt MAE 438.15,
+  curve norm RMSE 0.00701.
+
+Conclusion:
+
+- `gated_mlp` is the best new DL challenger on Type macro F1 and is closest on
+  Pt, but it still does not beat `response_goint_physics_nn_v2` on Pt or curve
+  RMSE.
+- None of the DL challengers justify a backend model key or UI/API default
+  change.
+- Verified all new DL artifacts load and report `theta_physics_nn_v2`, 47 input
+  features, and 128 curve points.
+- Confirmed no Curve CSV classifier, DD Laminate frontend, `predict_curve`, or
+  `deep_sequence` files changed.
+
+## 2026-06-17 Laminate Forecast Stack LSTM/GNN Challenger Extension
+
+User asked whether GNN/LSTM or other graph-related DL models could be added
+instead of only MLP-style challengers.
+
+Implemented in `scripts/dd_response_dl_challengers_train.py`:
+
+- Added deterministic 16-ply stack feature construction from the same
+  theta/case input.
+- Added `stack_lstm`:
+  - bidirectional LSTM over the 16-ply laminate sequence
+  - fused with `theta_physics_nn_v2` global features
+- Added `stack_gru`:
+  - bidirectional GRU over the 16-ply laminate sequence
+  - lighter recurrent alternative to LSTM
+- Added `stack_gnn`:
+  - lightweight PyTorch-only graph convolution over a 16-node ply-adjacency
+    chain graph
+  - no `torch_geometric` or `dgl` dependency required
+- Added `stack_gat`:
+  - lightweight PyTorch-only graph attention over the same 16-node
+    ply-adjacency graph
+- Updated `reports/dd_response_dl_challengers_v1/model_comparison.md` and JSON
+  by rerunning all DL candidates.
+- Updated `docs/design/dd_laminate_model_upgrade_no_curve_csv.md` with the
+  stack LSTM/GRU/GNN/GAT direction.
+
+Final DL challenger results:
+
+- `plain_mlp`: macro F1 0.9380, Pt MAE 936.90, curve norm RMSE 0.02569.
+- `residual_mlp`: macro F1 0.9374, Pt MAE 890.09, curve norm RMSE 0.03672.
+- `gated_mlp`: macro F1 0.9396, Pt MAE 726.62, curve norm RMSE 0.02740.
+- `stack_lstm`: macro F1 0.9345, Pt MAE 821.41, curve norm RMSE 0.02581.
+- `stack_gru`: macro F1 0.9415, Pt MAE 956.10, curve norm RMSE 0.03173.
+- `stack_gnn`: macro F1 0.9416, Pt MAE 973.38, curve norm RMSE 0.03121.
+- `stack_gat`: macro F1 0.9391, Pt MAE 774.76, curve norm RMSE 0.02256.
+
+Interpretation:
+
+- `stack_gnn` has the best Type macro F1 among the new DL challengers, but its
+  Pt and curve metrics are much worse than `response_goint_physics_nn_v2`.
+- `stack_gru` has similarly strong Type macro F1, but Pt and curve metrics are
+  unstable because one fold regressed heavily.
+- `stack_gat` is the most promising graph-family candidate because curve RMSE
+  is close to `response_goint_physics_nn_v2`, but Pt MAE still trails the
+  current GointMLP reference.
+- `stack_lstm` captures some useful stack-order signal but still underperforms
+  GointMLP on Pt and curve.
+- `gated_mlp` remains the best new DL challenger by the current recommendation
+  rule because Pt and curve metrics are less bad than the other new DL
+  candidates.
+- None of the DL challengers justify a backend model key or UI/API default
+  change.
+
+Verification:
+
+- `python -m py_compile scripts/dd_response_dl_challengers_train.py` passed.
+- All seven DL `.pt` artifacts load and report `theta_physics_nn_v2`, 47 global
+  features, 128 curve points, and 10 stack feature columns.
+- Confirmed no Curve CSV classifier, DD Laminate frontend, `predict_curve`, or
+  `deep_sequence` files changed.
+
+## 2026-06-17 Laminate Forecast PINN-Adjacent Challenger Check
+
+User asked for a model that is not a full PINN, but is close in spirit.
+
+Candidate reasoning:
+
+- A true PINN is premature because the current task has no explicit governing
+  equation/residual surface for the DD laminate response curve.
+- A lightweight physics-guided neural network is the closest immediate option:
+  use the same supervised response targets, but add soft curve-shape penalties.
+- A DeepONet-style neural operator is another PINN-adjacent option: it learns a
+  response function over the displacement grid without needing PDE residuals.
+
+Implemented in `scripts/dd_response_dl_challengers_train.py`:
+
+- `physics_guided_mlp`
+  - same target contract as `response_goint_physics_nn_v2`
+  - adds soft penalties for curve start near zero, peak normalization near one,
+    monotonic descent, and curvature smoothness
+- `deeponet_response`
+  - branch network encodes `theta_physics_nn_v2`
+  - trunk network encodes normalized displacement grid
+  - curve is generated as a branch/trunk factorized function
+
+Generated separate research artifacts:
+
+- `models/dd_laminate_response_physics_guided_challenger_v1/`
+- `models/dd_laminate_response_physics_guided_challenger_w005_v1/`
+- `models/dd_laminate_response_deeponet_challenger_v1/`
+- `reports/dd_response_physics_guided_challenger_v1/`
+- `reports/dd_response_physics_guided_challenger_w005_v1/`
+- `reports/dd_response_deeponet_challenger_v1/`
+
+Results:
+
+- `physics_guided_mlp`, physics weight 0.20: macro F1 0.9424, Pt MAE 806.94,
+  curve norm RMSE 0.04979.
+- `physics_guided_mlp`, physics weight 0.05: macro F1 0.9398, Pt MAE 806.88,
+  curve norm RMSE 0.04523.
+- `deeponet_response`: macro F1 0.9370, Pt MAE 990.16, curve norm RMSE
+  0.07994.
+- Current `response_goint_physics_nn_v2`: macro F1 0.9383, Pt MAE 661.41,
+  curve norm RMSE 0.02131.
+- Current `response_surrogate_physics_v2`: macro F1 0.9372, Pt MAE 438.15,
+  curve norm RMSE 0.00701.
+
+Conclusion:
+
+- The PINN-adjacent direction is feasible technically, but the first two
+  candidates are not promotion-worthy.
+- Soft physics penalties improved/kept Type metrics in some folds but hurt
+  curve stability, especially on one held-out theta-pair group.
+- DeepONet-style curve generation is conceptually aligned with neural operators,
+  but underperformed the current GointMLP and tree baselines.
+- This suggests the next useful research direction is not stronger generic
+  curve-head architecture, but a Type-gated or residual hybrid that keeps the
+  strong Tree/PCA curve surrogate and uses neural/physics modules only where
+  they reduce residual error.
+
+Verification:
+
+- `python -m py_compile scripts/dd_response_dl_challengers_train.py` passed.
+- All three new PINN-adjacent `.pt` artifacts load and report
+  `theta_physics_nn_v2`, 47 input features, and 128 curve points.
+- Confirmed no Curve CSV classifier, DD Laminate frontend, `predict_curve`, or
+  `deep_sequence` files changed.
+
+## 2026-06-17 Laminate Forecast PCA Curve Head Challenger
+
+User noticed that some new DL models have acceptable Pt but poor curve metrics
+and asked whether a model could improve the curve.
+
+Implemented in `scripts/dd_response_dl_challengers_train.py`:
+
+- Added `pca_curve_mlp`.
+- The model fits a PCA/POD curve basis inside each training fold only.
+- The neural network predicts basis coefficients and reconstructs the 128-point
+  normalized response curve.
+- Early stopping for this candidate is curve-focused instead of Type-F1-only.
+- Removed the output `Softplus` from the PCA reconstruction after an initial
+  ablation showed it distorted the basis reconstruction.
+
+Artifacts:
+
+- Initial ablation:
+  - `models/dd_laminate_response_pca_curve_challenger_v1/`
+  - `reports/dd_response_pca_curve_challenger_v1/`
+- Corrected curve-focused run:
+  - `models/dd_laminate_response_pca_curve_challenger_v2/`
+  - `reports/dd_response_pca_curve_challenger_v2/`
+
+Final v2 results:
+
+- `pca_curve_mlp`: macro F1 0.9132, Pt MAE 558.50, curve norm RMSE 0.01176,
+  curve force RMSE 837.49.
+- Current `response_goint_physics_nn_v2`: macro F1 0.9383, Pt MAE 661.41,
+  curve norm RMSE 0.02131, curve force RMSE 1250.71.
+- Current `response_surrogate_physics_v2`: macro F1 0.9372, Pt MAE 438.15,
+  curve norm RMSE 0.00701, curve force RMSE 479.43.
+
+Conclusion:
+
+- `pca_curve_mlp` beats the current GointMLP reference on Pt and curve metrics,
+  but its Type macro F1 regresses too much for standalone promotion.
+- It is a promising curve/scalar expert for a future hybrid:
+  - keep Type prediction from the stronger current classifier/gate
+  - use `pca_curve_mlp` or a similar PCA/POD neural decoder for Pt and curve
+  - compare that hybrid against `response_surrogate_physics_v2`
+- No backend model key or public UI/API default was changed.
+
+Verification:
+
+- `python -m py_compile scripts/dd_response_dl_challengers_train.py` passed.
+- `models/dd_laminate_response_pca_curve_challenger_v2/pca_curve_mlp.pt`
+  loads and reports `theta_physics_nn_v2`, 47 input features, 128 curve points,
+  and 18 PCA components.
+- Confirmed no Curve CSV classifier, DD Laminate frontend, `predict_curve`, or
+  `deep_sequence` files changed.
+
+## 2026-06-17 Laminate Forecast Hybrid Expert Bundle
+
+User asked whether it is acceptable to split the model by prediction target
+instead of forcing one monolithic model to predict Type, Pt, and curve.
+
+Decision:
+
+- It is acceptable and common to use different internal models/heads for
+  different target types when the targets have different statistical structure.
+- For this project, Type is classification, while Pt and curve are
+  regression/function reconstruction.
+- The important product boundary is that the served Laminate Forecast predictor
+  can remain one model/bundle and one API response, even if internally it has a
+  Type expert and a Pt/curve expert.
+
+Implemented:
+
+- Added `scripts/dd_response_hybrid_challenger_train.py`.
+- Built research bundle `hybrid_type_tree_pca_curve_mlp`:
+  - Type expert: ExtraTrees classifier with `theta_physics_v2`, 35 compact
+    CLT/ABD physics features.
+  - Pt/curve expert: PCA/POD curve-decoder MLP with `theta_physics_nn_v2`, 47
+    neural-friendly physics features.
+  - PCA/POD basis is fit inside each training fold only during validation.
+- Generated artifacts:
+  - `models/dd_laminate_response_hybrid_challenger_v1/hybrid_type_bundle.joblib`
+  - `models/dd_laminate_response_hybrid_challenger_v1/pca_curve_mlp_expert.pt`
+- Generated report:
+  - `reports/dd_response_hybrid_challenger_v1/model_comparison.md`
+
+Results:
+
+- `hybrid_type_tree_pca_curve_mlp`: macro F1 0.9372, Pt MAE 585.37, curve norm
+  RMSE 0.01164, curve force RMSE 883.84.
+- Current `response_goint_physics_nn_v2`: macro F1 0.9383, Pt MAE 661.41,
+  curve norm RMSE 0.02131, curve force RMSE 1250.71.
+- Current `response_surrogate_physics_v2`: macro F1 0.9372, Pt MAE 438.15,
+  curve norm RMSE 0.00701, curve force RMSE 479.43.
+
+Conclusion:
+
+- The hybrid is a credible GointMLP-replacement research candidate because it
+  improves Pt and curve metrics over GointMLP while keeping Type metrics at the
+  tree reference level.
+- It still does not beat `response_surrogate_physics_v2`, so no backend model
+  key or UI/API default was changed.
+- Next best step, if continuing, is to build a serving-compatible prediction
+  wrapper for the hybrid and compare local sample predictions against the
+  current production reference before considering registry exposure.
+
+Verification:
+
+- `python -m py_compile scripts/dd_response_hybrid_challenger_train.py
+  scripts/dd_response_dl_challengers_train.py` passed.
+- Hybrid artifacts load:
+  - type bundle reports `theta_physics_v2`, `theta_physics_nn_v2`, 35 Type
+    features, and 47 curve features.
+  - curve expert reports `theta_physics_nn_v2`, 47 input features, 128 curve
+    points, and 18 PCA components.
+- Confirmed no Curve CSV classifier, DD Laminate frontend, `predict_curve`, or
+  `deep_sequence` files changed.
+
+## 2026-06-17 Hybrid Pt/Curve Consistency Note
+
+User asked whether splitting Pt and curve into separate experts is acceptable
+when predicted Pt should lie on the predicted curve.
+
+Decision:
+
+- It is not enough to say the curve shape is good and Pt is independent.
+- Keep scalar Pt authoritative because the scalar Pt metric is meaningful and
+  currently stronger than deriving Pt from an arbitrary generated curve index.
+- The curve should be made consistent with Pt through a thin consistency layer:
+  - interpolate the predicted curve at force = predicted Pt for display
+  - report whether Pt lies inside the predicted force range
+  - report the interpolated Pt displacement
+  - if Pt falls outside range, calibrate the curve force scale/max-force rather
+    than silently moving Pt
+- A future training pass can add Pt-consistency loss so the Pt scalar and curve
+  head agree before post-processing.
+
+Implementation context:
+
+- Current DD frontend already draws the Pt marker by finding `predicted_pt` on
+  the curve (`pointAtForce(points, predictedPt)`), so the visual marker can be
+  placed on the curve.
+- The missing piece for the hybrid is backend/model-level consistency
+  diagnostics and, if needed, force-scale calibration.
+
+Updated:
+
+- `docs/design/dd_laminate_model_upgrade_no_curve_csv.md` now includes the
+  Pt/curve consistency rule under the hybrid design.
+
+## 2026-06-17 Pt-Consistency Loss Ablation
+
+User asked whether adding Pt-consistency loss means active learning.
+
+Clarification:
+
+- It is not active learning.
+- Active learning would choose new uncertain theta/case samples and request new
+  simulations or labels.
+- Pt-consistency loss is supervised regularization on the existing dataset:
+  it changes the loss so the predicted curve is encouraged to pass near the
+  predicted/true Pt force level.
+
+Implemented:
+
+- Added `pt_consistency_loss()` to `scripts/dd_response_dl_challengers_train.py`.
+- The loss computes true normalized Pt level as `pt / max_force` from the
+  normalized scalar targets, then penalizes the predicted curve if no point is
+  near that level or if Pt falls outside the predicted normalized force range.
+- Added `--pt-consistency-weight` to:
+  - `scripts/dd_response_dl_challengers_train.py`
+  - `scripts/dd_response_hybrid_challenger_train.py`
+
+Hybrid ablation results:
+
+- No consistency loss, previous hybrid:
+  - macro F1 0.9372
+  - Pt MAE 585.37
+  - curve norm RMSE 0.01164
+  - curve force RMSE 883.84
+- Pt consistency weight 0.10:
+  - macro F1 0.9372
+  - Pt MAE 642.84
+  - curve norm RMSE 0.03656
+  - curve force RMSE 1518.48
+  - conclusion: too strong; harms curve.
+- Pt consistency weight 0.01:
+  - macro F1 0.9372
+  - Pt MAE 558.62
+  - curve norm RMSE 0.01420
+  - curve force RMSE 926.96
+  - conclusion: acceptable regularizer but curve is still worse than the
+    no-consistency hybrid.
+
+Conclusion:
+
+- Pt-consistency training is feasible, but the naive soft-min loss must be very
+  weak.
+- Best current tradeoff remains the no-consistency hybrid for curve RMSE, plus
+  inference-time Pt/curve diagnostics and force-scale calibration.
+- A future improved consistency loss should target the actual transition/knee
+  displacement if that label can be derived reliably, rather than pulling the
+  whole curve toward the Pt force level.
+
+Verification:
+
+- `python -m py_compile scripts/dd_response_dl_challengers_train.py
+  scripts/dd_response_hybrid_challenger_train.py` passed.
+- Generated research artifacts:
+  - `models/dd_laminate_response_hybrid_pt_consistent_v1/`
+  - `reports/dd_response_hybrid_pt_consistent_v1/`
+  - `models/dd_laminate_response_hybrid_pt_consistent_w001_v1/`
+  - `reports/dd_response_hybrid_pt_consistent_w001_v1/`
+
+## 2026-06-18 Inference-Time Pt/Curve Consistency Layer
+
+User asked to proceed with the previously recommended inference-time Pt/curve
+diagnostics and calibration work.
+
+Implemented:
+
+- Added `src/ml/dd_laminate/pt_curve_consistency.py`.
+  - Computes whether predicted Pt lies inside the predicted curve force range.
+  - Computes interpolated displacement where the curve crosses predicted Pt.
+  - Computes force gap if the curve does not cross Pt.
+  - Applies conservative max-force/force-scale calibration when Pt is above the
+    predicted curve range.
+  - Keeps scalar Pt authoritative; Pt is not moved to fit the curve.
+- Updated existing response predictors:
+  - `src/ml/dd_laminate/predict_response_surrogate.py`
+  - `src/ml/dd_laminate/predict_response_deep_surrogate.py`
+- Added research hybrid predictor:
+  - `src/ml/dd_laminate/predict_response_hybrid.py`
+  - Loads `models/dd_laminate_response_hybrid_challenger_v1/`
+  - Uses the same consistency layer.
+- Added tests:
+  - `tests/ml/test_pt_curve_consistency.py`
+- Updated design notes:
+  - `docs/design/dd_laminate_model_upgrade_no_curve_csv.md`
+
+New flat metrics emitted by response predictors:
+
+- `pt_curve_inside_range`
+- `pt_curve_inside_range_before_calibration`
+- `pt_curve_displacement`
+- `pt_curve_force_gap`
+- `pt_curve_force_scale_correction`
+
+Verification:
+
+- `python -m py_compile src/ml/dd_laminate/pt_curve_consistency.py
+  src/ml/dd_laminate/predict_response_surrogate.py
+  src/ml/dd_laminate/predict_response_deep_surrogate.py
+  src/ml/dd_laminate/predict_response_hybrid.py` passed.
+- `pytest -q tests/ml/test_pt_curve_consistency.py` passed: 3 tests.
+- Hybrid smoke:
+  - command: `python -m src.ml.dd_laminate.predict_response_hybrid --theta1 30
+    --theta2 -45 --case Case2 --model-dir
+    models/dd_laminate_response_hybrid_challenger_v1`
+  - returned Type 2, Pt 17161.66, max force 28830.10,
+    `pt_curve_inside_range=1`, `pt_curve_force_scale_correction=1.0`, 128
+    curve points.
+- Tree response smoke:
+  - `response_surrogate_physics_v2` returned Pt 16413.40, max force 26761.90,
+    `pt_curve_inside_range=1`, scale correction 1.0, 128 curve points.
+- Deep response smoke:
+  - `response_goint_physics_nn_v2` returned Pt 16386.14, max force 25712.24,
+    `pt_curve_inside_range=1`, scale correction 1.0, 128 curve points.
+- `pytest -q tests/backend/test_dd_laminate_ios_contract.py` with the shell
+  Python failed because `fastapi` is not installed there.
+- `.venv/bin/pytest -q tests/backend/test_dd_laminate_ios_contract.py` ran, and
+  response prediction tests passed, but one pre-existing model-list assertion
+  failed because the current `response_surrogate` label is
+  `Laminate Forecast - Tree (Theta)` while the test expects `ExtraTrees + PCA`.
+  This failure appears unrelated to the Pt/curve consistency layer.
+
+## 2026-06-18 Luvelox/C2ES iOS Simulator Launch
+
+User asked to launch the current app with the Build iOS Apps plugin as
+Luvelox(C2ES) so they can inspect it.
+
+Executed with XcodeBuildMCP:
+
+- Discovered host project:
+  - `ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj`
+- Confirmed scheme:
+  - `LuveloxMVPHost`
+- Set session defaults profile:
+  - profile `luvelox-ios`
+  - simulator `iPhone 17`
+  - simulator id `94D2DC55-5EAF-4A51-9760-5DFABB3CABF2`
+  - bundle id `com.luvelox.mvp`
+- Ran `build_run_sim`.
+
+Result:
+
+- Build/install/launch succeeded.
+- Running app process id: `19472`.
+- App path:
+  - `/Users/danlee/Library/Developer/XcodeBuildMCP/workspaces/KyulAI_codex-a12407ff8fad/DerivedData/LuveloxMVPHost-1ec0a496d51d/Build/Products/Debug-iphonesimulator/LuveloxMVPHost.app`
+- Build log:
+  - `/Users/danlee/Library/Developer/XcodeBuildMCP/workspaces/KyulAI_codex-a12407ff8fad/logs/build_run_sim_2026-06-18T00-53-33-478Z_pid10865_faf0f189.log`
+- Runtime log:
+  - `/Users/danlee/Library/Developer/XcodeBuildMCP/workspaces/KyulAI_codex-a12407ff8fad/logs/com.luvelox.mvp_2026-06-18T00-54-20-160Z_helperpid19400_ownerpid10865_6ece1b7b.log`
+- Screenshot confirmed the C2ES sign-in screen is visible with
+  `demo@luvelox.com` prefilled.
+
+## 2026-06-18 Luvelox/C2ES Simulator Browser Mirror
+
+User asked to show the current iOS Simulator in the Codex sidebar via
+`build-ios-apps:ios-simulator-browser`.
+
+Simulator/browser details:
+
+- Simulator: `iPhone 17`
+- Simulator id: `94D2DC55-5EAF-4A51-9760-5DFABB3CABF2`
+- App bundle id: `com.luvelox.mvp`
+- `serve-sim` URL: `http://localhost:3200`
+- Long-running `serve-sim` terminal session id in this Codex turn: `8443`
+
+Result:
+
+- Opened `http://localhost:3200` in the Codex in-app browser/sidebar.
+- Browser screenshot showed a live iPhone 17 frame with the C2ES workspace
+  screen visible.
+- The mirrored app screen showed:
+  - `C2ES`
+  - `Demo Account`
+  - `demo@luvelox.com`
+  - `Laminate`
+  - `Open Laminate`
+- XcodeBuildMCP runtime snapshot also confirmed the same UI and exposed tap
+  targets including `Open Laminate`.
+
+Note:
+
+- Keep terminal session `8443` alive while the user is inspecting the browser
+  mirror. Stopping that terminal should run the scoped cleanup trap for this
+  simulator.
+
+## 2026-06-18 C2ES Laminate Forecast Model List Trim
+
+User asked to leave only two optimal models in the C2ES Laminate Forecast
+`Choose Model` list.
+
+Implemented:
+
+- Backend `/api/v1/dd-laminate/models` now exposes only these response models:
+  - `response_surrogate_physics_v2`
+    - label: `Laminate Forecast - Tree + Compact Physics XAI`
+  - `response_goint_physics_nn_v2`
+    - label: `Laminate Forecast - GointMLP + NN-Friendly Physics XAI`
+- Backend default `ResponsePredictionRequest.model` is now
+  `response_surrogate_physics_v2`.
+- iOS DD Laminate core default model is now `response_surrogate_physics_v2`.
+- iOS view model defensively filters any server response to the same two model
+  keys, preserving the preferred order.
+- Updated mobile fixtures and contract tests to the new default model.
+
+Changed files:
+
+- `src/backend/api/v1/dd_laminate.py`
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateCore/DDLaminateModels.swift`
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateCore/PredictionViewModel.swift`
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateCore/Resources/predict_response_case2.json`
+- `ios/DDLaminateMVP/Tests/KyulAIDDLaminateCoreTests/DDLaminateCoreTests.swift`
+- `tests/backend/test_dd_laminate_ios_contract.py`
+- `tests/fixtures/dd_laminate/predict_response_case2.json`
+
+Verification:
+
+- `.venv/bin/python -m py_compile src/backend/api/v1/dd_laminate.py` passed.
+- `.venv/bin/pytest -q tests/backend/test_dd_laminate_ios_contract.py` passed:
+  4 tests.
+- `swift test --package-path ios/DDLaminateMVP` passed: 9 tests.
+- Direct TestClient check returned exactly:
+  - `response_surrogate_physics_v2`
+  - `response_goint_physics_nn_v2`
+- Rebuilt and relaunched Luvelox host on iPhone 17 simulator:
+  - process id `35568`
+  - simulator id `94D2DC55-5EAF-4A51-9760-5DFABB3CABF2`
+- Runtime UI snapshot of the model selection sheet confirmed exactly two model
+  option buttons:
+  - `Laminate Forecast - Tree + Compact Physics XAI`
+  - `Laminate Forecast - GointMLP + NN-Friendly Physics XAI`
+- Existing simulator browser mirror at `http://localhost:3200` remains live via
+  `serve-sim` session `8443`.
+
+## 2026-06-18 u3 Model Card Parity
+
+User asked to make the u3 Forecast model selection card look like the Response
+Forecast model selection card instead of showing only a simple model name.
+
+Implemented:
+
+- Updated `u3ModelMenu` in
+  `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/ContentView.swift`.
+- u3 model card now mirrors the Response Forecast model card:
+  - model icon
+  - model name
+  - `Recommended` badge for the default u3 model
+  - short model description
+  - chevron affordance
+  - same rounded field background and subtle border
+- Updated `isRecommendedModel(_:)` so both default response and default u3
+  models are recognized as recommended.
+
+Verification:
+
+- `swift test --package-path ios/DDLaminateMVP` passed: 10 tests.
+- Rebuilt and relaunched Luvelox host on iPhone 17 simulator:
+  - process id `17784`
+  - simulator id `94D2DC55-5EAF-4A51-9760-5DFABB3CABF2`
+- Runtime UI snapshot confirmed u3 Forecast now shows:
+  - `u3 Forecast - Machine Learning`
+  - `Recommended`
+  - `Fast machine-learning model recommended for routine laminate forecasts.`
+- Existing simulator browser mirror at `http://localhost:3200` remains live via
+  `serve-sim` session `8443`.
+
+## 2026-06-18 Model Picker And Recent Delete Cleanup
+
+User asked to simplify the model picker area and consolidate recent-result
+deletion:
+
+- Remove the small `Model` / `u3 Pt Model` text above the model-selection cards.
+- Remove the extra recent/history control shown beside the forecast tab header.
+- Keep deletion through the `Recent Results` trash button.
+- Add a select-all action inside the delete sheet.
+
+Implemented:
+
+- Removed the `Model` label above the Response Forecast model card.
+- Removed the `u3 Pt Model` label above the u3 Forecast model card.
+- Removed the tab-header `Recent` menu from both Response Forecast and
+  u3 Forecast.
+- The remaining recent-result deletion path is the trash icon in the
+  `Recent Results` card.
+- Added a `Select All` / `모두 선택` button to the recent-delete sheet.
+- Updated legacy display-label aliases so older saved results with old
+  `Tree + Physics XAI` / `GointMLP + Physics XAI` labels render as the newer
+  `Machine Learning` / `Deep Learning` names.
+
+Changed files:
+
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/ContentView.swift`
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/Resources/en.lproj/Localizable.strings`
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/Resources/ko.lproj/Localizable.strings`
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateCore/DDLaminateModels.swift`
+
+Verification:
+
+- `swift test --package-path ios/DDLaminateMVP` passed: 10 tests.
+- Rebuilt and relaunched Luvelox host on iPhone 17 simulator:
+  - process id `13053`
+  - simulator id `94D2DC55-5EAF-4A51-9760-5DFABB3CABF2`
+- Runtime UI snapshot confirmed the Response Forecast card no longer shows the
+  small `Model` label above the model picker.
+- Runtime UI snapshot confirmed the tab header no longer shows the extra
+  recent/history icon.
+- Runtime UI snapshot confirmed the recent-delete sheet shows `Select All`.
+- Runtime UI snapshot confirmed older u3 recent results now display
+  `u3 Forecast - Machine Learning` instead of the old technical label.
+- Existing simulator browser mirror at `http://localhost:3200` remains live via
+  `serve-sim` session `8443`.
+
+## 2026-06-18 Forecast Screen Header Cleanup
+
+User noted two UX issues in the C2ES Laminate Forecast screen:
+
+- `u3 Pt Forecast` had an extra explanatory sentence under the tab header while
+  `Response Forecast` did not.
+- The API connection/checkmark card at the top of the main screen was visually
+  distracting and should move near the web/API URL entry area instead.
+
+Decision:
+
+- Removed the extra u3 explanatory sentence rather than adding a matching
+  sentence to Response Forecast. The selected model card already explains the
+  model, so removing the sentence keeps both tabs balanced and reduces visual
+  noise.
+- Removed the large main-screen API connection card.
+- Added a compact connection status row inside the Settings `Base URL` section,
+  directly below the API URL text field.
+- The Settings status row shows:
+  - connection icon
+  - `Connected`, `Checking API`, `Connection failed`, etc.
+  - retry button when the connection is failed
+- Added localized `api.connected` string:
+  - English: `Connected`
+  - Korean: `연결됨`
+- Updated older recent-run display labels to pass through the display-label
+  cleaner, so previously saved runs with old technical labels now display the
+  simplified model names.
+
+Changed files:
+
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/ContentView.swift`
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/Resources/en.lproj/Localizable.strings`
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/Resources/ko.lproj/Localizable.strings`
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateCore/PredictionViewModel.swift`
+
+Verification:
+
+- `swift test --package-path ios/DDLaminateMVP` passed: 10 tests.
+- Rebuilt and relaunched Luvelox host on iPhone 17 simulator:
+  - process id `99555`
+  - simulator id `94D2DC55-5EAF-4A51-9760-5DFABB3CABF2`
+- Runtime UI snapshot confirmed the main Laminate screen no longer has the
+  top API connection card and starts with the forecast tabs/input card.
+- Runtime UI snapshot confirmed `u3 Pt Forecast` no longer shows the extra
+  `Predict u3 Type, Pt...` sentence.
+- Runtime UI snapshot confirmed Settings/Base URL now shows `Connected` near
+  the API URL input.
+- Existing simulator browser mirror at `http://localhost:3200` remains live via
+  `serve-sim` session `8443`.
+
+## 2026-06-18 User-Friendly Forecast Model Names
+
+User asked to simplify model names such as `Tree + Compact Physics-feature` and
+`GointMLP + Compact Physics-feature` so non-technical users can understand the
+choices more easily.
+
+Implemented:
+
+- Backend model labels now use:
+  - `Laminate Forecast - Machine Learning`
+  - `Laminate Forecast - Deep Learning`
+  - `u3 Forecast - Machine Learning`
+  - `u3 Forecast - Deep Learning`
+- Backend model descriptions for the promoted response/u3 models were shortened
+  to user-facing descriptions instead of technical feature-pack wording.
+- iOS display-label aliases now map old server labels to the new names, so an
+  older server response still appears with the simplified naming.
+- Response and u3 model description cards now use the same simple description
+  helper:
+  - Machine Learning: fast recommended routine forecast
+  - Deep Learning: comparison/experimental forecast
+- English and Korean localized descriptions were updated to remove technical
+  phrasing such as tree/PCA/compact physics from the primary UI.
+- XAI summary text for the promoted models now refers to Machine Learning or
+  Deep Learning first, while keeping concise physics-feature context.
+- Contract fixtures and tests were updated to expect the new names.
+
+Changed files:
+
+- `src/backend/api/v1/dd_laminate.py`
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateCore/DDLaminateModels.swift`
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/ContentView.swift`
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/ResultDetailView.swift`
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/Resources/en.lproj/Localizable.strings`
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/Resources/ko.lproj/Localizable.strings`
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateCore/Resources/predict_response_case2.json`
+- `ios/DDLaminateMVP/Tests/KyulAIDDLaminateCoreTests/DDLaminateCoreTests.swift`
+- `tests/backend/test_dd_laminate_ios_contract.py`
+- `tests/fixtures/dd_laminate/predict_response_case2.json`
+
+Verification:
+
+- `.venv/bin/python -m py_compile src/backend/api/v1/dd_laminate.py` passed.
+- `.venv/bin/pytest -q tests/backend/test_dd_laminate_ios_contract.py` passed:
+  4 tests.
+- `swift test --package-path ios/DDLaminateMVP` passed: 10 tests.
+- Direct FastAPI TestClient check returned:
+  - response models: `Laminate Forecast - Machine Learning`,
+    `Laminate Forecast - Deep Learning`
+  - u3 models: `u3 Forecast - Machine Learning`,
+    `u3 Forecast - Deep Learning`
+- Rebuilt and relaunched Luvelox host on iPhone 17 simulator:
+  - process id `86266`
+  - simulator id `94D2DC55-5EAF-4A51-9760-5DFABB3CABF2`
+- Runtime UI snapshot confirmed Response Forecast shows:
+  - `Laminate Forecast - Machine Learning`
+  - `Fast machine-learning model recommended for routine laminate forecasts.`
+- Runtime UI snapshot confirmed Response model menu can show:
+  - `Laminate Forecast - Deep Learning`
+  - `Deep-learning model for comparison and experimental checks.`
+- Runtime UI snapshot confirmed u3 Forecast shows:
+  - `u3 Forecast - Machine Learning`
+  - `Fast machine-learning model recommended for routine laminate forecasts.`
+- Runtime UI snapshot of the u3 model chooser showed exactly:
+  - `u3 Forecast - Machine Learning`
+  - `u3 Forecast - Deep Learning`
+- Existing simulator browser mirror at `http://localhost:3200` remains live via
+  `serve-sim` session `8443`.
+
+## 2026-06-18 u3 Forecast Optimal Model List Trim
+
+User asked to leave only 2 optimal models for the `u3 Forecast` model chooser,
+matching the earlier Response Forecast cleanup.
+
+Implemented:
+
+- Backend `/api/v1/dd-laminate/models` now returns only these `u3_pt_models`:
+  - `u3_forecast_physics_v2`
+  - `u3_forecast_goint_physics_v2`
+- Backend default `U3ForecastPredictionRequest.model` is now
+  `u3_forecast_physics_v2`.
+- iOS default `DDLaminateDefaults.u3PtModelKey` is now
+  `u3_forecast_physics_v2`.
+- Added iOS optimal u3 model allowlist:
+  - `DDLaminateDefaults.u3PtModelKeys`
+- `PredictionViewModel.checkConnection` now defensively filters received u3
+  models to the two optimal keys, so the UI stays clean even if an older server
+  returns legacy candidates.
+- `PredictionViewModel.predictU3Pt` now treats every optimal u3 forecast key as
+  a Forecast model, so the second GointMLP compact model does not accidentally
+  fall back to the legacy CSV-upload u3 Pt path.
+- Added display label aliases for the compact u3 Tree and GointMLP model names.
+- Updated backend contract test expectations, Swift test fixture labels, and
+  ViewModel readiness coverage for filtering legacy u3 candidates.
+
+Changed files:
+
+- `src/backend/api/v1/dd_laminate.py`
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateCore/DDLaminateModels.swift`
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateCore/PredictionViewModel.swift`
+- `ios/DDLaminateMVP/Tests/KyulAIDDLaminateCoreTests/DDLaminateCoreTests.swift`
+- `tests/backend/test_dd_laminate_ios_contract.py`
+
+Verification:
+
+- `.venv/bin/python -m py_compile src/backend/api/v1/dd_laminate.py` passed.
+- `.venv/bin/pytest -q tests/backend/test_dd_laminate_ios_contract.py` passed:
+  4 tests.
+- `swift test --package-path ios/DDLaminateMVP` passed: 10 tests.
+- Direct FastAPI TestClient check returned exactly:
+  - `u3_forecast_physics_v2`
+  - `u3_forecast_goint_physics_v2`
+- Rebuilt and relaunched Luvelox host on iPhone 17 simulator:
+  - process id `67782`
+  - simulator id `94D2DC55-5EAF-4A51-9760-5DFABB3CABF2`
+- Runtime UI snapshot confirmed the `u3 Forecast` tab defaults to
+  `u3 Forecast - Tree + Compact Physics XAI`.
+- Runtime UI snapshot of the opened u3 model chooser showed exactly two targets:
+  - `u3 Forecast - Tree + Compact Physics XAI`
+  - `u3 Forecast - GointMLP + Compact Physics XAI`
+- Final rebuild after the internal u3 Forecast branch guard:
+  - process id `71831`
+  - simulator id `94D2DC55-5EAF-4A51-9760-5DFABB3CABF2`
+- Existing simulator browser mirror at `http://localhost:3200` remains live via
+  `serve-sim` session `8443`.
+
+## 2026-06-18 Forecast Tab Rename And Scoped Recents
+
+User asked to rename the `Forecast Inputs` tab so it matches the style of
+`u3 Forecast`, and to show only previous results created on the currently
+selected tab.
+
+Implemented:
+
+- Renamed the main response tab from `Forecast Inputs` to `Response Forecast`.
+- Added localized strings:
+  - English: `response.forecast = Response Forecast`
+  - Korean: `response.forecast = 응답 예측`
+- Added recent-run kind tracking:
+  - `responseForecast`
+  - `u3Forecast`
+- Existing older recent-run records decode as `responseForecast` for backward
+  compatibility.
+- Response predictions are saved as response recent runs.
+- u3 Forecast predictions are now also saved as u3 recent runs.
+- The bottom `Recent Results` card, recent menu, compare sheet, and delete sheet
+  now receive only the recent runs for the active tab.
+- Switching between `Response Forecast` and `u3 Forecast` clears stale compare
+  selections so cross-tab comparisons are not carried over.
+
+Changed files:
+
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/ContentView.swift`
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateCore/PredictionViewModel.swift`
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/Resources/en.lproj/Localizable.strings`
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/Resources/ko.lproj/Localizable.strings`
+- `ios/DDLaminateMVP/Tests/KyulAIDDLaminateCoreTests/DDLaminateCoreTests.swift`
+
+Verification:
+
+- `swift test --package-path ios/DDLaminateMVP` passed: 10 tests.
+- Added test:
+  - `testViewModelSeparatesRecentRunsByForecastTab`
+  - verifies response and u3 predictions save into separate recent-run buckets.
+- Rebuilt and relaunched Luvelox host on iPhone 17 simulator:
+  - process id `57636`
+  - simulator id `94D2DC55-5EAF-4A51-9760-5DFABB3CABF2`
+- Runtime UI snapshot confirmed segmented tabs now show:
+  - `Response Forecast`
+  - `u3 Forecast`
+- Runtime UI snapshot confirmed switching to `u3 Forecast` hides the response
+  tab's existing recent menu/results from the u3 tab.
+- Existing simulator browser mirror at `http://localhost:3200` remains live via
+  `serve-sim` session `8443`.
+
+## 2026-06-18 u3 Forecast Model Picker Sheet
+
+User pointed out that the u3 Forecast model selector still opened as a compact
+popover menu, while it should match the Response Forecast `Choose Model` sheet
+with full option cards.
+
+Implemented:
+
+- Updated `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/ContentView.swift`.
+- Added a separate `isShowingU3ModelPicker` sheet state.
+- Replaced the u3 model `Menu` with the same card-style button pattern used by
+  Response Forecast.
+- Added `u3ModelSelectionSheet`, using the shared model option card layout:
+  - navigation title: `Choose Model`
+  - `Done` button
+  - model-selection hint text
+  - full cards for the two u3 models
+- Refactored `modelOptionCard` so it can be reused for both Response Forecast
+  and u3 Forecast selections.
+- Marked the default u3 Machine Learning model as `Recommended` and `Fast`
+  instead of showing the old experimental-style compact menu behavior.
+
+Verification:
+
+- `swift test --package-path ios/DDLaminateMVP` passed: 10 tests.
+- Rebuilt and relaunched Luvelox host on iPhone 17 simulator:
+  - process id `25316`
+  - simulator id `94D2DC55-5EAF-4A51-9760-5DFABB3CABF2`
+- Runtime UI snapshot confirmed the u3 model button now shows the Response-style
+  card summary:
+  - `u3 Forecast - Machine Learning`
+  - `Recommended`
+  - `Fast machine-learning model recommended for routine laminate forecasts.`
+- Tapping the u3 model card opened the full sheet with:
+  - `Done`
+  - model-selection hint text
+  - `u3 Forecast - Machine Learning`, `Recommended`, `Fast`
+  - `u3 Forecast - Deep Learning`, `Deep learning`
+- Simulator screenshot captured at:
+  - `/var/folders/7p/c3j_sb0j539805ngspmnb34r0000gn/T/screenshot_optimized_60c1c4eb-481a-4c3b-9131-89ff0c537a32.jpg`
+- Existing simulator browser mirror at `http://localhost:3200` remains live via
+  `serve-sim` session `8443`.
+
+## 2026-06-18 Wanted UI Kit Laminate v2
+
+User added `design/Wanted Design System (Community).fig` and asked to create an
+optimized v2 design for the current web/app while preserving the existing
+Classic screens.
+
+Design source:
+
+- Inspected `design/Wanted Design System (Community).fig`.
+- The `.fig` package is a ZIP containing:
+  - `canvas.fig`
+  - `thumbnail.png`
+  - `meta.json`
+  - extracted image assets
+- `canvas.fig` is Figma's internal binary format, not directly readable as
+  normal JSON in this environment.
+- Used the extracted thumbnail and package metadata as the design evidence:
+  white canvas, black command surfaces, strong blue accent, thin borders,
+  grid-like technical background, and dashboard/document-system components.
+
+Implemented web v2:
+
+- Added `src/frontend/dd-laminate/index-v2.html`.
+- Added `src/frontend/dd-laminate/styles-v2.css`.
+- Added `src/frontend/dd-laminate/app-v2.js`.
+- Existing web files remain unchanged:
+  - `index.html`
+  - `styles.css`
+  - `app.js`
+- v2 uses the existing DD Laminate API/forecast JS contract but has its own
+  HTML/CSS and a copied v2 JS file.
+- v2 preserves the same modes:
+  - Response Forecast
+  - u3 Forecast
+  - Curve CSV
+- v2 has a Classic link back to `index.html`.
+- v2 XAI default visible feature limit is 5 in `app-v2.js`, while Classic keeps
+  its current behavior.
+- Added a standalone DD app alias:
+  - `http://127.0.0.1:8000/dd-laminate-v2`
+- Broadened standalone DD local CORS handling so alternate local static ports
+  such as `3211` can call the API during design review.
+- Added a Luvelox unified-app static mount for the DD Laminate web surface:
+  - `http://127.0.0.1:8000/dd-laminate/index-v2.html`
+
+Implemented iOS app v2:
+
+- Added `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/ContentViewV2.swift`.
+- Updated
+  `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/DDLaminateModuleView.swift`.
+- `DDLaminateModuleView` now has a segmented design switch:
+  - `Wanted v2`
+  - `Classic`
+- The switch is backed by `@AppStorage("kyulai.ddLaminate.designVersion")`.
+- Default design version is `Wanted v2`.
+- Classic still renders the existing `ContentView`.
+- v2 uses the same `AppSettings` and `PredictionViewModel`, so API connection,
+  model loading, Response Forecast, and u3 Forecast share the existing data
+  flow.
+- v2 includes:
+  - Wanted UI Kit-inspired header
+  - API readiness badge
+  - workflow rows
+  - Response/u3 segmented forecast mode
+  - card-style model selector and model sheet
+  - theta/case controls
+  - forecast buttons
+  - result preview, metrics, curve chart, probabilities, and top 5 XAI preview
+  - full-result navigation to the existing detail pages
+
+Design documentation:
+
+- Updated `DESIGN.md`:
+  - refreshed date to 2026-06-18
+  - added the Wanted `.fig` file as reviewed evidence
+  - recorded v2 as a reversible experiment
+  - documented the v2 visual language and token ownership
+
+Verification:
+
+- `node --check src/frontend/dd-laminate/app-v2.js` passed.
+- Parsed `index-v2.html` and verified all required `app-v2.js` DOM IDs are
+  present and non-duplicated.
+- Started a static server for the DD Laminate web v2:
+  - `http://127.0.0.1:3211/index-v2.html`
+  - session id `49877`
+- `curl -I` confirmed 200 responses for:
+  - `/index-v2.html`
+  - `/styles-v2.css`
+  - `/app-v2.js`
+- Captured web v2 screenshot with headless Chrome:
+  - `/tmp/dd-laminate-web-v2.png`
+- Final web v2 screenshots after API/CORS and mobile overflow verification:
+  - desktop: `/tmp/dd-laminate-web-v2-final.png`
+  - mobile CDP 390px viewport: `/tmp/dd-laminate-web-v2-mobile-cdp.png`
+- CDP mobile verification reported:
+  - `innerWidth`: 390
+  - `documentElement.scrollWidth`: 390
+  - API status text: `API: connected`
+- Standalone DD API CORS verification from origin `http://127.0.0.1:3211`
+  returned `access-control-allow-origin: http://127.0.0.1:3211`.
+- `.venv/bin/pytest tests/backend/test_luvelox_modules.py tests/backend/test_dd_laminate_ios_contract.py`
+  passed: 10 tests, 1 existing pytest config warning.
+- `swift test --package-path ios/DDLaminateMVP` passed: 10 tests.
+- Rebuilt and relaunched Luvelox host on iPhone 17 simulator:
+  - final process id `59701`
+  - simulator id `94D2DC55-5EAF-4A51-9760-5DFABB3CABF2`
+- Runtime UI snapshot confirmed:
+  - `Wanted v2` and `Classic` design switch are present.
+  - `Wanted v2` is selected.
+  - `C2ES Laminate Forecast` header renders without truncation in the semantic
+    snapshot.
+  - workflow rows show `Set case`, `Pick model`, and `Review`.
+  - Response Forecast model card shows `Laminate Forecast - Machine Learning`.
+- Captured final iOS v2 screenshot:
+  - `/var/folders/7p/c3j_sb0j539805ngspmnb34r0000gn/T/screenshot_optimized_c74dee9a-5831-4b7a-838a-606b6546f58e.jpg`
+- Existing simulator browser mirror at `http://localhost:3200` remains live via
+  `serve-sim` session `8443`.
+
+## 2026-06-18 Result XAI Feature List Collapse
+
+User asked to change the Laminate Forecast result page explanation list so only
+the top 5 feature impact scores are shown by default, with the rest hidden
+behind a button that expands the list.
+
+Implemented:
+
+- Updated `XAIExplanationCard` in
+  `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/ResultDetailView.swift`.
+- Added local `@State` expansion state.
+- Shows only the first 5 `xai.topFeatures` by default.
+- Adds a button when more than 5 features exist:
+  - collapsed: `Show N more features`
+  - expanded: `Show top 5 only`
+- Button uses a chevron icon and an animated expand/collapse.
+- Extracted the feature row rendering into `featureImpactRow(_:)`.
+- Removed the trailing divider after the final visible row.
+
+Verification:
+
+- `swift test --package-path ios/DDLaminateMVP` passed: 9 tests.
+- Rebuilt and relaunched Luvelox host on iPhone 17 simulator:
+  - process id `44057`
+  - simulator id `94D2DC55-5EAF-4A51-9760-5DFABB3CABF2`
+- Navigated to the Laminate module and confirmed the app launches with the new
+  build. Runtime automation reached the result detail XAI card header; the
+  final scroll interaction bounced back to the main screen before capturing the
+  expanded list button, so the visual proof is partial, but the Swift build and
+  tests passed with the new UI code.
+- Existing simulator browser mirror at `http://localhost:3200` remains live via
+  `serve-sim` session `8443`.
+
+## 2026-06-18 DD Laminate Greenfield Flow Storyboard
+
+User asked for a from-scratch UI/UX sample flow with at least five screens for
+team discussion, assuming the existing UI did not exist.
+
+Implemented a separate discussion prototype without changing Classic or Wanted
+v2:
+
+- Added `src/frontend/dd-laminate/greenfield-flow.html`.
+- Added `src/frontend/dd-laminate/greenfield-flow.css`.
+- Added design note:
+  - `docs/design/dd_laminate_greenfield_flow.md`
+
+The storyboard has seven screens:
+
+1. Run Setup
+2. Laminate Builder
+3. Model Strategy
+4. Forecast Progress
+5. Decision Result
+6. Explain and Compare
+7. Review Package
+
+Design direction:
+
+- Starts from the engineering decision rather than raw model/input fields.
+- Makes theta/case setup visual through the laminate stack preview.
+- Reframes model selection as strategy: Machine Learning, Deep Learning, or
+  Dual run.
+- Treats Pt-curve consistency as a visible result quality gate.
+- Ends with share/export/simulation handoff actions for team review.
+
+Verification:
+
+- `http://127.0.0.1:8000/greenfield-flow.html` returned 200.
+- `http://127.0.0.1:8000/greenfield-flow.css` returned 200.
+- `http://127.0.0.1:3211/greenfield-flow.html` returned 200.
+- Captured desktop storyboard screenshot:
+  - `/tmp/dd-laminate-greenfield-flow-final.png`
+- Captured mobile viewport screenshot:
+  - `/tmp/dd-laminate-greenfield-flow-mobile.png`
+- CDP mobile check reported:
+  - `innerWidth`: 390
+  - `documentElement.scrollWidth`: 390
+  - `.screen-card` count: 7
+
+## 2026-06-18 DD Laminate Greenfield Flow 3 Versions
+
+User asked to expand the greenfield storyboard into about three different
+versions for team discussion.
+
+Updated the existing standalone prototype:
+
+- `src/frontend/dd-laminate/greenfield-flow.html`
+- `src/frontend/dd-laminate/greenfield-flow.css`
+- `docs/design/dd_laminate_greenfield_flow.md`
+
+The page now contains three distinct product directions:
+
+1. Version A: Decision Studio
+   - Mobile-first guided flow.
+   - Preserves the original seven phone storyboard screens.
+
+2. Version B: Research Workbench
+   - Desktop-first comparison workspace.
+   - Five screens: Workspace Overview, Design Space, Model Matrix, Compare
+     Results, Simulation Queue.
+
+3. Version C: Review Command
+   - Decision-review and approval surface.
+   - Six screens: Brief, Evidence Intake, Confidence Gate, Decision Card,
+     Challenge View, Approval Handoff.
+
+Verification:
+
+- `http://127.0.0.1:8000/greenfield-flow.html` returned 200.
+- `http://127.0.0.1:8000/greenfield-flow.css` returned 200.
+- HTML parse check found no duplicate IDs.
+- DOM count check:
+  - concepts: 3
+  - Version A screens: 7
+  - Version B screens: 5
+  - Version C screens: 6
+- Desktop screenshot:
+  - `/tmp/dd-laminate-greenfield-3versions-full.png`
+- Mobile CDP check:
+  - `innerWidth`: 390
+  - `documentElement.scrollWidth`: 390
+  - concepts: 3
+  - A/B/C screen counts: 7/5/6
+- Mobile screenshot:
+  - `/tmp/dd-laminate-greenfield-3versions-mobile.png`
+
+## 2026-06-18 Version A Desktop Direction Discussion
+
+User said Version A seems strongest and asked how it could change from a
+mobile-first concept into a desktop-centered product direction.
+
+Recommended direction:
+
+- Keep Version A's core identity as a guided single-candidate decision flow.
+- Do not turn it into Version B's broad multi-candidate research workbench.
+- Reframe it as a `Desktop Decision Studio`:
+  - left rail: run goal, case/theta inputs, API/model readiness, step progress
+  - center canvas: laminate stack, curve/result preview, Pt marker, primary
+    decision state
+  - right inspector: model strategy, confidence gate, XAI top drivers,
+    warnings, export/handoff
+- Convert the mobile wizard into desktop sections that stay visible together:
+  Run Setup, Stack Builder, Model Strategy, Forecast Progress, Decision Result,
+  Explain/Compare, Review Package.
+- Primary benefit: preserve Version A's clarity while making better use of
+  desktop space for context, preview, and evidence.
+
+## 2026-06-18 Version A Mobile/Desktop Prototype
+
+User asked to make two concrete variants: `Version A Mobile` and
+`Version A Desktop`.
+
+Updated files:
+
+- `src/frontend/dd-laminate/greenfield-flow.html`
+- `src/frontend/dd-laminate/greenfield-flow.css`
+- `docs/design/dd_laminate_greenfield_flow.md`
+
+Current prototype:
+
+- `Version A Mobile`
+  - Keeps the guided phone-first Decision Studio flow.
+  - Seven screens: Run Setup, Laminate Builder, Model Strategy, Forecast
+    Progress, Decision Result, Explain and Compare, Review Package.
+- `Version A Desktop`
+  - Recasts the same Version A sequence as a desktop decision cockpit.
+  - Left rail: setup/progress/run metadata.
+  - Center canvas: candidate stack, theta/case inputs, result preview, Pt marker,
+    curve comparison.
+  - Right inspector: model strategy, confidence gate, top drivers, review
+    package actions.
+  - Adds five desktop storyboard cards: Persistent Run Setup, Large Stack
+    Canvas, Live Result Preview, Evidence Inspector, Handoff Actions.
+
+Verification:
+
+- `http://127.0.0.1:8000/greenfield-flow.html` returned 200 in the browser.
+- HTML/DOM checks:
+  - duplicate IDs: none
+  - top variant cards: 2
+  - Version A Mobile phone screens: 7
+  - Version A Desktop cockpit: 1
+  - Version A Desktop storyboard cards: 5
+- Mobile viewport check:
+  - width: 390
+  - scroll width: 390
+  - horizontal overflow: false
+  - screenshot: `/tmp/dd-laminate-version-a-mobile-desktop-mobile.png`
+- Desktop viewport check:
+  - width: 1440
+  - scroll width: 1440
+  - horizontal overflow: false
+  - cockpit grid columns: `230px 796px 320px`
+  - screenshot: `/tmp/dd-laminate-version-a-desktop-viewport.png`
+
+## 2026-06-18 Dynamic Ply Stack Visualization Note
+
+User asked whether the ply stacking image can reflect the theta angles entered
+by the user.
+
+Assessment:
+
+- Yes, this is feasible.
+- Current UI uses a static SVG asset:
+  `src/frontend/dd-laminate/assets/dd-ply-stack.svg`.
+- The SVG already encodes alternating ply colors and diagonal angle patterns,
+  so the product can replace the static `<img>` with a generated SVG or canvas
+  component.
+- Recommended direction:
+  - derive the Double-Double stacking sequence from case, theta1, and theta2
+  - render each ply as a small projected layer
+  - rotate/hatch the fiber-direction lines according to the ply angle
+  - label visible layers with `+theta1`, `-theta1`, `+theta2`, `-theta2`
+  - update the diagram live when users edit theta/case
+- Best first implementation target is the `index-v2.html` app, then reuse the
+  same renderer in the greenfield prototype.
+
+## 2026-06-18 Angle-Aware Ply Stack Demo
+
+User asked to build the dynamic ply stack visualization as a separate prototype
+first, before applying it to the actual web/app UI.
+
+Added standalone demo files:
+
+- `src/frontend/dd-laminate/ply-stack-angle-demo.html`
+- `src/frontend/dd-laminate/ply-stack-angle-demo.css`
+- `src/frontend/dd-laminate/ply-stack-angle-demo.js`
+
+Demo URL:
+
+- `http://127.0.0.1:8000/ply-stack-angle-demo.html`
+
+Behavior:
+
+- Case 2/3/4 buttons use the same Double-Double formulas shown in `index-v2`.
+- `theta1` and `theta2` sliders/number inputs update the SVG immediately.
+- The renderer expands each case into a 16-ply sequence.
+- Each ply is drawn as a projected layer.
+- Ply family is color-coded:
+  - theta1 family: blue
+  - theta2 family: tan
+- Signed angle direction is represented by hatch pattern color and rotation:
+  - positive angle: green
+  - negative angle: red
+- Right inspector shows the full top-to-bottom ply list.
+- SVG callouts are intentionally limited to representative plies to avoid
+  clutter; the complete sequence remains in the inspector.
+
+Verification:
+
+- `node --check src/frontend/dd-laminate/ply-stack-angle-demo.js` passed.
+- `curl -I` returned 200 for HTML/CSS/JS assets.
+- Browser checks:
+  - SVG count: 1
+  - SVG pattern count: 16
+  - sequence list items: 16
+  - Case 4 + theta1 45 + theta2 -60 updated readouts and sequence
+  - desktop width 1440 had no horizontal overflow
+  - mobile width 390 had no horizontal overflow
+  - console errors: none
+- Screenshots:
+  - desktop: `/tmp/dd-laminate-ply-stack-angle-demo-refined.png`
+  - mobile: `/tmp/dd-laminate-ply-stack-angle-demo-mobile.png`
+
+## 2026-06-18 PPT Case Formula Verification
+
+User asked whether the dynamic ply stack demo was made after checking the PPT.
+
+Clarification:
+
+- The first demo implementation used the existing app/documented Case guide,
+  not a fresh direct PPT check.
+- Directly rendered `data/PPT/Final ver2.pptx` Slide 6 to confirm the formulas:
+  - rendered PDF: `/tmp/dd-ppt-render-check/Final ver2.pdf`
+  - rendered slide image: `/tmp/dd-ppt-render-check/slide6-06.png`
+  - cropped formula image: `/tmp/dd-ppt-render-check/slide6-cases-wide-crop.png`
+- PPT Slide 6 confirms:
+  - Case2: `[[±theta1]/[±theta2]]4`
+  - Case3: `[[±theta1]/[±theta2]/[∓theta1]/[∓theta2]]2`
+  - Case4: `[([±theta1]/[±theta2])2 / ([∓theta1]/[∓theta2])2]`
+- The initial demo had Case3 following the older app guide:
+  `[[±theta1]/[±theta2]/[∓theta2]/[∓theta2]]2`.
+- Fixed the standalone demo to use the PPT-accurate Case3 sequence.
+- Updated `docs/DD_Laminate_PPT_Basis.md` to reflect the direct Slide 6
+  verification.
+- Important follow-up: `index-v2.html` and `laminate_physics.py` still contain
+  the older Case3 wording/expansion and should be reviewed before changing the
+  production app or retraining/physics features.
+
+## 2026-06-18 PPT-Like Live SVG Preview Refinement
+
+User asked to make only the `LIVE SVG PREVIEW` area in the angle-aware ply stack
+demo look closer to the PPT image because the earlier preview felt slightly
+cropped.
+
+Updated files:
+
+- `src/frontend/dd-laminate/ply-stack-angle-demo.css`
+- `src/frontend/dd-laminate/ply-stack-angle-demo.js`
+
+Changes:
+
+- Reworked the SVG camera/viewBox from `1040 x 650` to `1160 x 720`.
+- Enlarged the dark viewport plane so the stack has more breathing room.
+- Changed each ply from a compact card-like layer to a longer, thinner
+  projected strip.
+- Shifted the ply offsets so the stack reads more like the PPT's diagonal
+  staircase.
+- Removed white angle callout boxes from the stack image.
+- Added small yellow `Ply-n` labels near the right edge of each ply, closer to
+  the PPT reference.
+- Removed the fixed `min-height: 560px` on `.stack-visual`, eliminating the
+  empty grid area under the SVG.
+
+Verification:
+
+- `node --check src/frontend/dd-laminate/ply-stack-angle-demo.js` passed.
+- HTML/CSS/JS still served from `http://127.0.0.1:8000/ply-stack-angle-demo.html`.
+- Desktop browser check:
+  - width: 1440
+  - horizontal overflow: false
+  - SVG count: 1
+  - hatch pattern count: 16
+  - ply label count: 16
+  - labels within SVG bounds: true
+  - console errors: none
+  - screenshot: `/tmp/dd-laminate-ply-stack-ppt-like-preview.png`
+- Mobile browser check:
+  - width: 390
+  - horizontal overflow: false
+  - SVG count: 1
+  - hatch pattern count: 16
+  - ply label count: 16
+  - console errors: none
+  - screenshot: `/tmp/dd-laminate-ply-stack-ppt-like-preview-mobile.png`
+
+## 2026-06-18 Left-Up Ply Stack Label Refinement
+
+User asked to make labels like `Ply-16` easier to read and to make the
+laminated ply stack feel more symmetric, with the stack building toward the
+upper-left.
+
+Updated file:
+
+- `src/frontend/dd-laminate/ply-stack-angle-demo.js`
+
+Changes:
+
+- Reversed the ply offset direction so higher ply numbers move left and up.
+- Increased the diagonal spacing between plies so the left-up stacking reads
+  more clearly.
+- Added larger dark label chips with bright yellow text, outline, and leader
+  lines for each `Ply-n` label.
+- Kept all labels inside the SVG bounds while preserving the PPT-like projected
+  laminate plate.
+
+Verification:
+
+- `node --check src/frontend/dd-laminate/ply-stack-angle-demo.js` passed.
+- `curl -I http://127.0.0.1:8000/ply-stack-angle-demo.js` returned 200.
+- Desktop browser check at 1440px:
+  - horizontal overflow: false
+  - SVG count: 1
+  - hatch pattern count: 16
+  - ply label count: 16
+  - label box count: 16
+  - labels within SVG bounds: true
+  - `Ply-16` is left/up of `Ply-1`: true
+  - screenshot: `/tmp/dd-laminate-ply-stack-left-up-readable-labels-v2.png`
+- Mobile browser check at 390px:
+  - horizontal overflow: false
+  - SVG count: 1
+  - hatch pattern count: 16
+  - ply label count: 16
+  - label box count: 16
+  - labels within SVG bounds: true
+  - `Ply-16` is left/up of `Ply-1`: true
+  - screenshot: `/tmp/dd-laminate-ply-stack-left-up-readable-labels-v2-mobile.png`
+
+## 2026-06-18 Current Formula Theta Symbol
+
+User asked to replace the spelled-out `theta` text in the standalone ply stack
+demo's `Current Formula` display with the Greek theta character.
+
+Updated files:
+
+- `src/frontend/dd-laminate/ply-stack-angle-demo.js`
+- `src/frontend/dd-laminate/ply-stack-angle-demo.html`
+
+Changes:
+
+- Replaced `theta1` and `theta2` in the visible formula strings with `θ1` and
+  `θ2`.
+- Kept internal state, control names, and CSS class names as ASCII
+  `theta1/theta2` so the implementation remains stable.
+
+Verification:
+
+- `node --check src/frontend/dd-laminate/ply-stack-angle-demo.js` passed.
+- `curl -I` returned 200 for the HTML and JS files.
+- Browser check confirmed Case2, Case3, and Case4 formulas all contain `θ` and
+  no visible `theta` text in `#case-formula`.
+- Screenshot: `/tmp/dd-laminate-ply-stack-theta-symbol-formula.png`
+
+## 2026-06-18 Non-Overlapping Ply Label Rail
+
+User pointed out that after enlarging the `Ply-n` labels, the label boxes were
+overlapping even though the left-up stacking direction was correct.
+
+Updated file:
+
+- `src/frontend/dd-laminate/ply-stack-angle-demo.js`
+
+Changes:
+
+- Kept the `Ply-1` to `Ply-16` visual direction climbing toward the upper-left.
+- Changed label placement from a fixed local Y offset to a per-layer diagonal
+  label rail.
+- Preserved the larger readable label chips while spacing their bounding boxes
+  so adjacent labels no longer overlap.
+
+Verification:
+
+- `node --check src/frontend/dd-laminate/ply-stack-angle-demo.js` passed.
+- `curl -I http://127.0.0.1:8000/ply-stack-angle-demo.js` returned 200.
+- Browser bounding-box checks:
+  - desktop 1440px: 16 label boxes, overlap count 0, labels within SVG true,
+    horizontal overflow false, `Ply-16` left/up of `Ply-1` true
+  - mobile 390px: 16 label boxes, overlap count 0, labels within SVG true,
+    horizontal overflow false, `Ply-16` left/up of `Ply-1` true
+- Screenshots:
+  - desktop: `/tmp/dd-laminate-ply-stack-nonoverlap-labels.png`
+  - mobile: `/tmp/dd-laminate-ply-stack-nonoverlap-labels-mobile.png`
+
+## 2026-06-18 Close Ply Label Placement Revert
+
+User asked to revert the non-overlapping label rail because the labels felt too
+far from the actual ply positions.
+
+Updated file:
+
+- `src/frontend/dd-laminate/ply-stack-angle-demo.js`
+
+Changes:
+
+- Kept the left-up stacking direction from `Ply-1` to `Ply-16`.
+- Moved the enlarged `Ply-n` label chips back close to each ply by restoring a
+  fixed local label offset.
+- Accepted slight label-box overlap as a tradeoff for stronger visual
+  connection between each label and its ply.
+
+Verification:
+
+- `node --check src/frontend/dd-laminate/ply-stack-angle-demo.js` passed.
+- `curl -I http://127.0.0.1:8000/ply-stack-angle-demo.js` returned 200.
+- Browser checks:
+  - desktop 1440px: 16 label boxes, overlap count 15, labels within SVG true,
+    horizontal overflow false, `Ply-16` left/up of `Ply-1` true
+  - mobile 390px: 16 label boxes, overlap count 15, labels within SVG true,
+    horizontal overflow false, `Ply-16` left/up of `Ply-1` true
+- Screenshots:
+  - desktop: `/tmp/dd-laminate-ply-stack-close-overlap-labels.png`
+  - mobile: `/tmp/dd-laminate-ply-stack-close-overlap-labels-mobile.png`
+
+## 2026-06-18 Ply Stack Demo Mobile State
+
+User asked what the current mobile version looks like.
+
+Current state:
+
+- The standalone ply stack demo remains responsive at 390px width.
+- Mobile layout stacks sections vertically:
+  - header
+  - input controls
+  - live SVG preview
+  - sequence inspector
+- The SVG preview is scaled down inside the mobile card.
+- `Ply-n` labels are close to their corresponding plies, with slight overlap by
+  design after the latest revert.
+- The left-up stacking direction is preserved: `Ply-16` sits left/up relative to
+  `Ply-1`.
+- Latest mobile verification showed no horizontal overflow, all 16 labels inside
+  the SVG, and 16 label boxes present.
+- Screenshot: `/tmp/dd-laminate-ply-stack-close-overlap-labels-mobile.png`
+
+## 2026-06-18 Mobile Sequence Inspector Collapse
+
+User said the mobile demo is too long and asked to shrink the `SEQUENCE
+INSPECTOR` area for now.
+
+Updated files:
+
+- `src/frontend/dd-laminate/ply-stack-angle-demo.html`
+- `src/frontend/dd-laminate/ply-stack-angle-demo.css`
+- `src/frontend/dd-laminate/ply-stack-angle-demo.js`
+
+Changes:
+
+- Added a `Show list` / `Hide list` toggle to the Sequence Inspector header.
+- Mobile view now starts with the sequence list collapsed by default.
+- Desktop view still starts expanded by default.
+- The full 16-ply list and help card are hidden while collapsed, but remain in
+  the DOM and are restored when the user opens the list.
+- Added `aria-expanded` and `aria-controls` to the toggle.
+
+Verification:
+
+- `node --check src/frontend/dd-laminate/ply-stack-angle-demo.js` passed.
+- `curl -I` returned 200 for HTML, CSS, and JS.
+- Browser mobile check at 390px:
+  - collapsed by default: true
+  - `aria-expanded`: false
+  - sequence list display: none
+  - help card display: none
+  - horizontal overflow: false
+  - collapsed page height: 1681px
+  - expanded page height after toggle: 2775px
+- Browser desktop check at 1440px:
+  - starts expanded
+  - horizontal overflow: false
+- Screenshots:
+  - collapsed mobile: `/tmp/dd-laminate-ply-stack-mobile-inspector-collapsed.png`
+  - expanded mobile: `/tmp/dd-laminate-ply-stack-mobile-inspector-expanded.png`
+
+## 2026-06-18 Dynamic Ply Stack Applied to Web and iOS v2
+
+User asked to apply the standalone angle-aware ply stack demo to the actual web
+and app surfaces.
+
+Scope:
+
+- Applied to the v2 / Wanted UI Kit surfaces.
+- Preserved Classic web/app surfaces.
+- Did not change backend prediction logic or model artifacts.
+
+Updated web files:
+
+- `src/frontend/dd-laminate/index-v2.html`
+- `src/frontend/dd-laminate/styles-v2.css`
+- `src/frontend/dd-laminate/app-v2.js`
+
+Web changes:
+
+- Replaced the static `dd-ply-stack.svg` image in the v2 Laminate Reference
+  panel with a live generated SVG preview.
+- Added `#dynamic-stack-visual`, `#dynamic-stack-formula`, and
+  `#dynamic-stack-count`.
+- Ported the standalone demo's 16-ply sequence builder and PPT-style projected
+  stack SVG renderer into `app-v2.js`.
+- The preview updates when Response Forecast or u3 Forecast theta/case inputs
+  change.
+- Response Forecast and u3 Forecast both show the live stack preview.
+- Curve CSV hides the stack preview and keeps the CSV preview behavior.
+- Updated visible Case3 formulas in `index-v2.html` to the PPT-checked sequence:
+  `[[±θ₁]/[±θ₂]/[∓θ₁]/[∓θ₂]]₂`.
+
+Updated iOS file:
+
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/ContentViewV2.swift`
+
+iOS changes:
+
+- Added `DynamicPlyStackPreviewCard` to the Wanted v2 input panel.
+- Added `PlyStackCanvas` SwiftUI `Canvas` renderer with the same left-up
+  stacking direction, 16-ply sequence, θ1/θ2 family colors, positive/negative
+  hatch cues, and close `Ply-n` labels.
+- The preview reads `viewModel.selectedCase`, `viewModel.theta1`, and
+  `viewModel.theta2`, so it updates with the user's input state.
+- Updated the iOS v2 visible Case formula text to use `θ1/θ2` and the
+  PPT-checked Case3 sequence.
+
+Verification:
+
+- `node --check src/frontend/dd-laminate/app-v2.js` passed.
+- HTML parse check for `index-v2.html` found 43 ids, no duplicates, and
+  `dynamic-stack-visual` present.
+- Browser web v2 checks:
+  - Response mode: live SVG count 1, hatch pattern count 16, label count 16,
+    plies count 16, visual visible, horizontal overflow false
+  - Case4 formula updated to `([+/-θ1]/[+/-θ2]) x 2 + ([-/+θ1]/[-/+θ2]) x 2`
+  - u3 mode: live SVG visible, SVG count 1, no overflow
+  - Curve CSV mode: live stack visual panel hidden
+  - Mobile 390px: SVG count 1, label count 16, no horizontal overflow
+- Web screenshots:
+  - desktop Response + Case4: `/tmp/dd-laminate-web-v2-dynamic-stack-response.png`
+  - mobile Response default: `/tmp/dd-laminate-web-v2-dynamic-stack-mobile.png`
+- `swift test --package-path ios/DDLaminateMVP` passed: 10 tests.
+- XcodeBuildMCP `build_run_sim` for Luvelox iOS host succeeded:
+  - project: `ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj`
+  - scheme: `LuveloxMVPHost`
+  - simulator: iPhone 17
+  - bundle id: `com.luvelox.mvp`
+  - process id: `24952`
+- iOS runtime snapshot confirmed the Wanted v2 Laminate screen contains:
+  - `LIVE LAMINATE PREVIEW`
+  - `Angle-aware ply stack`
+  - `16 plies`
+  - `θ1`, `θ2`, `+`, and `-` legend chips
+  - updated Case formula text
+- iOS screenshot:
+  - `/var/folders/7p/c3j_sb0j539805ngspmnb34r0000gn/T/screenshot_optimized_fcda07c8-6e9c-426d-9c7c-55b192f5fbf0.jpg`
+
+## 2026-06-18 Web v2 URL and Luvelox iOS Mirror
+
+User asked for the web page URL and to show the app in the side browser.
+
+Web page:
+
+- `http://127.0.0.1:8000/index-v2.html`
+
+iOS app mirror:
+
+- Started `serve-sim` for simulator `94D2DC55-5EAF-4A51-9760-5DFABB3CABF2`.
+- Mirror URL: `http://localhost:3201/`
+- XcodeBuildMCP active profile: `luvelox-ios`
+  - project: `ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj`
+  - scheme: `LuveloxMVPHost`
+  - simulator: `iPhone 17`
+  - bundle id: `com.luvelox.mvp`
+- Relaunched the app with `launch_app_sim`; process id `38382`.
+- Opened the Laminate module via the `Open Laminate` button.
+
+Verification:
+
+- Browser mirror title: `Simulator - iPhone 17`.
+- Browser mirror shows the iPhone 17 frame and the Luvelox `Laminate v2`
+  screen with the Wanted v2 / Classic switch and Response Forecast controls.
+
+## 2026-06-18 iOS Live Laminate Preview Angle Fix
+
+User reported that the angles looked wrong in the app's `LIVE LAMINATE PREVIEW`.
+
+Updated file:
+
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/ContentViewV2.swift`
+
+Change:
+
+- Replaced the previous approximate hatch slope calculation
+  (`theta / 90 * shift`) with the same angle convention used by the web SVG:
+  hatch direction now uses a true `-theta` rotation vector.
+- Added clipping so the hatch lines stay inside each ply top surface while
+  preserving the existing θ1/θ2 family colors and positive/negative sign colors.
+
+Verification:
+
+- `swift test --package-path ios/DDLaminateMVP` passed: 10 tests.
+- XcodeBuildMCP `build_run_sim` succeeded for Luvelox iOS host.
+- Opened `Luvelox > Laminate v2` in the simulator mirror and scrolled to
+  `LIVE LAMINATE PREVIEW`.
+- Visual check confirmed the default `θ1=30`, `θ2=-30` hatch lines now render as
+  shallow angle-aware diagonals rather than near-vertical lines.
+- iOS screenshot:
+  - `/var/folders/7p/c3j_sb0j539805ngspmnb34r0000gn/T/screenshot_optimized_4a6a44fe-ebcc-46bd-8c1f-36d50c6a3690.jpg`
+
+## 2026-06-18 Web v2 Angle Sliders
+
+User asked to bring the prototype-style angle bars into the web first.
+
+Updated files:
+
+- `src/frontend/dd-laminate/index-v2.html`
+- `src/frontend/dd-laminate/styles-v2.css`
+- `src/frontend/dd-laminate/app-v2.js`
+
+Change:
+
+- Added range sliders to the `Response Forecast` and `u3 Forecast` theta input
+  controls.
+- Preserved numeric theta inputs and kept them as the submitted form values.
+- Sliders and numeric inputs now sync both ways.
+- Slider movement updates the readout and live laminate SVG preview immediately.
+- Added filled slider track styling with responsive one-column stacking on mobile.
+- Left `Curve CSV` unchanged because it is a post-simulation upload flow.
+
+Verification:
+
+- `node --check src/frontend/dd-laminate/app-v2.js` passed.
+- HTML check found 43 ids, no duplicate ids, 4 theta range inputs, and 4 theta
+  readouts.
+- Browser check at `http://127.0.0.1:8000/index-v2.html`:
+  - Response Forecast has 4 total theta sliders across Response/u3 forms.
+  - Numeric `theta1=62.5` synced the Response slider/readout and produced SVG
+    hatch transforms including `rotate(-62.5)`.
+  - Dragging the Response `theta2` slider synced the number/readout and updated
+    SVG hatch transforms.
+  - u3 Forecast range value update synced the u3 number/readout and preview.
+  - Mobile 390px check had no horizontal overflow and stacked angle controls in
+    one column.
+
+## 2026-06-18 iOS v2 Angle Sliders
+
+User asked to apply the prototype-style angle bars to the app version too.
+
+Updated file:
+
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/ContentViewV2.swift`
+
+Change:
+
+- Replaced the Wanted v2 theta numeric field component with an angle control
+  that keeps the numeric text field and adds a SwiftUI `Slider`.
+- The shared Response/u3 input panel means both `Response Forecast` and
+  `u3 Forecast` now get the slider controls.
+- Slider changes write back into `viewModel.theta1/theta2`; numeric changes and
+  slider changes therefore update the `LIVE LAMINATE PREVIEW` from the same
+  state.
+- Added `+/-` angle readouts above each field and accessibility identifiers:
+  `v2-theta1-slider`, `v2-theta2-slider`.
+
+Verification:
+
+- `swift test --package-path ios/DDLaminateMVP` passed: 10 tests.
+- XcodeBuildMCP `build_run_sim` succeeded for Luvelox iOS host.
+- Runtime snapshot confirmed `Theta 1`, `Theta 2`, `+30°/-30°`, and
+  `LIVE LAMINATE PREVIEW` are visible after opening `Luvelox > Laminate v2`.
+- `wait_for_ui(identifier: "v2-theta1-slider")` found the slider with value
+  `0.6666666865348816` at `+30°`.
+- After setting the theta text field to `45`, runtime snapshot confirmed the
+  readout changed to `+45°` and the slider accessibility value changed to
+  `0.75`.
+- XcodeBuildMCP simulator drag events cannot move sliders in this environment
+  because `FBSimulatorHIDEvent` reports no touch-move support; visual and
+  binding/accessibility verification passed.
+- iOS screenshot:
+  - `/var/folders/7p/c3j_sb0j539805ngspmnb34r0000gn/T/screenshot_optimized_b0067f35-1037-4675-a824-d0fa453f689b.jpg`
+
+## 2026-06-18 Luvelox App Icon Centering
+
+User reported that the app icon looked shifted to one side and asked to center
+it.
+
+Updated files:
+
+- `ios/LuveloxMVPApp/LuveloxMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png`
+- `ios/LuveloxMVPApp/LuveloxMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-20@2x.png`
+- `ios/LuveloxMVPApp/LuveloxMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-20@3x.png`
+- `ios/LuveloxMVPApp/LuveloxMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-29@2x.png`
+- `ios/LuveloxMVPApp/LuveloxMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-29@3x.png`
+- `ios/LuveloxMVPApp/LuveloxMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-40@2x.png`
+- `ios/LuveloxMVPApp/LuveloxMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-40@3x.png`
+- `ios/LuveloxMVPApp/LuveloxMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-60@2x.png`
+- `ios/LuveloxMVPApp/LuveloxMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-60@3x.png`
+- `ios/LuveloxMVPApp/LuveloxMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-76@2x.png`
+- `ios/LuveloxMVPApp/LuveloxMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-83.5@2x.png`
+
+Change:
+
+- Recentered the 1024px Luvelox app icon artwork on the white canvas by shifting
+  the artwork about 61px left and 45px up.
+- Regenerated every app icon size from the recentered 1024px source.
+
+Verification:
+
+- Pre-fix non-white artwork center was about `(577, 548-571)` depending on
+  threshold, visibly right/down of the `(512, 512)` canvas center.
+- Post-fix non-white artwork center is about `(516, 503-519)`, close to canvas
+  center while preserving the icon scale and shadow.
+- `sips` confirmed all app icon PNGs still have the expected dimensions.
+- XcodeBuildMCP `build_run_sim` for Luvelox iOS host succeeded.
+
+## 2026-06-18 Public Domain Routing
+
+User asked to connect the live sites so `cafedecafe.co.kr` keeps the existing
+DD laminate UI and `luvelox.com` serves the new v2 UI.
+
+Updated files:
+
+- `src/backend/dd_laminate_app.py`
+- `tests/backend/test_dd_laminate_ios_contract.py`
+- `infrastructure/cloudflare/kclab-composite-ai.yml`
+- `infrastructure/cloudflare/kclab-composite-ai.windows.example.yml`
+- `scripts/windows/Check-Health.ps1`
+
+Change:
+
+- Added host-aware root routing in the standalone DD FastAPI app:
+  - `luvelox.com` and `www.luvelox.com` return `index-v2.html`.
+  - `cafedecafe.co.kr`, `www.cafedecafe.co.kr`, existing subdomains, and local
+    default return the existing `index.html`.
+- Added root/www ingress entries for both domains to the Cloudflare tunnel
+  config.
+- Added root/www public health checks for both domains to the Windows health
+  script.
+- Added backend tests that lock the host-to-UI routing behavior.
+
+Production actions:
+
+- Used `cloudflared tunnel route dns --overwrite-dns` to point these hostnames
+  to tunnel `kclab-composite-ai`:
+  - `cafedecafe.co.kr`
+  - `www.cafedecafe.co.kr`
+  - `luvelox.com`
+  - `www.luvelox.com`
+- Restarted local `cloudflared` with
+  `infrastructure/cloudflare/kclab-composite-ai.yml`.
+- Restarted DD FastAPI/Uvicorn on port `8000` so it loaded the new host-aware
+  route code.
+
+Verification:
+
+- `.venv/bin/python -m pytest tests/backend/test_dd_laminate_ios_contract.py -q`
+  passed: 7 tests.
+- `cloudflared tunnel ingress validate` passed for
+  `infrastructure/cloudflare/kclab-composite-ai.yml`.
+- Local Host-header checks:
+  - `cafedecafe.co.kr`, `www.cafedecafe.co.kr`, and `localhost`: legacy UI.
+  - `luvelox.com`, `www.luvelox.com`: v2 UI.
+- Public checks:
+  - `https://cafedecafe.co.kr/` and `https://www.cafedecafe.co.kr/` return the
+    legacy UI markers (`Double-Double Laminate Forecast`, `app.js`).
+  - `https://luvelox.com/` and `https://www.luvelox.com/` return the v2 UI
+    markers (`Wanted UI Kit Adaptation`, `app-v2.js`).
+  - `/health` returns `200 {"status":"ok"}` for root/www plus existing
+    `dd.cafedecafe.co.kr` and `laminate.luvelox.com`.
+
+Note:
+
+- An initial `cafedecafe` DNS route attempt was run without the cafedecafe
+  origin cert and reported a relative luvelox-zone hostname. Public DNS lookup
+  for that reported hostname returned no CNAME record, and it did not affect
+  the intended public domain routes.
+
+## 2026-06-18 Public Laminate URL Update
+
+User changed the desired live URLs:
+
+- v1 / existing UI: `https://laminate.cafedecafe.co.kr/`
+- v2 / new UI: `https://laminate.luvelox.com/`
+
+Updated files:
+
+- `src/backend/dd_laminate_app.py`
+- `tests/backend/test_dd_laminate_ios_contract.py`
+- `infrastructure/cloudflare/kclab-composite-ai.yml`
+- `infrastructure/cloudflare/kclab-composite-ai.windows.example.yml`
+- `scripts/windows/Check-Health.ps1`
+
+Change:
+
+- Added `laminate.luvelox.com` to the FastAPI v2 root host set so the public
+  luvelox laminate subdomain serves `index-v2.html`.
+- Added `laminate.cafedecafe.co.kr` to Cloudflare tunnel ingress, mapped to the
+  DD laminate service on port `8000`.
+- Added the cafedecafe laminate URL to the public health-check list.
+- Updated backend tests so the primary checked hosts are now:
+  - `laminate.cafedecafe.co.kr`: legacy UI.
+  - `laminate.luvelox.com`: v2 UI.
+
+Production actions:
+
+- Added the Cloudflare DNS tunnel route for
+  `laminate.cafedecafe.co.kr` using the cafedecafe origin cert:
+  `cloudflared --origincert ~/.cloudflared/cert.cafedecafe-20260611.pem tunnel route dns kclab-composite-ai laminate.cafedecafe.co.kr`.
+- Restarted the local Cloudflare tunnel with the updated ingress config.
+- Restarted the DD FastAPI/Uvicorn process on port `8000` so it loaded the
+  updated host routing.
+
+Verification:
+
+- `.venv/bin/python -m pytest tests/backend/test_dd_laminate_ios_contract.py -q`
+  passed: 7 tests.
+- `cloudflared tunnel ingress validate` passed for
+  `infrastructure/cloudflare/kclab-composite-ai.yml`.
+- Local Host-header checks:
+  - `laminate.cafedecafe.co.kr`: legacy UI.
+  - `laminate.luvelox.com`: v2 UI.
+- External browser fetch verified:
+  - `https://laminate.cafedecafe.co.kr/` returns `Double-Double Laminate
+    Forecast` / legacy UI.
+  - `https://laminate.luvelox.com/` returns `Wanted UI Kit Adaptation` / v2 UI.
+- `https://laminate.luvelox.com/health` returned `200 {"status":"ok"}`.
+- Cloudflare IP `--resolve` checks for `https://laminate.cafedecafe.co.kr/`
+  returned the legacy UI and `/health` returned `200 {"status":"ok"}`. The
+  local macOS `curl` resolver still had a stale negative cache immediately
+  after DNS creation, while `dig`, `host`, and the external browser fetch saw
+  the new record.
+
+## 2026-06-18 v2 Header Eyebrow Copy
+
+User asked to remove the prototype label `Wanted UI Kit Adaptation` from the
+top of the v2 screen and replace it with wording related to the laminate
+product.
+
+Updated files:
+
+- `src/frontend/dd-laminate/index-v2.html`
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/ContentViewV2.swift`
+- `tests/backend/test_dd_laminate_ios_contract.py`
+
+Change:
+
+- Replaced the v2 header eyebrow text with `Composite Laminate AI` on both web
+  and iOS v2.
+- Updated backend HTML routing tests to use `Composite Laminate AI` as the v2
+  marker and to ensure legacy UI does not show it.
+
+Verification:
+
+- `.venv/bin/python -m pytest tests/backend/test_dd_laminate_ios_contract.py -q`
+  passed: 7 tests.
+- `swift test --package-path ios/DDLaminateMVP` passed: 10 tests.
+- XcodeBuildMCP `build_run_sim` for the Luvelox iOS host succeeded.
+- Runtime UI snapshot after opening Laminate showed `COMPOSITE LAMINATE AI`.
+- `https://laminate.luvelox.com/` returned `Composite Laminate AI` and no
+  longer returned `Wanted UI Kit Adaptation`.
+
+## 2026-06-18 v2 Korean Version
+
+User asked to add a Korean version of the current v2 state, focusing on
+translation rather than changing functionality.
+
+Updated files:
+
+- `src/frontend/dd-laminate/index-v2.html`
+- `src/frontend/dd-laminate/index-v2.ko.html`
+- `src/frontend/dd-laminate/app-v2.js`
+- `src/backend/dd_laminate_app.py`
+- `tests/backend/test_dd_laminate_ios_contract.py`
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/ContentViewV2.swift`
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/DDLaminateModuleView.swift`
+
+Change:
+
+- Added `index-v2.ko.html`, a Korean static page that keeps the v2 layout,
+  IDs, forms, scripts, and model behavior intact.
+- Changed the English v2 `한국어` link to point to `index-v2.ko.html`; the Korean
+  v2 page links back to `index-v2.html`.
+- Added `/dd-laminate-v2-ko` to the standalone FastAPI app.
+- Extended `app-v2.js` Korean dynamic text for chart/report labels and the
+  current simplified model names.
+- Localized the iOS v2 screen through the existing language toggle:
+  - header, workflow strip, mode tabs, input panel, model card/sheet,
+    connection status, empty/result panels, XAI preview title, and live ply
+    preview text.
+- Renamed the app design picker label from `Wanted v2` to `v2`.
+
+Verification:
+
+- Browser check at `http://127.0.0.1:8000/index-v2.ko.html` confirmed:
+  - `lang="ko"`
+  - header `복합재 적층 AI` / `C2ES 적층 예측`
+  - mode buttons `응답 예측`, `u3 예측`, `곡선 CSV`
+  - response button `예측 실행`
+  - language links to `Classic` and `English`.
+- Public checks:
+  - `https://laminate.luvelox.com/index-v2.ko.html`
+  - `https://laminate.luvelox.com/dd-laminate-v2-ko`
+  both returned Korean v2 markers including `복합재 적층 AI`, `C2ES 적층 예측`,
+  `응답 예측`, and `예측 실행`.
+- `.venv/bin/python -m pytest tests/backend/test_dd_laminate_ios_contract.py -q`
+  passed: 8 tests.
+- `node --check src/frontend/dd-laminate/app-v2.js` passed.
+- `swift test --package-path ios/DDLaminateMVP` passed: 10 tests.
+- XcodeBuildMCP `build_run_sim` succeeded for the Luvelox host app.
+- Runtime UI snapshot after opening Laminate and tapping the language button
+  showed Korean v2 text:
+  - `복합재 적층 AI`
+  - `API 준비됨`
+  - `C2ES 적층 예측`
+  - `응답 예측`
+  - `적층 예측 프로그램`
+  - `적층 예측 - Machine Learning`
+
+## 2026-06-18 Integer Angle Inputs
+
+User noted that laminate angles do not need decimal places.
+
+Change:
+
+- Updated DD laminate web inputs so theta fields use integer step size:
+  - `index.html`
+  - `index.ko.html`
+  - `index-v2.html`
+  - `index-v2.ko.html`
+- Updated web submit/report behavior:
+  - `app.js` and `app-v2.js` round theta values to whole degrees before
+    submit.
+  - Result input chips, generated report text, and export filenames now show
+    theta values without decimal places.
+  - v2 live slider/readout now moves by 1 degree and displays whole-degree
+    labels only, e.g. `+30°`.
+- Updated iOS behavior:
+  - v2 angle sliders now use `step: 1`.
+  - v2 angle readouts and live ply preview round to whole degrees.
+  - `PredictionViewModel` normalizes theta values before prediction so typed
+    decimal input such as `30.6` becomes `31`.
+  - Recent-run displays and comparison/detail text use integer theta display
+    values, including older saved runs that may contain decimals.
+- Added Swift test coverage for theta rounding before prediction.
+
+Verification:
+
+- `node --check src/frontend/dd-laminate/app-v2.js` passed.
+- `node --check src/frontend/dd-laminate/app.js` passed.
+- `swift test --package-path ios/DDLaminateMVP` passed: 11 tests.
+- `.venv/bin/python -m pytest tests/backend/test_dd_laminate_ios_contract.py -q`
+  passed: 8 tests, 1 existing pytest config warning.
+- Static scan confirmed no `step="0.1"` remains in the DD laminate HTML pages.
+- XcodeBuildMCP `build_run_sim` succeeded for Luvelox iOS host app.
+- Runtime simulator snapshot after opening Laminate v2 and scrolling to inputs
+  showed integer values/readouts:
+  - text fields: `30`, `-30`
+  - readouts: `+30°`, `-30°`
+
+## 2026-06-18 v2 Model Title Single Line
+
+User reported that the app v2 selected model card wrapped
+`적층 예측 - Machine Learning` onto two lines while `Deep Learning` fit on one.
+
+Change:
+
+- Updated `ContentViewV2.swift` selected model button title styling:
+  - one-line title
+  - lower minimum scale factor
+  - text tightening enabled
+  - title stack given layout priority
+  - chevron/check icons fixed so they do not steal unstable text width.
+- Applied the same one-line behavior to model option titles in the model sheet.
+
+Verification:
+
+- `swift test --package-path ios/DDLaminateMVP` passed: 11 tests.
+- XcodeBuildMCP `build_run_sim` succeeded for Luvelox iOS host app.
+- Runtime screenshot showed `적층 예측 - Machine Learning` on one line in the
+  selected model card.
+
+## 2026-06-18 Android Parity Status Check
+
+User asked whether the Android version has also been kept updated.
+
+Current status:
+
+- Android projects exist:
+  - `android/DDLaminateMVP`
+  - `android/InjectionMVP`
+  - `android/LuveloxMVP`
+- Earlier Android work was kept in sync for several major product areas:
+  - unified Luvelox/C2ES shell
+  - Laminate and Injection Android activities
+  - Korean resources
+  - model label simplification
+  - XAI/result/chart updates
+  - debug APK artifact refreshes under `artifacts/android`.
+- Recent v2-focused work has not been fully mirrored to Android:
+  - Wanted/v2-style laminate UI
+  - live angle-aware ply stack preview
+  - latest Korean v2 page parity
+  - integer-only theta input normalization
+  - one-line selected model title treatment.
+
+Recommendation:
+
+- Treat Android as behind the current web/iOS v2 surface.
+- Next Android parity pass should update `android/LuveloxMVP` and/or
+  `android/DDLaminateMVP` depending on whether the target is the unified C2ES
+  shell or standalone Laminate MVP.
+
+## 2026-06-18 Android Laminate Parity Pass
+
+User asked to start maintaining/building the Android version because Android
+users are important for future Korean deployment.
+
+Scope implemented:
+
+- Updated standalone Laminate app `android/DDLaminateMVP`:
+  - default response model is now `response_surrogate_physics_v2`
+  - model picker exposes only the two optimal response families:
+    - `Laminate Forecast - Machine Learning`
+    - `Laminate Forecast - Deep Learning`
+  - legacy response keys still gracefully map to the same two families when an
+    older API server is used.
+  - theta inputs are integer-only in the keyboard and normalized to whole
+    degrees before prediction.
+  - recent-run detail, comparison labels, share text, and image report inputs
+    display theta values without decimal places.
+  - result XAI/feature-impact list shows the top 5 first and hides the rest
+    behind an expandable button.
+  - English and Korean model descriptions and XAI expand/collapse strings were
+    updated.
+- Updated unified Luvelox Android app `android/LuveloxMVP` Laminate activity:
+  - default response model is now `response_surrogate_physics_v2`.
+  - model selector is limited to the Machine Learning / Deep Learning response
+    families with legacy fallback.
+  - theta inputs are integer-only and normalized before API submission.
+  - result XAI feature list shows top 5 first and hides the rest behind a
+    show/hide button.
+  - old technical model labels are cleaned into user-facing Machine Learning /
+    Deep Learning names.
+- Refreshed Android debug APK artifacts:
+  - `artifacts/android/C2ES-Laminate-debug.apk`
+  - `artifacts/android/Laminate-C2ES-debug.apk`
+  - `artifacts/android/C2ES-debug.apk`
+  - `artifacts/android/Luvelox-debug.apk`
+
+Verification:
+
+- `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` passed in
+  `android/DDLaminateMVP`.
+- `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` passed in
+  `android/LuveloxMVP`.
+- `git diff --check` passed for modified Android source/resource files.
+- APK signature verification with
+  `/opt/homebrew/share/android-commandlinetools/build-tools/35.0.0/apksigner`
+  passed for:
+  - `artifacts/android/C2ES-Laminate-debug.apk`
+  - `artifacts/android/C2ES-debug.apk`
+
+Remaining Android parity gap:
+
+- Android still does not have the full web/iOS v2 visual redesign or the live
+  angle-aware ply stack preview. The current pass brings the prediction/model
+  behavior up to date first.
+
+## 2026-06-18 Android Laminate UI Preview Pass
+
+User asked whether the Android UI portion could also be applied.
+
+Scope implemented:
+
+- Added Android native `PlyStackPreviewView` Canvas components to:
+  - `android/DDLaminateMVP`
+  - `android/LuveloxMVP`
+- The preview follows the same v2 ply sequence logic as web/iOS:
+  - Case2: `[[+/-theta1]/[+/-theta2]] x 4`
+  - Case3: `[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]] x 2`
+  - Case4: `([+/-theta1]/[+/-theta2]) x 2 + ([-/+theta1]/[-/+theta2]) x 2`
+- Added angle slider controls to both Android Laminate entry points:
+  - numeric theta inputs remain available
+  - sliders use integer degrees from `-90` to `90`
+  - slider changes update text fields, readouts, and preview immediately
+  - text-field changes update sliders and preview when valid
+- Added live laminate preview cards:
+  - title/subtitle
+  - ply count badge
+  - theta1/theta2/+/- legend
+  - formula row
+  - compact-physics note
+- Updated `DESIGN.md` component inventory to include Android live laminate
+  preview.
+- Refreshed Android debug APK artifacts:
+  - `artifacts/android/C2ES-Laminate-debug.apk`
+  - `artifacts/android/Laminate-C2ES-debug.apk`
+  - `artifacts/android/C2ES-debug.apk`
+  - `artifacts/android/Luvelox-debug.apk`
+
+Verification:
+
+- `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` passed in
+  `android/DDLaminateMVP`.
+- `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` passed in
+  `android/LuveloxMVP`.
+- `git diff --check` passed for modified Android source/resource files.
+- APK signature verification passed for:
+  - `artifacts/android/C2ES-Laminate-debug.apk`
+  - `artifacts/android/C2ES-debug.apk`
+- Runtime visual smoke test was not run in this turn because `adb` is not
+  available on the current PATH.
+
+Remaining Android UI gap:
+
+- Android now has the live angle-aware laminate preview and slider controls, but
+  it still is not a full one-to-one recreation of the web/iOS v2 visual shell.
+  The current Android pass intentionally keeps native Kotlin Views and existing
+  screen structure.
+
+## 2026-06-18 Android C2ES APK Clarification
+
+User asked whether installing `C2ES-debug.apk` shows the same integrated version
+as the iOS unified app.
+
+Clarification:
+
+- `artifacts/android/C2ES-debug.apk` is the unified Android C2ES/Luvelox shell
+  built from `android/LuveloxMVP`.
+- It should show the same product concept as the iOS unified app: a C2ES module
+  workspace with access to the Laminate module and other module entries.
+- It is not pixel-for-pixel identical to the iOS unified UI. Android uses native
+  Kotlin Views, while iOS uses SwiftUI.
+- The Laminate Android module now includes the latest core parity work:
+  two-model selection, integer theta inputs, XAI top-5 expansion, angle sliders,
+  and live angle-aware laminate preview.
+
+## 2026-06-18 Android Unified App v2 Visual Pass
+
+User pointed out that the Android build still felt like v1 even after the
+functional parity updates.
+
+Scope implemented:
+
+- Restyled the unified Android C2ES/Luvelox shell in `android/LuveloxMVP` toward
+  the v2 visual direction:
+  - white canvas
+  - larger C2ES hero treatment
+  - blue action accents
+  - black command-style primary buttons
+  - light bordered module panels
+  - step/status strips closer to the web/iOS v2 structure
+- Restyled the Android Laminate screen in `android/LuveloxMVP`:
+  - `C2ES Laminate Forecast` hero
+  - response-forecast framing
+  - v2-style input/result cards
+  - blue and green status pills
+  - black `Predict Forecast` command button
+  - v2-toned live laminate preview card
+  - v2-toned XAI top-5 expansion controls
+- Refreshed Android debug APK artifacts:
+  - `artifacts/android/C2ES-debug.apk`
+  - `artifacts/android/Luvelox-debug.apk`
+
+Verification:
+
+- `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` passed in
+  `android/LuveloxMVP`.
+- `git diff --check` passed for the modified Android source files.
+- APK signature verification passed for:
+  - `artifacts/android/C2ES-debug.apk`
+  - `artifacts/android/Luvelox-debug.apk`
+- Runtime emulator visual smoke test was not run because `adb` is unavailable on
+  the current PATH.
+
+Remaining note:
+
+- This is now much closer to the v2 tone, but it is still a native Android
+  Kotlin Views implementation rather than a pixel-perfect clone of the SwiftUI
+  or web v2 screens.
+
+## 2026-06-18 iOS Xcode Install Prep
+
+User asked to open Xcode so they can install the iOS app on their physical
+iPhone.
+
+Action:
+
+- Opened the unified iOS host project:
+  - `ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj`
+
+Install notes for the next step:
+
+- In Xcode, select the connected iPhone from the top device selector.
+- Select the Luvelox/C2ES host scheme if Xcode does not choose it
+  automatically.
+- If signing fails, set the Apple Developer Team under the target's
+  `Signing & Capabilities` tab.
+- Then press Run to build and install on the iPhone.
+
+## 2026-06-18 Android Result Navigation and Home Quick Actions
+
+User asked for Android prediction results to open as a separate result page
+instead of rendering below the input form. User also asked to move the Demo
+Account card and module entry cards into small icons near the top C2ES header,
+and to center the Android launcher icon.
+
+Scope implemented in `android/LuveloxMVP`:
+
+- Added `LaminateResultActivity`.
+- Registered `LaminateResultActivity` in `AndroidManifest.xml`.
+- Changed successful Laminate response predictions so `Predict response` opens
+  the result page with:
+  - Type
+  - confidence
+  - Pt
+  - Pt displacement
+  - max force
+  - curve point count
+  - class probabilities
+  - XAI top 5 with expandable remaining features
+- Kept prediction errors on the input screen.
+- Changed the signed-in C2ES Android home screen:
+  - account access is now a compact `A` icon beside the C2ES header
+  - Laminate opens from a compact `L` icon
+  - Injection opens from a compact `I` icon
+  - the large account/module cards are no longer rendered as the main home
+    content
+- Regenerated Android launcher PNGs from the iOS Luvelox icon source with the
+  foreground recentered for all density buckets:
+  - mdpi
+  - hdpi
+  - xhdpi
+  - xxhdpi
+  - xxxhdpi
+- Refreshed Android APK artifacts:
+  - `artifacts/android/C2ES-debug.apk`
+  - `artifacts/android/Luvelox-debug.apk`
+
+Verification:
+
+- `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` passed in
+  `android/LuveloxMVP`.
+- `git diff --check` passed for modified Android source/manifest files and
+  `docs/session-memory.md`.
+- APK signature verification passed for:
+  - `artifacts/android/C2ES-debug.apk`
+  - `artifacts/android/Luvelox-debug.apk`
+- Runtime emulator visual smoke test was not run because `adb` is unavailable on
+  the current PATH.
+
+## 2026-06-18 Android Icon Recheck and Drive Upload Attempt
+
+User again asked to center the Android launcher icon and upload the newly
+modified APK to the Google Drive folder:
+
+- `https://drive.google.com/drive/u/0/folders/1iwONaQdOAA0l1eVki5xdVgH6edAueZ9G`
+
+Status:
+
+- Rechecked Android launcher icon foreground centering for all LuveloxMVP
+  density buckets.
+- Pixel bounding-box centers are within roughly `0.5px` of the canvas center
+  across mdpi/hdpi/xhdpi/xxhdpi/xxxhdpi.
+- Latest APK is available at:
+  - `artifacts/android/C2ES-debug.apk`
+  - `artifacts/android/Luvelox-debug.apk`
+- Also copied the latest C2ES APK to:
+  - `/Users/danlee/Desktop/android/C2ES-debug.apk`
+
+Drive upload attempt:
+
+- Opened the Drive folder in the in-app browser.
+- User logged in as `Danny Lee`; the folder `APP` became visible.
+- Existing files visible in the folder:
+  - `C2ES-debug.apk`
+  - `Laminate-C2ES-debug.apk`
+- Opened Drive's `신규` menu and selected `파일 업로드`.
+- Automated file selection failed because macOS blocked `osascript` keystroke
+  injection:
+  - `osascript에서 키스트로크를 보내도록 허용되지 않습니다. (1002)`
+- No Google Drive CLI, rclone config, gcloud auth, mounted Google Drive folder,
+  or Google Drive Desktop sync path was found locally.
+
+Current blocker:
+
+- Upload is ready but not completed. User needs to manually select
+  `C2ES-debug.apk` in the open macOS file picker, or grant the app/terminal
+  Accessibility permission for automated file picker control.
+- After the user selects the file, Codex can verify the Drive upload result from
+  the Drive page.
+
+## 2026-06-18 Android Home Quick Action Revision
+
+User clarified that only the account icon should remain beside the top C2ES
+header. Laminate and Injection should appear as module cards as before.
+
+Scope implemented in `android/LuveloxMVP`:
+
+- Updated `MainActivity` signed-in home layout:
+  - kept only the compact `A` account icon beside the C2ES header
+  - removed compact `L` and `I` header shortcuts
+  - restored the `MODULES` section below the workflow strip
+  - restored the module card list so Laminate/Injection open from cards again
+- Refreshed Android APK artifacts:
+  - `artifacts/android/C2ES-debug.apk`
+  - `artifacts/android/Luvelox-debug.apk`
+  - `/Users/danlee/Desktop/android/C2ES-debug.apk`
+
+Verification:
+
+- `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` passed in
+  `android/LuveloxMVP`.
+- APK signature verification passed for `artifacts/android/C2ES-debug.apk`.
+- `git diff --check` passed for the modified Android source file and
+  `docs/session-memory.md`.
+
+Drive note:
+
+- The Drive folder remains open and logged in, but automatic file picker control
+  is still blocked by macOS Accessibility permissions. The latest APK is ready
+  for manual selection from `/Users/danlee/Desktop/android/C2ES-debug.apk`.
+
+## 2026-06-19 Android Font and iOS Header Wrapping
+
+User asked to modernize the Android font and make long iOS titles avoid awkward
+single-line wrapping.
+
+Android LuveloxMVP changes:
+
+- Bundled Pretendard font files:
+  - `android/LuveloxMVP/app/src/main/res/font/pretendard_regular.otf`
+  - `android/LuveloxMVP/app/src/main/res/font/pretendard_semibold.otf`
+  - `android/LuveloxMVP/app/src/main/res/font/pretendard_bold.otf`
+- Added `AppFonts.kt` to centralize app font loading.
+- Updated the app theme to use Pretendard regular as the default font family.
+- Updated key labels, buttons, quick-action icons, module cards, result pages,
+  and laminate preview text to use the app font while preserving monospace
+  numeric inputs.
+
+iOS title treatment:
+
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/ContentViewV2.swift`
+  now renders the app headline as `C2ES` followed by `Laminate Forecast` on the
+  next line, with two-line limits and scaling guards.
+- `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/ContentView.swift`
+  uses the same `C2ES` / `Laminate Forecast` title treatment.
+- `ios/LuveloxMVP/Sources/LuveloxApp/LaminateForecastView.swift`
+  uses `C2ES` / `Laminate Forecast`.
+- `ios/LuveloxMVP/Sources/LuveloxApp/InjectionForecastView.swift`
+  uses `C2ES` / `Injection Forecast`.
+
+Verification:
+
+- `git diff --check` passed.
+- `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` passed in
+  `android/LuveloxMVP`.
+- APK signature verification passed for:
+  - `artifacts/android/C2ES-debug.apk`
+  - `artifacts/android/Luvelox-debug.apk`
+- Refreshed APK artifacts:
+  - `artifacts/android/C2ES-debug.apk`
+  - `artifacts/android/Luvelox-debug.apk`
+  - `/Users/danlee/Desktop/android/C2ES-debug.apk`
+- XcodeBuildMCP simulator build passed for `LuveloxMVPHost` on `iPhone 17`.
+- XcodeBuildMCP simulator build passed for the `KyulAIDDLaminateApp` target.
+
+Known note:
+
+- `DDLaminateMVPHost` still has a target configuration problem unrelated to
+  this title change: it references missing file
+  `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/KyulAIDDLaminateApp.swift`.
+  The changed SwiftUI package target itself compiles successfully through the
+  `KyulAIDDLaminateApp` scheme.
+
+## 2026-06-19 iOS Laminate Title Follow-Up
+
+User reported that the iOS title change did not appear reflected.
+
+Finding:
+
+- The previous update changed the large v2 headline, but the actual visible
+  input panel title still said `Laminate Prediction Program`.
+- On simulator, the top headline also briefly showed `Laminate F...` because
+  the API status badge shared the same horizontal row and constrained the title
+  width.
+
+Fix:
+
+- Updated `ContentViewV2.swift` so the visible response input panel title is
+  also `C2ES` / `Laminate Forecast`.
+- Updated the u3 input panel title to `C2ES` / `u3 Pt Forecast`.
+- Reworked the v2 header layout so the eyebrow/status badge occupy the first
+  row and the large `C2ES` / `Laminate Forecast` title uses the full card width.
+- Added two-line/scaling guards to panel titles.
+
+Verification:
+
+- Rebuilt and ran `LuveloxMVPHost` on the `iPhone 17` simulator with
+  XcodeBuildMCP.
+- Runtime UI snapshot confirmed:
+  - `C2ES Laminate Forecast`
+  - `C2ES u3 Pt Forecast`
+- Simulator screenshots confirmed that both the hero card and input panel show
+  `C2ES` on the first line and `Laminate Forecast` fully on the second line,
+  without ellipsis.
+- `git diff --check` passed.
+
+## 2026-06-19 iOS Title Hierarchy Discussion
+
+User noticed that the top hero title and lower input panel title both repeat
+`C2ES Laminate Forecast`, which feels redundant.
+
+Recommendation captured for next UI pass:
+
+- Keep the top hero as the product/app identity:
+  - `C2ES`
+  - `Laminate Forecast`
+- Make the lower active panel title task-specific instead of repeating the app
+  name:
+  - Response tab: `Response Forecast`
+  - u3 tab: `u3 Pt Forecast`
+- Keep or remove the small blue eyebrow, but avoid showing `RESPONSE FORECAST`
+  and `Response Forecast` directly together unless the title is changed to a
+  more action-oriented phrase such as `Predict Response Curve`.
+- Best default direction: remove the duplicated lower `C2ES Laminate Forecast`
+  and use task labels so the screen hierarchy reads as product -> workflow ->
+  active task.
+
+## 2026-06-19 iOS Title Hierarchy Applied
+
+User asked to apply and show the title hierarchy recommendation.
+
+Applied in `ContentViewV2.swift`:
+
+- Kept the top hero as the product/app identity:
+  - `C2ES`
+  - `Laminate Forecast`
+- Changed the lower active panel eyebrow to:
+  - `Forecast Setup`
+- Changed the lower active panel title by tab:
+  - Response tab: `Response Forecast`
+  - u3 tab: `u3 Pt Forecast`
+- Removed the lower duplicate `C2ES Laminate Forecast` wording from the input
+  panel.
+
+Verification:
+
+- Rebuilt and ran `LuveloxMVPHost` on the `iPhone 17` simulator with
+  XcodeBuildMCP.
+- Runtime UI snapshot confirmed:
+  - `Forecast Setup`
+  - `Response Forecast`
+  - `u3 Pt Forecast`
+- Simulator screenshot confirmed the Response panel hierarchy is now visually
+  distinct from the top hero.
+- `git diff --check` passed.
+
+## 2026-06-19 Web/App UI Parity Rule and Alignment
+
+User noted that the web and app started to look different and explicitly asked
+to keep them moving together.
+
+Standing product rule:
+
+- Shared C2ES Laminate Forecast surfaces should be updated together across:
+  - Web v2 English/Korean
+  - iOS v2
+  - Android Luvelox native app
+- When changing shared labels, hierarchy, model names, core layout, or primary
+  forecast workflow UI, check the corresponding web and native app surfaces in
+  the same pass.
+- Web-only features can remain web-only, but their surrounding shared UI should
+  still follow the same hierarchy and wording.
+
+Applied alignment:
+
+- Web v2 English:
+  - hero title split into `C2ES` / `Laminate Forecast`
+  - API badge changed to `API ready`
+  - workflow step 03 changed to `Review` / `Pt, curve, XAI.`
+  - response panel changed to `Forecast Setup` / `Response Forecast`
+  - u3 panel changed to `Forecast Setup` / `u3 Pt Forecast`
+- Web v2 Korean:
+  - hero title split into `C2ES` / `적층 예측`
+  - API badge changed to `API 준비됨`
+  - response panel changed to `예측 설정` / `응답 예측`
+  - u3 panel changed to `예측 설정` / `u3 Pt 예측`
+- Android Luvelox Laminate:
+  - top title changed to `C2ES` / `Laminate Forecast`
+  - input card changed to `FORECAST SETUP` / `Response Forecast`
+  - workflow steps changed to `Set case`, `Pick model`, `Review`
+
+Verification:
+
+- `git diff --check` passed.
+- Android `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug`
+  passed for `android/LuveloxMVP`.
+- Android APK artifacts refreshed and signature verification passed for
+  `artifacts/android/C2ES-debug.apk`.
+- XcodeBuildMCP `build_run_sim` passed for `LuveloxMVPHost`.
+- Browser DOM checks passed for:
+  - `http://127.0.0.1:8000/index-v2.html`
+  - `http://127.0.0.1:8000/index-v2.ko.html`
+- Browser screenshot confirmed the English web v2 now matches the app title
+  hierarchy.
+
+## 2026-06-19 Luvelox Web Login v2 Prototype
+
+User asked whether there was an existing web login page and requested a new
+example using the recently added Figma/Wanted UI Kit direction.
+
+Context found:
+
+- Existing Luvelox web login already lives in `src/frontend/luvelox/index.html`
+  with `styles.css` and `app.js`.
+- It signs into the same local/session key flow:
+  `luvelox.auth.session.v1`.
+- The uploaded `design/Wanted Design System (Community).fig` is a zipped Figma
+  package; `canvas.fig` is binary, so direct layer extraction was not available.
+  Usable evidence was the package metadata, thumbnail, and the existing
+  `DESIGN.md` Wanted-inspired direction.
+
+Applied:
+
+- Added a separate reversible prototype instead of replacing the current login:
+  - `src/frontend/luvelox/login-v2.html`
+  - `src/frontend/luvelox/login-v2.css`
+  - `src/frontend/luvelox/login-v2.js`
+- The prototype uses a Wanted-inspired C2ES treatment:
+  - white/light grid canvas
+  - black command/forecast preview surface
+  - blue primary accents
+  - green readiness/access states
+  - compact 8px-radius panels
+- The login remains functional for MVP demo accounts:
+  - `demo@luvelox.com`
+  - `danlee@luvelox.com`
+- `Continue demo` stores the compatible Luvelox session and redirects to the
+  existing workspace at `src/frontend/luvelox/index.html`.
+- Mobile layout was adjusted so the sign-in panel appears before the larger
+  workspace preview.
+- Updated `DESIGN.md` to record the Luvelox `login-v2` prototype.
+
+Verification:
+
+- `git diff --check` passed.
+- In-app browser rendered:
+  `http://127.0.0.1:8032/luvelox/login-v2.html`
+- Desktop DOM check confirmed:
+  - `C2ES Account Access`
+  - `Sign in`
+  - `Demo ready`
+  - Laminate, Injection, Optimization module rows
+  - no horizontal overflow at the current browser width
+- Mobile viewport check at 390px confirmed:
+  - no horizontal overflow
+  - `.login-panel` appears before `.workspace-panel`
+- Demo login flow check confirmed:
+  - `Continue demo` navigates to `/luvelox/index.html`
+  - workspace is visible
+  - account label shows `Luvelox Demo · 2 modules`
+
+## 2026-06-19 Luvelox Domain IA Update
+
+User clarified the intended public domain split:
+
+- `ai.luvelox.com`: C2ES App entry point, including first login and module
+  selection for Laminate, Injection, and future Optimization.
+- `laminate.luvelox.com`: Laminate Forecast module reached from the C2ES AI
+  workspace.
+- `injection.luvelox.com`: Injection module remains a standalone module domain.
+- `luvelox.com`: reserved for the future official company/product homepage, not
+  the current app.
+
+Applied:
+
+- Added `ai.luvelox.com` to Cloudflare tunnel ingress on port `8000`.
+- Removed `luvelox.com` and `www.luvelox.com` from the app ingress config so
+  the official homepage domain is no longer used as the app surface.
+- Added the same ingress change to the Windows tunnel example.
+- Updated public `dd_laminate_app` host routing because port `8000` is the
+  current public entry process:
+  - `ai.luvelox.com/` serves `src/frontend/luvelox/login-v2.html`.
+  - `ai.luvelox.com/index.html`, `/app.js`, and `/styles.css` serve the C2ES
+    module workspace files.
+  - `laminate.luvelox.com/` continues to serve DD Laminate v2.
+- Updated standalone `luvelox_app` root routing so `ai.luvelox.com` also serves
+  the login v2 entry when run directly.
+- Changed Optimization module URLs away from `https://luvelox.com` to
+  `https://ai.luvelox.com`.
+- Renamed the Luvelox web workspace visible shell to `C2ES App` /
+  `C2ES AI Workspace`.
+- Updated migration docs to record that port `8000` is host-routed for both
+  the C2ES AI workspace and Laminate.
+
+Deployment actions:
+
+- Ran:
+  `cloudflared tunnel route dns --overwrite-dns kclab-composite-ai ai.luvelox.com`
+- Restarted the port `8000` `dd_laminate_app` uvicorn process.
+- Restarted `cloudflared` with
+  `infrastructure/cloudflare/kclab-composite-ai.yml`.
+
+Verification:
+
+- `cloudflared tunnel --config infrastructure/cloudflare/kclab-composite-ai.yml
+  ingress validate` returned `OK`.
+- `.venv/bin/python -m pytest tests/backend/test_luvelox_modules.py
+  tests/backend/test_dd_laminate_ios_contract.py -q` passed:
+  `18 passed, 1 warning`.
+- `git diff --check` passed.
+- Public checks confirmed:
+  - `https://ai.luvelox.com/` returns `C2ES Account Access`.
+  - `https://ai.luvelox.com/index.html` returns `C2ES App` and
+    `Prediction modules`.
+  - `https://ai.luvelox.com/api/v1/modules` lists Laminate and Injection module
+    URLs plus Optimization pointing to `https://ai.luvelox.com`.
+  - `https://laminate.luvelox.com/` returns `C2ES Laminate Forecast v2`.
+  - `https://luvelox.com/` returns HTTP `404`, leaving it free for the future
+    official homepage.
+
+## 2026-06-19 C2ES Login Module Icons
+
+User noticed that the small logo/icon boxes beside Laminate, Injection, and
+Optimization in the `SELECTED ACCOUNT` area looked empty.
+
+Applied:
+
+- Updated `src/frontend/luvelox/login-v2.html` so each module row uses an inline
+  SVG icon instead of a placeholder letter:
+  - Laminate: stacked ply/layer icon
+  - Injection: injection/pressure icon
+  - Optimization: target/search icon
+- Updated `src/frontend/luvelox/login-v2.css` with distinct icon colors:
+  - Laminate blue
+  - Injection teal
+  - Optimization gray when locked, amber when enabled
+- Added `v=20260619-module-icons` cache-busting query strings for
+  `login-v2.css` and `login-v2.js`.
+
+Verification:
+
+- `git diff --check` passed.
+- `node --check src/frontend/luvelox/login-v2.js` passed.
+- Public checks confirmed `https://ai.luvelox.com/` serves the updated SVG
+  markup and CSS.
+- In-app browser DOM check confirmed all three `.module-icon` elements contain
+  one SVG each.
+- Browser screenshot confirmed the Selected Account module icons render visibly.
+
+## 2026-06-19 Web Laminate Title Spacing
+
+User noticed the web Laminate v2 hero title read as `C2ESLaminate Forecast`
+without a space.
+
+Applied:
+
+- Updated `src/frontend/dd-laminate/index-v2.html` from
+  `<span>C2ES</span><span>Laminate Forecast</span>` to
+  `<span>C2ES</span> <span>Laminate Forecast</span>`.
+- Updated `src/frontend/dd-laminate/index-v2.ko.html` similarly so its DOM text
+  reads `C2ES 적층 예측`.
+
+Verification:
+
+- `git diff --check` passed.
+- Public HTML check confirmed `https://laminate.luvelox.com/` contains the
+  inserted space.
+- In-app browser DOM check confirmed `#app-title.textContent` is exactly
+  `C2ES Laminate Forecast`.
+
+## 2026-06-19 Luvelox AI Workspace V2 Shell
+
+User asked to remove the extra top navigation on `ai.luvelox.com` and leave
+only the logo, then make `ai.luvelox.com/index.html` feel more like the newer
+Laminate v2 / Figma-derived direction instead of the older MVP shell.
+
+Applied:
+
+- Updated `src/frontend/luvelox/login-v2.html` and
+  `src/frontend/luvelox/login-v2.css` so the login page top area keeps only a
+  compact `C2ES` wordmark and removes the `Module workspace` / `Laminate v2`
+  links.
+- Redesigned `src/frontend/luvelox/index.html` as a v2-style module workspace:
+  large `C2ES App` hero, clearer workspace copy, account/readiness chip,
+  three-step flow strip, selected account band, dark module-intro band, and
+  stronger module cards.
+- Rebuilt `src/frontend/luvelox/styles.css` around the newer v2 visual system:
+  light technical grid, white panels, black action blocks, blue/green accent
+  language, 8px card radii, responsive desktop/mobile spacing, and no floating
+  marketing-style hero.
+- Updated `src/frontend/luvelox/app.js` so Laminate, Injection, and
+  Optimization module cards use inline SVG icons instead of placeholder
+  letters.
+- Updated `DESIGN.md` to record the Luvelox login and workspace shell as part
+  of the shared design source of truth.
+
+Verification:
+
+- `git diff --check` passed.
+- `node --check src/frontend/luvelox/app.js` and
+  `node --check src/frontend/luvelox/login-v2.js` passed.
+- `.venv/bin/python -m pytest tests/backend/test_luvelox_modules.py
+  tests/backend/test_dd_laminate_ios_contract.py -q` passed:
+  `18 passed, 1 warning`.
+- Public checks confirmed:
+  - `https://ai.luvelox.com/` serves the logo-only top area with no
+    `Module workspace` / `Laminate v2` links.
+  - `https://ai.luvelox.com/index.html` serves the cache-busted v2 workspace
+    CSS and JS.
+  - The workspace JS contains SVG module icons.
+- In-app browser checks confirmed:
+  - Root login page title is `C2ES Account Access`.
+  - Root login page has `brand = C2ES`, no topbar action links, and no
+    `Module workspace` / `Laminate v2` body text.
+  - Workspace page opens after demo login with three module cards, each module
+    card has an SVG icon, and the visible UI matches the v2 workspace direction.
+
+## 2026-06-19 Luvelox Workspace Title, Korean Pages, And API Hiding
+
+User pointed out that `C2ES App` on `ai.luvelox.com/index.html` felt too
+placeholder-like, the subtitle wrapped awkwardly, module cards exposed API
+paths, the font needed refinement, and Korean versions were missing for the
+Luvelox hub.
+
+Applied:
+
+- Renamed the Luvelox workspace page from `C2ES App` to
+  `C2ES Forecast Workspace`.
+- Changed the Korean workspace title to `C2ES 예측 워크스페이스`.
+- Rewrote the hero subtitle to a shorter, intentional line:
+  `Choose Laminate or Injection, then continue to the dedicated prediction screen.`
+- Added `src/frontend/luvelox/index.ko.html`.
+- Added `src/frontend/luvelox/login-v2.ko.html`.
+- Updated `src/frontend/luvelox/app.js` so Korean pages localize dynamic module
+  card summaries, badges, action buttons, module counts, access-copy text, and
+  capability labels.
+- Updated `src/frontend/luvelox/login-v2.js` so Korean login status text and
+  post-login redirect go to `index.ko.html`.
+- Removed the module-card API path display by deleting the card-level
+  `.route-text` element and no longer writing `module.route.api_prefix` into
+  cards.
+- Kept modal access copy user-facing instead of exposing raw entitlement keys.
+- Updated `src/frontend/luvelox/styles.css` and
+  `src/frontend/luvelox/login-v2.css` to use a Pretendard-first font stack with
+  Korean-friendly fallbacks.
+- Added `/index.ko.html` and `/login-v2.ko.html` host-routed entries to
+  `src/backend/dd_laminate_app.py` so `ai.luvelox.com` can serve the Luvelox
+  Korean pages through the current public 8000 app.
+- Updated `DESIGN.md` to record the workspace naming, Korean page coverage, and
+  Pretendard-first web typography decision.
+
+Translation coverage note:
+
+- Main product surfaces now have Korean variants:
+  - Luvelox login: `login-v2.ko.html`
+  - Luvelox module workspace: `index.ko.html`
+  - Laminate Classic: `index.ko.html`
+  - Laminate v2: `index-v2.ko.html`
+  - Simple Injection: `index.ko.html`
+- Prototype/review artifacts such as `greenfield-flow.html` and
+  `ply-stack-angle-demo.html` are still English-only unless promoted to product
+  pages.
+
+Deployment/verification:
+
+- Restarted the public port `8000` `dd_laminate_app` uvicorn process so the new
+  Korean routes are active.
+- `node --check src/frontend/luvelox/app.js` and
+  `node --check src/frontend/luvelox/login-v2.js` passed.
+- `git diff --check` passed.
+- `.venv/bin/python -m pytest tests/backend/test_luvelox_modules.py
+  tests/backend/test_dd_laminate_ios_contract.py -q` passed:
+  `19 passed, 1 warning`.
+- Public checks confirmed:
+  - `https://ai.luvelox.com/index.html` serves
+    `C2ES Forecast Workspace` and no longer contains `C2ES App`.
+  - `https://ai.luvelox.com/index.ko.html` serves `lang="ko"` and
+    `C2ES 예측 워크스페이스`.
+  - `https://ai.luvelox.com/login-v2.ko.html` serves the Korean login page.
+- In-app browser checks confirmed:
+  - Korean workspace renders 3 module cards.
+  - Card-level `.route-text` count is `0`.
+  - No `/api/v1/...` path is visible inside module cards.
+  - Refresh button is no longer stuck disabled after module load.
+
+Follow-up title adjustment:
+
+- User preferred the Luvelox workspace title on one line.
+- Updated `src/frontend/luvelox/styles.css` and
+  `src/frontend/luvelox/login-v2.css` so `h1` title spans render inline with
+  `white-space: nowrap`.
+- Replaced viewport-scaled title sizing with breakpoint-based fixed font sizes
+  so `C2ES Forecast Workspace` and `C2ES 예측 워크스페이스` stay on one line
+  without horizontal overflow.
+- Bumped Luvelox CSS cache keys to `20260619-workspace-title-line2`.
+
+Verification:
+
+- `git diff --check` passed.
+- `node --check src/frontend/luvelox/app.js` and
+  `node --check src/frontend/luvelox/login-v2.js` passed.
+- Public CSS/HTML checks confirmed the new cache key and `white-space: nowrap`.
+- In-app browser checks confirmed:
+  - Desktop Korean workspace title has one text rect.
+  - 390px mobile English title has one text rect and no horizontal overflow.
+  - 390px mobile Korean title has one text rect and no horizontal overflow.
+
+Follow-up hero copy adjustment:
+
+- User clarified that the subtitle under the title must also stay on one line.
+- Shortened English subtitle to
+  `Choose a module to open its prediction screen.`
+- Shortened Korean subtitle to `모듈을 선택해 예측 화면을 여세요.`
+- Added `white-space: nowrap` to `.hero-copy`, reduced mobile hero-copy font
+  size, and reduced `.workspace-hero` desktop height from `280px` to `240px`
+  with tighter padding.
+- Bumped Luvelox workspace CSS cache key to `20260619-workspace-hero-line`.
+
+Verification:
+
+- `git diff --check` passed.
+- `node --check src/frontend/luvelox/app.js` and
+  `node --check src/frontend/luvelox/login-v2.js` passed.
+- Public checks confirmed `index.html` and `index.ko.html` use the new subtitle
+  copy and cache key.
+- In-app browser checks confirmed:
+  - Desktop Korean title and subtitle each have one text rect.
+  - 390px mobile Korean title and subtitle each have one text rect, no overflow.
+  - 390px mobile English title and subtitle each have one text rect, no overflow.
+
+Follow-up full box alignment:
+
+- User pointed out that only the hero had been adjusted while the other boxes
+  still had mismatched heights/wrapping.
+- Updated the entire Luvelox workspace stack, not only the title:
+  - summary/step boxes
+  - account band
+  - dark module intro band
+  - module cards
+  - card summary/capability text
+- Shortened module intro copy:
+  - EN: `Open prediction modules from one account.`
+  - KO: `한 계정에서 예측 모듈을 엽니다.`
+- Shortened card summaries for English and Korean so server-provided long copy
+  cannot stretch the card layout.
+- Added no-wrap and ellipsis behavior to summary rows, account text, intro
+  text, module titles, module summaries, and capability chips.
+- Added `min-width: 0` to flex/grid children so nowrap text cannot push cards or
+  the page wider than the viewport.
+- Reduced summary, intro, and module card vertical density; kept the mobile
+  account band horizontal instead of stacking it vertically.
+- Bumped Luvelox workspace CSS/JS cache keys to
+  `20260619-workspace-box-align2`.
+- Updated `DESIGN.md` to record compact no-wrap workspace box rhythm.
+
+Verification:
+
+- `git diff --check` passed.
+- `node --check src/frontend/luvelox/app.js` and
+  `node --check src/frontend/luvelox/login-v2.js` passed.
+- Public checks confirmed the new copy/cache keys are served from
+  `https://ai.luvelox.com/index.html` and `index.ko.html`.
+- In-app browser checks at 390px confirmed both English and Korean pages have:
+  - `bodyScrollWidth == viewportWidth == 390`
+  - title one-line/no overflow
+  - hero copy one-line/no overflow
+  - summary rows one-line/no overflow
+  - account band text one-line/no overflow
+  - intro band text one-line/no overflow
+  - module card title/summary/capability text one-line/no overflow
+
+Follow-up duplicate account card cleanup:
+
+- User pointed out that the top-right `Luvelox Demo · 2 modules` chip and the
+  middle horizontal `Luvelox Demo` account card were duplicate account surfaces.
+- Removed the middle `account-band` section from both Luvelox workspace pages:
+  - `src/frontend/luvelox/index.html`
+  - `src/frontend/luvelox/index.ko.html`
+- Removed the now-unused `accountBand` render/click logic from
+  `src/frontend/luvelox/app.js`.
+- Removed the unused `.account-band` and `.account-avatar` CSS rules from
+  `src/frontend/luvelox/styles.css`.
+- Kept the top-right account chip as the single account access point; it still
+  opens the account dialog.
+- Bumped Luvelox workspace CSS/JS cache keys to
+  `20260619-workspace-no-account-band`.
+- Checked native app parity:
+  - iOS also had a toolbar account menu plus a middle `accountBand`; removed
+    the middle account band from
+    `ios/LuveloxMVP/Sources/LuveloxApp/ContentView.swift`.
+  - Android already uses a top-right `A` quick-action icon for account details
+    and does not add `accountBand()` to the visible home screen.
+
+Verification:
+
+- `git diff --check -- src/frontend/luvelox/index.html
+  src/frontend/luvelox/index.ko.html src/frontend/luvelox/app.js
+  src/frontend/luvelox/styles.css` passed.
+- `node --check src/frontend/luvelox/app.js` and
+  `node --check src/frontend/luvelox/login-v2.js` passed.
+- Public checks confirmed `https://ai.luvelox.com/index.html` and
+  `index.ko.html` serve the new cache key, and public `app.js` contains only
+  `accountButton/accountLabel` with no `accountBand`.
+- In-app browser check on `https://ai.luvelox.com/index.ko.html` confirmed:
+  - `.account-band` count is `0`
+  - `.account-chip` count is `1`
+  - visible account text is only in the top-right chip
+  - workspace order is `hero -> summary -> intro -> module grid`
+  - no horizontal overflow
+- iOS `swift test` in `ios/LuveloxMVP` passed: 4 tests.
+- Backend pytest was not rerun successfully in the current terminal Python
+  because the active Python is 3.10 and lacks `fastapi`; the project declares
+  Python `>=3.11`, so this is an environment gap rather than a frontend syntax
+  failure.
+
+Follow-up Luvelox login polish:
+
+- User pointed out that forcing one-line copy on `ai.luvelox.com` broke the
+  left login panel: the title overflowed outside the box and the visual layout
+  felt careless.
+- Changed the Luvelox login title strategy from forced nowrap to deliberate
+  wrapping:
+  - desktop shows `C2ES` and `Forecast Workspace` on two clean lines
+  - mobile keeps the sign-in card first and prevents horizontal overflow
+  - very small screens scale the title down instead of spilling outside the card
+- Reworked the left login panel so it no longer looks empty or unbalanced:
+  - matched the left copy panel height to the right sign-in panel on desktop
+  - added a compact module preview strip for Laminate, Injection, and
+    Optimization
+  - added stable clipping/ellipsis behavior inside the module preview rows
+- Fixed the module logo alignment issue on the right-side account/module cards:
+  - `.module-row span` no longer overrides `.module-icon`
+  - module icon containers explicitly use grid centering
+  - inline SVGs are block-level so they center visually instead of drifting
+    toward the top-left
+- Applied the same polish to English and Korean Luvelox login/workspace entry
+  pages.
+- Bumped public cache keys:
+  - `styles.css?v=20260619-login-polish3` for the main Luvelox entry pages
+  - `login-v2.css?v=20260619-login-polish2` for the account/login v2 pages
+- Updated `DESIGN.md` to clarify that long headings should wrap deliberately,
+  while no-wrap is reserved for short labels and chips.
+
+Verification:
+
+- `git diff --check` passed for the changed Luvelox HTML/CSS and `DESIGN.md`.
+- `node --check src/frontend/luvelox/app.js` and
+  `node --check src/frontend/luvelox/login-v2.js` passed.
+- Public checks confirmed `https://ai.luvelox.com/index.html`,
+  `index.ko.html`, `login-v2.html`, and the updated CSS cache keys are served.
+- In-app browser checks confirmed:
+  - desktop `index.html` has no horizontal overflow
+  - left and right login panels align at the same height
+  - the left title stays inside its card
+  - mobile Korean login has no horizontal overflow
+  - login-v2 module SVGs are centered within their logo boxes
+
+Follow-up Luvelox mobile web adaptation:
+
+- User pointed out that the mobile web still felt like the desktop web version
+  simply stacked vertically.
+- Reworked `ai.luvelox.com` mobile breakpoints in `src/frontend/luvelox/styles.css`
+  so the main Luvelox entry/workspace page behaves like a phone-first surface:
+  - mobile login now uses a compact brand/header panel, a 3-column module preview
+    strip, and a tighter sign-in card instead of a tall stacked desktop pair
+  - mobile workspace uses a compact hero, account/sign-out controls in one row,
+    3 short workflow chips, a shorter module intro band, and vertical module
+    list cards
+  - module cards hide the full capability grid on mobile because the page's job
+    is module selection; detailed capabilities remain available through the
+    account/access surfaces
+  - adjusted mobile title sizing upward from the previous cramped 25px fallback
+    and removed mobile-only forced nowrap where wrapping is safer
+- Bumped public Luvelox CSS cache keys to
+  `styles.css?v=20260619-mobile-adaptive2` in both English and Korean entry
+  pages.
+- Updated `DESIGN.md` responsive guidance to state that mobile web must not be a
+  stacked desktop canvas, and should use compact phone-first headers, workflow
+  chips, and vertical module list cards.
+
+Verification:
+
+- `git diff --check` passed for the changed Luvelox HTML/CSS and `DESIGN.md`.
+- `node --check src/frontend/luvelox/app.js` passed.
+- Public checks confirmed `https://ai.luvelox.com/index.html` serves
+  `20260619-mobile-adaptive2` and the updated CSS is available.
+- In-app browser checks at 390px width confirmed:
+  - English mobile login has no horizontal overflow; login copy height is about
+    271px instead of the previous 557px
+  - English mobile workspace has no horizontal overflow; module cards are about
+    207px tall instead of the previous 297px
+  - Korean mobile workspace has no horizontal overflow; hero, summary chips,
+    intro band, and module cards all fit within the 390px viewport
+  - Korean mobile login has no horizontal overflow and keeps the module preview
+    as a 3-column mobile strip
+- Browser viewport override was reset after verification.
+
+## 2026-06-19 - Injection v2 web app from flow prototype
+
+User asked to turn the Injection flow prototype into an actual v2 web UI while
+keeping the existing Injection version available.
+
+What changed:
+
+- Added a standalone English Injection v2 app:
+  `src/frontend/simple-injection/index-v2.html`
+- Added a standalone Korean Injection v2 app:
+  `src/frontend/simple-injection/index-v2.ko.html`
+- Added dedicated v2 styling:
+  `src/frontend/simple-injection/styles-v2.css`
+- Added dedicated v2 API/UI logic:
+  `src/frontend/simple-injection/app-v2.js`
+- Updated the flow prototype:
+  `src/frontend/simple-injection/injection-v2-flow.html`
+  - added an `Open v2` link to the actual v2 app
+- Left the existing classic Injection files untouched:
+  `src/frontend/simple-injection/index.html`,
+  `src/frontend/simple-injection/index.ko.html`,
+  `src/frontend/simple-injection/styles.css`, and
+  `src/frontend/simple-injection/app.js`
+- Updated `DESIGN.md` to record Injection v2 as a real web app surface, not only
+  a flow prototype.
+
+Injection v2 behavior:
+
+- Loads actual Simple Injection models from
+  `/api/v1/simple-injection/models`.
+- Loads actual DOE geometry/process options from
+  `/api/v1/simple-injection/doe`.
+- Defaults to `G18 / P07` when available.
+- Uses simplified public model labels:
+  - `Injection - Machine Learning`
+  - `Injection - Deep Learning`
+  - `Injection - Operator Learning`
+  - corresponding Filling labels
+- Keeps editable DOE-derived geometry/process fields in the v2 form.
+- Renders a live SVG shape preview from selected geometry dimensions, gate size,
+  and hole diameter.
+- Runs the actual prediction endpoint:
+  `/api/v1/simple-injection/predict/sprue-pressure`.
+- Renders:
+  - max sprue pressure
+  - max time
+  - curve point count
+  - sprue pressure canvas
+  - filling pressure histogram rows
+  - prediction notes
+- Includes a Moldex3D CSV comparison panel wired to
+  `/api/v1/simple-injection/compare/moldex3d` after a prediction exists.
+
+Public URLs:
+
+- `https://injection.luvelox.com/index-v2.html`
+- `https://injection.luvelox.com/index-v2.ko.html`
+- Current cache key: `20260619-injection-v2-5`
+
+Verification:
+
+- `git diff --check` passed for Injection v2 HTML/CSS/JS and `DESIGN.md`.
+- `node --check src/frontend/simple-injection/app-v2.js` passed.
+- Public curl checks confirmed:
+  - English v2 page serves the new cache key and v2 markup
+  - Korean v2 page serves the new cache key and v2 markup
+  - v2 CSS and JS are publicly available
+  - the flow prototype now links to `index-v2.html`
+- Direct public API prediction check for `G18 / P07` returned:
+  - status 200
+  - max pressure about 87.7 MPa
+  - 128 sprue curve points
+  - 10 filling pressure bins
+- In-app browser checks confirmed:
+  - API status reaches `API ready`
+  - model and DOE selects populate
+  - live shape SVG renders
+  - desktop 1280x900 has no horizontal overflow and the primary prediction
+    button fits inside the viewport after layout compaction
+  - mobile 390x844 has no horizontal overflow, shape preview renders, and the
+    primary prediction button is visible in the first viewport
+  - clicking prediction renders result state with 87.7 MPa max pressure, 128
+    curve points, 10 filling rows, `G18_P07` comparison sample, and no visible
+    error
+- Browser viewport override was reset after verification and the in-app browser
+  was left on the Injection v2 page.
+
+Follow-up Laminate mobile ply preview:
+
+- User liked the one-page mobile layout, but asked to show the ply stack image
+  again on `laminate.luvelox.com` mobile because visuals help users understand
+  the theta changes.
+- Added compact mobile-only live ply previews inside both active forecast forms:
+  - Response Forecast form
+  - u3 Forecast form
+- Placement: between the model selector and theta controls, so changing theta
+  immediately affects the visible ply stack before the user runs prediction.
+- Kept the large desktop/right-side `Live laminate preview` panel hidden on the
+  mobile first screen; only the compact visual strip is shown there.
+- Updated `app-v2.js` so all stack preview targets render from the same active
+  Case/theta state. SVG defs now use per-preview IDs to avoid duplicated
+  gradient/pattern collisions.
+- Added short-height mobile handling: standard mobile gets a 78px preview strip;
+  small 375x667-style screens get a 58px strip so the prediction button still
+  fits in one viewport.
+- Bumped DD Laminate v2 public cache keys:
+  - `styles-v2.css?v=20260619-mobile-ply2`
+  - `app-v2.js?v=20260619-mobile-ply2`
+- Updated `DESIGN.md` responsive guidance: DD Laminate v2 mobile should keep a
+  compact angle-aware ply stack visual between model selection and theta
+  controls while deferring larger preview/result-heavy surfaces.
+
+Verification:
+
+- `git diff --check` passed for DD Laminate v2 HTML/CSS/JS and `DESIGN.md`.
+- `node --check src/frontend/dd-laminate/app-v2.js` passed.
+- Public curl checks confirmed `https://laminate.luvelox.com/` serves the new
+  cache keys, mobile preview markup, CSS, and multi-preview JS.
+- In-app browser checks confirmed:
+  - 390x844 Response tab: compact preview is visible, contains SVG, sits between
+    model and theta controls, has no horizontal/vertical overflow, and the
+    forecast button remains visible around y=663
+  - theta input change from 30 to 45 updates the readout and the SVG hatch angle
+  - 375x667 Response tab: compact 58px preview is visible, no
+    horizontal/vertical overflow, and forecast button remains visible around
+    y=643
+  - 390x844 u3 tab: compact preview is visible with SVG and no
+    horizontal/vertical overflow
+
+## 2026-06-19 - Injection v2 greenfield flow prototype
+
+User asked to start revising the Injection UI in the same spirit as Laminate v2,
+while keeping the existing Injection version available. The immediate request
+was to create at least five flow screens for team discussion, not to replace the
+live Injection app yet.
+
+What changed:
+
+- Added a standalone Injection v2 flow prototype:
+  `src/frontend/simple-injection/injection-v2-flow.html`
+- Added its dedicated styling:
+  `src/frontend/simple-injection/injection-v2-flow.css`
+- Left the existing Injection pages untouched:
+  `src/frontend/simple-injection/index.html` and
+  `src/frontend/simple-injection/index.ko.html`
+- Updated `DESIGN.md` to record the Injection v2 flow prototype as a product
+  surface and capture responsive guidance.
+
+Prototype flow screens:
+
+1. Workspace
+2. DOE Setup
+3. Process & Model
+4. 3D / Flow Preview
+5. Prediction Result
+6. Validation & Report
+
+Verification:
+
+- `git diff --check` passed for the new Injection v2 HTML/CSS before the memory
+  update.
+- Public curl check confirmed
+  `https://injection.luvelox.com/injection-v2-flow.html` serves the new file
+  and references `injection-v2-flow.css`.
+- In-app browser checks confirmed:
+  - 6 flow screens render
+  - desktop 1280x900 uses a 3-column screen grid with no horizontal overflow
+  - current in-app viewport around 943px uses a 2-column screen grid with no
+    horizontal overflow
+  - mobile 390x844 stacks to a single column with no page-level horizontal
+    overflow
+- Browser viewport override was reset after verification and the prototype was
+  reopened in the in-app browser.
+
+Current status:
+
+- This is a static discussion prototype only.
+- It is not yet connected to the Injection prediction API.
+- Next sensible step is to pick the preferred flow direction, then turn it into
+  a real v2 Injection route/page while keeping the current version available.
+
+Follow-up Laminate one-screen mobile input:
+
+- User asked for `laminate.luvelox.com` to fit on mobile without scrolling,
+  similar to the `ai.luvelox.com` mobile adaptation.
+- Confirmed that `laminate.luvelox.com` serves DD Laminate v2 from
+  `src/frontend/dd-laminate/index-v2.html`.
+- Measured the previous 390x844 mobile layout:
+  - topbar: about 240px
+  - workflow summary: about 300px
+  - mode switch: about 142px
+  - active Response form started around y=765
+  - primary forecast button bottom was around y=1496, far below the viewport
+  - total page scroll height was about 2550px
+- Updated DD Laminate v2 mobile CSS so the initial input state fits in one
+  phone viewport:
+  - compact topbar and hidden mobile hero copy
+  - one-line title treatment on mobile
+  - 3 short workflow chips instead of stacked summary cards
+  - 3-column compact mode switch instead of stacked mode buttons
+  - compact form spacing, input heights, angle controls, and primary button
+  - hidden mobile case formula guide to preserve the one-screen input flow
+  - hidden live laminate preview on mobile first screen
+  - hidden empty result panel until a prediction result exists
+- Added a small `body.has-result` state in `app-v2.js` when predictions render,
+  and removed it during prediction reset, so result panels can still appear
+  after a run while the initial mobile input remains compact.
+- Bumped public cache keys for DD Laminate v2:
+  - `styles-v2.css?v=20260619-one-screen1`
+  - `app-v2.js?v=20260619-one-screen1`
+- Updated `DESIGN.md` responsive guidance to record that DD Laminate v2 mobile
+  should keep the active forecast form and primary action inside one viewport.
+
+Verification:
+
+- `git diff --check` passed for DD Laminate v2 HTML/CSS/JS.
+- `node --check src/frontend/dd-laminate/app-v2.js` passed.
+- Public checks confirmed `https://laminate.luvelox.com/` serves the new CSS/JS
+  cache keys.
+- In-app browser checks confirmed:
+  - English 390x844 Response tab: no horizontal or vertical scroll; forecast
+    button visible at bottom around 584px
+  - English 390x844 u3 tab: no vertical scroll; `Predict u3 Pt` visible around
+    584px
+  - Korean 390x844 Response tab: no horizontal or vertical scroll; forecast
+    button visible around 584px
+  - English 375x667 small mobile check: no horizontal or vertical scroll; button
+    still visible inside the viewport
+- Browser viewport override was reset after verification.
+
+Follow-up Laminate mobile maximum ply preview:
+
+- User said the earlier one-page mobile fit was good, but the live ply drawing
+  should be as large as possible. User also asked to remove the mobile
+  `01/02/03` workflow summary and the `Forecast Setup` / `예측 설정` card above
+  the model section, and emphasized that changes in one language must apply to
+  the other language as well.
+- Updated DD Laminate v2 mobile CSS:
+  - `.summary-strip` is hidden on mobile.
+  - `.form-header` is hidden on mobile.
+  - mobile live stack preview height is increased to 192px on normal phones.
+  - short-height phones use a 168px preview.
+  - the preview SVG transform was adjusted so the enlarged drawing stays framed
+    between model selection and theta controls.
+- Applied the same public cache key to English and Korean v2 pages:
+  - `styles-v2.css?v=20260619-mobile-ply3`
+  - `app-v2.js?v=20260619-mobile-ply3`
+- Updated `DESIGN.md` responsive guidance so Laminate v2 mobile prioritizes a
+  large angle-aware stack visual by suppressing secondary workflow/setup headers.
+
+Verification:
+
+- `git diff --check` passed for DD Laminate v2 HTML/CSS and `DESIGN.md` before
+  this memory update.
+- `node --check src/frontend/dd-laminate/app-v2.js` passed.
+- Public checks confirmed both English and Korean Laminate v2 pages serve
+  `20260619-mobile-ply3`.
+- In-app browser checks confirmed:
+  - English 390x844 Response and u3 tabs: workflow summary and form header are
+    hidden, preview is visible at 192px, preview sits between model and theta
+    controls, no horizontal or vertical overflow, and the primary button remains
+    visible around y=657.
+  - English 375x667 Response tab: preview is visible at 168px, no overflow, and
+    the primary button remains visible around y=633.
+  - Korean 375x667 Response and u3 tabs: same hidden headers, 168px preview, no
+    overflow, and primary button visible around y=633.
+- Browser viewport override was reset after verification and the browser was
+  left on `https://laminate.luvelox.com/?v=mobile-ply3`.
+
+Follow-up Laminate adaptive mobile ply preview:
+
+- User asked whether the mobile ply image could adapt so tall/large phones
+  such as Galaxy Fold, Flip, Ultra, and iPhone Pro Max can show the full stack
+  better.
+- Updated DD Laminate v2 mobile CSS:
+  - `.mobile-stack-preview` now uses a responsive `clamp()` height driven by
+    both viewport width and remaining viewport height.
+  - The target visual ratio follows the generated SVG viewBox ratio
+    `1160:760`, so large phones can show the full ply stack instead of using
+    the old fixed crop.
+  - The SVG now fills the preview viewport with `height: 100%` and no transform
+    crop.
+  - Short phones still clamp down so the prediction button stays in the first
+    viewport.
+- Updated English and Korean cache keys to:
+  - `styles-v2.css?v=20260619-mobile-ply5`
+  - `app-v2.js?v=20260619-mobile-ply5`
+- Updated `DESIGN.md` responsive guidance to record that the Laminate mobile ply
+  visual should adapt to tall/large phones while preserving first-viewport
+  reachability on short phones.
+
+Verification:
+
+- `git diff --check` passed for DD Laminate v2 HTML/CSS and `DESIGN.md`.
+- `node --check src/frontend/dd-laminate/app-v2.js` passed.
+- Public checks confirmed both English and Korean Laminate pages serve
+  `20260619-mobile-ply5`, and public CSS contains the `100svh - 490px`
+  responsive height calculation.
+- In-app browser checks confirmed:
+  - 375x667 English Response: preview height 177px, no horizontal/vertical
+    overflow, button visible around y=642.
+  - 390x844 English Response: preview height 228px, no overflow, button visible
+    around y=693.
+  - 430x932 English Response: preview height 254px, no overflow, button visible
+    around y=719.
+  - 673x841 English Response: preview height 351px, no overflow, button visible
+    around y=816.
+  - 430x932 English and Korean u3 tabs: preview height 254px, no overflow, and
+    button visible around y=719.
+- Browser viewport override was reset after verification and the browser was
+  left on `https://laminate.luvelox.com/?v=mobile-ply5`.
+
+Luvelox real account signup/login foundation:
+
+- User asked to move from visual-only web/app login pages to real login with a
+  database and signup page.
+- Added a SQLite-backed Luvelox auth store at
+  `src/backend/services/luvelox_auth_store.py`.
+  - Default DB path: `data/luvelox_auth.sqlite3`.
+  - Override path for tests/deployment: `LUVELOX_AUTH_DB_PATH`.
+  - Stores users, PBKDF2 password hashes, session tokens, module entitlements,
+    and access requests.
+  - Seeds legacy demo accounts/tokens so existing demo clients keep working.
+- Updated `src/backend/api/v1/modules.py`:
+  - Added `POST /api/v1/modules/auth/signup`.
+  - Added `POST /api/v1/modules/auth/login`.
+  - Kept `POST /api/v1/modules/auth/demo-login` for demo compatibility.
+  - `GET /api/v1/modules/me` now resolves real bearer session tokens through
+    the auth DB.
+  - module access requests are now recorded in the auth DB.
+- Updated Luvelox web login/workspace pages:
+  - English and Korean workspace login cards now support switching between
+    sign-in and account creation.
+  - `login-v2` English/Korean entry pages also support account creation.
+  - Real accounts call `/auth/signup` and `/auth/login`; demo button still uses
+    the demo endpoint/fallback.
+- Updated Luvelox iOS app:
+  - Added signup payload/client call.
+  - Login now calls the real `/auth/login` route.
+  - Login screen can switch to create-account mode with name/company fields.
+- Updated Luvelox Android app:
+  - Added `/auth/login`, `/auth/signup`, and demo-login URL handling.
+  - Login card can switch to create-account mode with name/company fields.
+  - Stored session format remains unchanged.
+
+Verification:
+
+- `.venv/bin/pytest tests/backend/test_luvelox_modules.py -q` passed:
+  12 tests.
+- `.venv/bin/ruff check` passed for the changed auth backend/test files.
+- `node --check src/frontend/luvelox/app.js` passed.
+- `node --check src/frontend/luvelox/login-v2.js` passed.
+- `cd ios/LuveloxMVP && swift test` passed: 4 tests.
+- FastAPI smoke check confirmed signup, login, and bearer `/modules/me` using
+  a temporary SQLite auth DB.
+- Android Gradle build could not run on this machine because no Java Runtime /
+  JDK 17 is installed; Gradle stopped before compiling project code.
+
+Luvelox auth field visibility tweak:
+
+- User clarified that name/company should not appear during login; they are
+  only needed for signup.
+- Confirmed iOS/Android already gate name/company fields behind signup mode.
+- Bumped Luvelox web cache keys so browsers load the CSS/JS where signup fields
+  are hidden in login mode:
+  - `styles.css?v=20260619-auth-fields1`
+  - `app.js?v=20260619-auth-fields1`
+  - `login-v2.css?v=20260619-auth-fields1`
+  - `login-v2.js?v=20260619-auth-fields1`
+
+Verification:
+
+- `node --check src/frontend/luvelox/app.js` passed.
+- `node --check src/frontend/luvelox/login-v2.js` passed.
+- `git diff --check` passed for the touched Luvelox web auth files.
+
+Luvelox login Korean entry:
+
+- User noted the login page did not expose Korean.
+- Added visible language switches:
+  - English login pages show `한국어`.
+  - Korean login pages show `English`.
+- Applied this to both the `login-v2` entry pages and the workspace login pages.
+- Bumped Luvelox web cache keys to `20260619-login-lang1`.
+
+Verification:
+
+- `node --check src/frontend/luvelox/app.js` passed.
+- `node --check src/frontend/luvelox/login-v2.js` passed.
+- `git diff --check` passed for the touched Luvelox web language files.
+
+Luvelox login button sizing:
+
+- User asked to make `Continue demo` smaller and ensure `Sign in` is fully
+  visible.
+- Updated Luvelox web login pages:
+  - `Sign in` / `로그인` now occupies the full primary row.
+  - demo action is shortened to `Demo` / `데모` and styled as a smaller
+    secondary button.
+  - Applied to both `login-v2` and workspace login pages in English/Korean.
+- Bumped Luvelox web cache keys to `20260619-login-buttons1`.
+
+Verification:
+
+- `node --check src/frontend/luvelox/app.js` passed.
+- `node --check src/frontend/luvelox/login-v2.js` passed.
+- `git diff --check` passed for the touched Luvelox login button files.
+
+## 2026-06-19 - Injection v2 parametric preview and setup polish
+
+User said Injection v2 still looked too close to v1, asked to switch Live
+Preview back toward the previous Parametric mode, and asked for substantial
+Forecast setup cleanup because text was overlapping.
+
+What changed:
+
+- Updated Injection v2 English and Korean pages:
+  - `src/frontend/simple-injection/index-v2.html`
+  - `src/frontend/simple-injection/index-v2.ko.html`
+- Updated Injection v2 styling:
+  `src/frontend/simple-injection/styles-v2.css`
+- Updated Injection v2 UI logic:
+  `src/frontend/simple-injection/app-v2.js`
+- Replaced the static v2 SVG-only preview path with a Three.js-backed
+  Parametric mold preview:
+  - dynamically imports `vendor/three.module.r160.js`
+  - renders the DOE plate, center hole, edge gate, and flow tubes from the
+    selected geometry/process payload
+  - supports drag rotation, zoom in/out, reset controls, and SVG fallback
+- Reworked Forecast setup:
+  - grouped model, DOE, prevention check, and process controls into compact
+    setup blocks
+  - shortened model labels to keep model selects readable
+  - made process controls a compact two-column card layout with inline numeric
+    inputs and bars
+  - hid extra setup copy that was causing density/overlap issues
+  - hid the secondary workflow summary on mobile so the prediction button stays
+    in the first viewport
+- Applied the same changes to English and Korean pages.
+- Updated `DESIGN.md` so Injection v2 now explicitly uses compact setup blocks,
+  a Three.js parametric mold preview, and mobile behavior that prioritizes the
+  primary prediction action.
+- Current public cache key:
+  `20260619-injection-v2-12`
+
+Verification:
+
+- `node --check src/frontend/simple-injection/app-v2.js` passed.
+- `git diff --check` passed for Injection v2 HTML/CSS/JS and `DESIGN.md`.
+- Public checks confirmed English and Korean Injection v2 pages serve
+  `20260619-injection-v2-12`, and public JS contains the Three.js dynamic
+  import plus `renderParametricShape`.
+- In-app browser check confirmed:
+  - API status reaches `API ready`
+  - selected model reads `Machine Learning (Recommended)`
+  - Parametric preview renders as a canvas, not the SVG fallback
+- Chrome/Playwright viewport checks confirmed:
+  - desktop 1280x900: no horizontal overflow, meaningful UI overflow list is
+    empty, Parametric canvas renders, and Predict button bottom is y=884
+  - mobile English 390x844: no horizontal overflow, meaningful UI overflow list
+    is empty, Parametric canvas renders, and Predict button bottom is y=795
+  - mobile Korean 390x844: no horizontal overflow, meaningful UI overflow list
+    is empty, Parametric canvas renders, and Predict button bottom is y=795
+  - native select controls may report scrollWidth overflow in English because
+    browser measurement includes all option strings, but the selected displayed
+    value is the shortened model label
+- Three.js visual checks:
+  - desktop canvas screenshot: non-transparent ratio 1.0, luminance variance
+    924.19 before drag, average pixel delta 14.05 after drag
+  - mobile canvas screenshot: non-transparent ratio 1.0, luminance variance
+    1132.84 before drag, average pixel delta 17.28 after drag
+  - screenshots saved to:
+    `/var/folders/7p/c3j_sb0j539805ngspmnb34r0000gn/T/injection-v2-desktop-viewer.png`
+    and
+    `/var/folders/7p/c3j_sb0j539805ngspmnb34r0000gn/T/injection-v2-mobile-viewer.png`
+
+## 2026-06-19 - Luvelox Native Workspace Parity With Web
+
+User noted that the native app view for `ai.luvelox.com/index.html` did not
+match the web page closely enough, and asked to use the web page as the source
+of truth.
+
+What changed:
+
+- Updated the unified iOS Luvelox app entry screen:
+  - login hero now follows the web `C2ES AI Workspace` /
+    `C2ES Forecast Workspace` hierarchy
+  - login form title now matches the web `Sign in` state
+  - removed the extra top toolbar account menu so account, refresh, and sign
+    out live inside the page like the web version
+  - workspace home now uses the same hero, account chip, summary strip,
+    dark `Prediction modules` intro band, and module-card hierarchy
+  - remote module catalog responses are normalized to the same short web copy
+    for Laminate, Injection, and Optimization
+- Updated the unified Android Luvelox app entry screen:
+  - replaced the older `CAE-AI` / `UNIFIED CAE-AI WORKSPACE` shell with the
+    web-style `C2ES AI Workspace` / `C2ES Forecast Workspace` login and home
+    cards
+  - added the web-style Laminate / Injection / Optimization preview strip
+  - changed the home summary strip to `Account`, `Choose module`, `Forecast`
+  - restyled the dark `Prediction modules` intro band with an internal refresh
+    action
+  - removed the visible API prefix from module cards
+  - gave module cards web-matched short summaries, accent colors, badges, and
+    `L` / `I` / `O` icons
+  - normalized remote module catalog responses so connected Android builds keep
+    the same web copy
+- Updated `DESIGN.md` to record that the Luvelox native unified app entry must
+  mirror `ai.luvelox.com/index.html` for login, account status, workspace
+  summary, and module card hierarchy.
+
+Verification:
+
+- `cd ios/LuveloxMVP && swift test` passed: 4 tests.
+- `cd android/LuveloxMVP && JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home gradle :app:assembleDebug` passed.
+- `git diff --check` passed for the changed iOS, Android, and design files.
+- Old workspace/app copy search found no remaining `CAE-AI WORKSPACE`,
+  `UNIFIED CAE-AI`, `C2ES App`, `C2ES MVP workspace`, `C2ES server`, or
+  long v1 module summaries in the touched native workspace files.
+
+## 2026-06-19 - Injection v2 Predicted Flow Preview Restored
+
+User noticed that Injection v2's Parametric Preview no longer reflected the
+prediction result after running prediction, and asked to restore it even if the
+preview gets heavier. After seeing the first pass, user correctly pointed out
+that the visual looked too much like an actual injection-flow path.
+
+What changed:
+
+- Restored prediction-aware preview rendering in
+  `src/frontend/simple-injection/app-v2.js`.
+- The Parametric Preview now changes after `Predict Sprue & Filling`:
+  - predicted filling pressure bins drive heat cells across the plate
+  - predicted sprue peak and filling distribution drive a gate-based
+    fill-front/pressure map
+  - preview title/copy and active run chip update to the predicted result
+- Removed the over-literal long animated stream tubes from the predicted result
+  overlay; the preview now uses short gate-entry guides, progressive fill-front
+  bands, and a pressure heat map instead.
+- The SVG fallback also gets an animated predicted pressure-map overlay, so the
+  result signal remains visible if Three.js cannot load.
+- Input changes clear the previous prediction map by default so stale result
+  overlays do not remain attached to new DOE values.
+- English and Korean Injection v2 pages now load cache key
+  `20260619-injection-v2-14`.
+- Updated `DESIGN.md` so Injection v2's Three.js parametric preview explicitly
+  includes the predicted filling-pressure/fill-front map and user-triggered
+  result motion.
+
+Verification:
+
+- `node --check src/frontend/simple-injection/app-v2.js` passed.
+- `git diff --check` passed for Injection v2 JS/HTML files before the memory
+  update.
+- Public HTML now serves `20260619-injection-v2-14` for CSS/JS.
+- Public JS now contains `Predicted filling pressure preview`,
+  `gate-based fill-front map`, `fillFrontSegments`, and
+  `addPredictionFrontBand`.
+- Direct public prediction API smoke check for `G18 / P07` returned:
+  - max sprue pressure `87.7 MPa`
+  - filling max `26.27 MPa`
+  - 10 filling-pressure bins
+- In-app browser click verification was blocked by a stale tab-handle issue, so
+  this correction was verified through public HTML/JS fetches, syntax checks,
+  patch checks, and the public prediction API response.
+
+## 2026-06-19 - Injection v2 Parametric Preview 360 Rotation
+
+User asked for Injection v2's Parametric Preview to rotate 360 degrees like v1.
+
+What changed:
+
+- Removed the v2 vertical rotation clamp in
+  `src/frontend/simple-injection/app-v2.js`.
+- Dragging the preview now updates:
+  - horizontal movement -> `group.rotation.z`
+  - vertical movement -> unrestricted `group.rotation.x`
+- Added `pointercancel` handling so interrupted touch gestures do not leave the
+  preview stuck in dragging state.
+- Added `cursor: grab`, `cursor: grabbing`, `touch-action: none`, and
+  `user-select: none` to the v2 viewer plate so desktop and mobile drag behavior
+  feels like a direct 3D manipulation surface.
+- English and Korean Injection v2 pages now load cache key
+  `20260619-injection-v2-15`.
+- Updated `DESIGN.md` to record that Injection v2 Parametric Preview should
+  match v1's free 360-degree drag rotation.
+
+Verification:
+
+- `node --check src/frontend/simple-injection/app-v2.js` passed.
+- `git diff --check` passed for Injection v2 JS/CSS/HTML files.
+- Public English and Korean Injection v2 HTML both serve
+  `20260619-injection-v2-15`.
+- Public v15 JS contains unrestricted `rotation.x += dy * 0.006` and
+  `pointercancel`.
+- Public v15 CSS contains `touch-action: none`, `cursor: grab`, and
+  `cursor: grabbing`.
+
+## 2026-06-19 - Injection v2 Sprue Chart and Small-Window Result Review
+
+User asked for the Injection v2 Sprue Pressure graph to look more like v1 and
+noted that, on small windows, the Setup panel kept following the scroll and made
+the result hard to review.
+
+What changed:
+
+- Updated `src/frontend/simple-injection/app-v2.js` Sprue Pressure canvas
+  rendering to match the v1 chart style more closely:
+  - pale chart background
+  - left/bottom axes
+  - horizontal grid lines
+  - y-axis tick labels
+  - x-axis tick labels
+  - `Time (s)` and `Sprue pressure (MPa)` axis labels
+  - v1-style blue/cyan/green gradient curve
+  - removed the extra v2 peak marker from the graph itself
+- Updated English and Korean v2 chart canvases from `760x320` to v1-like
+  `760x360`.
+- Disabled sticky Setup behavior for:
+  - viewport widths at or below `1180px`
+  - viewport heights at or below `760px`
+  so result review is not obstructed by the input panel on smaller windows.
+- English and Korean Injection v2 pages now load cache key
+  `20260619-injection-v2-16`.
+- Updated `DESIGN.md` to record the v1-like Sprue chart style and small-window
+  non-sticky Setup rule.
+
+Verification:
+
+- `node --check src/frontend/simple-injection/app-v2.js` passed.
+- `git diff --check` passed for Injection v2 JS/CSS/HTML files.
+- Public English and Korean Injection v2 HTML both serve
+  `20260619-injection-v2-16` and `pressure-canvas` size `760x360`.
+- Public v16 JS contains `timeAxis`, `pressureAxis`, `createLinearGradient`,
+  and v1-style gradient color stops.
+- Public v16 CSS contains the sticky default plus `position: static` overrides
+  for `max-width: 1180px`, `max-height: 760px`, and mobile widths.
+
+## 2026-06-19 - Injection v2 DOE User Input State
+
+User asked for Injection v2 to match v1 behavior where manually editing Geometry
+or Process values changes the DOE selector to a User Input state.
+
+What changed:
+
+- Added v1-style `manual` DOE options to Injection v2:
+  - `User input (geometry)` / `사용자 입력 (형상)`
+  - `User input (process)` / `사용자 입력 (공정)`
+- Geometry fields now switch Geometry DOE to User Input when edited:
+  - `L_mm`, `W_mm`, `t_mm`, `D_mm`, `R_mm`, `gate_type`,
+    `gate_size_width_mm`, `gate_size_height_mm`
+- Process fields now switch Process DOE to User Input when edited:
+  - `melt_temp_C`, `mold_temp_C`, `injection_time_s`,
+    `packing_pressure_MPa`, `packing_time_s`
+- Preset DOE application is guarded by `applyingDoeValues`, so choosing a preset
+  does not immediately mark it as User Input.
+- If prediction inputs include `manual`, the Moldex3D comparison sample id is
+  no longer auto-filled as a preset pair.
+- English and Korean Injection v2 pages now load cache key
+  `20260619-injection-v2-17`.
+- Updated `DESIGN.md` to record that v2 should match v1's DOE User Input
+  behavior.
+
+Verification:
+
+- `node --check src/frontend/simple-injection/app-v2.js` passed.
+- `git diff --check` passed for Injection v2 JS/HTML files.
+- Public English and Korean Injection v2 HTML both serve
+  `20260619-injection-v2-17`.
+- Public v17 JS contains `User input (geometry)`, `사용자 입력 (형상)`,
+  `CUSTOM_GEOMETRY_ID`, `markCustomGeometry`, and manual comparison sample
+  handling.
+
+## 2026-06-19 - Luvelox Separate Account Creation Page
+
+User asked to move `Create account` out of the login form into a separate page
+and collect `Name`, `Company`, `Location`, `Mobile`, `Email`, and `Password`.
+
+What changed:
+
+- Added standalone English/Korean signup pages:
+  - `src/frontend/luvelox/signup-v2.html`
+  - `src/frontend/luvelox/signup-v2.ko.html`
+  - `src/frontend/luvelox/signup-v2.js`
+- Updated Luvelox login/workspace login screens so `Create account` navigates
+  to the new signup page instead of toggling inline fields.
+- Kept login focused on only email/password plus demo access.
+- Extended the Luvelox auth store and API user DTO to persist and return
+  `location` and `mobile` alongside name/company/email.
+- Added SQLite migration logic so existing `users` tables get `location` and
+  `mobile` columns automatically.
+- Added public DD Laminate standalone routes for `/signup-v2.html`,
+  `/signup-v2.ko.html`, and `/signup-v2.js` so `ai.luvelox.com` can serve the
+  signup flow even when routed through the standalone app.
+- Added tests for signup page serving and signup API persistence of location
+  and mobile.
+
+Verification:
+
+- `node --check src/frontend/luvelox/app.js`
+- `node --check src/frontend/luvelox/login-v2.js`
+- `node --check src/frontend/luvelox/signup-v2.js`
+- `.venv/bin/ruff check src/backend/api/v1/modules.py src/backend/services/luvelox_auth_store.py src/backend/dd_laminate_app.py tests/backend/test_luvelox_modules.py tests/backend/test_dd_laminate_ios_contract.py`
+- `.venv/bin/pytest tests/backend/test_luvelox_modules.py tests/backend/test_dd_laminate_ios_contract.py -q`
+  passed: 24 tests, with the existing `asyncio_mode` pytest config warning.
+- `git diff --check` passed for the touched signup/login/auth files.
+
+## 2026-06-19 - Luvelox Email ID Hint And Forgot Password Flow
+
+User asked to make it clear that email is used as the sign-in ID, and to add a
+Forgot password flow authenticated by name and email.
+
+What changed:
+
+- Added sign-in ID helper text on Luvelox login and signup screens:
+  - English: `This email is used as your sign-in ID.`
+  - Korean: `이 이메일이 로그인 ID로 사용됩니다.`
+- Added Forgot password links on the English/Korean login pages and workspace
+  login cards.
+- Added standalone English/Korean password reset pages:
+  - `src/frontend/luvelox/forgot-v2.html`
+  - `src/frontend/luvelox/forgot-v2.ko.html`
+  - `src/frontend/luvelox/forgot-v2.js`
+- Added `POST /api/v1/modules/auth/forgot-password`.
+- Implemented reset behavior in `luvelox_auth_store`:
+  - verifies account by normalized email plus case-insensitive normalized name
+  - requires the new password to be at least 8 characters
+  - updates password hash/salt
+  - invalidates existing sessions for that user
+  - returns a fresh login session
+- Added DD Laminate standalone static routes for `forgot-v2` pages/scripts so
+  `ai.luvelox.com` can serve the flow through either Luvelox or standalone app
+  routing.
+- Added backend tests for successful reset, old-password rejection, wrong-name
+  rejection, and public static route coverage.
+
+Verification:
+
+- `node --check src/frontend/luvelox/app.js`
+- `node --check src/frontend/luvelox/login-v2.js`
+- `node --check src/frontend/luvelox/signup-v2.js`
+- `node --check src/frontend/luvelox/forgot-v2.js`
+- `.venv/bin/ruff check src/backend/api/v1/modules.py src/backend/services/luvelox_auth_store.py src/backend/dd_laminate_app.py tests/backend/test_luvelox_modules.py tests/backend/test_dd_laminate_ios_contract.py`
+- `.venv/bin/pytest tests/backend/test_luvelox_modules.py tests/backend/test_dd_laminate_ios_contract.py -q`
+  passed: 26 tests, with the existing `asyncio_mode` pytest config warning.
+
+## 2026-06-19 - Public Account Links On ai.luvelox.com
+
+User could not open the previously mentioned local signup URL and asked to use
+`ai.luvelox.com/signup-v2.html` style URLs instead.
+
+What changed:
+
+- Restarted the public DD Laminate/Luvelox server on port `8000`, which is the
+  Cloudflare tunnel target for `ai.luvelox.com`.
+- Confirmed the earlier 404 was from the stale server process, not from the
+  route definitions.
+- Updated Luvelox account-flow links to use absolute public URLs:
+  - `https://ai.luvelox.com/signup-v2.html`
+  - `https://ai.luvelox.com/signup-v2.ko.html`
+  - `https://ai.luvelox.com/forgot-v2.html`
+  - `https://ai.luvelox.com/forgot-v2.ko.html`
+  - `https://ai.luvelox.com/login-v2.html`
+  - `https://ai.luvelox.com/login-v2.ko.html`
+- Updated login/signup/forgot success redirects to return to
+  `https://ai.luvelox.com/index.html` or `index.ko.html`.
+
+Verification:
+
+- Public GET checks confirmed:
+  - `https://ai.luvelox.com/signup-v2.html` -> `200`
+  - `https://ai.luvelox.com/signup-v2.ko.html` -> `200`
+  - `https://ai.luvelox.com/forgot-v2.html` -> `200`
+- Public login page now contains:
+  - `href="https://ai.luvelox.com/signup-v2.html"`
+  - `href="https://ai.luvelox.com/forgot-v2.html"`
+- `node --check` passed for `login-v2.js`, `signup-v2.js`, and
+  `forgot-v2.js`.
+- `.venv/bin/pytest tests/backend/test_luvelox_modules.py tests/backend/test_dd_laminate_ios_contract.py -q`
+  passed: 26 tests, with the existing `asyncio_mode` pytest config warning.
+- `git diff --check` passed for the touched Luvelox account-flow files.
+
+## 2026-06-19 - Module Pages Link Back To User Page
+
+User clarified that the module selection page is effectively the User Page and
+asked for Laminate and Injection pages to include a button returning there.
+
+What changed:
+
+- Added a `Modules` button to English Laminate pages:
+  - `src/frontend/dd-laminate/index-v2.html`
+  - `src/frontend/dd-laminate/index.html`
+- Added a `모듈 선택` button to Korean Laminate pages:
+  - `src/frontend/dd-laminate/index-v2.ko.html`
+  - `src/frontend/dd-laminate/index.ko.html`
+- Added the same English/Korean User Page return buttons to Injection:
+  - `src/frontend/simple-injection/index-v2.html`
+  - `src/frontend/simple-injection/index-v2.ko.html`
+  - `src/frontend/simple-injection/index.html`
+  - `src/frontend/simple-injection/index.ko.html`
+- Buttons point to:
+  - `https://ai.luvelox.com/index.html`
+  - `https://ai.luvelox.com/index.ko.html`
+- Added backend/static HTML tests so both Laminate and Injection pages must keep
+  the User Page return links.
+
+Verification:
+
+- `.venv/bin/pytest tests/backend/test_dd_laminate_ios_contract.py tests/backend/test_simple_injection_model_labels.py -q`
+  passed: 14 tests, with the existing `asyncio_mode` pytest config warning.
+- `git diff --check` passed for touched Laminate/Injection HTML and tests.
+- Public GET checks confirmed:
+  - `https://laminate.luvelox.com/` contains the `Modules` link
+  - `https://laminate.luvelox.com/dd-laminate-v2-ko` contains `모듈 선택`
+  - `https://injection.luvelox.com/index-v2.html` contains the `Modules` link
+  - `https://injection.luvelox.com/index-v2.ko.html` contains `모듈 선택`
+
+## 2026-06-19 - Luvelox Admin User Management Page
+
+User asked where registered user information can be checked and then asked to
+create an admin page.
+
+What changed:
+
+- Added a Luvelox admin users API:
+  - `GET /api/v1/modules/admin/users`
+  - Requires `X-Luvelox-Admin-Token` or `Authorization: Bearer ...`
+  - Uses `LUVELOX_ADMIN_TOKEN`
+  - Returns user profile fields, entitlements, session count, and last session
+    timestamp.
+  - Does not return password hashes or reset credentials.
+- Added admin pages:
+  - `src/frontend/luvelox/admin.html`
+  - `src/frontend/luvelox/admin.ko.html`
+  - `src/frontend/luvelox/admin.js`
+- Added admin table/card styling to `src/frontend/luvelox/styles.css`.
+- Added public routes for `/admin.html`, `/admin.ko.html`, and `/admin.js` on
+  the `dd_laminate_app.py` public server used by `ai.luvelox.com`.
+- Created `scripts/run_public_ai_server.sh` so the public LaunchAgent reads the
+  admin token from `.omx/state/luvelox-admin-token.txt` without storing the
+  secret in the plist.
+- Updated `/Users/danlee/Library/LaunchAgents/com.kyulai.dd-laminate-api.plist`
+  to run `scripts/run_public_ai_server.sh`; this fixed the stale public server
+  that was restarting without the admin token.
+
+Admin URLs:
+
+- `https://ai.luvelox.com/admin.html`
+- `https://ai.luvelox.com/admin.ko.html`
+
+Verification:
+
+- `node --check src/frontend/luvelox/admin.js`
+- `.venv/bin/ruff check src/backend/api/v1/modules.py src/backend/services/luvelox_auth_store.py src/backend/dd_laminate_app.py tests/backend/test_luvelox_modules.py tests/backend/test_dd_laminate_ios_contract.py`
+- `.venv/bin/pytest tests/backend/test_luvelox_modules.py tests/backend/test_dd_laminate_ios_contract.py -q`
+  passed: 31 tests, with the existing `asyncio_mode` pytest config warning.
+- Local admin API with token returned `user_count: 4`.
+- Public admin API via `https://ai.luvelox.com/api/v1/modules/admin/users` with
+  token returned `user_count: 4`.
+- Public admin pages returned `200 text/html` for both English and Korean
+  pages.
+
+## 2026-06-19 - Admin Password Reset
+
+User asked for password reset inside the admin page.
+
+What changed:
+
+- Added `reset_password_by_user_id()` to the Luvelox auth store.
+  - Admin reset updates the password hash/salt.
+  - Existing sessions for that user are revoked.
+  - The function returns only non-sensitive user profile fields.
+- Added admin API:
+  - `POST /api/v1/modules/admin/users/{user_id}/password`
+  - Requires the same `X-Luvelox-Admin-Token` or bearer admin token as the
+    admin user list API.
+  - Accepts `{ "password": "..." }` with the existing 8-character minimum.
+- Added a `Reset password` / `비밀번호 재설정` action button to each row in the
+  admin users table.
+- Bumped admin page asset versions to `20260619-admin2`.
+- Restarted the public `com.kyulai.dd-laminate-api` LaunchAgent so
+  `https://ai.luvelox.com/admin.html` serves the updated UI.
+
+Verification:
+
+- `node --check src/frontend/luvelox/admin.js`
+- `.venv/bin/ruff check src/backend/api/v1/modules.py src/backend/services/luvelox_auth_store.py tests/backend/test_luvelox_modules.py`
+- `.venv/bin/pytest tests/backend/test_luvelox_modules.py tests/backend/test_dd_laminate_ios_contract.py -q`
+  passed: 33 tests, with the existing `asyncio_mode` pytest config warning.
+- Public admin HTML contains `admin2` assets and the `Actions` column.
+- Public admin JS contains the reset-password action.
+- Public reset endpoint returns `401` for an invalid admin token, confirming the
+  live route is protected.
+
+## 2026-06-19 - Admin Module Entitlement Toggles
+
+User confirmed that admin-side module access management is needed.
+
+What changed:
+
+- Added `set_user_entitlements()` to the Luvelox auth store.
+  - Replaces a user's module entitlement set in `user_entitlements`.
+  - Rejects missing users via the existing credentials error path.
+- Added admin entitlement API:
+  - `PUT /api/v1/modules/admin/users/{user_id}/entitlements`
+  - Requires the same admin token as the other admin endpoints.
+  - Accepts `{ "entitlements": ["module.laminate", ...] }`.
+  - Rejects unknown entitlement keys.
+- Extended the admin users response with server-provided module options so the
+  admin UI follows `MODULE_CATALOG` instead of hardcoding module names.
+- Updated the admin table to show module-access toggles per user:
+  - Laminate
+  - Injection
+  - Optimization
+- Changed module-access policy:
+  - Anonymous/demo workspace can still see default active modules.
+  - Logged-in accounts now depend on stored entitlements, so removing a module
+    in admin changes `/api/v1/modules/me` immediately.
+- Bumped admin page asset versions to `20260619-admin3`.
+- Restarted the public `com.kyulai.dd-laminate-api` LaunchAgent so
+  `https://ai.luvelox.com/admin.html` serves the updated UI.
+
+Verification:
+
+- `node --check src/frontend/luvelox/admin.js`
+- `.venv/bin/ruff check src/backend/api/v1/modules.py src/backend/services/luvelox_auth_store.py tests/backend/test_luvelox_modules.py`
+- `.venv/bin/pytest tests/backend/test_luvelox_modules.py tests/backend/test_dd_laminate_ios_contract.py -q`
+  passed: 35 tests, with the existing `asyncio_mode` pytest config warning.
+- Public admin HTML contains `admin3`, `Module access`, and `Actions`.
+- Public admin JS contains the entitlement update endpoint and success/error
+  text.
+
+## 2026-06-19 - Optimization MVP For Laminate Design Search
+
+User asked whether design/optimization is possible in the current state and
+said they wanted to try building it.
+
+What changed:
+
+- Added the first Optimization API:
+  - `POST /api/v1/optimization/search`
+  - Initial domain: `laminate`
+  - Generates bounded Double-Double laminate candidate grids over `case`,
+    `theta1`, and `theta2`.
+  - Calls the existing DD Laminate response predictor for each candidate.
+  - Ranks candidates by:
+    - `balanced`
+    - `maximize_pt`
+    - `maximize_force`
+    - `minimize_displacement`
+    - `target_pt`
+  - Supports constraints:
+    - target Type
+    - minimum confidence
+    - min/max Pt
+    - minimum force
+    - maximum displacement
+  - Limits search size with `max_candidates`.
+- Added `src/backend/api/v1/optimization.py`.
+- Included the optimization router in:
+  - `src/backend/luvelox_app.py`
+  - `src/backend/dd_laminate_app.py`
+- Added a usable Optimization web screen:
+  - `src/frontend/luvelox/optimization.html`
+  - `src/frontend/luvelox/optimization.ko.html`
+  - `src/frontend/luvelox/optimization.js`
+- Added Optimization UI styling in `src/frontend/luvelox/styles.css`.
+- Changed the Optimization catalog entry from planned to active, while keeping
+  it entitlement-gated.
+- Updated the module card route:
+  - English: `https://ai.luvelox.com/optimization.html`
+  - Korean workspace opens `https://ai.luvelox.com/optimization.ko.html`
+- Added public routes for `/optimization.html`, `/optimization.ko.html`, and
+  `/optimization.js` in the public DD/Luvelox server.
+- Restarted the public `com.kyulai.dd-laminate-api` LaunchAgent.
+
+Verification:
+
+- `node --check src/frontend/luvelox/app.js`
+- `node --check src/frontend/luvelox/optimization.js`
+- `.venv/bin/ruff check src/backend/api/v1/optimization.py src/backend/api/v1/modules.py src/backend/luvelox_app.py src/backend/dd_laminate_app.py tests/backend/test_luvelox_modules.py tests/backend/test_dd_laminate_ios_contract.py`
+- `.venv/bin/pytest tests/backend/test_luvelox_modules.py tests/backend/test_dd_laminate_ios_contract.py -q`
+  passed: 39 tests, with the existing `asyncio_mode` pytest config warning.
+- Public API smoke test:
+  - `POST https://ai.luvelox.com/api/v1/optimization/search`
+  - one Case2 / theta1 30 / theta2 -30 candidate
+  - returned one feasible candidate with `predicted_pt`, force, displacement,
+    Type, and confidence.
+- Public pages returned `200 text/html`:
+  - `https://ai.luvelox.com/optimization.html`
+  - `https://ai.luvelox.com/optimization.ko.html`
+- Public `optimization.js` contains `/api/v1/optimization/search`.
+
+## 2026-06-19 - Optimization Search Speed Fix
+
+User reported that Optimization search did not seem to work.
+
+Root cause:
+
+- The web default search generated 75 candidates:
+  - Case2/Case3/Case4
+  - theta1 -60..60 step 30
+  - theta2 -60..60 step 30
+- The API was calling the full DD Laminate response endpoint for every
+  candidate, which also computed XAI/detail data that is unnecessary for
+  ranking.
+- The classical response predictor loaded the joblib bundle inside each
+  prediction call unless routed through the API cache.
+
+What changed:
+
+- Added `predict_response_from_bundle(...)` in
+  `src/ml/dd_laminate/predict_response_surrogate.py`.
+- Updated DD Laminate response prediction to use `_cached_joblib_model(...)`
+  for classical response models.
+- Added an Optimization fast path that bypasses per-candidate XAI and uses
+  cached classical response bundles for ranking.
+- Reduced the default Optimization search space to 9 candidates:
+  - Case2 only by default
+  - theta1 -30..30 step 30
+  - theta2 -30..30 step 30
+- Updated both English and Korean Optimization pages with the safer defaults.
+- Restarted the public `com.kyulai.dd-laminate-api` LaunchAgent.
+
+Verification:
+
+- Local API smoke test:
+  - before fast path: default 9-candidate search took about 52 seconds.
+  - after fast path: first request about 5.4 seconds, cached request about
+    1.9 seconds.
+- Public API smoke test:
+  - `POST https://ai.luvelox.com/api/v1/optimization/search`
+  - default payload returned `200`, `searched_count=9`,
+    `feasible_count=9`, `skipped_count=0`.
+- Public Korean page confirmed updated defaults:
+  - Case2 checked.
+  - Case3/Case4 unchecked.
+  - theta ranges set to -30..30.
+- `node --check src/frontend/luvelox/optimization.js`
+- `.venv/bin/ruff check src/backend/api/v1/optimization.py src/ml/dd_laminate/predict_response_surrogate.py`
+- `.venv/bin/pytest tests/backend/test_luvelox_modules.py tests/backend/test_dd_laminate_ios_contract.py`
+  passed: 39 tests, with the existing `asyncio_mode` pytest config warning.
+
+## 2026-06-20 - Admin Module In Luvelox Apps
+
+User asked to make the admin page visible from the app while keeping it hidden
+from other users.
+
+Decision:
+
+- Do not create a separate admin app yet.
+- Add an admin-only module inside the unified Luvelox app.
+- Keep the admin module out of the public module catalog.
+- Add it only to `/api/v1/modules/me` when the logged-in account is an admin.
+- Treat these accounts as admin by default:
+  - `danlee@luvelox.com`
+  - `dannylee9295@gmail.com`
+- Allow `LUVELOX_ADMIN_EMAILS` to override the admin email list.
+
+What changed:
+
+- Added a private `ADMIN_MODULE` definition in `src/backend/api/v1/modules.py`.
+- Added `module.admin` as an effective entitlement for admin accounts.
+- Updated admin API authorization so it accepts:
+  - existing `LUVELOX_ADMIN_TOKEN`
+  - admin account session tokens such as `danlee-token`
+- Updated `/api/v1/modules/me`:
+  - `danlee-token` gets Laminate, Injection, Optimization, and Admin.
+  - `demo-token` does not receive Admin.
+- Updated `src/frontend/luvelox/admin.js` so `?session_token=...` or
+  `?admin_token=...` auto-fills the admin token and loads users.
+- Updated iOS Luvelox app:
+  - Admin card appears only when the server returns it.
+  - Admin opens inside the app via `WKWebView`.
+  - Admin URL includes the current app session token.
+- Updated Android Luvelox app:
+  - Added `AdminWebActivity`.
+  - Admin opens inside the app via `WebView`.
+  - Admin URL includes the current app session token.
+
+Verification:
+
+- `node --check src/frontend/luvelox/admin.js`
+- `.venv/bin/ruff check src/backend/api/v1/modules.py tests/backend/test_luvelox_modules.py`
+- `.venv/bin/pytest tests/backend/test_luvelox_modules.py tests/backend/test_dd_laminate_ios_contract.py`
+  passed: 41 tests, with the existing `asyncio_mode` pytest config warning.
+- `swift test` in `ios/LuveloxMVP` passed.
+- `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home gradle :app:assembleDebug`
+  passed in `android/LuveloxMVP`.
+- Restarted the public `com.kyulai.dd-laminate-api` LaunchAgent.
+- Public API checks:
+  - `GET https://laminate.luvelox.com/api/v1/modules/me` with
+    `Authorization: Bearer danlee-token` includes `admin`.
+  - The same endpoint with `demo-token` does not include `admin`.
+  - `GET /api/v1/modules/admin/users` with `X-Luvelox-Admin-Token:
+    danlee-token` returns `200`.
+  - `GET https://ai.luvelox.com/api/v1/modules/admin/users` with
+    `danlee-token` returns `200`, matching the in-app admin WebView origin.
+  - The same admin endpoint with `demo-token` returns `401`.
+
+## 2026-06-20 - Laminate Pt Label Source Check
+
+User asked how the original Laminate Pt values were obtained, because the UI
+now shows a red Predicted Pt and a purple Fit/Intersection Pt on the response
+curve.
+
+Findings:
+
+- For the standard Laminate Case2/Case3/Case4 data, our pipeline did not
+  re-detect Pt from the force-displacement curve. It reads Pt directly from
+  tabular CSV columns such as `Pt`, `PT`, `P1`, `Transition_Load`, or
+  `transition_load`, then writes the curated `transition_load.csv`.
+- The curated Case2/Case3/Case4 files contain explicit rows like
+  `Test_ID,theta1,theta2,Pt,type`; the force-displacement CSV is copied
+  separately and is used for curve shape/modeling, not for deriving the Pt
+  label in that preparation script.
+- Response model targets use `[record.pt, max_displacement, max_force]`; the
+  `record.pt` value comes from the curated transition table.
+- For u3 Pt data, the source is different: the raw folders contain
+  force-displacement CSVs plus plot images. The preparation script parses Pt
+  from plot titles via OCR/regex (`p1_plot_title` preferred, fallback
+  `transition_plot_title`) and stores that in `manifest.csv`.
+- `DD_u3_pt_v2/dataset_summary.json` records 566 u3 samples, with Pt sources:
+  505 from `p1_plot_title` and 61 from `transition_plot_title`.
+- In the frontend, red `Predicted Pt` is the model's predicted scalar Pt placed
+  on the predicted curve by interpolating where curve force equals that Pt.
+- Purple `Fit intersection` is not an original label. It is computed only for
+  visualization by fitting two local linear segments to the predicted curve and
+  drawing their intersection/kink.
+
+Remaining caveat:
+
+- The repository shows how our training data consumed Pt labels, but it does
+  not fully prove how the very first human/source process selected the Pt in
+  the original CSV/plot. For Case2/3/4, that upstream Pt may have been manually
+  or experimentally marked before the data reached us; our code treats it as an
+  existing label.
+
+Follow-up clarification:
+
+- For standard Laminate Case2/Case3/Case4, Type 1, Type 2, and Type 3 all read
+  Pt from the same row-level transition table source. The row's `type` column is
+  used as the class label, and the same row's `Pt` column is used as the Pt
+  target; there is no separate type-specific Pt extraction path.
+- This clarification does not apply to the u3 Pt dataset, whose Pt values were
+  prepared from plot-title OCR into `manifest.csv`.
+- Current Case2/Case3/Case4 response-training scripts default to
+  `data/datasets/DD_cases_2_3_4_curated_v1`, so the relevant transition tables
+  are:
+  - `data/datasets/DD_cases_2_3_4_curated_v1/Case2/transition_load.csv`
+  - `data/datasets/DD_cases_2_3_4_curated_v1/Case3/transition_load.csv`
+  - `data/datasets/DD_cases_2_3_4_curated_v1/Case4/transition_load.csv`
+- Compared those curated transition tables against the raw
+  `data/datasets/Double-Double/{2,3,4}/transition load P1.csv` and
+  `transition load.csv` files:
+  - Curated Case2/3/4 each have 300 rows, matching the raw P1 row count.
+  - After normalizing `Test_001` -> `001` and header case, curated theta/Pt
+    values are exactly identical to raw `transition load P1.csv` for all 900
+    rows.
+  - Curated files are not byte-identical to raw P1 files because curated files
+    normalize headers/test IDs and add the `type` column.
+  - Curated files are not the same as raw `transition load.csv`: theta values
+    match, but Pt differs for all 300 rows in each case.
+
+## 2026-06-20 - Laminate/u3 Curve Chart PPT Ratio
+
+User felt the Laminate and u3 response graphs looked stretched too wide, and
+asked to make them closer to the younger sibling's PPT examples.
+
+Changes:
+
+- Checked the local PPT references (`data/PPT/Final ver2.pptx` and
+  `data/datasets/DD/Presentation_G3MS_Dongwon.pptx`). The relevant
+  force-displacement plots are mostly 2000 x 1200, so their visual ratio is
+  about 5:3.
+- Updated the web response curve canvas from 720 x 300 to 720 x 432 in the
+  Laminate frontend, including the v2 English/Korean pages.
+- Added a fixed 5:3 `aspect-ratio` for `#response-curve-canvas` so the browser
+  does not flatten the curve horizontally.
+- Updated the web curve drawing logic to use a little more vertical padding,
+  start the y-axis scale from zero, and draw subtle gridlines like the PPT
+  charts.
+- Updated the exported result report image so the embedded curve keeps the new
+  taller chart proportion.
+- Updated native iOS and Android Laminate chart views so the plot area is
+  centered inside a 5:3 frame instead of filling every wide container.
+
+Verification:
+
+- `node --check src/frontend/dd-laminate/app.js`
+- `node --check src/frontend/dd-laminate/app-v2.js`
+- `swift build` in `ios/DDLaminateMVP`
+- `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
+  gradle :app:assembleDebug` in `android/DDLaminateMVP`
+- `git diff --check` for the touched graph files
+
+Browser note:
+
+- The v2 page loaded in the in-app browser and confirmed the canvas attribute
+  is now 720 x 432. A full live forecast render could not be reliably completed
+  because local server/API access was inconsistent during the browser smoke
+  check.
+
+## 2026-06-20 - Laminate/u3 Curve Axis Tick Labels
+
+User asked for numeric values to appear on both the x-axis and y-axis of the
+Laminate/u3 graphs.
+
+Changes:
+
+- Added compact numeric tick labels to the web response curve canvas for both
+  x-axis and y-axis. The tick formatter automatically reduces decimals for
+  larger values and keeps enough precision for small displacement values.
+- Applied the same tick-label rendering to the v2 web script, so Response
+  Forecast and u3 Forecast share the same chart treatment.
+- Increased chart padding slightly so axis numbers do not collide with the
+  curve or get clipped.
+- Added axis tick labels and subtle gridlines to the native iOS chart canvas.
+- Added axis tick labels and subtle gridlines to the native Android chart view.
+- Updated Android touch-position math to use the same centered 5:3 plot frame
+  that is used for drawing, so point selection still lines up with the curve.
+
+Verification:
+
+- `node --check src/frontend/dd-laminate/app.js`
+- `node --check src/frontend/dd-laminate/app-v2.js`
+- `git diff --check` for the touched chart files
+- `swift build` in `ios/DDLaminateMVP`
+- `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
+  gradle :app:assembleDebug` in `android/DDLaminateMVP`
+
+## 2026-06-22 - Backend Curve-Fit Metadata for Laminate Graphs
+
+User clarified that the web graph should show the backend kink-fit result
+instead of recalculating the fit only in frontend JavaScript.
+
+Changes:
+
+- Added `kink_fit_details()` in `src/ml/dd_laminate/pt_curve_consistency.py`.
+  It returns the same kink-fit result used by `kink_fit_transition()`, plus
+  first/second fit line slope/intercept, display spans, detected kink, and
+  window indices.
+- Added `curve_fit` to Laminate Forecast ML/DL and u3 Forecast ML/DL prediction
+  outputs.
+- Added optional `curve_fit` to the DD Laminate FastAPI response schemas.
+- Updated the v2 web frontend so `drawResponseCurve()` uses backend
+  `curve_fit` first and only falls back to JavaScript fitting when older
+  responses do not include it.
+- Bumped v2 script cache version to `20260622-backend-fit`.
+- Restarted the local/public DD server on port 8000.
+
+Verification:
+
+- `python -m py_compile` for the changed ML/backend modules.
+- `node --check src/frontend/dd-laminate/app-v2.js`.
+- Local API check for Case2, θ₁=30, θ₂=-30:
+  `predicted_pt = 17163.21208`,
+  `curve_fit.kink.force = 17163.21208`.
+- u3 API check for Case2, θ₁=30, θ₂=-30:
+  `predicted_pt = 10205.06331`,
+  `curve_fit.kink.force = 10205.06331`.
+- Public URL check confirmed
+  `https://laminate.luvelox.com/index-v2.html` loads
+  `app-v2.js?v=20260622-backend-fit`.
+- Public API check confirmed `curve_fit` is present and matches Predicted Pt.
+
+## 2026-06-22 - Show Backend Fit Intersection as Predicted Pt
+
+User asked to hide the red curve-crossing Predicted Pt marker and leave only
+the backend fit-intersection point, but label that point as Predicted Pt.
+
+Changes:
+
+- Updated `src/frontend/dd-laminate/app-v2.js` so the response curve marker is
+  always `bilinearFit.kink` from backend `curve_fit`.
+- Removed the separate red curve-crossing point from the rendered graph.
+- Kept the fit-intersection diamond marker and label, but renamed the label to
+  `Predicted Pt` / `예측 Pt`.
+- Updated English/Korean v2 legends to remove `Fit intersection` and the
+  separate red `Predicted Pt` item.
+- Bumped the v2 frontend cache version to `20260622-fit-pt-label`.
+
+Verification:
+
+- `node --check src/frontend/dd-laminate/app-v2.js`.
+- `rg` confirmed no v2 `Fit intersection`, `Fit 교차점`, or
+  `legend-swatch pt` entries remain.
+- Public page check confirmed
+  `https://laminate.luvelox.com/index-v2.html` loads
+  `app-v2.js?v=20260622-fit-pt-label`.
+
+Follow-up color tweak:
+
+- Changed the Predicted Pt marker, label connector, label card, and legend
+  swatch from purple to amber so it is visually distinct from the purple kink
+  guide line.
+- Bumped v2 CSS/JS cache version to `20260622-pt-amber`.
+- Verified `node --check src/frontend/dd-laminate/app-v2.js`.
+- Public page check confirmed the amber cache version is served.
+
+Follow-up revert:
+
+- User preferred the original purple treatment, so Predicted Pt marker, label,
+  and legend swatch were changed back to purple.
+- Bumped v2 CSS/JS cache version to `20260622-pt-purple`.
+- Verified `node --check src/frontend/dd-laminate/app-v2.js`.
+- Public page check confirmed the purple cache version is served.
+
+## 2026-06-22 - DD Forecast Model Loading and XAI Speed Optimization
+
+User noticed model loading felt slow and asked whether it could be optimized.
+
+Findings:
+
+- Tree/ML forecast model files were partly cached already for Laminate Forecast,
+  but u3 Tree forecast still loaded its joblib bundle per request.
+- Deep Learning forecast endpoints loaded the Torch checkpoint and rebuilt the
+  neural model per request.
+- The largest remaining perceived delay for ML models was live Tree XAI feature
+  masking, not only model file loading.
+
+Changes:
+
+- Added cached Deep Learning artifact builders for Laminate Forecast and u3
+  Forecast so Torch checkpoints and instantiated model objects are reused.
+- Added `predict_response_deep_from_artifacts()`,
+  `predict_u3_forecast_from_bundle()`, and
+  `predict_u3_forecast_deep_from_artifacts()` so API routes can call cached
+  artifacts directly.
+- Changed u3 Tree forecast route to use the existing joblib model cache.
+- Changed live local XAI to mask the strongest 12 global feature candidates
+  instead of every feature on every request.
+- Added an LRU cache for local XAI explanations by `(model, theta1, theta2,
+  case)`.
+- Added server startup warm-up for the primary Laminate/u3 ML and DL forecast
+  models.
+
+Verification:
+
+- `python -m py_compile` passed for changed backend/ML modules.
+- `node --check src/frontend/dd-laminate/app-v2.js` still passed.
+- TestClient benchmark after changes:
+  - Laminate ML: first ~6.9s cold, repeated same input ~0.23s.
+  - u3 ML: first ~4.7s cold, repeated same input ~0.17s.
+  - Laminate DL: ~0.04-0.05s after artifact caching.
+  - u3 DL: ~0.07s after artifact caching.
+- Startup warm-up took about 7.1s and reduced first ML request after warm-up to
+  about 2.3s.
+- Local running server check:
+  - first same Laminate ML request after server warm-up/XAI change: ~2.7s
+  - repeated same input: ~0.25s
+- Public API check returned HTTP 200 and confirmed the new XAI note:
+  "strongest 12 global candidates"; cached public request measured about 0.64s.
+
+## 2026-06-22 - DD Lazy XAI Loading
+
+User chose optimization option 1: show the prediction immediately, then load XAI
+separately after the result is visible.
+
+Changes:
+
+- Added `POST /api/v1/dd-laminate/xai/local` for local theta/case XAI
+  explanations.
+- Removed live XAI calculation from Laminate Forecast and u3 Forecast prediction
+  responses. The responses still include `xai: null` for schema compatibility,
+  but no feature masking is performed during prediction.
+- Updated the v2 web UI so Forecast results render first, then an XAI loading
+  panel appears and automatically fills once `/xai/local` returns.
+- Added request-serial guarding so late XAI responses from a previous input/tab
+  cannot overwrite the current result.
+- Bumped v2 page cache version to `20260622-lazy-xai`.
+
+Verification:
+
+- `python -m py_compile src/backend/api/v1/dd_laminate.py
+  src/backend/dd_laminate_app.py` passed.
+- `node --check src/frontend/dd-laminate/app-v2.js` passed.
+- FastAPI TestClient check:
+  - Laminate Forecast prediction: HTTP 200, ~0.37s, `xai` is `null`.
+  - u3 Forecast prediction: HTTP 200, ~0.17s, `xai` is `null`.
+  - Separate local XAI request: HTTP 200, ~1.90s, returned 35 feature rows.
+
+## 2026-06-22 - u3 Graph Marker Split
+
+User said the u3 graph looked odd after the Pt/fit-consistency changes and asked
+to restore the earlier graph style with separate `Predicted Pt` and
+`Fit Intersection` markers.
+
+Changes:
+
+- For u3 forecast graph drawing only, the frontend now ignores backend
+  `curve_fit` alignment and uses the earlier frontend kink-fit calculation.
+- u3 graphs now draw:
+  - red circle on the curve for `Predicted Pt`
+  - purple diamond for `Fit Intersection`
+- The curve legend switches dynamically:
+  - Laminate Forecast keeps the simpler curve/linear-fit/Predicted Pt legend.
+  - u3 Forecast shows both `Predicted Pt` and `Fit Intersection`.
+- Bumped v2 page cache version to `20260622-u3-split-fit`.
+
+Verification:
+
+- `node --check src/frontend/dd-laminate/app-v2.js` passed.
+
+Follow-up:
+
+- User reported that u3 input `θ₁=-29`, `θ₂=74`, `Case4` still produced an odd
+  graph and that label placement varied too much.
+- Checked the live u3 prediction: predicted Pt about `9355.96`, max
+  displacement about `0.48969`, max force about `57962.90`.
+- Fixed u3 graph rendering so the second linear fit starts at the fit
+  intersection instead of extending left across the early graph. This prevents a
+  long dashed line from visually cutting through the plot on long-displacement
+  u3 curves.
+- Added fixed label-coordinate support to `drawPtLabel()`.
+- For u3 graphs, `Fit Intersection` and `Predicted Pt` labels now use a stable
+  stacked layout near the top of the plot, farther away from the points and
+  curve.
+- Bumped v2 page cache version to `20260622-u3-label-layout`.
+- Verified `node --check src/frontend/dd-laminate/app-v2.js`.
+- Public page check confirmed the new cache version is served.
+
+Second follow-up:
+
+- User clarified that u3 should receive the same fit-intersection correction as
+  the earlier Laminate Forecast check, where:
+  - `Predicted Pt`
+  - `kink_fit_pt_force_after`
+  - recalculated returned-curve kink Pt
+  all match with `diff: 0.0`.
+- Root cause: u3 frontend had been switched back to a local frontend kink-fit
+  calculation, and the backend `curve_fit` metadata also had a mixed state where
+  `kink.force` was corrected but the returned `first_line`/`second_line`
+  intersection could still recompute to a different force.
+- Changed `kink_fit_details()` to accept `target_force`. When supplied, the
+  returned `first_line` and `second_line` intercepts are adjusted so their actual
+  intersection force equals the target Predicted Pt.
+- Passed `target_force=predicted_pt` from Laminate Forecast ML, Laminate
+  Forecast DL, u3 Forecast ML, and u3 Forecast DL prediction paths.
+- Changed u3 frontend rendering back to backend `curve_fit` first, while keeping
+  the u3 display-range normalization so the second linear fit starts at the fit
+  intersection for cleaner visuals.
+- Bumped v2 page cache version to `20260622-u3-fit-target`.
+
+Verification:
+
+- `python -m py_compile` passed for the changed ML/API modules.
+- `node --check src/frontend/dd-laminate/app-v2.js` passed.
+- Local direct u3 check for `θ₁=-29`, `θ₂=74`, `Case4`:
+  - `Predicted Pt: 9355.96274`
+  - `kink_fit_pt_force_after: 9355.96274`
+  - `returned curve 재계산 kink Pt: 9355.96274`
+  - `diff: 0.00000000`
+- Restarted the DD server on port 8000.
+- Public API check for the same u3 input returned the same `diff: 0.00000000`.
+- Public page check confirmed `20260622-u3-fit-target` is served.
+
+Revert:
+
+- User clarified that the immediately previous slope drawing was better and the
+  desired fix is different.
+- Reverted the `target_force` fit-intersection metadata change from
+  `kink_fit_details()` and removed `target_force=...` calls from Laminate
+  Forecast/u3 prediction modules.
+- Reverted u3 frontend curve drawing to the previous frontend u3 bilinear fit
+  path instead of prioritizing backend `curve_fit`.
+- Kept the previous u3 label layout improvements from `20260622-u3-label-layout`.
+- Restarted the DD server on port 8000.
+- Verified:
+  - `python -m py_compile` passed for changed ML/API modules.
+  - `node --check src/frontend/dd-laminate/app-v2.js` passed.
+  - Public page serves `20260622-u3-label-layout`.
+  - Public u3 Forecast API returns HTTP 200 for `θ₁=-29`, `θ₂=74`, `Case4`.
+
+Third follow-up:
+
+- User clarified the intended behavior: `Fit Intersection` does not need to
+  match `Predicted Pt`; it should simply sit at the actual intersection of the
+  two drawn linear-fit slopes.
+- Updated u3 graph rendering so the purple `Fit Intersection` marker and guide
+  use `lineIntersection(firstLine, secondLine)` instead of the clamped
+  `bilinearFit.kink` point.
+- Kept the red `Predicted Pt` marker on the predicted curve point.
+- Bumped v2 page cache version to `20260622-u3-true-intersection`.
+- Verified `node --check src/frontend/dd-laminate/app-v2.js`.
+- Public page check confirmed the new cache version is served.
+
+## 2026-06-22 - u3 model recap
+
+- User asked for a detailed recap of the u3 model data and configuration.
+- Current u3 raw data root: `data/datasets/Double-Double/u3`.
+- Current curated u3 dataset root: `data/datasets/DD_u3_pt_v2`.
+- Curated manifest contains 566 labeled records:
+  - Case2: 190
+  - Case3: 174
+  - Case4: 202
+  - folders: `2-2`, `2-3`, `3-2`, `3-3`, `4-2`, `4-3`
+- `x-2` / `x-3` folder suffixes are legacy Type 2 / Type 3 buckets, used as a secondary type label for u3 Forecast; main target is Pt.
+- Main visible u3 Forecast models:
+  - ML: `u3_forecast_physics_v2` -> `models/dd_laminate_u3_forecast_physics_v3/u3_forecast.joblib`
+  - DL: `u3_forecast_goint_physics_v2` -> `models/dd_laminate_u3_forecast_physics_v3/u3_forecast_goint.pt`
+- Current feature builder for both: `theta_physics_v2`, 43 features.
+- Current output grid length: 192 curve points.
+- ML metrics:
+  - ExtraTrees Pt MAE: 223.79 kips
+  - Pt R2: 0.9131
+  - curve normalized RMSE: 0.00702
+  - type accuracy: 97.53%
+  - type macro F1: 96.24%
+- DL/GointMLP metrics:
+  - Pt MAE: 168.65 kips
+  - Pt R2: 0.9226
+  - curve normalized RMSE: 0.01018
+- u3 Pt Finder CSV-based models still exist but are not the main UI path:
+  - ML: `models/dd_laminate_u3_pt_ml_v2/u3_pt_regressor.joblib`
+  - DL: `models/dd_laminate_u3_pt_goint_v2/u3_pt_goint.pt`
+- Main API endpoint: `POST /api/v1/dd-laminate/predict/u3-forecast`.
+
+## 2026-06-22 - Full debugging pass
+
+- User asked for a broad debugging pass over the current codebase and to fix
+  issues where safe.
+- Persistent report written to `docs/debugging-audit-2026-06-22.md`.
+- Verified current state first without reverting existing user/worktree changes.
+- Tests and checks run:
+  - Python: `.venv/bin/python -m pytest tests -q` -> 170 passed.
+  - Python compile: `.venv/bin/python -m compileall -q src scripts tests` -> passed.
+  - DD/API smoke via FastAPI TestClient:
+    - `/health` -> 200.
+    - Laminate response model `response_goint_physics_nn_v2` -> 200.
+    - u3 ML model `u3_forecast_physics_v2` -> 200.
+    - u3 DL model `u3_forecast_goint_physics_v2` -> 200.
+  - JavaScript syntax checks for DD, Luvelox, and Simple Injection frontend
+    files -> passed.
+  - iOS SwiftPM:
+    - `ios/DDLaminateMVP swift test` -> 11 passed.
+    - `ios/LuveloxMVP swift test` -> 4 passed.
+  - Android Gradle debug builds:
+    - Initial runs failed because macOS Java discovery could not find JDK 17.
+    - Re-ran with `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home`.
+    - LuveloxMVP, DDLaminateMVP, and InjectionMVP debug builds all passed.
+- Fixes made:
+  - Replaced deprecated DD standalone FastAPI `@app.on_event("startup")` with
+    lifespan startup.
+  - Hardened DD/u3 response prediction paths with strict curve/probability
+    zipping so model artifact length mismatches fail loudly instead of silently
+    truncating.
+  - Added empty-curve guard in the deep Laminate Forecast smoothing helper.
+  - Removed unused physics-feature temporary variable.
+  - Added strict feature-name/value zipping for compact and neural-friendly
+    physics feature vectors.
+  - Cleaned an unused Pt curve consistency variable.
+  - Added `.gitignore` protection for local Luvelox auth SQLite files and Office
+    lock files.
+- Remaining known risks:
+  - Current `.venv` does not include `pytest-asyncio`, so pytest reports
+    `Unknown config option: asyncio_mode`; `Makefile install-dev` already
+    installs `pytest-asyncio`, so this is an environment setup gap.
+  - Full repo `ruff check src tests scripts` still reports many legacy style
+    issues, mostly FastAPI dependency defaults, script import order, naming
+    warnings, and old validation/unit-test style conventions. They are not
+    failing runtime tests, but should be handled in a separate cleanup pass to
+    avoid a noisy mega-diff.
+  - Gradle builds require JDK 17 to be discoverable or `JAVA_HOME` set on the
+    server/developer machine.
+
+Follow-up in same debugging pass:
+
+- User approved installing and running additional dev checks such as mypy.
+- Installed/normalized local dev tools:
+  - `pytest-asyncio`, removing the pytest `asyncio_mode` config warning.
+  - `mypy==1.9.0`, matching the repo pre-commit mirror version.
+- Updated type-check configuration:
+  - `pyproject.toml` now uses `explicit_package_bases = true`.
+  - `Makefile typecheck` now passes `--explicit-package-bases`.
+- Fixed targeted typing/runtime-boundary issues in current serving paths:
+  - DD/Luvelox host parsing now handles a missing `Host` header safely.
+  - DD API dynamic model bundle/checkpoint outputs are cast at the boundary
+    before being passed into Pydantic responses.
+  - u3 forecast/checkpoint loader uses `Any` at artifact boundaries and strict
+    zipping for curve/probability outputs.
+  - DD/u3 training scripts now type mixed metric dictionaries explicitly.
+  - Simple Injection DOE and filling-pressure summaries now validate through
+    the Pydantic response model.
+  - Optimization default factories now return fully typed defaults.
+- Targeted checks now passing:
+  - `ruff check` on changed DD/Simple Injection/optimization/model helper files.
+  - `mypy --explicit-package-bases` on DD app, Luvelox app, DD API, Simple
+    Injection API, optimization API, DD/u3 model helpers, and Simple Injection
+    data loader.
+  - `pytest tests -q` -> 170 passed, 2 scipy precision warnings.
+  - `compileall -q src scripts tests` -> passed.
+  - `node --check` for DD, Luvelox, and Simple Injection frontend app files -> passed.
+  - `swift test` for iOS DD and Luvelox packages -> 11 passed / 4 passed.
+  - Android `gradle :app:assembleDebug` for LuveloxMVP, DDLaminateMVP, and
+    InjectionMVP -> all passed with `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home`.
+- Remaining known technical debt:
+  - Full `mypy --explicit-package-bases src --ignore-missing-imports` still has
+    332 errors in 26 files, mostly legacy `data/schemas/tool_mappings`, older
+    Pydantic default-factory typing, generic training/evaluation typing, and
+    experiment/dataset service annotations.
+  - `pip check` still reports `nlopt 2.10.0` requiring `numpy>=2,<3` while the
+    current ML environment uses `numpy 1.26.4`; do not upgrade numpy casually
+    without validating sklearn/scipy/model artifacts.
+  - Current local `.venv` is Python 3.10.20 even though `pyproject.toml` requires
+    Python `>=3.11`; tests pass locally, but fresh Windows/server setup should
+    use Python 3.11+.
+
+## 2026-06-23 - Windows Serving Handoff Stabilization
+
+- User said "ㄱㄱ" after the recommended next direction: stabilize the project
+  for a Windows server handoff before adding more model/UI features.
+- Implemented readiness probes:
+  - DD standalone app now exposes `/ready`, returning warm status for the two
+    exposed Laminate Forecast models and the two exposed u3 Forecast models.
+  - Simple Injection standalone app now exposes `/ready`, returning model-file
+    and dependency availability for sprue/filling ML, GointMLP, and DeepONet
+    models.
+  - Luvelox unified app also exposes `/ready`, combining DD and Simple
+    Injection readiness.
+- Improved Windows scripts:
+  - `Setup-WindowsServing.ps1` now checks the configured Python command,
+    enforces Python 3.11+, runs `pip check`, and prints DD/Injection model
+    readiness after installing dependencies.
+  - `Start-All.ps1` now supports `-SkipCloudflare` for local-only startup and
+    runs `Check-Health.ps1 -Ready -LocalOnly` after launching DD/Injection.
+  - `Check-Health.ps1` now supports `-Ready`, `-LocalOnly`, `-PublicOnly`,
+    `-Strict`, retry options, and configurable public base URLs.
+  - `Start-CloudflareTunnel.ps1` now fails with a clear install command if
+    `cloudflared.exe` is not on PATH.
+- Updated portable bundle coverage:
+  - `scripts/package_windows_bundle.py` now includes the Luvelox/C2ES frontend,
+    all currently API-referenced DD model directories, all currently
+    API-referenced Simple Injection sprue/filling model directories, and the
+    current Double-Double/u3 curated datasets needed for serving handoff.
+- Updated Windows docs:
+  - `docs/windows-server-migration.md` and `docs/WINDOWS_GIT_QUICKSTART.md`
+    now recommend local-first startup with `Start-All.ps1 -SkipCloudflare`,
+    then `/ready` validation, then Cloudflare config/startup.
+- Added backend tests covering the new DD and Simple Injection readiness
+  endpoints.

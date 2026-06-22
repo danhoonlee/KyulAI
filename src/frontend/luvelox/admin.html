@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Luvelox Admin</title>
+    <link rel="alternate" hreflang="ko" href="https://ai.luvelox.com/admin.ko.html" />
+    <link rel="stylesheet" href="./styles.css?v=20260619-admin3" />
+  </head>
+  <body>
+    <main class="app-shell admin-shell">
+      <header class="workspace-hero admin-hero">
+        <div class="brand-lockup">
+          <p class="eyebrow">Luvelox Admin</p>
+          <h1>
+            <span>Account</span>
+            <span>Management</span>
+          </h1>
+          <p class="hero-copy">
+            Review registered users, contact fields, module entitlements, and active session counts.
+          </p>
+        </div>
+        <div class="account-cluster">
+          <a class="language-link" href="https://ai.luvelox.com/admin.ko.html">한국어</a>
+          <a class="language-link" href="https://ai.luvelox.com/index.html">Forecast Workspace</a>
+        </div>
+      </header>
+
+      <section class="admin-token-card" aria-label="Admin token">
+        <label>
+          Admin token
+          <input id="admin-token" type="password" autocomplete="off" placeholder="LUVELOX_ADMIN_TOKEN" />
+        </label>
+        <button id="load-users" type="button">Load users</button>
+        <p id="admin-status" class="request-status" role="status"></p>
+      </section>
+
+      <section class="summary-strip admin-summary" aria-label="Admin summary">
+        <div>
+          <span>01</span>
+          <strong id="user-count">-</strong>
+          <p>Registered users</p>
+        </div>
+        <div>
+          <span>02</span>
+          <strong id="session-count">-</strong>
+          <p>Total sessions</p>
+        </div>
+        <div>
+          <span>03</span>
+          <strong id="entitlement-count">-</strong>
+          <p>Entitlement grants</p>
+        </div>
+      </section>
+
+      <section class="admin-table-card" aria-label="Registered users">
+        <div class="admin-table-head">
+          <div>
+            <p class="eyebrow">Users</p>
+            <h2>Registered accounts</h2>
+          </div>
+          <button class="ghost-button" id="clear-token" type="button">Clear token</button>
+        </div>
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Company</th>
+                <th>Location</th>
+                <th>Mobile</th>
+                <th>Module access</th>
+                <th>Sessions</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="admin-users"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="./admin.js?v=20260619-admin3" type="module"></script>
+  </body>
+</html>

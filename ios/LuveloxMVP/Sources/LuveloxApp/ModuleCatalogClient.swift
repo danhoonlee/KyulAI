@@ -36,12 +36,27 @@ public struct ModuleCatalogClient: Sendable {
     }
 
     public func demoLogin(email: String, password: String) async throws -> LuveloxAuthSession {
-        let url = Self.endpoint(baseURL: baseURL, path: "/api/v1/modules/auth/demo-login")
+        let url = Self.endpoint(baseURL: baseURL, path: "/api/v1/modules/auth/login")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.httpBody = try JSONEncoder().encode(["email": email, "password": password])
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse, (200..<300).contains(httpResponse.statusCode) else {
+            throw URLError(.userAuthenticationRequired)
+        }
+        return try JSONDecoder().decode(LuveloxAuthSession.self, from: data)
+    }
+
+    public func signup(email: String, password: String, name: String, company: String?) async throws -> LuveloxAuthSession {
+        let url = Self.endpoint(baseURL: baseURL, path: "/api/v1/modules/auth/signup")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        let payload = LuveloxSignupPayload(email: email, password: password, name: name, company: company)
+        request.httpBody = try JSONEncoder().encode(payload)
         let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse, (200..<300).contains(httpResponse.statusCode) else {
             throw URLError(.userAuthenticationRequired)

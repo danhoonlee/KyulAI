@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Double-Double 적층 예측</title>
-    <link rel="stylesheet" href="./styles.css?v=20260615-xai-more-reset" />
+    <link rel="stylesheet" href="./styles.css?v=20260621-fit-intersection" />
   </head>
   <body>
     <main class="shell">
@@ -15,6 +15,7 @@
             <h1 id="app-title">Double-Double 적층 예측</h1>
           </div>
           <div class="top-actions">
+            <a class="language-link" href="https://ai.luvelox.com/index.ko.html">모듈 선택</a>
             <a class="language-link" href="./index.html">English</a>
             <div class="status-pill" id="api-status">API: 확인 중</div>
           </div>
@@ -49,11 +50,11 @@
               <div class="two-col">
                 <label>
                   θ₁
-                  <input name="theta1" type="number" min="-90" max="90" step="0.1" value="-29" required />
+                  <input name="theta1" type="number" min="-90" max="90" step="1" value="-29" required />
                 </label>
                 <label>
                   θ₂
-                  <input name="theta2" type="number" min="-90" max="90" step="0.1" value="74" required />
+                  <input name="theta2" type="number" min="-90" max="90" step="1" value="74" required />
                 </label>
               </div>
 
@@ -106,11 +107,11 @@
               <div class="two-col">
                 <label>
                   θ₁
-                  <input name="theta1" type="number" min="-90" max="90" step="0.1" value="65" required />
+                  <input name="theta1" type="number" min="-90" max="90" step="1" value="65" required />
                 </label>
                 <label>
                   θ₂
-                  <input name="theta2" type="number" min="-90" max="90" step="0.1" value="19" required />
+                  <input name="theta2" type="number" min="-90" max="90" step="1" value="19" required />
                 </label>
               </div>
 
@@ -146,11 +147,11 @@
               <div class="two-col">
                 <label>
                   θ₁
-                  <input name="theta1" type="number" min="-90" max="90" step="0.1" value="-29" required />
+                  <input name="theta1" type="number" min="-90" max="90" step="1" value="-29" required />
                 </label>
                 <label>
                   θ₂
-                  <input name="theta2" type="number" min="-90" max="90" step="0.1" value="74" required />
+                  <input name="theta2" type="number" min="-90" max="90" step="1" value="74" required />
                 </label>
               </div>
 
@@ -269,12 +270,12 @@
                   </div>
                 </div>
 
-                <canvas id="response-curve-canvas" width="720" height="300"></canvas>
+                <canvas id="response-curve-canvas" width="720" height="432"></canvas>
                 <div class="curve-legend" aria-label="Response curve legend">
                   <span><i class="legend-swatch curve"></i>예측 곡선</span>
                   <span><i class="legend-swatch guide"></i>Linear fit</span>
                   <span><i class="legend-swatch kink"></i>Fit 교차점</span>
-                  <span><i class="legend-swatch pt"></i>Predicted Pt</span>
+                  <span><i class="legend-swatch pt"></i>예측 Pt</span>
                 </div>
               </section>
 
@@ -300,6 +301,6 @@
       </section>
     </main>
 
-    <script src="./app.js?v=20260615-xai-more-reset"></script>
+    <script src="./app.js?v=20260621-fit-intersection"></script>
   </body>
 </html>

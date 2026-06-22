@@ -613,10 +613,13 @@ button:focus-visible {
   display: block;
   width: 100%;
   height: auto;
-  min-height: 250px;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: #f8fbfd;
+}
+
+#response-curve-canvas {
+  aspect-ratio: 5 / 3;
 }
 
 .curve-legend {

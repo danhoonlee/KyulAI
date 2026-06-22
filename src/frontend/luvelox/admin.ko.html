@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Luvelox 관리자</title>
+    <link rel="alternate" hreflang="en" href="https://ai.luvelox.com/admin.html" />
+    <link rel="stylesheet" href="./styles.css?v=20260619-admin3" />
+  </head>
+  <body>
+    <main class="app-shell admin-shell">
+      <header class="workspace-hero admin-hero">
+        <div class="brand-lockup">
+          <p class="eyebrow">Luvelox 관리자</p>
+          <h1>
+            <span>계정</span>
+            <span>관리</span>
+          </h1>
+          <p class="hero-copy">
+            가입자 정보, 연락처, 모듈 권한, 세션 수를 확인합니다.
+          </p>
+        </div>
+        <div class="account-cluster">
+          <a class="language-link" href="https://ai.luvelox.com/admin.html">English</a>
+          <a class="language-link" href="https://ai.luvelox.com/index.ko.html">Forecast Workspace</a>
+        </div>
+      </header>
+
+      <section class="admin-token-card" aria-label="관리자 토큰">
+        <label>
+          관리자 토큰
+          <input id="admin-token" type="password" autocomplete="off" placeholder="LUVELOX_ADMIN_TOKEN" />
+        </label>
+        <button id="load-users" type="button">가입자 불러오기</button>
+        <p id="admin-status" class="request-status" role="status"></p>
+      </section>
+
+      <section class="summary-strip admin-summary" aria-label="관리 요약">
+        <div>
+          <span>01</span>
+          <strong id="user-count">-</strong>
+          <p>가입자</p>
+        </div>
+        <div>
+          <span>02</span>
+          <strong id="session-count">-</strong>
+          <p>전체 세션</p>
+        </div>
+        <div>
+          <span>03</span>
+          <strong id="entitlement-count">-</strong>
+          <p>권한 부여</p>
+        </div>
+      </section>
+
+      <section class="admin-table-card" aria-label="가입자 목록">
+        <div class="admin-table-head">
+          <div>
+            <p class="eyebrow">Users</p>
+            <h2>가입자 목록</h2>
+          </div>
+          <button class="ghost-button" id="clear-token" type="button">토큰 지우기</button>
+        </div>
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>이름</th>
+                <th>이메일</th>
+                <th>회사</th>
+                <th>지역</th>
+                <th>휴대폰</th>
+                <th>모듈 권한</th>
+                <th>세션</th>
+                <th>가입일</th>
+                <th>관리</th>
+              </tr>
+            </thead>
+            <tbody id="admin-users"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="./admin.js?v=20260619-admin3" type="module"></script>
+  </body>
+</html>

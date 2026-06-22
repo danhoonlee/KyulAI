@@ -3,7 +3,25 @@ import KyulAIInjectionApp
 import SwiftUI
 #if os(iOS)
 import UIKit
+import WebKit
 #endif
+
+private enum LuveloxStyle {
+    static let background = Color(red: 0.96, green: 0.97, blue: 0.99)
+    static let surface = Color.white
+    static let surfaceStrong = Color(red: 0.98, green: 0.99, blue: 1.0)
+    static let ink = Color(red: 0.055, green: 0.067, blue: 0.086)
+    static let muted = Color(red: 0.40, green: 0.45, blue: 0.53)
+    static let line = Color(red: 0.87, green: 0.90, blue: 0.94)
+    static let blue = Color(red: 0.13, green: 0.40, blue: 1.0)
+    static let blueSoft = Color(red: 0.91, green: 0.94, blue: 1.0)
+    static let teal = Color(red: 0.03, green: 0.56, blue: 0.61)
+    static let tealSoft = Color(red: 0.89, green: 0.97, blue: 0.97)
+    static let amber = Color(red: 0.76, green: 0.48, blue: 0.09)
+    static let amberSoft = Color(red: 1.0, green: 0.96, blue: 0.87)
+    static let green = Color(red: 0.0, green: 0.66, blue: 0.47)
+    static let greenSoft = Color(red: 0.86, green: 0.97, blue: 0.94)
+}
 
 @MainActor
 final class LuveloxHomeViewModel: ObservableObject {
@@ -55,7 +73,7 @@ final class LuveloxHomeViewModel: ObservableObject {
         defer { isLoading = false }
         do {
             let response = try await client.fetchUserModules(authSession: authSession)
-            modules = response.modules
+            modules = response.modules.map(Self.normalizedModuleCopy)
             statusText = response.licenseMode == "entitled" ? "Account workspace" : "Demo workspace"
         } catch {
             modules = LuveloxFallbackCatalog.modules
@@ -80,6 +98,32 @@ final class LuveloxHomeViewModel: ObservableObject {
                 loginError = "Use demo@luvelox.com for the MVP account."
                 return
             }
+        }
+        await refresh()
+    }
+
+    func signUp(email: String, password: String, name: String, company: String) async {
+        isLoading = true
+        loginError = nil
+        defer { isLoading = false }
+        let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let normalizedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedCompany = company.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedEmail.isEmpty, !normalizedName.isEmpty, password.count >= 8 else {
+            loginError = "Enter a name and a password with at least 8 characters."
+            return
+        }
+        do {
+            let session = try await client.signup(
+                email: normalizedEmail,
+                password: password,
+                name: normalizedName,
+                company: normalizedCompany.isEmpty ? nil : normalizedCompany
+            )
+            setSession(session)
+        } catch {
+            loginError = "Could not create this account. Try another email or password."
+            return
         }
         await refresh()
     }
@@ -116,12 +160,12 @@ final class LuveloxHomeViewModel: ObservableObject {
         do {
             let response = try await client.requestAccess(
                 moduleId: module.id,
-                message: "Requested from C2ES mobile app.",
+                message: "Requested from Luvelox mobile app.",
                 authSession: authSession
             )
             accessRequestMessage = response.message
         } catch {
-            accessRequestMessage = "Request saved locally. We could not reach the C2ES server right now."
+            accessRequestMessage = "Request saved locally. We could not reach the Luvelox server right now."
         }
     }
 
@@ -131,6 +175,87 @@ final class LuveloxHomeViewModel: ObservableObject {
         if let data = try? JSONEncoder().encode(normalizedSession) {
             userDefaults.set(data, forKey: sessionKey)
         }
+    }
+
+    private static func normalizedModuleCopy(_ module: LuveloxModule) -> LuveloxModule {
+        let normalized: (name: String, shortName: String, category: String, summary: String, tags: [String], accessReason: String?)
+        let route: LuveloxModuleRoute
+
+        switch module.id {
+        case "laminate":
+            normalized = (
+                "Laminate",
+                "Laminate",
+                "Composite",
+                "Predict Type, Pt, and response curve.",
+                ["Double-Double", "Pt", "Force-displacement"],
+                "Available in the Luvelox MVP workspace."
+            )
+            route = module.route
+        case "injection":
+            normalized = (
+                "Injection",
+                "Injection",
+                "Molding",
+                "Predict sprue and filling pressure.",
+                ["Moldex3D", "Sprue pressure", "Filling pressure"],
+                "Available in the Luvelox MVP workspace."
+            )
+            route = module.route
+        case "optimization":
+            normalized = (
+                "Optimization",
+                "Optimize",
+                "Design",
+                "Rank promising design candidates.",
+                ["DOE", "Ranking", "Design space"],
+                "Planned module; not available in this workspace yet."
+            )
+            route = LuveloxModuleRoute(
+                baseURL: module.route.baseURL,
+                webURL: URL(string: "https://ai.luvelox.com")!,
+                apiPrefix: module.route.apiPrefix,
+                healthPath: module.route.healthPath,
+                modelsPath: module.route.modelsPath,
+                primaryPredictPath: module.route.primaryPredictPath
+            )
+        case "admin":
+            normalized = (
+                "Admin",
+                "Admin",
+                "Account",
+                "Manage users and module access.",
+                ["Users", "Access", "Admin"],
+                "Visible only to Luvelox admin accounts."
+            )
+            route = LuveloxModuleRoute(
+                baseURL: module.route.baseURL,
+                webURL: URL(string: "https://ai.luvelox.com/admin.html")!,
+                apiPrefix: module.route.apiPrefix,
+                healthPath: module.route.healthPath,
+                modelsPath: module.route.modelsPath,
+                primaryPredictPath: module.route.primaryPredictPath
+            )
+        default:
+            return module
+        }
+
+        return LuveloxModule(
+            id: module.id,
+            name: normalized.name,
+            shortName: normalized.shortName,
+            category: normalized.category,
+            summary: normalized.summary,
+            icon: module.icon,
+            status: module.status,
+            entitlementKey: module.entitlementKey,
+            defaultEnabled: module.defaultEnabled,
+            tags: normalized.tags,
+            capabilities: module.capabilities,
+            route: route,
+            access: module.access,
+            accessReason: normalized.accessReason
+        )
     }
 
     private static func loadSession(from userDefaults: UserDefaults, key: String) -> LuveloxAuthSession? {
@@ -145,7 +270,7 @@ final class LuveloxHomeViewModel: ObservableObject {
         case "Luvelox Demo", "C2ES Demo":
             normalizedName = "Demo Account"
         case "Luvelox Account":
-            normalizedName = "C2ES Account"
+            normalizedName = "Luvelox Account"
         default:
             normalizedName = session.user.name
         }
@@ -155,11 +280,16 @@ final class LuveloxHomeViewModel: ObservableObject {
             name: normalizedName,
             company: session.user.company
         )
+        var entitlements = session.entitlements
+        if ["danlee@luvelox.com", "dannylee9295@gmail.com"].contains(session.user.email.lowercased()),
+           !entitlements.contains("module.admin") {
+            entitlements.append("module.admin")
+        }
         return LuveloxAuthSession(
             accessToken: session.accessToken,
             tokenType: session.tokenType,
             user: user,
-            entitlements: session.entitlements
+            entitlements: entitlements
         )
     }
 }
@@ -168,8 +298,23 @@ struct ContentView: View {
     @StateObject private var viewModel = LuveloxHomeViewModel()
     @State private var email = "demo@luvelox.com"
     @State private var password = ""
+    @State private var signupName = ""
+    @State private var signupCompany = ""
+    @State private var authMode = AuthMode.login
     @State private var isAccountSheetPresented = false
     @State private var selectedLockedModule: LuveloxModule?
+
+    private enum AuthMode {
+        case login
+        case signup
+    }
+
+    private var accountChipText: String {
+        if let user = viewModel.authSession?.user {
+            return "\(user.name) · \(viewModel.authSession?.entitlements.count ?? 0) modules"
+        }
+        return viewModel.statusText
+    }
 
     var body: some View {
         NavigationStack {
@@ -180,38 +325,9 @@ struct ContentView: View {
                     homeScreen
                 }
             }
-            .background(Color(red: 0.97, green: 0.98, blue: 0.99))
+            .background(LuveloxStyle.background)
             .task {
                 await viewModel.refresh()
-            }
-            .toolbar {
-                ToolbarItem {
-                    if viewModel.authSession == nil {
-                        EmptyView()
-                    } else {
-                        Menu {
-                            Button {
-                                isAccountSheetPresented = true
-                            } label: {
-                                Label("Account details", systemImage: "person.text.rectangle")
-                            }
-                            Button {
-                                Task { await viewModel.refresh() }
-                            } label: {
-                                Label("Refresh modules", systemImage: "arrow.clockwise")
-                            }
-                            Button(role: .destructive) {
-                                viewModel.signOut()
-                            } label: {
-                                Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
-                            }
-                        } label: {
-                            Image(systemName: "person.crop.circle")
-                        }
-                        .disabled(viewModel.isLoading)
-                        .accessibilityLabel("Account")
-                    }
-                }
             }
             .sheet(isPresented: $isAccountSheetPresented) {
                 AccountDetailsSheet(
@@ -241,22 +357,44 @@ struct ContentView: View {
 
     private var loginScreen: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                Spacer(minLength: 24)
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("C2ES")
-                        .font(.system(size: 54, weight: .black, design: .rounded))
-                        .foregroundStyle(Color(red: 0.09, green: 0.13, blue: 0.18))
-                    Text("Sign in to your CAE-AI workspace")
-                        .font(.title3.weight(.semibold))
-                    Text("Use a C2ES account to open licensed prediction modules from one app.")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("C2ES AI Workspace")
+                        .font(.caption.weight(.heavy))
+                        .foregroundStyle(LuveloxStyle.blue)
+                        .textCase(.uppercase)
+                    Text("C2ES\nForecast Workspace")
+                        .font(.system(size: 42, weight: .black, design: .rounded))
+                        .lineSpacing(0)
+                        .foregroundStyle(LuveloxStyle.ink)
+                        .minimumScaleFactor(0.78)
+                    Text("Sign in once, then open the prediction module built for each engineering analysis.")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(LuveloxStyle.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                    LoginModulePreviewStrip()
                 }
+                .padding(18)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(LuveloxStyle.surface, in: RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(LuveloxStyle.line))
+                .shadow(color: Color.black.opacity(0.06), radius: 18, y: 10)
 
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 12) {
                     Text("Account")
-                        .font(.headline)
+                        .font(.caption.weight(.heavy))
+                        .foregroundStyle(LuveloxStyle.blue)
+                        .textCase(.uppercase)
+                    Text(authMode == .signup ? "Create account" : "Sign in")
+                        .font(.title2.weight(.black))
+                    if authMode == .signup {
+                        TextField("Name", text: $signupName)
+                            .textContentType(.name)
+                            .fieldStyle()
+                        TextField("Company", text: $signupCompany)
+                            .textContentType(.organizationName)
+                            .fieldStyle()
+                    }
                     TextField("Email", text: $email)
                         #if os(iOS)
                         .textInputAutocapitalization(.never)
@@ -272,10 +410,21 @@ struct ContentView: View {
                             .foregroundStyle(.red)
                     }
                     Button {
-                        Task { await viewModel.signIn(email: email, password: password) }
+                        Task {
+                            if authMode == .signup {
+                                await viewModel.signUp(
+                                    email: email,
+                                    password: password,
+                                    name: signupName,
+                                    company: signupCompany
+                                )
+                            } else {
+                                await viewModel.signIn(email: email, password: password)
+                            }
+                        }
                     } label: {
                         HStack {
-                            Text(viewModel.isLoading ? "Signing in" : "Sign in")
+                            Text(viewModel.isLoading ? "Working" : authMode == .signup ? "Create account" : "Sign in")
                             Spacer()
                             Image(systemName: "arrow.right")
                         }
@@ -283,8 +432,21 @@ struct ContentView: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, 14)
                         .frame(height: 46)
-                        .background(Color(red: 0.09, green: 0.13, blue: 0.18), in: RoundedRectangle(cornerRadius: 8))
+                        .background(LuveloxStyle.ink, in: RoundedRectangle(cornerRadius: 8))
                     }
+                    .disabled(viewModel.isLoading)
+
+                    Button {
+                        authMode = authMode == .signup ? .login : .signup
+                        viewModel.loginError = nil
+                    } label: {
+                        Text(authMode == .signup ? "Use existing account" : "Create a new account")
+                            .font(.subheadline.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 42)
+                    }
+                    .foregroundStyle(LuveloxStyle.blue)
+                    .background(LuveloxStyle.blueSoft, in: RoundedRectangle(cornerRadius: 8))
                     .disabled(viewModel.isLoading)
 
                     Button {
@@ -297,17 +459,18 @@ struct ContentView: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 42)
                     }
-                    .foregroundStyle(.teal)
-                    .background(Color.teal.opacity(0.10), in: RoundedRectangle(cornerRadius: 8))
+                    .foregroundStyle(LuveloxStyle.teal)
+                    .background(LuveloxStyle.tealSoft, in: RoundedRectangle(cornerRadius: 8))
                     .disabled(viewModel.isLoading)
+
+                    Text(authMode == .signup ? "Use at least 8 characters to create an account." : "New accounts include Laminate and Injection access.")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(LuveloxStyle.muted)
                 }
                 .padding(18)
-                .background(.white, in: RoundedRectangle(cornerRadius: 8))
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.black.opacity(0.08)))
-
-                Text("MVP accounts: demo@luvelox.com or danlee@luvelox.com")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                .background(LuveloxStyle.surface, in: RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(LuveloxStyle.line))
+                .shadow(color: Color.black.opacity(0.06), radius: 18, y: 10)
             }
             .padding(20)
         }
@@ -315,14 +478,9 @@ struct ContentView: View {
 
     private var homeScreen: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                header
-                Button {
-                    isAccountSheetPresented = true
-                } label: {
-                    accountBand
-                }
-                .buttonStyle(.plain)
+            VStack(alignment: .leading, spacing: 12) {
+                workspaceHero
+                WorkspaceSummaryStrip()
                 introBand
                 moduleGrid
             }
@@ -330,79 +488,94 @@ struct ContentView: View {
         }
     }
 
-    private var header: some View {
+    private var workspaceHero: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Unified CAE-AI Workspace")
-                .font(.caption.weight(.bold))
-                .foregroundStyle(.teal)
-                .textCase(.uppercase)
-            Text("C2ES")
-                .font(.system(size: 54, weight: .black, design: .rounded))
-                .foregroundStyle(Color(red: 0.09, green: 0.13, blue: 0.18))
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(Color.green)
-                    .frame(width: 9, height: 9)
-                Text(viewModel.statusText)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(.white.opacity(0.9), in: Capsule())
-        }
-    }
-
-    private var accountBand: some View {
-        HStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(Color.teal.opacity(0.12))
-                    .frame(width: 42, height: 42)
-                Image(systemName: "person.fill")
-                    .foregroundStyle(.teal)
-            }
-            VStack(alignment: .leading, spacing: 2) {
-                Text(viewModel.authSession?.user.name ?? "C2ES Account")
-                    .font(.headline)
-                Text(viewModel.authSession?.user.email ?? "")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            Text("\(viewModel.authSession?.entitlements.count ?? 0) modules")
+            Text("C2ES AI Workspace")
                 .font(.caption.weight(.heavy))
-                .foregroundStyle(.teal)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Color.teal.opacity(0.12), in: Capsule())
-        }
-        .padding(16)
-        .background(.white, in: RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.black.opacity(0.08)))
-    }
+                .foregroundStyle(LuveloxStyle.blue)
+                .textCase(.uppercase)
+            Text("C2ES\nForecast Workspace")
+                .font(.system(size: 42, weight: .black, design: .rounded))
+                .lineSpacing(0)
+                .foregroundStyle(LuveloxStyle.ink)
+                .minimumScaleFactor(0.78)
+            Text("Choose a module to open its prediction screen.")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(LuveloxStyle.muted)
 
-    private var introBand: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Prediction modules")
-                .font(.title2.weight(.bold))
-            Text("Open Laminate, Injection, and future CAE-AI modules from one C2ES account.")
-                .font(.body)
-                .foregroundStyle(.secondary)
+            HStack(spacing: 8) {
+                Button {
+                    isAccountSheetPresented = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(LuveloxStyle.green)
+                            .frame(width: 9, height: 9)
+                        Text(accountChipText)
+                            .lineLimit(1)
+                    }
+                    .font(.caption.weight(.heavy))
+                    .foregroundStyle(Color(red: 0.03, green: 0.47, blue: 0.34))
+                    .padding(.horizontal, 12)
+                    .frame(height: 38)
+                    .background(LuveloxStyle.greenSoft, in: Capsule())
+                }
+                Button {
+                    viewModel.signOut()
+                } label: {
+                    Text("Sign out")
+                        .font(.caption.weight(.heavy))
+                        .foregroundStyle(LuveloxStyle.muted)
+                        .padding(.horizontal, 12)
+                        .frame(height: 38)
+                        .background(LuveloxStyle.surfaceStrong, in: Capsule())
+                        .overlay(Capsule().stroke(LuveloxStyle.line))
+                }
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(18)
-        .background(.white, in: RoundedRectangle(cornerRadius: 8))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.black.opacity(0.08))
-        )
+        .background(LuveloxStyle.surface, in: RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(LuveloxStyle.line))
+        .shadow(color: Color.black.opacity(0.06), radius: 18, y: 10)
+    }
+
+    private var introBand: some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text("Module workspace")
+                    .font(.caption.weight(.heavy))
+                    .foregroundStyle(Color(red: 0.51, green: 0.95, blue: 0.81))
+                    .textCase(.uppercase)
+                Text("Prediction modules")
+                    .font(.title2.weight(.black))
+                    .foregroundStyle(.white)
+                Text("Open prediction modules from one account.")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color(red: 0.67, green: 0.71, blue: 0.78))
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 8)
+            Button {
+                Task { await viewModel.refresh() }
+            } label: {
+                Image(systemName: "arrow.clockwise")
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(LuveloxStyle.ink)
+                    .frame(width: 44, height: 40)
+                    .background(.white, in: RoundedRectangle(cornerRadius: 8))
+            }
+            .disabled(viewModel.isLoading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(LuveloxStyle.ink, in: RoundedRectangle(cornerRadius: 8))
     }
 
     private var moduleGrid: some View {
         LazyVStack(spacing: 14) {
             ForEach(viewModel.modules) { module in
-                ModuleCard(module: module) {
+                ModuleCard(module: module, session: viewModel.authSession) {
                     viewModel.accessRequestMessage = nil
                     selectedLockedModule = module
                 }
@@ -411,34 +584,108 @@ struct ContentView: View {
     }
 }
 
+private struct LoginModulePreviewStrip: View {
+    private let items: [(letter: String, title: String, subtitle: String, color: Color, background: Color)] = [
+        ("L", "Laminate", "Type, Pt, curve", LuveloxStyle.blue, LuveloxStyle.blueSoft),
+        ("I", "Injection", "Sprue, filling", LuveloxStyle.teal, LuveloxStyle.tealSoft),
+        ("O", "Optimization", "Coming soon", LuveloxStyle.amber, LuveloxStyle.amberSoft),
+    ]
+
+    var body: some View {
+        HStack(spacing: 1) {
+            ForEach(items, id: \.letter) { item in
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(item.letter)
+                        .font(.headline.weight(.black))
+                        .foregroundStyle(item.color)
+                        .frame(width: 32, height: 32)
+                        .background(item.background, in: RoundedRectangle(cornerRadius: 8))
+                    Text(item.title)
+                        .font(.caption.weight(.black))
+                        .foregroundStyle(LuveloxStyle.ink)
+                        .lineLimit(1)
+                    Text(item.subtitle)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(LuveloxStyle.muted)
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(10)
+                .background(LuveloxStyle.surfaceStrong)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(LuveloxStyle.line))
+    }
+}
+
+private struct WorkspaceSummaryStrip: View {
+    private let steps: [(number: String, title: String, subtitle: String)] = [
+        ("01", "Account", "Demo access ready."),
+        ("02", "Choose module", "Laminate, Injection, Optimization"),
+        ("03", "Forecast", "Open a focused model workspace."),
+    ]
+
+    var body: some View {
+        VStack(spacing: 1) {
+            ForEach(steps, id: \.number) { step in
+                HStack(spacing: 12) {
+                    Text(step.number)
+                        .font(.subheadline.weight(.black))
+                        .foregroundStyle(.white)
+                        .frame(width: 38, height: 38)
+                        .background(LuveloxStyle.ink, in: RoundedRectangle(cornerRadius: 8))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(step.title)
+                            .font(.subheadline.weight(.black))
+                            .foregroundStyle(LuveloxStyle.ink)
+                        Text(step.subtitle)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(LuveloxStyle.muted)
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .padding(12)
+                .background(LuveloxStyle.surface)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(LuveloxStyle.line))
+        .shadow(color: Color.black.opacity(0.05), radius: 14, y: 8)
+    }
+}
+
 struct ModuleCard: View {
     let module: LuveloxModule
+    let session: LuveloxAuthSession?
     let onRequestAccess: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .center, spacing: 12) {
                 icon
                 VStack(alignment: .leading, spacing: 3) {
                     Text(module.category.uppercased())
                         .font(.caption2.weight(.heavy))
-                        .foregroundStyle(.teal)
+                        .foregroundStyle(accentColor)
                     Text(module.name)
                         .font(.title3.weight(.bold))
+                        .lineLimit(1)
                 }
                 Spacer()
                 Text(module.isGranted ? "Available" : "Locked")
                     .font(.caption.weight(.heavy))
-                    .foregroundStyle(module.isGranted ? .teal : .secondary)
+                    .foregroundStyle(module.isGranted ? Color(red: 0.03, green: 0.47, blue: 0.34) : LuveloxStyle.muted)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
-                    .background(module.isGranted ? Color.teal.opacity(0.12) : Color.gray.opacity(0.14), in: Capsule())
+                    .background(module.isGranted ? LuveloxStyle.greenSoft : Color(red: 0.93, green: 0.95, blue: 0.97), in: Capsule())
             }
 
             Text(module.summary)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(LuveloxStyle.muted)
+                .lineLimit(2)
 
             tags
             capabilities
@@ -446,11 +693,12 @@ struct ModuleCard: View {
             moduleAction
         }
         .padding(18)
-        .background(.white, in: RoundedRectangle(cornerRadius: 8))
+        .background(module.isGranted ? LuveloxStyle.surface : LuveloxStyle.surfaceStrong, in: RoundedRectangle(cornerRadius: 8))
         .overlay(
             RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.black.opacity(0.08))
+                .stroke(LuveloxStyle.line)
         )
+        .shadow(color: Color.black.opacity(0.05), radius: 14, y: 8)
     }
 
     @ViewBuilder
@@ -467,6 +715,18 @@ struct ModuleCard: View {
             } label: {
                 actionLabel(title: "Open Injection", systemImage: "arrow.right", enabled: true)
             }
+        } else if module.id == "admin", module.isGranted, let url = adminURL {
+            #if os(iOS)
+            NavigationLink {
+                AdminWebView(url: url)
+                    .navigationTitle("Admin")
+                    .navigationBarTitleDisplayMode(.inline)
+            } label: {
+                actionLabel(title: "Open Admin", systemImage: "arrow.right", enabled: true)
+            }
+            #else
+            EmptyView()
+            #endif
         } else {
             Button {
                 if module.isGranted {
@@ -489,11 +749,11 @@ struct ModuleCard: View {
     private var icon: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 8)
-                .fill(Color.teal.opacity(0.12))
+                .fill(iconBackground)
                 .frame(width: 48, height: 48)
             Image(systemName: symbolName)
                 .font(.title3.weight(.bold))
-                .foregroundStyle(.teal)
+                .foregroundStyle(module.isGranted ? accentColor : LuveloxStyle.muted)
         }
     }
 
@@ -501,7 +761,40 @@ struct ModuleCard: View {
         switch module.icon {
         case "layers": "square.3.layers.3d"
         case "gauge": "gauge.with.dots.needle.bottom.50percent"
+        case "shield": "shield.lefthalf.filled"
         default: "sparkles"
+        }
+    }
+
+    private var accentColor: Color {
+        if !module.isGranted {
+            return LuveloxStyle.muted
+        }
+        switch module.id {
+        case "admin":
+            return LuveloxStyle.green
+        case "injection":
+            return LuveloxStyle.teal
+        case "optimization":
+            return LuveloxStyle.amber
+        default:
+            return LuveloxStyle.blue
+        }
+    }
+
+    private var iconBackground: Color {
+        if !module.isGranted {
+            return Color(red: 0.93, green: 0.95, blue: 0.97)
+        }
+        switch module.id {
+        case "admin":
+            return LuveloxStyle.greenSoft
+        case "injection":
+            return LuveloxStyle.tealSoft
+        case "optimization":
+            return LuveloxStyle.amberSoft
+        default:
+            return LuveloxStyle.blueSoft
         }
     }
 
@@ -510,10 +803,10 @@ struct ModuleCard: View {
             ForEach(module.tags, id: \.self) { tag in
                 Text(tag)
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(Color(red: 0.78, green: 0.31, blue: 0.11))
+                    .foregroundStyle(accentColor)
                     .padding(.horizontal, 9)
                     .padding(.vertical, 6)
-                    .background(Color(red: 1.0, green: 0.94, blue: 0.90), in: Capsule())
+                    .background(iconBackground, in: Capsule())
             }
         }
     }
@@ -523,9 +816,10 @@ struct ModuleCard: View {
             ForEach(module.capabilities.prefix(4), id: \.self) { capability in
                 Text(capability.replacingOccurrences(of: "_", with: " "))
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(LuveloxStyle.muted)
                     .frame(maxWidth: .infinity, minHeight: 32)
-                    .background(Color(red: 0.97, green: 0.98, blue: 0.99), in: RoundedRectangle(cornerRadius: 8))
+                    .background(LuveloxStyle.surfaceStrong, in: RoundedRectangle(cornerRadius: 8))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(LuveloxStyle.line))
             }
         }
     }
@@ -540,9 +834,32 @@ struct ModuleCard: View {
         .foregroundStyle(.white)
         .padding(.horizontal, 14)
         .frame(height: 44)
-        .background(enabled ? Color(red: 0.09, green: 0.13, blue: 0.18) : Color.gray, in: RoundedRectangle(cornerRadius: 8))
+        .background(enabled ? LuveloxStyle.ink : Color.gray, in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var adminURL: URL? {
+        guard let session else { return nil }
+        var components = URLComponents(url: module.route.webURL, resolvingAgainstBaseURL: false)
+        components?.queryItems = [URLQueryItem(name: "session_token", value: session.accessToken)]
+        return components?.url
     }
 }
+
+#if os(iOS)
+struct AdminWebView: UIViewRepresentable {
+    let url: URL
+
+    func makeUIView(context: Context) -> WKWebView {
+        WKWebView()
+    }
+
+    func updateUIView(_ webView: WKWebView, context: Context) {
+        if webView.url != url {
+            webView.load(URLRequest(url: url))
+        }
+    }
+}
+#endif
 
 struct AccountDetailsSheet: View {
     let session: LuveloxAuthSession?
@@ -591,7 +908,7 @@ struct AccountDetailsSheet: View {
 
     private var accountHeader: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(session?.user.name ?? "C2ES Account")
+            Text(session?.user.name ?? "Luvelox Account")
                 .font(.title2.weight(.bold))
             Text(session?.user.email ?? "No active session")
                 .font(.subheadline.weight(.semibold))
@@ -701,7 +1018,7 @@ struct LockedModuleSheet: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Access")
                             .font(.headline)
-                        Text(module.accessReason ?? "This module requires a C2ES license.")
+                        Text(module.accessReason ?? "This module requires a Luvelox license.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                         Text("Entitlement: \(module.entitlementKey)")

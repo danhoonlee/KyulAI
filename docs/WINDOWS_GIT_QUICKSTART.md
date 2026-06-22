@@ -47,7 +47,8 @@ If `py -3.11` is not found:
 ```
 
 The setup script creates `.venv`, installs serving dependencies, installs the
-CPU PyTorch wheel, and checks the main imports.
+CPU PyTorch wheel, checks the main imports, and prints a model readiness
+summary.
 
 ## 4. Create Local Environment File
 
@@ -63,18 +64,11 @@ Never commit `.env.local`.
 
 ## 5. Run Locally First
 
-Open one PowerShell window for DD Laminate:
+Start both local servers first, without Cloudflare:
 
 ```powershell
 cd C:\KyulAI_codex
-.\scripts\windows\Start-DD.ps1
-```
-
-Open another PowerShell window for Simple Injection:
-
-```powershell
-cd C:\KyulAI_codex
-.\scripts\windows\Start-Injection.ps1
+.\scripts\windows\Start-All.ps1 -SkipCloudflare
 ```
 
 Then open:
@@ -82,10 +76,20 @@ Then open:
 - DD Laminate: `http://127.0.0.1:8000`
 - Simple Injection: `http://127.0.0.1:8010`
 
-Health check:
+Readiness check:
 
 ```powershell
-.\scripts\windows\Check-Health.ps1
+.\scripts\windows\Check-Health.ps1 -Ready -LocalOnly
+```
+
+If you prefer foreground logs, run these in two separate PowerShell windows:
+
+```powershell
+.\scripts\windows\Start-DD.ps1
+```
+
+```powershell
+.\scripts\windows\Start-Injection.ps1
 ```
 
 ## 6. Public Cloudflare Setup
@@ -114,6 +118,12 @@ Start all server processes:
 .\scripts\windows\Start-All.ps1
 ```
 
+Then verify public and local readiness:
+
+```powershell
+.\scripts\windows\Check-Health.ps1 -Ready
+```
+
 ## 7. Keep It Running After Reboot
 
 ```powershell
@@ -129,7 +139,8 @@ Start-ScheduledTask -TaskName KyulAI-CloudflareTunnel
 cd C:\KyulAI_codex
 git pull
 .\scripts\windows\Setup-WindowsServing.ps1
-.\scripts\windows\Check-Health.ps1
+.\scripts\windows\Start-All.ps1 -SkipCloudflare
+.\scripts\windows\Check-Health.ps1 -Ready -LocalOnly
 ```
 
 Re-run setup after dependency changes. For normal code/model/data updates,

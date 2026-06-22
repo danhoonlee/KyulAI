@@ -15,7 +15,9 @@ const TEXT = {
   displacementAxis: "Displacement",
   forceAxis: "Force",
   predictedPtLabel: "Predicted Pt",
+  curveFitPtLabel: IS_KO ? "곡선 Pt" : "Curve-fit Pt",
   fitIntersectionLabel: IS_KO ? "Fit 교차점" : "Fit intersection",
+  kinkGuideLabel: IS_KO ? "Kink 기준선" : "Kink guide",
   selectCsv: IS_KO
     ? "두 열로 된 force-displacement CSV를 선택해 주세요."
     : "Select a two-column force-displacement CSV.",
@@ -167,6 +169,32 @@ function formatMetric(value, digits = 3) {
   return Number(value).toLocaleString(undefined, { maximumFractionDigits: digits });
 }
 
+function formatAxisTick(value, smallValueDigits = 4) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return "0";
+  }
+  const absolute = Math.abs(numeric);
+  const digits = absolute >= 100 ? 0 : absolute >= 10 ? 1 : absolute >= 1 ? 2 : smallValueDigits;
+  const rounded = Number(numeric.toFixed(digits));
+  return rounded.toLocaleString(undefined, { maximumFractionDigits: digits });
+}
+
+function normalizedThetaValue(value) {
+  const parsed = Number.parseFloat(value);
+  if (!Number.isFinite(parsed)) {
+    return Number(value);
+  }
+  return Math.max(-90, Math.min(90, Math.round(parsed)));
+}
+
+function inputDisplayValue(key, value, labels = {}) {
+  if (key === "theta1" || key === "theta2") {
+    return formatMetric(value, 0);
+  }
+  return labels[value] || value;
+}
+
 function cleanModelLabel(label) {
   const cleaned = String(label || "").trim();
   const aliases = {
@@ -194,8 +222,7 @@ function displayModelLabel(label) {
 
 function primaryModels(models, keys) {
   const byKey = new Map((models || []).map((model) => [model.key, model]));
-  const selected = keys.map((key) => byKey.get(key)).filter(Boolean);
-  return selected.length > 0 ? selected : (models || []);
+  return keys.map((key) => byKey.get(key)).filter(Boolean);
 }
 
 function setError(message) {
@@ -317,7 +344,7 @@ function renderResult(data) {
 
       const valueEl = document.createElement("span");
       valueEl.className = "input-token-value";
-      valueEl.textContent = inputValueLabels[value] || value;
+      valueEl.textContent = inputDisplayValue(key, value, inputValueLabels);
 
       item.append(label, valueEl);
       inputSummary.appendChild(item);
@@ -755,6 +782,25 @@ function lineIntersection(firstLine, secondLine) {
   return { displacement, force };
 }
 
+function lineSse(samples, line) {
+  return samples.reduce((sum, point) => {
+    const residual = point.force - lineY(line, point.displacement);
+    return sum + residual * residual;
+  }, 0);
+}
+
+function lineR2(samples, line) {
+  if (!samples || samples.length < 2 || !line) {
+    return Number.NEGATIVE_INFINITY;
+  }
+  const meanY = samples.reduce((sum, point) => sum + point.force, 0) / samples.length;
+  const ssTot = samples.reduce((sum, point) => sum + (point.force - meanY) ** 2, 0);
+  if (ssTot <= 1e-18) {
+    return lineSse(samples, line) <= 1e-18 ? 1 : 0;
+  }
+  return 1 - lineSse(samples, line) / ssTot;
+}
+
 function clampNumber(value, minValue, maxValue) {
   return Math.min(maxValue, Math.max(minValue, value));
 }
@@ -853,158 +899,234 @@ function leftUpperEnvelopeSlope(points, kinkX, kinkForce, proposedSlope) {
   return Math.max(cappedSlope, proposedSlope * 0.72);
 }
 
-function buildBilinearFit(points, predictedPtValue) {
-  const predictedPt = Number(predictedPtValue);
-  const ptOnCurve = pointAtForce(points, predictedPt);
-  if (!ptOnCurve || !Number.isFinite(predictedPt)) {
+const KINK_FIT_CONFIG = {
+  kinkWin: 7,
+  slopeDropFrac: 0.65,
+  kinkHold: 3,
+  postSkipAfterKink: 2,
+  initialMaxLen: 7,
+  secondLen: 5,
+  preKinkEps: 1e-5,
+  nearWeight: 1.0,
+  secondFitMaxU: 0.3,
+};
+
+function fitWindow(points, start, end) {
+  const window = points.slice(start, end + 1);
+  const line = linearFit(window);
+  if (!line) {
     return null;
   }
-
-  const minX = Math.min(...points.map((point) => point.displacement));
-  const maxX = Math.max(...points.map((point) => point.displacement));
-  const spanX = Math.max(maxX - minX, 1e-9);
-  const firstFitSamples = points.filter((point) => (
-    point.displacement > minX + spanX * 0.01 &&
-    point.displacement <= Math.max(ptOnCurve.displacement * 0.92, minX + spanX * 0.18) &&
-    point.force <= predictedPt * 0.82
-  ));
-  const firstFallbackEnd = Math.max(8, Math.floor(points.length * 0.28));
-  const firstFit = linearFit(firstFitSamples.length >= 4 ? firstFitSamples : points.slice(1, firstFallbackEnd));
-
-  const tailStart = Math.max(ptOnCurve.displacement + spanX * 0.08, minX + spanX * 0.58);
-  const secondFitSamples = points.filter((point) => point.displacement >= tailStart);
-  const secondFallbackStart = Math.max(0, Math.floor(points.length * 0.72));
-  const secondFit = linearFit(secondFitSamples.length >= 4 ? secondFitSamples : points.slice(secondFallbackStart));
-
-  if (!firstFit || !secondFit || firstFit.slope <= 0 || secondFit.slope <= 0) {
-    return null;
-  }
-
-  const minKinkX = minX + spanX * 0.08;
-  const maxKinkX = minX + spanX * 0.78;
-  const rawIntersection = lineIntersection(firstFit, secondFit);
-  const rawIsUsable = rawIntersection &&
-    rawIntersection.displacement >= minKinkX &&
-    rawIntersection.displacement <= maxKinkX &&
-    rawIntersection.force > 0;
-  const fallbackKinkX = clampNumber(ptOnCurve.displacement, minKinkX, maxKinkX);
-  let kinkX = rawIsUsable ? rawIntersection.displacement : fallbackKinkX;
-  let kinkForce = rawIsUsable
-    ? rawIntersection.force
-    : lineY(firstFit, fallbackKinkX);
-  if (!Number.isFinite(kinkForce) || kinkForce <= 0) {
-    kinkForce = predictedPt;
-  }
-
-  const leftEnvelopeSamples = points.filter((point) => (
-    point.displacement < kinkX - spanX * 0.006 &&
-    point.force <= kinkForce
-  ));
-  const rightEnvelopeSamples = points.filter((point) => (
-    point.displacement > kinkX + spanX * 0.006 &&
-    point.force >= kinkForce * 0.96
-  ));
-  const firstSlope = leftUpperEnvelopeSlope(leftEnvelopeSamples, kinkX, kinkForce, firstFit.slope);
-  const secondSlope = rightUpperEnvelopeSlope(rightEnvelopeSamples, kinkX, kinkForce, secondFit.slope);
-
-  let firstLine = {
-    slope: firstSlope,
-    intercept: kinkForce - firstSlope * kinkX,
+  return {
+    start,
+    end,
+    line,
+    r2: lineR2(window, line),
+    mse: lineSse(window, line) / Math.max(window.length, 1),
   };
-  let secondLine = {
-    slope: secondSlope,
-    intercept: kinkForce - secondSlope * kinkX,
-  };
-  const finalIntersection = lineIntersection(firstLine, secondLine);
-  if (
-    finalIntersection &&
-    finalIntersection.displacement >= minKinkX &&
-    finalIntersection.displacement <= maxKinkX &&
-    finalIntersection.force > 0
-  ) {
-    kinkX = finalIntersection.displacement;
-    kinkForce = finalIntersection.force;
-  } else {
-    kinkX = fallbackKinkX;
-    kinkForce = lineY(firstFit, fallbackKinkX);
-    if (!Number.isFinite(kinkForce) || kinkForce <= 0) {
-      kinkForce = predictedPt;
+}
+
+function bestInitialWindowForKink(points) {
+  const minLen = 3;
+  const maxLen = 5;
+  const halfIndex = Math.floor(points.length * 0.5);
+  const endMax = Math.min(halfIndex - 1, maxLen - 1);
+  let best = null;
+  for (let end = minLen - 1; end <= endMax; end += 1) {
+    const candidate = fitWindow(points, 0, end);
+    if (!candidate) {
+      continue;
+    }
+    const sse = lineSse(points.slice(0, end + 1), candidate.line);
+    if (!best || sse < best.sse) {
+      best = { ...candidate, sse };
     }
   }
-  firstLine = {
-    slope: firstSlope,
-    intercept: kinkForce - firstSlope * kinkX,
+  return best;
+}
+
+function slidingSlopes(points, win = KINK_FIT_CONFIG.kinkWin) {
+  const adjustedWin = win % 2 === 0 ? win + 1 : win;
+  const half = Math.floor(adjustedWin / 2);
+  return points.map((_, index) => {
+    if (index < half || index >= points.length - half) {
+      return Number.NaN;
+    }
+    const line = linearFit(points.slice(index - half, index + half + 1));
+    return line ? line.slope : Number.NaN;
+  });
+}
+
+function detectKinkStart(points, initialSlope, startIndexMin) {
+  const slopes = slidingSlopes(points);
+  const threshold = initialSlope * KINK_FIT_CONFIG.slopeDropFrac;
+  const limit = points.length - KINK_FIT_CONFIG.kinkHold;
+  for (let index = Math.max(startIndexMin, 0); index <= limit; index += 1) {
+    const segment = slopes.slice(index, index + KINK_FIT_CONFIG.kinkHold);
+    if (segment.every((slope) => Number.isFinite(slope) && slope <= threshold)) {
+      return index;
+    }
+  }
+  return null;
+}
+
+function bestInitialLinearWindow(points, endIndex) {
+  let best = null;
+  const cappedEnd = clampNumber(Math.floor(endIndex), 0, points.length - 1);
+  for (let length = 3; length <= KINK_FIT_CONFIG.initialMaxLen; length += 1) {
+    const startMax = cappedEnd - (length - 1);
+    for (let start = 0; start <= startMax; start += 1) {
+      const candidate = fitWindow(points, start, start + length - 1);
+      if (!candidate) {
+        continue;
+      }
+      if (!best || candidate.r2 > best.r2 || (Math.abs(candidate.r2 - best.r2) < 1e-12 && length > (best.end - best.start + 1))) {
+        best = candidate;
+      }
+    }
+  }
+  return best;
+}
+
+function bestSecondWindowPostKink(points, startAfterIndex, kinkIndex, firstLine, kinkX) {
+  const length = KINK_FIT_CONFIG.secondLen;
+  const startMin = Math.max(Math.floor(startAfterIndex), kinkIndex + 1);
+  const maxU = KINK_FIT_CONFIG.secondFitMaxU;
+
+  function sweep(strict = true, useMaxU = true) {
+    let startMax = points.length - length;
+    if (useMaxU && Number.isFinite(maxU)) {
+      const lastWithinMax = points.reduce((last, point, index) => (
+        point.displacement <= maxU ? index : last
+      ), -1);
+      if (lastWithinMax >= 0 && lastWithinMax - (length - 1) >= startMin) {
+        startMax = Math.min(startMax, lastWithinMax - (length - 1));
+      }
+    }
+    let best = null;
+    for (let start = startMin; start <= startMax; start += 1) {
+      const candidate = fitWindow(points, start, start + length - 1);
+      if (!candidate) {
+        continue;
+      }
+      const pt = lineIntersection(firstLine, candidate.line);
+      if (!pt) {
+        continue;
+      }
+      if (strict && pt.displacement > kinkX + KINK_FIT_CONFIG.preKinkEps) {
+        continue;
+      }
+      const dist = Math.max(0, kinkX - pt.displacement);
+      const score = candidate.mse + KINK_FIT_CONFIG.nearWeight * (Math.abs(firstLine.slope) ** 2) * (dist ** 2);
+      if (!best || score < best.score) {
+        best = { ...candidate, score };
+      }
+    }
+    return best;
+  }
+
+  return sweep(true, true) || sweep(false, true) || sweep(true, false) || sweep(false, false);
+}
+
+function bestFallbackSecondWindow(points, startAfterIndex) {
+  let best = null;
+  for (let start = Math.max(0, startAfterIndex); start <= points.length - KINK_FIT_CONFIG.secondLen; start += 1) {
+    const candidate = fitWindow(points, start, start + KINK_FIT_CONFIG.secondLen - 1);
+    if (!candidate) {
+      continue;
+    }
+    if (!best || candidate.mse < best.mse) {
+      best = candidate;
+    }
+  }
+  return best;
+}
+
+function buildKinkBilinearFit(points, predictedPtValue) {
+  if (!points || points.length < 10) {
+    return null;
+  }
+  const sorted = [...points]
+    .filter((point) => Number.isFinite(point.displacement) && Number.isFinite(point.force))
+    .sort((a, b) => a.displacement - b.displacement);
+  if (sorted.length < 10) {
+    return null;
+  }
+  const minX = sorted[0].displacement;
+  const maxX = sorted[sorted.length - 1].displacement;
+  const initialKink = bestInitialWindowForKink(sorted);
+  const kinkIndex = initialKink
+    ? detectKinkStart(sorted, initialKink.line.slope, initialKink.end + 1)
+    : null;
+  const endForInitial = kinkIndex === null ? sorted.length - 1 : Math.max(0, kinkIndex - 1);
+  const first = bestInitialLinearWindow(sorted, endForInitial);
+  if (!first) {
+    return null;
+  }
+
+  let second = null;
+  let detectedKinkX = null;
+  if (kinkIndex !== null) {
+    detectedKinkX = sorted[kinkIndex].displacement;
+    const secondStart = Math.max(first.end + 1, kinkIndex + KINK_FIT_CONFIG.postSkipAfterKink);
+    second = bestSecondWindowPostKink(sorted, secondStart, kinkIndex, first.line, detectedKinkX);
+  } else {
+    second = bestFallbackSecondWindow(sorted, first.end + 1);
+  }
+  if (!second) {
+    return null;
+  }
+
+  let pt = lineIntersection(first.line, second.line);
+  if (!pt || pt.force <= 0) {
+    return null;
+  }
+  if (detectedKinkX !== null && pt.displacement > detectedKinkX + KINK_FIT_CONFIG.preKinkEps) {
+    const clampedX = detectedKinkX - KINK_FIT_CONFIG.preKinkEps;
+    pt = {
+      displacement: clampedX,
+      force: lineY(first.line, clampedX),
+    };
+  }
+  pt = {
+    displacement: clampNumber(pt.displacement, minX, maxX),
+    force: lineY(first.line, clampNumber(pt.displacement, minX, maxX)),
   };
-  secondLine = {
-    slope: secondSlope,
-    intercept: kinkForce - secondSlope * kinkX,
-  };
+  const spanX = Math.max(maxX - minX, 1e-9);
+  const predictedPt = Number(predictedPtValue);
+  const predictedPoint = Number.isFinite(predictedPt) ? pointAtForce(sorted, predictedPt) : null;
 
   return {
     kink: {
-      displacement: kinkX,
-      force: kinkForce,
+      displacement: pt.displacement,
+      force: pt.force,
     },
-    predictedPoint: {
-      displacement: ptOnCurve.displacement,
-      force: predictedPt,
+    detectedKink: detectedKinkX === null ? null : {
+      displacement: detectedKinkX,
+      force: sorted[kinkIndex].force,
     },
-    firstLine,
-    secondLine,
+    predictedPoint,
+    firstLine: first.line,
+    secondLine: second.line,
     firstStartX: minX,
-    firstEndX: Math.min(maxX, kinkX + spanX * 0.045),
-    secondStartX: Math.max(minX, kinkX - spanX * 0.025),
+    firstEndX: Math.min(maxX, pt.displacement + spanX * 0.045),
+    secondStartX: Math.max(minX, pt.displacement - spanX * 0.025),
     secondEndX: maxX,
   };
 }
 
+function buildBilinearFit(points, predictedPtValue) {
+  return buildKinkBilinearFit(points, predictedPtValue);
+}
+
 function buildU3BilinearFit(points, predictedPtValue) {
-  if (!points || points.length < 8) {
-    return null;
-  }
-  const predictedPt = Number(predictedPtValue);
-  const predictedPoint = Number.isFinite(predictedPt)
-    ? pointAtForce(points, predictedPt)
-    : null;
-  const minX = Math.min(...points.map((point) => point.displacement));
-  const maxX = Math.max(...points.map((point) => point.displacement));
-  const spanX = Math.max(maxX - minX, 1e-9);
-  const firstFit = linearFit(points.slice(0, 3));
-
-  const secondStart = clampNumber(Math.round(points.length * 0.124), 3, Math.max(3, points.length - 5));
-  const secondFit = linearFit(points.slice(secondStart, secondStart + 4));
-  if (!firstFit || !secondFit || firstFit.slope <= 0 || secondFit.slope <= 0) {
-    return null;
-  }
-
-  const intersection = lineIntersection(firstFit, secondFit);
-  const minKinkX = minX + spanX * 0.002;
-  const maxKinkX = minX + spanX * 0.2;
-  if (
-    !intersection ||
-    intersection.displacement < minKinkX ||
-    intersection.displacement > maxKinkX ||
-    intersection.force <= 0
-  ) {
-    return null;
-  }
-
-  return {
-    kink: intersection,
-    predictedPoint,
-    firstLine: firstFit,
-    secondLine: secondFit,
-    firstStartX: minX,
-    firstEndX: Math.min(maxX, intersection.displacement + spanX * 0.035),
-    secondStartX: Math.max(minX, intersection.displacement - spanX * 0.015),
-    secondEndX: maxX,
-  };
+  return buildKinkBilinearFit(points, predictedPtValue);
 }
 
 function drawResponseCurve(points, predictedPtValue, fitMode = "standard") {
   const ctx = responseCurveCanvas.getContext("2d");
   const { width, height } = responseCurveCanvas;
-  const pad = { left: 54, right: 18, top: 20, bottom: 42 };
+  const pad = { left: 76, right: 24, top: 30, bottom: 64 };
   ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = "#f8fafc";
   ctx.fillRect(0, 0, width, height);
@@ -1031,15 +1153,35 @@ function drawResponseCurve(points, predictedPtValue, fitMode = "standard") {
       lineY(bilinearFit.secondLine, bilinearFit.secondEndX),
       bilinearFit.kink.force,
     );
+    if (bilinearFit.detectedKink) {
+      ys.push(bilinearFit.detectedKink.force);
+    }
   }
   const minX = Math.min(...xs);
   const maxX = Math.max(...xs);
-  const minY = Math.min(...ys);
+  const minY = Math.min(0, ...ys);
   const maxY = Math.max(...ys) * 1.06;
   const plotW = width - pad.left - pad.right;
   const plotH = height - pad.top - pad.bottom;
   const scaleX = (value) => pad.left + ((value - minX) / Math.max(1e-9, maxX - minX)) * plotW;
   const scaleY = (value) => height - pad.bottom - ((value - minY) / Math.max(1e-9, maxY - minY)) * plotH;
+  const xTicks = Array.from({ length: 6 }, (_, index) => minX + ((maxX - minX) / 5) * index);
+  const yTicks = Array.from({ length: 6 }, (_, index) => minY + ((maxY - minY) / 5) * index);
+
+  ctx.strokeStyle = "#e6edf3";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  yTicks.slice(1, -1).forEach((value) => {
+    const y = scaleY(value);
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(width - pad.right, y);
+  });
+  xTicks.slice(1, -1).forEach((value) => {
+    const x = scaleX(value);
+    ctx.moveTo(x, pad.top);
+    ctx.lineTo(x, height - pad.bottom);
+  });
+  ctx.stroke();
 
   ctx.strokeStyle = "#d8e0e8";
   ctx.lineWidth = 1;
@@ -1049,9 +1191,22 @@ function drawResponseCurve(points, predictedPtValue, fitMode = "standard") {
   ctx.lineTo(width - pad.right, height - pad.bottom);
   ctx.stroke();
 
+  ctx.fillStyle = "#647184";
+  ctx.font = "11px Inter, system-ui, sans-serif";
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "right";
+  yTicks.forEach((value) => {
+    ctx.fillText(formatAxisTick(value, 2), pad.left - 8, scaleY(value));
+  });
+  ctx.textBaseline = "top";
+  ctx.textAlign = "center";
+  xTicks.forEach((value) => {
+    ctx.fillText(formatAxisTick(value, 4), scaleX(value), height - pad.bottom + 14);
+  });
+
   if (bilinearFit) {
-    const kinkX = scaleX(bilinearFit.kink.displacement);
-    const kinkY = scaleY(bilinearFit.kink.force);
+    const kinkMarker = bilinearFit.detectedKink || bilinearFit.kink;
+    const kinkX = scaleX(kinkMarker.displacement);
     ctx.save();
     ctx.setLineDash([6, 4]);
     ctx.strokeStyle = "#ef4444";
@@ -1091,9 +1246,9 @@ function drawResponseCurve(points, predictedPtValue, fitMode = "standard") {
     const marker = bilinearFit.predictedPoint || bilinearFit.kink;
     const ptX = scaleX(marker.displacement);
     const ptY = scaleY(marker.force);
-    const kinkX = scaleX(bilinearFit.kink.displacement);
-    const kinkY = scaleY(bilinearFit.kink.force);
-    const separation = Math.hypot(ptX - kinkX, ptY - kinkY);
+    const fitX = scaleX(bilinearFit.kink.displacement);
+    const fitY = scaleY(bilinearFit.kink.force);
+    const separation = Math.hypot(ptX - fitX, ptY - fitY);
     const shouldLabelFitIntersection = Boolean(bilinearFit.predictedPoint) && separation > 12;
 
     if (shouldLabelFitIntersection) {
@@ -1102,10 +1257,10 @@ function drawResponseCurve(points, predictedPtValue, fitMode = "standard") {
       ctx.strokeStyle = "#7c3aed";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(kinkX, kinkY - 6);
-      ctx.lineTo(kinkX + 6, kinkY);
-      ctx.lineTo(kinkX, kinkY + 6);
-      ctx.lineTo(kinkX - 6, kinkY);
+      ctx.moveTo(fitX, fitY - 6);
+      ctx.lineTo(fitX + 6, fitY);
+      ctx.lineTo(fitX, fitY + 6);
+      ctx.lineTo(fitX - 6, fitY);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
@@ -1115,8 +1270,8 @@ function drawResponseCurve(points, predictedPtValue, fitMode = "standard") {
         ctx,
         TEXT.fitIntersectionLabel,
         formatMetric(bilinearFit.kink.force, 2),
-        kinkX,
-        kinkY,
+        fitX,
+        fitY,
         pad,
         width,
         height,
@@ -1132,7 +1287,9 @@ function drawResponseCurve(points, predictedPtValue, fitMode = "standard") {
     }
 
     const ptLabel = TEXT.predictedPtLabel;
-    const ptValue = formatMetric(marker.force, 2);
+    const ptValue = Number.isFinite(Number(predictedPtValue))
+      ? formatMetric(Number(predictedPtValue), 2)
+      : formatMetric(marker.force, 2);
 
     ctx.fillStyle = "#ef4444";
     ctx.strokeStyle = "#ffffff";
@@ -1198,7 +1355,7 @@ function renderU3PtResult(data) {
 
       const valueEl = document.createElement("span");
       valueEl.className = "input-token-value";
-      valueEl.textContent = inputValueLabels[value] || value;
+      valueEl.textContent = inputDisplayValue(key, value, inputValueLabels);
 
       item.append(label, valueEl);
       inputSummary.appendChild(item);
@@ -1426,8 +1583,8 @@ function reportInputText(inputs = {}) {
     Unknown: TEXT.unknown,
   };
   return [
-    `θ₁ ${formatMetric(inputs.theta1, 2)}`,
-    `θ₂ ${formatMetric(inputs.theta2, 2)}`,
+    `θ₁ ${formatMetric(inputs.theta1, 0)}`,
+    `θ₂ ${formatMetric(inputs.theta2, 0)}`,
     inputs.pt !== undefined && inputs.pt !== null ? `Pt ${formatMetric(inputs.pt, 2)}` : "",
     `${IS_KO ? "Case" : "Case"} ${inputValueLabels[inputs.case] || inputs.case || TEXT.unknown}`,
     inputs.test_id ? `Test ID ${inputs.test_id}` : "",
@@ -1437,8 +1594,8 @@ function reportInputText(inputs = {}) {
 function exportFileStem() {
   const inputs = latestPredictionData?.inputs || {};
   const caseName = inputs.case || "case";
-  const theta1 = Number.isFinite(Number(inputs.theta1)) ? `t1_${Number(inputs.theta1).toFixed(1)}` : "t1";
-  const theta2 = Number.isFinite(Number(inputs.theta2)) ? `t2_${Number(inputs.theta2).toFixed(1)}` : "t2";
+  const theta1 = Number.isFinite(Number(inputs.theta1)) ? `t1_${Math.round(Number(inputs.theta1))}` : "t1";
+  const theta2 = Number.isFinite(Number(inputs.theta2)) ? `t2_${Math.round(Number(inputs.theta2))}` : "t2";
   const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
   return `double_double_${caseName}_${theta1}_${theta2}_${stamp}`;
 }
@@ -1453,7 +1610,7 @@ function buildResultReportCanvas() {
   const hasNotes = Boolean(data.notes?.length);
   const canvas = document.createElement("canvas");
   canvas.width = 1200;
-  canvas.height = hasCurve ? (hasNotes ? 1580 : 1400) : (hasNotes ? 1060 : 880);
+  canvas.height = hasCurve ? (hasNotes ? 2100 : 1860) : (hasNotes ? 1060 : 880);
   const ctx = canvas.getContext("2d");
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1501,8 +1658,8 @@ function buildResultReportCanvas() {
     ctx.fillStyle = "#132236";
     ctx.font = "900 24px Inter, system-ui, sans-serif";
     ctx.fillText(TEXT.reportCurve, 64, y);
-    drawCanvasImage(ctx, responseCurveCanvas, 64, y + 30, 1072, 446);
-    y += 540;
+    drawCanvasImage(ctx, responseCurveCanvas, 64, y + 30, 1072, 643);
+    y += 740;
     drawReportCard(ctx, 64, y, 330, 104, "Max. Displacement", formatMetric(data.predicted_max_displacement, 5));
     drawReportCard(ctx, 428, y, 330, 104, "Max. Force", formatMetric(data.predicted_max_force, 2));
     drawReportCard(ctx, 792, y, 330, 104, "Input Mode", data.input_mode || "-");
@@ -1637,8 +1794,8 @@ if (thetaForm) {
     const formData = new FormData(thetaForm);
     try {
       const data = await postJson("/predict/theta", {
-        theta1: Number(formData.get("theta1")),
-        theta2: Number(formData.get("theta2")),
+        theta1: normalizedThetaValue(formData.get("theta1")),
+        theta2: normalizedThetaValue(formData.get("theta2")),
         case: formData.get("case"),
         model: formData.get("model"),
       });
@@ -1656,6 +1813,8 @@ curveForm.addEventListener("submit", async (event) => {
   clearError();
   setLoading(curveForm, true);
   const formData = new FormData(curveForm);
+  formData.set("theta1", String(normalizedThetaValue(formData.get("theta1"))));
+  formData.set("theta2", String(normalizedThetaValue(formData.get("theta2"))));
   try {
     const data = await postForm("/predict/curve", formData);
     renderResult(data);
@@ -1673,8 +1832,8 @@ responseForm.addEventListener("submit", async (event) => {
   const formData = new FormData(responseForm);
   try {
     const data = await postJson("/predict/response", {
-      theta1: Number(formData.get("theta1")),
-      theta2: Number(formData.get("theta2")),
+      theta1: normalizedThetaValue(formData.get("theta1")),
+      theta2: normalizedThetaValue(formData.get("theta2")),
       case: formData.get("case"),
       model: formData.get("model"),
     });
@@ -1695,8 +1854,8 @@ if (u3PtForm) {
     try {
       const selectedModel = String(formData.get("model") || "");
       const data = await postJson("/predict/u3-forecast", {
-        theta1: Number(formData.get("theta1")),
-        theta2: Number(formData.get("theta2")),
+        theta1: normalizedThetaValue(formData.get("theta1")),
+        theta2: normalizedThetaValue(formData.get("theta2")),
         case: formData.get("case"),
         test_id: "Forecast",
         model: selectedModel,

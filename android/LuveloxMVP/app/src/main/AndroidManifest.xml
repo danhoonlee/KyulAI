@@ -10,10 +10,16 @@
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
         <activity
+            android:name=".LaminateResultActivity"
+            android:exported="false" />
+        <activity
             android:name=".LaminateActivity"
             android:exported="false" />
         <activity
             android:name=".InjectionActivity"
+            android:exported="false" />
+        <activity
+            android:name=".AdminWebActivity"
             android:exported="false" />
         <activity
             android:name=".MainActivity"

@@ -6,8 +6,8 @@ import csv
 import io
 import json
 import re
-from importlib.util import find_spec
 from functools import lru_cache
+from importlib.util import find_spec
 from pathlib import Path
 from typing import Any, Literal
 
@@ -194,6 +194,23 @@ def _models_response() -> SimpleInjectionModelsResponse:
     )
 
 
+def model_availability_status() -> dict[str, str]:
+    statuses: dict[str, str] = {}
+    for registry in (SPRUE_MODELS, FILLING_MODELS):
+        for key, meta in registry.items():
+            path = _model_path(meta)
+            if not path.exists():
+                statuses[key] = f"missing file: {path.relative_to(PROJECT_ROOT)}"
+                continue
+            missing = [
+                item.strip()
+                for item in meta.get("requires", "").split(",")
+                if item.strip() and find_spec(item.strip()) is None
+            ]
+            statuses[key] = f"missing dependencies: {', '.join(missing)}" if missing else "ok"
+    return statuses
+
+
 def _ensure_available(model_key: str, registry: dict[str, dict[str, str]] | None = None) -> dict[str, str]:
     registry = registry or SPRUE_MODELS
     meta = registry[model_key]
@@ -253,11 +270,11 @@ def _filling_pressure_map() -> dict[str, dict[str, object]]:
 def _filling_pressure_summary(
     geometry: dict[str, float | str | None],
     process: dict[str, float | str | None],
-) -> dict[str, object] | None:
+) -> FillingPressureSummary | None:
     sample_id = f"{geometry['geometry_id']}_{process['process_id']}"
     observed = _filling_pressure_map().get(sample_id)
     if observed:
-        return _with_filling_pressure_assets(observed)
+        return FillingPressureSummary.model_validate(_with_filling_pressure_assets(observed))
     return None
 
 
@@ -266,19 +283,29 @@ def _predict_filling_pressure_summary(
     model_path: Path,
     geometry: dict[str, float | str | None],
     process: dict[str, float | str | None],
-) -> dict[str, object] | None:
+) -> FillingPressureSummary | None:
     try:
         if model_key == "filling_goint":
-            from src.ml.simple_injection.predict_filling_pressure import predict_filling_pressure_goint
+            from src.ml.simple_injection.predict_filling_pressure import (
+                predict_filling_pressure_goint,
+            )
 
-            return _with_filling_pressure_assets(predict_filling_pressure_goint(model_path, geometry, process, device="cpu"))
+            return FillingPressureSummary.model_validate(
+                _with_filling_pressure_assets(predict_filling_pressure_goint(model_path, geometry, process, device="cpu"))
+            )
         if model_key == "filling_deeponet":
-            from src.ml.simple_injection.predict_filling_pressure import predict_filling_pressure_deeponet
+            from src.ml.simple_injection.predict_filling_pressure import (
+                predict_filling_pressure_deeponet,
+            )
 
-            return _with_filling_pressure_assets(predict_filling_pressure_deeponet(model_path, geometry, process, device="cpu"))
+            return FillingPressureSummary.model_validate(
+                _with_filling_pressure_assets(predict_filling_pressure_deeponet(model_path, geometry, process, device="cpu"))
+            )
         from src.ml.simple_injection.predict_filling_pressure import predict_filling_pressure
 
-        return _with_filling_pressure_assets(predict_filling_pressure(model_path, geometry, process))
+        return FillingPressureSummary.model_validate(
+            _with_filling_pressure_assets(predict_filling_pressure(model_path, geometry, process))
+        )
     except Exception:
         return None
 
@@ -446,7 +473,13 @@ def _sprue_comparison(prediction: dict[str, Any], actual_curve: tuple[np.ndarray
                 "actual_MPa": float(actual_value),
                 "error_MPa": float(error_value),
             }
-            for time_value, predicted_value, actual_value, error_value in zip(grid, pred_interp, actual_interp, error)
+            for time_value, predicted_value, actual_value, error_value in zip(
+                grid,
+                pred_interp,
+                actual_interp,
+                error,
+                strict=True,
+            )
         ],
     }
 

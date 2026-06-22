@@ -12,6 +12,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from src.backend.api.v1.modules import router as modules_router
+from src.backend.api.v1.simple_injection import model_availability_status
 from src.backend.api.v1.simple_injection import router as simple_injection_router
 
 PROJECT_ROOT = __import__("pathlib").Path(__file__).resolve().parents[2]
@@ -75,6 +76,13 @@ async def simple_injection_en() -> RedirectResponse:
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/ready")
+async def ready() -> dict[str, object]:
+    models = model_availability_status()
+    status_text = "ready" if all(status == "ok" for status in models.values()) else "not_ready"
+    return {"status": status_text, "models": models}
 
 
 app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="simple-injection-root")

@@ -6,9 +6,9 @@ import csv
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, cast
 
 import numpy as np
-
 
 DEFAULT_DATA_DIR = Path("data/datasets/Simple_Injection")
 DEFAULT_DOE_DIR = DEFAULT_DATA_DIR / "DOE"
@@ -94,7 +94,7 @@ def load_geometry_doe(
     if include_supplemental:
         for path in _supplemental_csvs(doe_path, "geometry"):
             rows.extend(_read_dict_csv(path))
-    geometry = {}
+    geometry: dict[str, dict[str, float | str]] = {}
     for row in rows:
         geometry_id = row["geometry_id"]
         geometry[geometry_id] = {
@@ -113,13 +113,13 @@ def load_geometry_doe(
 def load_process_doe(
     doe_dir: str | Path = DEFAULT_DOE_DIR,
     include_supplemental: bool = False,
-) -> dict[str, dict[str, float]]:
+) -> dict[str, dict[str, float | str]]:
     doe_path = Path(doe_dir)
     rows = _read_dict_csv(doe_path / "process_doe_10.csv")
     if include_supplemental:
         for path in _supplemental_csvs(doe_path, "process"):
             rows.extend(_read_dict_csv(path))
-    process = {}
+    process: dict[str, dict[str, float | str]] = {}
     for row in rows:
         process_id = row["process_id"]
         process[process_id] = {
@@ -218,7 +218,7 @@ def load_result_curves(result_dir: str | Path = DEFAULT_RESULT_DIR) -> dict[str,
         if not found_in_header:
             match = RUN_RE.search(path.name) or RUN_RE.search(path.as_posix())
             curve = _read_first_xy_curve(path) if match else None
-            if curve is not None:
+            if curve is not None and match is not None:
                 curves[f"{match.group(1)}_{match.group(2)}"] = curve
     return curves
 
@@ -485,7 +485,10 @@ def load_filling_pressure_training_arrays(
         geometry_id, process_id = sample_id.split("_")
         if geometry_id not in geometry or process_id not in process:
             continue
-        bins = sorted(summary["bins"], key=lambda row: int(row["group"]))
+        bins = sorted(
+            cast(list[dict[str, object]], summary["bins"]),
+            key=lambda row: int(cast(Any, row["group"])),
+        )
         if len(bins) != group_count:
             continue
         features = _with_derived_features({**geometry[geometry_id], **process[process_id]})
@@ -499,14 +502,14 @@ def load_filling_pressure_training_arrays(
                 pressure=np.asarray([0.0, 1.0]),
             )
         )
-        stats = summary["stats"]
+        stats = cast(dict[str, object], summary["stats"])
         targets.append(
             [
-                float(stats["min_MPa"]),
-                float(stats["max_MPa"]),
-                float(stats["avg_MPa"]),
-                float(stats["sd_MPa"]),
-                *[float(row["volume_ratio_pct"]) for row in bins],
+                float(cast(Any, stats["min_MPa"])),
+                float(cast(Any, stats["max_MPa"])),
+                float(cast(Any, stats["avg_MPa"])),
+                float(cast(Any, stats["sd_MPa"])),
+                *[float(cast(Any, row["volume_ratio_pct"])) for row in bins],
             ]
         )
 

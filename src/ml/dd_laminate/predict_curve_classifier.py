@@ -15,9 +15,9 @@ from .curve_features import DDCurveRecord, extract_curve_features
 from .train_cases_2_3_4_classical import (
     CURVE_FEATURE_COLUMNS,
     THETA_FEATURE_COLUMNS,
+    DDRecord,
     curve_feature_row,
     theta_feature_row,
-    DDRecord,
 )
 
 
@@ -34,7 +34,7 @@ def predict_curve_type(
     bundle = joblib.load(model_path)
     feature_columns = bundle["feature_columns"]
     if "case_case2" in feature_columns:
-        record = DDRecord(
+        theta_record = DDRecord(
             case=case,
             test_id=test_id,
             theta1=theta1,
@@ -43,10 +43,10 @@ def predict_curve_type(
             label=0,
             csv_path=Path(csv_path),
         )
-        values = theta_feature_row(record) + curve_feature_row(record)
-        row = dict(zip(THETA_FEATURE_COLUMNS + CURVE_FEATURE_COLUMNS, values))
+        values = theta_feature_row(theta_record) + curve_feature_row(theta_record)
+        row = dict(zip(THETA_FEATURE_COLUMNS + CURVE_FEATURE_COLUMNS, values, strict=True))
     else:
-        record = DDCurveRecord(
+        curve_record = DDCurveRecord(
             case=case,
             test_id=test_id,
             theta1=theta1,
@@ -55,7 +55,7 @@ def predict_curve_type(
             label=0,
             csv_path=Path(csv_path),
         )
-        row = extract_curve_features(record).__dict__
+        row = extract_curve_features(curve_record).__dict__
     x = np.array([[float(row[col]) for col in feature_columns]], dtype=float)
     pred = int(bundle["model"].predict(x)[0])
     probs = None

@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>C2ES Injection Forecast v2</title>
+    <link rel="stylesheet" href="./styles-v2.css?v=20260619-injection-v2-17" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="workspace" aria-labelledby="app-title">
+        <header class="topbar">
+          <div class="brand-lockup">
+            <p class="eyebrow">Moldex3D surrogate AI</p>
+            <h1 id="app-title"><span>C2ES</span> <span>Injection Forecast</span></h1>
+            <p class="hero-copy">
+              Predict sprue pressure curves and filling pressure distributions from DOE geometry and process settings.
+            </p>
+          </div>
+          <div class="top-actions">
+            <div class="status-pill" id="api-status">Checking</div>
+            <a class="language-link" href="https://ai.luvelox.com/index.html">Modules</a>
+            <a class="language-link" href="./injection-v2-flow.html">Flow</a>
+            <a class="language-link" href="./index.html">Classic</a>
+            <a class="language-link" href="./index-v2.ko.html">한국어</a>
+          </div>
+        </header>
+
+        <section class="summary-strip" aria-label="Workflow summary">
+          <div>
+            <span>01</span>
+            <strong>Set DOE</strong>
+            <p>Choose geometry and process cases.</p>
+          </div>
+          <div>
+            <span>02</span>
+            <strong>Preview</strong>
+            <p>Check gate, hole, and flow path.</p>
+          </div>
+          <div>
+            <span>03</span>
+            <strong>Review</strong>
+            <p>Sprue curve and filling histogram.</p>
+          </div>
+        </section>
+
+        <div class="grid" id="workspace-grid">
+          <section class="panel input-panel" aria-label="Prediction input">
+            <form id="prediction-form" class="form">
+              <div class="form-header">
+                <p class="eyebrow">Forecast Setup</p>
+                <h2>Injection run setup</h2>
+                <p>Pick the model pair and DOE case, then tune the key process values.</p>
+              </div>
+
+              <div class="setup-block">
+                <div class="setup-block-head">
+                  <span>01</span>
+                  <div>
+                    <strong>Prediction models</strong>
+                    <p>Choose one sprue model and one filling model.</p>
+                  </div>
+                </div>
+                <div class="model-grid">
+                  <label>
+                    Sprue model
+                    <select name="model" id="model-select"></select>
+                  </label>
+                  <label>
+                    Filling model
+                    <select name="filling_model" id="filling-model-select"></select>
+                  </label>
+                </div>
+              </div>
+
+              <div class="setup-block">
+                <div class="setup-block-head">
+                  <span>02</span>
+                  <div>
+                    <strong>DOE case</strong>
+                    <p>Geometry and process presets drive the parametric preview.</p>
+                  </div>
+                </div>
+                <div class="doe-grid">
+                  <label>
+                    Geometry DOE
+                    <select id="geometry-select" name="geometry_id"></select>
+                  </label>
+                  <label>
+                    Process DOE
+                    <select id="process-select" name="process_id"></select>
+                  </label>
+                </div>
+              </div>
+
+              <section class="prevention-card" id="prevention-card" aria-live="polite">
+                <span id="prevention-state">Ready</span>
+                <strong id="prevention-title">Prevention check passed</strong>
+              </section>
+
+              <div class="setup-block process-block">
+                <div class="setup-block-head">
+                  <span>03</span>
+                  <div>
+                    <strong>Process controls</strong>
+                    <p>Editable values are kept compact for quick DOE checks.</p>
+                  </div>
+                </div>
+                <div class="process-panel" aria-label="Process controls">
+                  <label class="process-control">
+                    <span>Melt temp</span>
+                    <b data-process-readout="melt_temp_C">-</b>
+                    <input name="melt_temp_C" type="number" step="0.1" required />
+                    <i data-process-bar="melt_temp_C"></i>
+                  </label>
+                  <label class="process-control">
+                    <span>Mold temp</span>
+                    <b data-process-readout="mold_temp_C">-</b>
+                    <input name="mold_temp_C" type="number" step="0.1" required />
+                    <i data-process-bar="mold_temp_C"></i>
+                  </label>
+                  <label class="process-control">
+                    <span>Packing pressure</span>
+                    <b data-process-readout="packing_pressure_MPa">-</b>
+                    <input name="packing_pressure_MPa" type="number" step="0.1" required />
+                    <i data-process-bar="packing_pressure_MPa"></i>
+                  </label>
+                  <label class="process-control">
+                    <span>Injection time</span>
+                    <b data-process-readout="injection_time_s">-</b>
+                    <input name="injection_time_s" type="number" step="0.001" required />
+                    <i data-process-bar="injection_time_s"></i>
+                  </label>
+                  <label class="process-control compact">
+                    <span>Packing time</span>
+                    <b data-process-readout="packing_time_s">-</b>
+                    <input name="packing_time_s" type="number" step="0.001" required />
+                  </label>
+                </div>
+              </div>
+
+              <details class="advanced-fields">
+                <summary>Geometry details</summary>
+                <div class="field-grid">
+                  <label>L (mm)<input name="L_mm" type="number" step="0.001" required /></label>
+                  <label>W (mm)<input name="W_mm" type="number" step="0.001" required /></label>
+                  <label>Thickness (mm)<input name="t_mm" type="number" step="0.001" required /></label>
+                  <label>Hole D (mm)<input name="D_mm" type="number" step="0.001" required /></label>
+                  <label>Hole R (mm)<input name="R_mm" type="number" step="0.001" required /></label>
+                  <label>Gate type<input name="gate_type" type="text" value="edge_gate" required /></label>
+                  <label>Gate width (mm)<input name="gate_size_width_mm" type="number" step="0.001" required /></label>
+                  <label>Gate height (mm)<input name="gate_size_height_mm" type="number" step="0.001" required /></label>
+                </div>
+              </details>
+
+              <button class="primary" type="submit">Predict Sprue & Filling</button>
+            </form>
+          </section>
+
+          <section class="panel visual-panel" aria-label="Live injection preview">
+            <div class="preview-head">
+              <div>
+                <p class="eyebrow">Parametric Preview</p>
+                <h2>Mold geometry and gate</h2>
+              </div>
+              <span class="run-pill" id="active-run">-</span>
+            </div>
+
+            <div class="viewer-card">
+              <div class="viewer-plate" id="shape-visual" aria-label="Parametric DOE preview"></div>
+              <div class="shape-preview-status" id="shape-preview-status">Preparing Parametric preview</div>
+              <div class="shape-view-controls" aria-label="Parametric view controls">
+                <button type="button" id="shape-zoom-in" aria-label="Zoom in">+</button>
+                <button type="button" id="shape-zoom-out" aria-label="Zoom out">-</button>
+                <button type="button" id="shape-view-reset" aria-label="Reset view">↺</button>
+              </div>
+            </div>
+
+            <div class="shape-stats" aria-label="Shape dimension summary">
+              <div><span>L</span><strong id="metric-l">-</strong></div>
+              <div><span>W</span><strong id="metric-w">-</strong></div>
+              <div><span>t</span><strong id="metric-t">-</strong></div>
+              <div><span>D</span><strong id="metric-d">-</strong></div>
+            </div>
+
+            <div class="preview-caption">
+              <strong id="preview-title">Parametric DOE preview</strong>
+              <span id="preview-copy">The visible plate is generated from L/W/t, hole, and gate dimensions.</span>
+            </div>
+          </section>
+
+          <section class="panel result-panel" aria-live="polite">
+            <div class="empty-state" id="empty-state">
+              <p class="eyebrow">Prediction</p>
+              <h2>Ready for Injection Forecast</h2>
+              <p>Select DOE conditions and run the forecast to see sprue pressure and filling pressure output.</p>
+            </div>
+
+            <div class="result hidden" id="result">
+              <div class="result-head">
+                <div>
+                  <p class="eyebrow">Prediction Result</p>
+                  <h2>Sprue & Filling</h2>
+                </div>
+                <span class="run-pill complete">Complete</span>
+              </div>
+
+              <div class="result-hero">
+                <span>Max sprue pressure</span>
+                <strong id="max-pressure">-</strong>
+              </div>
+
+              <div class="stats">
+                <div><span>Max time</span><strong id="max-time">-</strong></div>
+                <div><span>Curve points</span><strong id="curve-points">-</strong></div>
+                <div><span>Filling max</span><strong id="filling-max">-</strong></div>
+              </div>
+
+              <section class="chart-card" aria-label="Sprue pressure curve">
+                <div class="section-head">
+                  <div>
+                    <p class="eyebrow">Sprue Pressure</p>
+                    <h3>Pressure Curve</h3>
+                  </div>
+                  <span id="sprue-model-label">-</span>
+                </div>
+                <canvas id="pressure-canvas" width="760" height="360"></canvas>
+              </section>
+
+              <section class="filling-card" aria-label="Filling pressure distribution">
+                <div class="section-head">
+                  <div>
+                    <p class="eyebrow">Filling Pressure</p>
+                    <h3>Distribution</h3>
+                  </div>
+                  <span id="filling-model-label">-</span>
+                </div>
+                <div class="filling-histogram" id="filling-histogram"></div>
+              </section>
+
+              <section class="compare-card" aria-label="Moldex3D validation comparison">
+                <div class="section-head">
+                  <div>
+                    <p class="eyebrow">Validation</p>
+                    <h3>Compare Moldex3D CSV</h3>
+                  </div>
+                  <span id="comparison-status">Optional</span>
+                </div>
+                <div class="compare-grid">
+                  <label>Sample ID<input id="comparison-sample-id" type="text" placeholder="G18_P07" /></label>
+                  <label>Sprue CSV<input id="comparison-sprue-file" type="file" accept=".csv,text/csv" /></label>
+                  <label>Filling CSV<input id="comparison-filling-file" type="file" accept=".csv,text/csv" /></label>
+                  <button class="secondary" type="button" id="comparison-submit">Compare</button>
+                </div>
+                <div class="comparison-output hidden" id="comparison-output"></div>
+              </section>
+
+              <ul class="notes" id="notes"></ul>
+            </div>
+          </section>
+        </div>
+
+        <div class="error hidden" id="error"></div>
+      </section>
+    </main>
+
+    <script src="./app-v2.js?v=20260619-injection-v2-17"></script>
+  </body>
+</html>

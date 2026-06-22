@@ -38,7 +38,7 @@ format: ## Auto-format with ruff
 	ruff check --fix src/ tests/
 
 typecheck: ## Run mypy type checking
-	mypy src/ --ignore-missing-imports
+	mypy --explicit-package-bases src/ --ignore-missing-imports
 
 # ── Testing ──────────────────────────────────────────────────────────────────
 

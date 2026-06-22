@@ -36,6 +36,7 @@ struct ContentView: View {
     @State private var selectedInputMode: InputMode = .forecast
     @State private var isShowingSettings = false
     @State private var isShowingResponseModelPicker = false
+    @State private var isShowingU3ModelPicker = false
     @State private var isShowingComparison = false
     @State private var isShowingRecentDelete = false
     @State private var comparisonSelectionIDs: [String] = []
@@ -44,7 +45,6 @@ struct ContentView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 header
-                connectionCard
                 inputModePicker
                 selectedInputCard
                 recentResultsCard
@@ -112,10 +112,24 @@ struct ContentView: View {
                     }
             }
         }
+        .sheet(isPresented: $isShowingU3ModelPicker) {
+            NavigationStack {
+                u3ModelSelectionSheet
+                    .navigationTitle(L10n.t("choose.model"))
+                    .appInlineNavigationTitle()
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button(L10n.t("done")) {
+                                isShowingU3ModelPicker = false
+                            }
+                        }
+                    }
+            }
+        }
         .sheet(isPresented: $isShowingComparison) {
             NavigationStack {
                 DDLaminateComparisonView(
-                    runs: viewModel.recentRuns,
+                    runs: currentRecentRuns,
                     selectedIDs: $comparisonSelectionIDs
                 )
                 .navigationTitle(L10n.t("compare.results"))
@@ -131,7 +145,7 @@ struct ContentView: View {
         }
         .sheet(isPresented: $isShowingRecentDelete) {
             NavigationStack {
-                RecentDeleteView(runs: viewModel.recentRuns) { selectedIDs in
+                RecentDeleteView(runs: currentRecentRuns) { selectedIDs in
                     viewModel.deleteRecentRuns(ids: selectedIDs)
                     isShowingRecentDelete = false
                 }
@@ -166,6 +180,18 @@ struct ContentView: View {
             viewModel.resetReadiness()
             Task { await autoCheckConnection() }
         }
+        .onChange(of: selectedInputMode) {
+            comparisonSelectionIDs = []
+        }
+    }
+
+    private var currentRecentRuns: [DDLaminateRecentRun] {
+        switch selectedInputMode {
+        case .forecast:
+            viewModel.responseForecastRecentRuns
+        case .u3:
+            viewModel.u3ForecastRecentRuns
+        }
     }
 
     @ViewBuilder
@@ -194,11 +220,15 @@ struct ContentView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(L10n.t("app.title"))
+            Text(appHeadlineTitle)
                 .font(.system(size: 34, weight: .bold, design: .rounded))
                 .foregroundStyle(
                     LinearGradient(colors: [AppTheme.ink, AppTheme.primary], startPoint: .leading, endPoint: .trailing)
                 )
+                .lineLimit(2)
+                .minimumScaleFactor(0.82)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
             Text(L10n.t("app.subtitle"))
                 .font(.callout)
                 .foregroundStyle(AppTheme.muted)
@@ -209,7 +239,7 @@ struct ContentView: View {
 
     private var inputModePicker: some View {
         Picker(L10n.t("prediction.mode"), selection: $selectedInputMode) {
-            Label(L10n.t("forecast.inputs"), systemImage: "waveform.path.ecg")
+            Label(L10n.t("response.forecast"), systemImage: "waveform.path.ecg")
                 .tag(InputMode.forecast)
             Label(L10n.t("u3.forecast"), systemImage: "scope")
                 .tag(InputMode.u3)
@@ -217,87 +247,14 @@ struct ContentView: View {
         .pickerStyle(.segmented)
     }
 
-    private var connectionCard: some View {
-        AppCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .center, spacing: 12) {
-                    statusIcon
-                    VStack(alignment: .leading, spacing: 3) {
-                        if let title = connectionTitle {
-                            Text(title)
-                                .font(.headline)
-                                .foregroundStyle(AppTheme.ink)
-                        }
-                        if connectionIsFailed {
-                            Text(settings.apiBaseURL)
-                                .font(.caption.monospaced())
-                                .foregroundStyle(AppTheme.muted)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                        }
-                        if let detail = connectionDetail {
-                            Text(detail)
-                                .font(.caption)
-                                .foregroundStyle(AppTheme.muted)
-                                .lineLimit(3)
-                        }
-                    }
-                    Spacer()
-                    Text(L10n.t("auto"))
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(AppTheme.success)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 5)
-                        .background(AppTheme.success.opacity(0.12), in: Capsule())
-                }
-
-                if let model = viewModel.responseModel {
-                    Divider()
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(model.displayLabel)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(AppTheme.ink)
-                        Text(model.description)
-                            .font(.caption)
-                            .foregroundStyle(AppTheme.muted)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-
-                if connectionIsFailed {
-                    HStack(spacing: 10) {
-                        Button {
-                            Task { await autoCheckConnection() }
-                        } label: {
-                            Label(L10n.t("retry.action"), systemImage: "arrow.clockwise")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(SecondaryButtonStyle())
-
-                        Button {
-                            isShowingSettings = true
-                        } label: {
-                            Label(L10n.t("settings.action"), systemImage: "gearshape")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(SecondaryButtonStyle())
-                    }
-                }
-            }
-        }
-    }
-
     private var forecastCard: some View {
         AppCard {
             VStack(alignment: .leading, spacing: 18) {
                 HStack {
-                    Label(L10n.t("forecast.inputs"), systemImage: "slider.horizontal.3")
+                    Label(L10n.t("response.forecast"), systemImage: "slider.horizontal.3")
                         .font(.headline)
                         .foregroundStyle(AppTheme.ink)
                     Spacer()
-                    if !viewModel.recentRuns.isEmpty {
-                        recentRunsMenu
-                    }
                     Text(viewModel.selectedCase.rawValue)
                         .font(.caption.bold())
                         .foregroundStyle(AppTheme.primary)
@@ -348,31 +305,6 @@ struct ContentView: View {
         }
     }
 
-    private var recentRunsMenu: some View {
-        Menu {
-            ForEach(Array(viewModel.recentRuns.enumerated()), id: \.element.id) { index, run in
-                Button {
-                    viewModel.applyRecentRun(run)
-                } label: {
-                    Text(recentRunTitle(run, index: index))
-                }
-            }
-            Divider()
-            Button(role: .destructive) {
-                isShowingRecentDelete = true
-            } label: {
-                Label(L10n.t("recent.clear"), systemImage: "trash")
-            }
-        } label: {
-            Label(L10n.t("recent.inputs"), systemImage: "clock.arrow.circlepath")
-                .font(.caption.weight(.bold))
-                .labelStyle(.iconOnly)
-                .foregroundStyle(AppTheme.primary)
-                .frame(width: 32, height: 32)
-            .background(AppTheme.primary.opacity(0.1), in: Circle())
-        }
-    }
-
     private var u3PtCard: some View {
         AppCard {
             VStack(alignment: .leading, spacing: 18) {
@@ -388,14 +320,6 @@ struct ContentView: View {
                         .padding(.vertical, 5)
                         .background(AppTheme.primary.opacity(0.1), in: Capsule())
                 }
-
-                Text(localText(
-                    en: "Predict u3 Type, Pt, and an approximate curve from θ and Case.",
-                    ko: "θ와 Case만으로 u3 Type, Pt, 대략적인 곡선을 예측합니다."
-                ))
-                .font(.caption)
-                .foregroundStyle(AppTheme.muted)
-                .fixedSize(horizontal: false, vertical: true)
 
                 u3ModelMenu
 
@@ -437,22 +361,8 @@ struct ContentView: View {
         let selectedModel = viewModel.u3PtModels.first { $0.key == viewModel.selectedU3PtModelKey }
         let title = selectedModel?.displayLabel ?? viewModel.selectedU3PtModelKey
         return VStack(alignment: .leading, spacing: 8) {
-            Text(localText(en: "u3 Pt Model", ko: "u3 Pt 모델"))
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(AppTheme.muted)
-            Menu {
-                ForEach(viewModel.u3PtModels) { model in
-                    Button {
-                        viewModel.selectU3PtModel(key: model.key)
-                    } label: {
-                        if model.key == viewModel.selectedU3PtModelKey {
-                            Label(model.displayLabel, systemImage: "checkmark")
-                        } else {
-                            Text(model.displayLabel)
-                        }
-                    }
-                    .disabled(!model.available)
-                }
+            Button {
+                isShowingU3ModelPicker = true
             } label: {
                 HStack(alignment: .center, spacing: 12) {
                     Image(systemName: modelIcon(for: selectedModel))
@@ -460,16 +370,22 @@ struct ContentView: View {
                         .foregroundStyle(AppTheme.primary)
                         .frame(width: 38, height: 38)
                         .background(AppTheme.primary.opacity(0.10), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text(title)
-                            .font(.subheadline.weight(.bold))
-                            .foregroundStyle(AppTheme.ink)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.78)
-                        Text(selectedModel?.description ?? localText(en: "Connect to the API to load u3 Pt models.", ko: "API에 연결하면 u3 Pt 모델을 불러옵니다."))
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 6) {
+                            Text(title)
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(AppTheme.ink)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.78)
+                            if isRecommendedModel(selectedModel) {
+                                modelBadge(L10n.t("model.recommended"), color: AppTheme.success)
+                            }
+                        }
+                        Text(selectedModel.map { modelDescription(for: $0) } ?? localText(en: "Connect to the API to load u3 Pt models.", ko: "API에 연결하면 u3 Pt 모델을 불러옵니다."))
                             .font(.caption)
                             .foregroundStyle(AppTheme.muted)
                             .lineLimit(2)
+                            .minimumScaleFactor(0.86)
                     }
                     Spacer()
                     Image(systemName: "chevron.up.chevron.down")
@@ -478,6 +394,11 @@ struct ContentView: View {
                 }
                 .padding(12)
                 .background(AppTheme.field, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(AppTheme.primary.opacity(0.12), lineWidth: 1)
+                )
+                .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
             .buttonStyle(.plain)
         }
@@ -490,7 +411,7 @@ struct ContentView: View {
 
     @ViewBuilder
     private var recentResultsCard: some View {
-        if !viewModel.recentRuns.isEmpty {
+        if !currentRecentRuns.isEmpty {
             AppCard {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
@@ -507,9 +428,9 @@ struct ContentView: View {
                         .buttonStyle(.plain)
                         .foregroundStyle(AppTheme.danger)
 
-                        if viewModel.recentRuns.count >= 2 {
+                        if currentRecentRuns.count >= 2 {
                             Button {
-                                comparisonSelectionIDs = Array(viewModel.recentRuns.prefix(2).map(\.id))
+                                comparisonSelectionIDs = Array(currentRecentRuns.prefix(2).map(\.id))
                                 isShowingComparison = true
                             } label: {
                                 Label(L10n.t("compare"), systemImage: "rectangle.split.2x1")
@@ -520,9 +441,9 @@ struct ContentView: View {
                         }
                     }
 
-                    ForEach(Array(viewModel.recentRuns.enumerated()), id: \.element.id) { index, run in
+                    ForEach(Array(currentRecentRuns.enumerated()), id: \.element.id) { index, run in
                         recentRunRow(run, index: index)
-                        if index < viewModel.recentRuns.count - 1 {
+                        if index < currentRecentRuns.count - 1 {
                             Divider()
                         }
                     }
@@ -552,7 +473,7 @@ struct ContentView: View {
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(AppTheme.primary)
                     }
-                    Text("Theta 1 \(run.theta1) deg · Theta 2 \(run.theta2) deg")
+                    Text("Theta 1 \(run.theta1Display) deg · Theta 2 \(run.theta2Display) deg")
                         .font(.caption)
                         .foregroundStyle(AppTheme.muted)
                     HStack(spacing: 8) {
@@ -586,9 +507,6 @@ struct ContentView: View {
         let selectedModel = viewModel.responseModels.first { $0.key == viewModel.selectedResponseModelKey }
         let title = selectedModel?.displayLabel ?? viewModel.selectedResponseModelKey
         return VStack(alignment: .leading, spacing: 8) {
-            Text(L10n.t("response.model"))
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(AppTheme.muted)
             Button {
                 isShowingResponseModelPicker = true
             } label: {
@@ -649,7 +567,13 @@ struct ContentView: View {
                     }
                 } else {
                     ForEach(viewModel.responseModels) { model in
-                        modelOptionCard(model)
+                        modelOptionCard(
+                            model,
+                            isSelected: model.key == viewModel.selectedResponseModelKey
+                        ) {
+                            viewModel.selectResponseModel(key: model.key)
+                            isShowingResponseModelPicker = false
+                        }
                     }
                 }
             }
@@ -658,12 +582,42 @@ struct ContentView: View {
         .background(AppTheme.background.ignoresSafeArea())
     }
 
-    private func modelOptionCard(_ model: ModelInfo) -> some View {
-        let isSelected = model.key == viewModel.selectedResponseModelKey
+    private var u3ModelSelectionSheet: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(L10n.t("model.selection.hint"))
+                    .font(.callout)
+                    .foregroundStyle(AppTheme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.bottom, 2)
+
+                if viewModel.u3PtModels.isEmpty {
+                    AppCard {
+                        Text(L10n.t("model.loading"))
+                            .font(.subheadline)
+                            .foregroundStyle(AppTheme.muted)
+                    }
+                } else {
+                    ForEach(viewModel.u3PtModels) { model in
+                        modelOptionCard(
+                            model,
+                            isSelected: model.key == viewModel.selectedU3PtModelKey
+                        ) {
+                            viewModel.selectU3PtModel(key: model.key)
+                            isShowingU3ModelPicker = false
+                        }
+                    }
+                }
+            }
+            .padding(20)
+        }
+        .background(AppTheme.background.ignoresSafeArea())
+    }
+
+    private func modelOptionCard(_ model: ModelInfo, isSelected: Bool, onSelect: @escaping () -> Void) -> some View {
         return Button {
             guard model.available else { return }
-            viewModel.selectResponseModel(key: model.key)
-            isShowingResponseModelPicker = false
+            onSelect()
         } label: {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .center, spacing: 12) {
@@ -727,7 +681,7 @@ struct ContentView: View {
     }
 
     private func isRecommendedModel(_ model: ModelInfo?) -> Bool {
-        model?.key == DDLaminateDefaults.responseModelKey
+        model?.key == DDLaminateDefaults.responseModelKey || model?.key == DDLaminateDefaults.u3PtModelKey
     }
 
     private func modelTag(for model: ModelInfo?) -> String {
@@ -736,7 +690,10 @@ struct ContentView: View {
         if model.key.contains("goint") || label.contains("nn") {
             return L10n.t("model.tag.deep")
         }
-        if model.key == DDLaminateDefaults.responseModelKey || label.contains("extratrees") {
+        if model.key == DDLaminateDefaults.responseModelKey
+            || model.key == DDLaminateDefaults.u3PtModelKey
+            || label.contains("machine learning")
+            || label.contains("extratrees") {
             return L10n.t("model.tag.fast")
         }
         return L10n.t("model.tag.experimental")
@@ -745,10 +702,13 @@ struct ContentView: View {
     private func modelDescription(for model: ModelInfo?) -> String {
         guard let model else { return L10n.t("model.loading") }
         let label = model.displayLabel.lowercased()
-        if model.key == DDLaminateDefaults.responseModelKey || label.contains("extratrees") {
+        if model.key == DDLaminateDefaults.responseModelKey
+            || model.key == DDLaminateDefaults.u3PtModelKey
+            || label.contains("machine learning")
+            || label.contains("extratrees") {
             return L10n.t("model.description.extratrees")
         }
-        if model.key.contains("goint") || label.contains("goint") {
+        if model.key.contains("goint") || label.contains("goint") || label.contains("deep learning") {
             return L10n.t("model.description.goint")
         }
         return model.description.isEmpty ? L10n.t("model.description.generic") : model.description
@@ -933,6 +893,7 @@ struct ContentView: View {
                         focusedField = nil
                     }
                     .urlInputStyle()
+                settingsConnectionStatusRow
                 Text(L10n.t("external.url.hint"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -940,13 +901,55 @@ struct ContentView: View {
         }
     }
 
+    private var settingsConnectionStatusRow: some View {
+        HStack(alignment: .center, spacing: 10) {
+            statusIcon
+            VStack(alignment: .leading, spacing: 2) {
+                Text(settingsConnectionTitle)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.ink)
+                if let detail = connectionDetail {
+                    Text(detail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+            }
+            Spacer()
+            if connectionIsFailed {
+                Button {
+                    Task { await autoCheckConnection() }
+                } label: {
+                    Label(L10n.t("retry.action"), systemImage: "arrow.clockwise")
+                        .labelStyle(.iconOnly)
+                }
+                .buttonStyle(.borderless)
+            }
+        }
+        .padding(.vertical, 4)
+        .accessibilityElement(children: .combine)
+    }
+
     private var statusIcon: some View {
         let config = statusConfig
         return Image(systemName: config.icon)
-            .font(.headline)
+            .font(.subheadline.weight(.semibold))
             .foregroundStyle(config.color)
-            .frame(width: 36, height: 36)
+            .frame(width: 28, height: 28)
             .background(config.color.opacity(0.12), in: Circle())
+    }
+
+    private var settingsConnectionTitle: String {
+        switch viewModel.connectionState {
+        case .idle:
+            L10n.t("api.not.checked")
+        case .checking:
+            L10n.t("checking.api")
+        case .ready(let available):
+            available ? L10n.t("api.connected") : L10n.t("model.unavailable")
+        case .failed:
+            L10n.t("connection.failed")
+        }
     }
 
     private var connectionTitle: String? {
@@ -1046,6 +1049,10 @@ struct ContentView: View {
         settings.languageCode == "ko" ? ko : en
     }
 
+    private var appHeadlineTitle: String {
+        localText(en: "C2ES\nLaminate Forecast", ko: "C2ES\n적층 예측")
+    }
+
     private func friendlyConnectionMessage(_ message: String?) -> String {
         friendlyMessage(message, defaultKey: "friendly.offline")
     }
@@ -1108,6 +1115,15 @@ private struct RecentDeleteView: View {
                         .foregroundStyle(AppTheme.muted)
                         .fixedSize(horizontal: false, vertical: true)
 
+                    Button {
+                        selectedIDs = Set(runs.map(\.id))
+                    } label: {
+                        Label(L10n.t("recent.delete.select.all"), systemImage: "checkmark.circle")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(SecondaryButtonStyle())
+                    .disabled(runs.isEmpty || selectedIDs.count == runs.count)
+
                     AppCard {
                         VStack(alignment: .leading, spacing: 0) {
                             ForEach(Array(runs.enumerated()), id: \.element.id) { index, run in
@@ -1121,7 +1137,7 @@ private struct RecentDeleteView: View {
                                             Text(index == 0 ? "\(index + 1). \(L10n.t("recent.latest"))" : "\(index + 1). \(run.displayTitle)")
                                                 .font(.subheadline.weight(.bold))
                                                 .foregroundStyle(AppTheme.ink)
-                                            Text("\(run.displayModelLabel) · Theta \(run.theta1) / \(run.theta2) · Pt \(run.predictedPt?.metricText(digits: 2) ?? "-")")
+                                            Text("\(run.displayModelLabel) · Theta \(run.theta1Display) / \(run.theta2Display) · Pt \(run.predictedPt?.metricText(digits: 2) ?? "-")")
                                                 .font(.caption)
                                                 .foregroundStyle(AppTheme.muted)
                                         }

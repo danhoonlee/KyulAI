@@ -30,6 +30,11 @@ class CurveChartView(context: Context) : View(context) {
         strokeWidth = 2f
         style = Paint.Style.STROKE
     }
+    private val gridPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.rgb(230, 237, 243)
+        strokeWidth = 1.5f
+        style = Paint.Style.STROKE
+    }
     private val curvePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.rgb(0, 133, 128)
         strokeWidth = 5f
@@ -53,6 +58,12 @@ class CurveChartView(context: Context) : View(context) {
     private val tickPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.rgb(84, 103, 108)
         textSize = 24f
+        textAlign = Paint.Align.CENTER
+        isFakeBoldText = true
+    }
+    private val axisValuePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.rgb(100, 113, 132)
+        textSize = 20f
         textAlign = Paint.Align.CENTER
         isFakeBoldText = true
     }
@@ -84,17 +95,15 @@ class CurveChartView(context: Context) : View(context) {
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        val left = 64f
-        val top = 46f
-        val right = width - 24f
-        val bottom = height - 58f
-        canvas.drawLine(left, bottom, right, bottom, axisPaint)
-        canvas.drawLine(left, top, left, bottom, axisPaint)
-        tickPaint.textAlign = Paint.Align.LEFT
-        canvas.drawText(context.getString(R.string.axis_force), left, top - 14f, tickPaint)
-        tickPaint.textAlign = Paint.Align.CENTER
-        canvas.drawText(context.getString(R.string.axis_displacement), (left + right) / 2f, height - 12f, tickPaint)
-        if (points.size < 2) return
+        val frame = computePlotFrame()
+        val left = frame.left
+        val top = frame.top
+        val right = frame.right
+        val bottom = frame.bottom
+        if (points.size < 2) {
+            drawBaseAxes(canvas, left, top, right, bottom)
+            return
+        }
 
         val minX = points.minOf { it.displacement }
         val maxX = max(points.maxOf { it.displacement }, minX + 0.000001)
@@ -116,6 +125,9 @@ class CurveChartView(context: Context) : View(context) {
             val ratio = (value - minY) / max(maxY - minY, 0.000001)
             return bottom - (ratio * (bottom - top)).toFloat()
         }
+
+        drawAxisTicks(canvas, left, top, right, bottom, minX, maxX, minY, maxY, ::x, ::y)
+        drawBaseAxes(canvas, left, top, right, bottom)
 
         bilinearFit?.let { drawBilinearFit(canvas, it, ::x, ::y, top, bottom) }
 
@@ -202,12 +214,82 @@ class CurveChartView(context: Context) : View(context) {
     }
 
     private fun nearestIndex(touchX: Float): Int {
-        val left = 64f
-        val right = width - 24f
+        val frame = computePlotFrame()
+        val left = frame.left
+        val right = frame.right
         val minX = points.minOf { it.displacement }
         val maxX = max(points.maxOf { it.displacement }, minX + 0.000001)
         fun x(value: Double) = left + (((value - minX) / (maxX - minX)) * (right - left)).toFloat()
         return points.indices.minByOrNull { abs(x(points[it].displacement) - touchX) } ?: 0
+    }
+
+    private fun computePlotFrame(): PlotFrame {
+        val outerLeft = 82f
+        val outerTop = 52f
+        val outerRight = width - 24f
+        val outerBottom = height - 80f
+        val availableWidth = max(1f, outerRight - outerLeft)
+        val availableHeight = max(1f, outerBottom - outerTop)
+        val targetRatio = 5f / 3f
+        var plotWidth = availableWidth
+        var plotHeight = plotWidth / targetRatio
+        if (plotHeight > availableHeight) {
+            plotHeight = availableHeight
+            plotWidth = plotHeight * targetRatio
+        }
+        val left = outerLeft + (availableWidth - plotWidth) / 2f
+        val top = outerTop + (availableHeight - plotHeight) / 2f
+        return PlotFrame(left, top, left + plotWidth, top + plotHeight)
+    }
+
+    private fun drawBaseAxes(canvas: Canvas, left: Float, top: Float, right: Float, bottom: Float) {
+        canvas.drawLine(left, bottom, right, bottom, axisPaint)
+        canvas.drawLine(left, top, left, bottom, axisPaint)
+        tickPaint.textAlign = Paint.Align.LEFT
+        canvas.drawText(context.getString(R.string.axis_force), left, top - 16f, tickPaint)
+        tickPaint.textAlign = Paint.Align.CENTER
+        canvas.drawText(context.getString(R.string.axis_displacement), (left + right) / 2f, height - 14f, tickPaint)
+    }
+
+    private fun drawAxisTicks(
+        canvas: Canvas,
+        left: Float,
+        top: Float,
+        right: Float,
+        bottom: Float,
+        minX: Double,
+        maxX: Double,
+        minY: Double,
+        maxY: Double,
+        x: (Double) -> Float,
+        y: (Double) -> Float,
+    ) {
+        val xTicks = axisTicks(minX, maxX, 6)
+        val yTicks = axisTicks(minY, maxY, 6)
+        xTicks.drop(1).dropLast(1).forEach { value ->
+            val tickX = x(value)
+            canvas.drawLine(tickX, top, tickX, bottom, gridPaint)
+        }
+        yTicks.drop(1).dropLast(1).forEach { value ->
+            val tickY = y(value)
+            canvas.drawLine(left, tickY, right, tickY, gridPaint)
+        }
+
+        axisValuePaint.textAlign = Paint.Align.RIGHT
+        yTicks.forEach { value ->
+            val tickY = y(value) + axisValuePaint.textSize * 0.34f
+            canvas.drawText(value.axisTickText(2), left - 8f, tickY, axisValuePaint)
+        }
+        axisValuePaint.textAlign = Paint.Align.CENTER
+        xTicks.forEach { value ->
+            canvas.drawText(value.axisTickText(4), x(value), bottom + 28f, axisValuePaint)
+        }
+    }
+
+    private fun axisTicks(min: Double, max: Double, count: Int): List<Double> {
+        if (count <= 1) return listOf(min)
+        val span = max - min
+        return List(count) { index -> min + span * index / (count - 1).toDouble() }
     }
 
     private fun drawBilinearFit(
@@ -236,7 +318,27 @@ class CurveChartView(context: Context) : View(context) {
     }
 }
 
+private data class PlotFrame(
+    val left: Float,
+    val top: Float,
+    val right: Float,
+    val bottom: Float,
+)
+
 private fun Double.axisText(digits: Int): String = "%.${digits}f".format(this).trimEnd('0').trimEnd('.')
+
+private fun Double.axisTickText(smallValueDigits: Int): String {
+    if (!isFinite()) return "0"
+    val absolute = abs(this)
+    val digits = when {
+        absolute >= 100.0 -> 0
+        absolute >= 10.0 -> 1
+        absolute >= 1.0 -> 2
+        else -> smallValueDigits
+    }
+    val text = axisText(digits)
+    return if (text == "-0") "0" else text
+}
 
 private fun buildBilinearFit(points: List<CurvePoint>, predictedPtValue: Double?): BilinearFit? {
     val predictedPt = predictedPtValue ?: return null

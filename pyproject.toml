@@ -23,10 +23,17 @@ ignore = ["E501"]  # Line length handled by formatter
 [tool.ruff.lint.isort]
 known-first-party = ["src"]
 
+[tool.ruff.lint.per-file-ignores]
+"src/backend/api/v1/dd_laminate.py" = ["B008", "RUF001"]
+"src/backend/api/v1/simple_injection.py" = ["B008", "N815"]
+"src/ml/dd_laminate/train_u3_forecast_models.py" = ["N812"]
+"src/ml/dd_laminate/train_u3_pt_models.py" = ["N812"]
+
 [tool.mypy]
 python_version = "3.11"
 ignore_missing_imports = true
 strict = false
+explicit_package_bases = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

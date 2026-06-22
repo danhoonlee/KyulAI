@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reset Luvelox Password</title>
+    <link rel="alternate" hreflang="ko" href="https://ai.luvelox.com/forgot-v2.ko.html" />
+    <link rel="stylesheet" href="./login-v2.css?v=20260619-forgot1" />
+  </head>
+  <body>
+    <main class="login-shell">
+      <header class="login-topbar" aria-label="Password reset navigation">
+        <a class="brand-mark" href="https://ai.luvelox.com/login-v2.html" aria-label="Back to sign in">
+          <span class="brand-wordmark">C2ES</span>
+        </a>
+        <div class="topbar-actions">
+          <a class="language-link" href="https://ai.luvelox.com/forgot-v2.ko.html" hreflang="ko">한국어</a>
+          <a class="language-link" href="https://ai.luvelox.com/login-v2.html">Sign in</a>
+        </div>
+      </header>
+
+      <section class="access-layout" aria-labelledby="forgot-title">
+        <div class="workspace-panel">
+          <div class="workspace-copy">
+            <p class="eyebrow">Account recovery</p>
+            <h1 id="forgot-title">
+              <span>Reset</span>
+              <span>Password</span>
+            </h1>
+            <p>
+              Verify your account with the name and email used at signup, then
+              set a new password for the Luvelox workspace.
+            </p>
+          </div>
+
+          <div class="command-board" aria-label="Password reset preview">
+            <div class="command-head">
+              <span>Recovery check</span>
+              <strong>Name + Email</strong>
+            </div>
+            <div class="signal-grid">
+              <div><span class="signal-dot"></span>Identity match</div>
+              <div><span class="signal-dot"></span>Password update</div>
+              <div><span class="signal-dot"></span>Workspace sign-in</div>
+            </div>
+            <svg class="forecast-preview" viewBox="0 0 680 260" role="img" aria-label="Account recovery preview">
+              <defs>
+                <linearGradient id="forgotGlow" x1="0" x2="1" y1="0" y2="0">
+                  <stop offset="0%" stop-color="#111318" />
+                  <stop offset="52%" stop-color="#2167ff" />
+                  <stop offset="100%" stop-color="#00a878" />
+                </linearGradient>
+              </defs>
+              <path class="grid-line" d="M44 58H636M44 128H636M44 198H636" />
+              <path class="grid-line vertical" d="M138 34V220M274 34V220M410 34V220M546 34V220" />
+              <path
+                class="curve-line"
+                d="M52 188 C118 172 166 135 226 142 C300 151 326 88 394 92 C472 96 512 154 632 72"
+                style="stroke: url('#forgotGlow')"
+              />
+              <circle class="pt-marker" cx="394" cy="92" r="9" />
+              <circle class="pt-ring" cx="394" cy="92" r="21" />
+            </svg>
+          </div>
+        </div>
+
+        <form class="login-panel signup-panel" id="forgot-v2-form" novalidate>
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Forgot password</p>
+              <h2>Reset password</h2>
+            </div>
+          </div>
+
+          <label class="field">
+            <span>Name</span>
+            <input id="forgot-name" type="text" autocomplete="name" placeholder="Your account name" />
+          </label>
+          <label class="field">
+            <span>Email</span>
+            <input id="forgot-email" type="email" autocomplete="email" placeholder="you@company.com" />
+          </label>
+          <p class="field-note">This email is your sign-in ID.</p>
+          <label class="field">
+            <span>New password</span>
+            <input
+              id="forgot-password"
+              type="password"
+              autocomplete="new-password"
+              placeholder="At least 8 characters"
+            />
+          </label>
+
+          <p class="form-message" id="forgot-message" role="status"></p>
+
+          <div class="button-row">
+            <button class="primary-button" type="submit">
+              <span class="button-icon" aria-hidden="true">-></span>
+              Reset password
+            </button>
+            <a class="secondary-button account-link" href="https://ai.luvelox.com/login-v2.html">Back to sign in</a>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <script src="./forgot-v2.js?v=20260619-forgot1" type="module"></script>
+  </body>
+</html>

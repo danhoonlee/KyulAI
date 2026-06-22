@@ -1,0 +1,243 @@
+{
+  "dataset": "data/datasets/DD_cases_2_3_4_curated_v1",
+  "feature_set": "theta_physics_nn_v2",
+  "n_samples": 900,
+  "seq_len": 128,
+  "splits": 5,
+  "loss_weights": {
+    "ordinal_weight": 0.25,
+    "scalar_weight": 0.45,
+    "curve_weight": 0.25
+  },
+  "physics_guided_loss": {
+    "physics_weight": 0.2,
+    "terms": [
+      "curve_start_zero",
+      "curve_peak_one",
+      "monotonic_descent_penalty",
+      "curvature_smoothness"
+    ]
+  },
+  "feature_columns": [
+    "theta1",
+    "theta2",
+    "case_case2",
+    "case_case3",
+    "case_case4",
+    "abs_theta1",
+    "abs_theta2",
+    "theta_diff",
+    "theta_sum",
+    "theta_product",
+    "theta_abs_diff",
+    "a11",
+    "a22",
+    "a12",
+    "a66",
+    "b16",
+    "b26",
+    "d11",
+    "d22",
+    "d12",
+    "d66",
+    "d16",
+    "d26",
+    "a11_a22_ratio",
+    "d11_d22_ratio",
+    "b_coupling_norm",
+    "d_coupling_norm",
+    "membrane_anisotropy",
+    "bending_anisotropy",
+    "angle_abs_mean",
+    "angle_abs_std",
+    "angle_min_abs",
+    "angle_max_abs",
+    "stack_symmetry_mismatch",
+    "stack_balance_cos_sum",
+    "a66_geom_ratio",
+    "b11",
+    "b22",
+    "b12",
+    "b66",
+    "b11_d11_ratio",
+    "b22_d22_ratio",
+    "dd_angle_center",
+    "dd_angle_spread",
+    "case2_flag",
+    "case3_flag",
+    "case4_flag"
+  ],
+  "stack_feature_columns": [
+    "angle_norm",
+    "sin",
+    "cos",
+    "sin2",
+    "cos2",
+    "sign",
+    "z",
+    "case_index",
+    "is_theta1",
+    "is_theta2"
+  ],
+  "reference_models": {
+    "response_surrogate_physics_v2": {
+      "n_samples": 900,
+      "seq_len": 128,
+      "input_dim": 35,
+      "feature_builder": "theta_physics_v2",
+      "cv_accuracy_mean": 0.9422222222222223,
+      "cv_accuracy_std": 0.015555555555555543,
+      "cv_macro_f1_mean": 0.9371500424169266,
+      "cv_macro_f1_std": 0.015371846470501944,
+      "cv_pt_mae_mean": 438.154446782389,
+      "cv_pt_mae_std": 75.26660228222981,
+      "cv_max_displacement_mae_mean": 0.0005038101762825366,
+      "cv_max_displacement_mae_std": 0.00024075845911589657,
+      "cv_max_force_mae_mean": 338.9313787796722,
+      "cv_max_force_mae_std": 23.1766369957445,
+      "cv_curve_norm_rmse_mean": 0.007008073468453366,
+      "cv_curve_norm_rmse_std": 0.0015250180140007523,
+      "cv_curve_force_rmse_mean": 479.42568337809143,
+      "cv_curve_force_rmse_std": 118.94403283237644,
+      "status": "reference",
+      "path": "models/dd_laminate_response_physics_xai_v2/response_surrogate_metrics.json"
+    },
+    "response_goint_physics_nn_v2": {
+      "n_samples": 900,
+      "seq_len": 128,
+      "input_dim": 47,
+      "feature_builder": "theta_physics_nn_v2",
+      "cv_accuracy_mean": 0.9388888888888889,
+      "cv_accuracy_std": 0.011111111111111105,
+      "cv_macro_f1_mean": 0.9382560079678356,
+      "cv_macro_f1_std": 0.012112748028425253,
+      "cv_pt_mae_mean": 661.4139919709244,
+      "cv_pt_mae_std": 96.74158020915618,
+      "cv_max_displacement_mae_mean": 0.00039150856228959243,
+      "cv_max_displacement_mae_std": 0.00023162202298079743,
+      "cv_max_force_mae_mean": 1160.2760932645372,
+      "cv_max_force_mae_std": 146.4013561312527,
+      "cv_curve_norm_rmse_mean": 0.02130875326693058,
+      "cv_curve_norm_rmse_std": 0.0013488833795754877,
+      "cv_curve_force_rmse_mean": 1250.7138442516052,
+      "cv_curve_force_rmse_std": 161.20436297188022,
+      "status": "reference",
+      "path": "models/dd_laminate_response_goint_physics_nn_v2/response_goint_metrics.json"
+    }
+  },
+  "candidates": {
+    "plain_mlp": {
+      "status": "skipped",
+      "reason": "not selected"
+    },
+    "residual_mlp": {
+      "status": "skipped",
+      "reason": "not selected"
+    },
+    "gated_mlp": {
+      "status": "skipped",
+      "reason": "not selected"
+    },
+    "physics_guided_mlp": {
+      "status": "trained",
+      "fold_metrics": [
+        {
+          "accuracy": 0.9555555555555556,
+          "macro_f1": 0.9566946778711484,
+          "pt_mae": 582.4671176877521,
+          "max_displacement_mae": 0.0005694755774897418,
+          "max_force_mae": 973.5459778393749,
+          "curve_norm_rmse": 0.023542089387774467,
+          "curve_force_rmse": 1155.6182849661166,
+          "fold": 1,
+          "best_epoch": 29,
+          "fit_seconds": 4.126634583997657
+        },
+        {
+          "accuracy": 0.9555555555555556,
+          "macro_f1": 0.9551480610286286,
+          "pt_mae": 610.6720007274034,
+          "max_displacement_mae": 0.0007111521108182255,
+          "max_force_mae": 1022.6450482340572,
+          "curve_norm_rmse": 0.02256399393081665,
+          "curve_force_rmse": 1218.52048215618,
+          "fold": 2,
+          "best_epoch": 32,
+          "fit_seconds": 4.353496833999088
+        },
+        {
+          "accuracy": 0.9444444444444444,
+          "macro_f1": 0.9347740975647952,
+          "pt_mae": 1298.5658169308033,
+          "max_displacement_mae": 0.00020507816403922253,
+          "max_force_mae": 2777.131808982832,
+          "curve_norm_rmse": 0.14374922215938568,
+          "curve_force_rmse": 4871.26002233341,
+          "fold": 3,
+          "best_epoch": 2,
+          "fit_seconds": 1.677450499999395
+        },
+        {
+          "accuracy": 0.9388888888888889,
+          "macro_f1": 0.939469188561555,
+          "pt_mae": 813.635494288754,
+          "max_displacement_mae": 0.00016845475408936055,
+          "max_force_mae": 1155.5338555465555,
+          "curve_norm_rmse": 0.027773644775152206,
+          "curve_force_rmse": 1382.639021279967,
+          "fold": 4,
+          "best_epoch": 17,
+          "fit_seconds": 2.985371665999992
+        },
+        {
+          "accuracy": 0.9277777777777778,
+          "macro_f1": 0.9259734648350357,
+          "pt_mae": 729.3464372368422,
+          "max_displacement_mae": 0.0001922414091141573,
+          "max_force_mae": 1475.861436387934,
+          "curve_norm_rmse": 0.03130309283733368,
+          "curve_force_rmse": 1619.2049288179935,
+          "fold": 5,
+          "best_epoch": 12,
+          "fit_seconds": 2.550626457999897
+        }
+      ],
+      "fit_seconds_total": 15.693580041996029,
+      "final_fit_seconds": 6.2761103750017355,
+      "inference_seconds_per_sample": 3.1918425556796136e-05,
+      "parameter_count": 152488,
+      "cv_accuracy_mean": 0.9444444444444444,
+      "cv_accuracy_std": 0.010540925533894607,
+      "cv_macro_f1_mean": 0.9424118979722327,
+      "cv_macro_f1_std": 0.011861073044085102,
+      "cv_pt_mae_mean": 806.9373733743109,
+      "cv_pt_mae_std": 259.48824131219163,
+      "cv_max_displacement_mae_mean": 0.00036928040311014155,
+      "cv_max_displacement_mae_std": 0.00022609311992705637,
+      "cv_max_force_mae_mean": 1480.9436253981507,
+      "cv_max_force_mae_std": 671.343595009794,
+      "cv_curve_norm_rmse_mean": 0.04978640861809254,
+      "cv_curve_norm_rmse_std": 0.04708509151763643,
+      "cv_curve_force_rmse_mean": 2049.4485479107334,
+      "cv_curve_force_rmse_std": 1419.981584611103,
+      "artifact_path": "models/dd_laminate_response_physics_guided_challenger_v1/physics_guided_mlp.pt",
+      "artifact_size_mb": 0.603978157043457
+    },
+    "stack_lstm": {
+      "status": "skipped",
+      "reason": "not selected"
+    },
+    "stack_gru": {
+      "status": "skipped",
+      "reason": "not selected"
+    },
+    "stack_gnn": {
+      "status": "skipped",
+      "reason": "not selected"
+    },
+    "stack_gat": {
+      "status": "skipped",
+      "reason": "not selected"
+    }
+  }
+}

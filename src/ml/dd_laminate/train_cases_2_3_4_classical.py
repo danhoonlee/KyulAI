@@ -7,19 +7,24 @@ import csv
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, cast
 
 import joblib
 import numpy as np
 from sklearn.base import clone
 from sklearn.decomposition import PCA
-from sklearn.ensemble import ExtraTreesClassifier, ExtraTreesRegressor, HistGradientBoostingClassifier, RandomForestClassifier
+from sklearn.ensemble import (
+    ExtraTreesClassifier,
+    ExtraTreesRegressor,
+    HistGradientBoostingClassifier,
+    RandomForestClassifier,
+)
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import accuracy_score, f1_score, mean_absolute_error
 from sklearn.model_selection import GroupKFold
 from sklearn.neural_network import MLPClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
-
 
 CASES = ("Case2", "Case3", "Case4")
 CASE_TO_INDEX = {case: idx for idx, case in enumerate(CASES)}
@@ -294,7 +299,7 @@ def cross_validate_classifier(
                     "fold": fold,
                     "accuracy": accuracy,
                     "macro_f1": macro_f1,
-                    "validation_samples": int(len(val_idx)),
+                    "validation_samples": len(val_idx),
                 }
             )
         summary[name] = {
@@ -349,7 +354,7 @@ def train_response_surrogate(
             }
         )
 
-    metrics = {
+    metrics: dict[str, int | float] = {
         "n_samples": len(records),
         "seq_len": CURVE_GRID_LEN,
     }
@@ -436,27 +441,30 @@ def fit_and_save_classifier(
 
 
 def write_report(output_root: Path, data_dir: Path, results: dict[str, object]) -> None:
+    type_counts = cast(dict[str, int], results["type_counts"])
+    response_result = cast(dict[str, Any], results["response"])
+    response = cast(dict[str, float], response_result["metrics"])
     lines = [
         "# DD Cases 2/3/4 Training Report",
         "",
         f"- Dataset: `{data_dir}`",
         f"- Total samples: {results['total_samples']}",
-        f"- Validation: GroupKFold by theta pair, so the same theta pair is not split across train/validation.",
+        "- Validation: GroupKFold by theta pair, so the same theta pair is not split across train/validation.",
         "",
         "## Type Counts",
     ]
-    for key, value in results["type_counts"].items():
+    for key, value in type_counts.items():
         lines.append(f"- {key}: {value}")
     lines.extend(["", "## Best Models"])
     for section in ("theta", "curve"):
-        section_result = results[section]
-        best = section_result["best_model"]
-        metrics = section_result["metrics"][best]
+        section_result = cast(dict[str, Any], results[section])
+        best = str(section_result["best_model"])
+        metrics_by_model = cast(dict[str, dict[str, float]], section_result["metrics"])
+        metrics = metrics_by_model[best]
         lines.append(
             f"- {section}: `{best}` / accuracy {metrics['accuracy_mean']:.3f} +/- {metrics['accuracy_std']:.3f}, "
             f"macro F1 {metrics['macro_f1_mean']:.3f} +/- {metrics['macro_f1_std']:.3f}"
         )
-    response = results["response"]["metrics"]
     lines.extend(
         [
             "",
@@ -486,7 +494,7 @@ def main() -> None:
     data_dir = Path(args.data_dir)
     output_root = Path(args.output_root)
     records = load_records(data_dir)
-    type_counts = {name: 0 for name in LABEL_NAMES.values()}
+    type_counts = dict.fromkeys(LABEL_NAMES.values(), 0)
     for record in records:
         type_counts[LABEL_NAMES[record.label]] += 1
 

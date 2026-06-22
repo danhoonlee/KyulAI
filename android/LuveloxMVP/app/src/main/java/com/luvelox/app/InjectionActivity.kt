@@ -86,7 +86,7 @@ class InjectionActivity : Activity() {
         inputCard.addView(Button(this).apply {
             text = "Predict pressure"
             setTextColor(Color.WHITE)
-            setTypeface(typeface, Typeface.BOLD)
+            useAppFont(Typeface.BOLD)
             background = rounded(color(0x17202A), dp(8))
             setOnClickListener { predict() }
         }, margin(top = 16))
@@ -279,7 +279,7 @@ class InjectionActivity : Activity() {
         this.text = text
         textSize = size
         setTextColor(textColor)
-        typeface = Typeface.create(Typeface.DEFAULT, style)
+        useAppFont(style)
     }
 
     private fun margin(top: Int = 0, bottom: Int = 0): LinearLayout.LayoutParams =

@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>C2ES 예측 워크스페이스</title>
+    <link rel="alternate" hreflang="en" href="./index.html" />
+    <link rel="stylesheet" href="./styles.css?v=20260619-forgot1" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="login-language-bar">
+        <a class="language-link" href="./index.html" hreflang="en">English</a>
+      </header>
+      <section class="login-view" id="login-view">
+        <div class="login-copy">
+          <p class="eyebrow">C2ES AI 워크스페이스</p>
+          <h1>
+            <span>C2ES</span>
+            <span>예측 워크스페이스</span>
+          </h1>
+          <p>
+            한 번 로그인한 뒤, 해석 목적에 맞는 예측 모듈로 바로 이동합니다.
+          </p>
+          <div class="login-module-strip" aria-label="모듈 미리보기">
+            <div class="login-module-item">
+              <span class="login-module-mark mark-laminate" aria-hidden="true">L</span>
+              <strong>Laminate</strong>
+              <small>Type, Pt, 곡선</small>
+            </div>
+            <div class="login-module-item">
+              <span class="login-module-mark mark-injection" aria-hidden="true">I</span>
+              <strong>Injection</strong>
+              <small>Sprue, 충전</small>
+            </div>
+            <div class="login-module-item">
+              <span class="login-module-mark mark-optimization" aria-hidden="true">O</span>
+              <strong>Optimization</strong>
+              <small>설계 탐색</small>
+            </div>
+          </div>
+        </div>
+
+        <form class="login-card" id="login-form">
+          <div>
+            <p class="eyebrow">계정</p>
+            <h2 id="auth-title">로그인</h2>
+          </div>
+          <label>
+            이메일
+            <input id="email-input" type="email" autocomplete="email" value="demo@luvelox.com" />
+          </label>
+          <p class="field-note">이 이메일이 로그인 ID로 사용됩니다.</p>
+          <label>
+            비밀번호
+            <input id="password-input" type="password" autocomplete="current-password" placeholder="비밀번호" />
+          </label>
+          <div class="form-link-row">
+            <a class="form-link" href="https://ai.luvelox.com/forgot-v2.ko.html">비밀번호를 잊으셨나요?</a>
+          </div>
+          <p class="form-error" id="login-error" role="alert"></p>
+          <button id="signin-button" type="submit">로그인</button>
+          <a class="secondary-button account-link" href="https://ai.luvelox.com/signup-v2.ko.html">계정 만들기</a>
+          <button class="secondary-button demo-button" id="demo-button" type="button">데모</button>
+          <p class="login-hint" id="auth-hint">새 계정에는 Laminate와 Injection 접근 권한이 포함됩니다.</p>
+        </form>
+      </section>
+
+      <section class="workspace-view is-hidden" id="workspace-view">
+        <header class="topbar workspace-hero">
+          <div class="brand-lockup">
+            <p class="eyebrow">C2ES AI 워크스페이스</p>
+            <h1>
+              <span>C2ES</span>
+              <span>예측 워크스페이스</span>
+            </h1>
+            <p class="hero-copy">
+              모듈을 선택해 예측 화면을 여세요.
+            </p>
+          </div>
+          <div class="account-cluster">
+            <button class="account-chip" id="account-button" type="button">
+              <span class="status-dot"></span>
+              <span id="account-label">계정 워크스페이스</span>
+            </button>
+            <button class="ghost-button" id="signout-button" type="button">로그아웃</button>
+          </div>
+        </header>
+
+        <section class="summary-strip" aria-label="워크스페이스 흐름">
+          <div>
+            <span>01</span>
+            <strong>계정</strong>
+            <p>데모 접근 준비 완료</p>
+          </div>
+          <div>
+            <span>02</span>
+            <strong>모듈 선택</strong>
+            <p>Laminate, Injection, Optimization</p>
+          </div>
+          <div>
+            <span>03</span>
+            <strong>예측</strong>
+            <p>전용 모델 화면 열기</p>
+          </div>
+        </section>
+
+        <section class="intro-band">
+          <div>
+            <p class="eyebrow">모듈 워크스페이스</p>
+            <h2>예측 모듈</h2>
+            <p>
+              한 계정에서 예측 모듈을 엽니다.
+            </p>
+          </div>
+          <button id="refresh-button" type="button">새로고침</button>
+        </section>
+
+        <section class="module-grid" id="module-grid" aria-live="polite"></section>
+      </section>
+    </main>
+
+    <template id="module-card-template">
+      <article class="module-card">
+        <div class="module-card-header">
+          <div class="module-icon"></div>
+          <div>
+            <p class="module-category"></p>
+            <h3 class="module-title"></h3>
+          </div>
+          <span class="access-badge"></span>
+        </div>
+        <p class="module-summary"></p>
+        <div class="tag-row"></div>
+        <div class="capability-list"></div>
+        <div class="module-actions">
+          <button class="primary-link" type="button">열기</button>
+        </div>
+      </article>
+    </template>
+
+    <dialog class="modal" id="access-dialog">
+      <form method="dialog" class="modal-card">
+        <button class="close-button" value="close" aria-label="닫기">×</button>
+        <p class="eyebrow" id="access-category"></p>
+        <h2 id="access-title"></h2>
+        <p id="access-summary"></p>
+        <div class="modal-panel">
+          <h3>접근 권한</h3>
+          <p id="access-reason"></p>
+          <p class="route-text" id="access-entitlement"></p>
+        </div>
+        <div class="modal-panel">
+          <h3>포함 기능</h3>
+          <div class="capability-list modal-capabilities" id="access-capabilities"></div>
+        </div>
+        <p class="request-status" id="request-status" role="status"></p>
+        <button id="request-access-button" type="button">접근 권한 요청</button>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="account-dialog">
+      <form method="dialog" class="modal-card">
+        <button class="close-button" value="close" aria-label="닫기">×</button>
+        <p class="eyebrow">계정</p>
+        <h2 id="account-dialog-name"></h2>
+        <p id="account-dialog-email"></p>
+        <div class="modal-panel">
+          <h3>모듈 접근 권한</h3>
+          <div class="access-list" id="account-access-list"></div>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="./app.js?v=20260619-forgot1" type="module"></script>
+  </body>
+</html>

@@ -97,7 +97,7 @@ public struct LuveloxAuthSession: Codable, Equatable, Sendable {
             id: "demo-user",
             email: "demo@luvelox.com",
             name: "Demo Account",
-            company: "C2ES MVP"
+            company: "Luvelox MVP"
         ),
         entitlements: ["module.laminate", "module.injection"]
     )
@@ -109,10 +109,17 @@ public struct LuveloxAuthSession: Codable, Equatable, Sendable {
             id: "danlee",
             email: "danlee@luvelox.com",
             name: "Dan Lee",
-            company: "C2ES"
+            company: "Luvelox"
         ),
-        entitlements: ["module.laminate", "module.injection", "module.optimization"]
+        entitlements: ["module.laminate", "module.injection", "module.optimization", "module.admin"]
     )
+}
+
+public struct LuveloxSignupPayload: Encodable, Equatable, Sendable {
+    public let email: String
+    public let password: String
+    public let name: String
+    public let company: String?
 }
 
 public struct LuveloxAccessRequestPayload: Encodable, Equatable, Sendable {
@@ -146,7 +153,7 @@ public enum LuveloxFallbackCatalog {
             name: "Laminate",
             shortName: "Laminate",
             category: "Composite",
-            summary: "Predict Double-Double laminate response, Pt, type, and force-displacement curves.",
+            summary: "Predict Type, Pt, and response curve.",
             icon: "layers",
             status: "active",
             entitlementKey: "module.laminate",
@@ -162,14 +169,14 @@ public enum LuveloxFallbackCatalog {
                 primaryPredictPath: "/api/v1/dd-laminate/predict/response"
             ),
             access: "granted",
-            accessReason: "Available in the C2ES MVP workspace."
+            accessReason: "Available in the Luvelox MVP workspace."
         ),
         LuveloxModule(
             id: "injection",
             name: "Injection",
             shortName: "Injection",
             category: "Molding",
-            summary: "Predict sprue pressure curves and filling pressure distributions for Simple Injection DOE.",
+            summary: "Predict sprue and filling pressure.",
             icon: "gauge",
             status: "active",
             entitlementKey: "module.injection",
@@ -185,14 +192,14 @@ public enum LuveloxFallbackCatalog {
                 primaryPredictPath: "/api/v1/simple-injection/predict/sprue-pressure"
             ),
             access: "granted",
-            accessReason: "Available in the C2ES MVP workspace."
+            accessReason: "Available in the Luvelox MVP workspace."
         ),
         LuveloxModule(
             id: "optimization",
             name: "Optimization",
             shortName: "Optimize",
             category: "Design",
-            summary: "Explore candidate designs and rank promising simulation settings across enabled modules.",
+            summary: "Rank promising design candidates.",
             icon: "sparkles",
             status: "planned",
             entitlementKey: "module.optimization",
@@ -201,7 +208,7 @@ public enum LuveloxFallbackCatalog {
             capabilities: ["candidate_ranking", "batch_prediction"],
             route: LuveloxModuleRoute(
                 baseURL: URL(string: "https://api.luvelox.com")!,
-                webURL: URL(string: "https://luvelox.com")!,
+                webURL: URL(string: "https://ai.luvelox.com")!,
                 apiPrefix: "/api/v1/optimization",
                 healthPath: "/health",
                 modelsPath: "/api/v1/optimization/models",

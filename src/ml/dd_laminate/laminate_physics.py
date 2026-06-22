@@ -160,7 +160,6 @@ def _qbar(theta_deg: float, q: np.ndarray) -> np.ndarray:
     n2 = n * n
     m4 = m2 * m2
     n4 = n2 * n2
-    mn = m * n
     qbar11 = q11 * m4 + 2.0 * (q12 + 2.0 * q66) * m2 * n2 + q22 * n4
     qbar22 = q11 * n4 + 2.0 * (q12 + 2.0 * q66) * m2 * n2 + q22 * m4
     qbar12 = (q11 + q22 - 4.0 * q66) * m2 * n2 + q12 * (m4 + n4)
@@ -309,6 +308,7 @@ def compact_physics_feature_vector(
         zip(
             EXTENDED_PHYSICS_FEATURE_COLUMNS,
             extended_physics_feature_vector(case, theta1, theta2, material),
+            strict=True,
         )
     )
     return np.asarray([values[name] for name in COMPACT_PHYSICS_FEATURE_COLUMNS], dtype=float)
@@ -330,21 +330,22 @@ def nn_friendly_physics_feature_vector(
         zip(
             EXTENDED_PHYSICS_FEATURE_COLUMNS,
             extended_physics_feature_vector(case, theta1, theta2, material),
+            strict=True,
         )
     )
     return np.asarray([values[name] for name in NN_FRIENDLY_PHYSICS_FEATURE_COLUMNS], dtype=float)
 
 
 __all__ = [
-    "DEFAULT_MATERIAL",
     "COMPACT_PHYSICS_FEATURE_COLUMNS",
-    "NN_FRIENDLY_PHYSICS_FEATURE_COLUMNS",
-    "MaterialProperties",
-    "PHYSICS_FEATURE_COLUMNS",
+    "DEFAULT_MATERIAL",
     "EXTENDED_PHYSICS_FEATURE_COLUMNS",
+    "NN_FRIENDLY_PHYSICS_FEATURE_COLUMNS",
+    "PHYSICS_FEATURE_COLUMNS",
+    "MaterialProperties",
     "abd_matrices",
     "compact_physics_feature_vector",
-    "nn_friendly_physics_feature_vector",
     "extended_physics_feature_vector",
+    "nn_friendly_physics_feature_vector",
     "physics_feature_vector",
 ]

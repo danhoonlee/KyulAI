@@ -55,13 +55,23 @@ data class ModelsResponse(
 )
 
 object Defaults {
-    const val RESPONSE_MODEL_KEY = "response_surrogate_physics"
+    const val RESPONSE_MODEL_KEY = "response_surrogate_physics_v2"
+    const val RESPONSE_DEEP_MODEL_KEY = "response_goint_physics_nn_v2"
+    val RESPONSE_MODEL_KEYS = listOf(RESPONSE_MODEL_KEY, RESPONSE_DEEP_MODEL_KEY)
     const val DEFAULT_BASE_URL = "https://laminate.luvelox.com"
 }
 
 fun String.cleanModelLabel(): String {
     val cleaned = trim()
-    return when (cleaned.lowercase()) {
+    val lower = cleaned.lowercase()
+    return when {
+        lower == "response_surrogate_physics" || lower == "response_surrogate_physics_v2" -> "Laminate Forecast - Machine Learning"
+        lower == "response_goint_physics" || lower == "response_goint_physics_nn_v2" -> "Laminate Forecast - Deep Learning"
+        lower.contains("machine learning") -> "Laminate Forecast - Machine Learning"
+        lower.contains("deep learning") -> "Laminate Forecast - Deep Learning"
+        lower.contains("tree + physics") || lower.contains("tree + compact physics") || lower.contains("physics xai") && lower.contains("tree") -> "Laminate Forecast - Machine Learning"
+        lower.contains("gointmlp + physics") || lower.contains("gointmlp + compact physics") || lower.contains("nn-friendly physics") -> "Laminate Forecast - Deep Learning"
+        else -> when (lower) {
         "laminate forecast - cases 2/3/4" -> "ExtraTrees + PCA"
         "laminate forecast - gointmlp nn + clt (legacy case3/4)" -> "GointMLP NN"
         "estimated response - extratrees + pca + clt" -> "ExtraTrees + PCA"
@@ -75,9 +85,8 @@ fun String.cleanModelLabel(): String {
         "gointmlp-style nn" -> "GointMLP NN"
         "laminate forecast - tree (theta)" -> "Laminate Forecast - Tree (Theta)"
         "laminate forecast - gointmlp (theta)" -> "Laminate Forecast - GointMLP (Theta)"
-        "laminate forecast - tree + physics xai" -> "Laminate Forecast - Tree + Physics XAI"
-        "laminate forecast - gointmlp + physics xai" -> "Laminate Forecast - GointMLP + Physics XAI"
         else -> cleaned
+        }
     }
 }
 
@@ -85,8 +94,8 @@ fun String.cleanModelKeyLabel(): String {
     return when (this) {
         "response_surrogate" -> "ExtraTrees + PCA"
         "response_goint" -> "GointMLP NN"
-        "response_surrogate_physics" -> "Laminate Forecast - Tree + Physics XAI"
-        "response_goint_physics" -> "Laminate Forecast - GointMLP + Physics XAI"
+        "response_surrogate_physics", "response_surrogate_physics_v2" -> "Laminate Forecast - Machine Learning"
+        "response_goint_physics", "response_goint_physics_nn_v2" -> "Laminate Forecast - Deep Learning"
         "theta_classical" -> "RandomForest"
         "theta_goint" -> "GointMLP NN"
         "curve_classical" -> "ExtraTrees"

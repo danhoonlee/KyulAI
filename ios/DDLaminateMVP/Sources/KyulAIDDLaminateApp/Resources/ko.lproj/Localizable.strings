@@ -8,6 +8,7 @@
 "recent.clear" = "최근 기록 삭제";
 "recent.delete.title" = "최근 기록 삭제";
 "recent.delete.select" = "삭제할 최근 결과를 선택하세요.";
+"recent.delete.select.all" = "모두 선택";
 "recent.delete.count" = "%d개 삭제";
 "recent.results" = "최근 결과";
 "recent.no.result" = "결과 없음";
@@ -33,6 +34,7 @@
 "app.subtitle" = "Case와 theta 입력으로 적층 Type, Pt, 응답 곡선을 예측합니다.";
 "auto" = "자동";
 "forecast.inputs" = "예측 입력";
+"response.forecast" = "응답 예측";
 "prediction.mode" = "예측 모드";
 "u3.forecast" = "u3 예측";
 "u3.result" = "u3 Pt 결과";
@@ -45,8 +47,8 @@
 "model.tag.fast" = "빠름";
 "model.tag.deep" = "딥러닝";
 "model.tag.experimental" = "실험적";
-"model.description.extratrees" = "PCA 압축을 사용하는 안정적인 트리 모델입니다. 일반적인 적층 예측에는 이 모델을 추천합니다.";
-"model.description.goint" = "비선형 응답 패턴을 보기 위한 신경망 모델입니다. 비교용 또는 실험 확인용으로 좋습니다.";
+"model.description.extratrees" = "일반적인 적층 예측에 추천하는 빠른 Machine Learning 모델입니다.";
+"model.description.goint" = "비교와 실험 확인에 사용하는 Deep Learning 모델입니다.";
 "model.description.generic" = "이 API 서버에서 사용할 수 있는 대체 응답 모델입니다.";
 "model.loading" = "모델을 불러오는 중입니다.";
 "predicting" = "예측 중";
@@ -81,6 +83,7 @@
 "language" = "언어";
 "language.toggle" = "언어 전환";
 "api.base.url" = "API base URL";
+"api.connected" = "연결됨";
 "external.url.hint" = "로컬 네트워크 밖의 폰에서는 https://laminate.luvelox.com 을 사용하세요.";
 "api.not.checked" = "API 미확인";
 "checking.api" = "API 확인 중";

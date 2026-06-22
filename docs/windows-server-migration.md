@@ -5,15 +5,23 @@ Mac to a Windows server PC.
 
 ## What Runs On The Server
 
-The public setup has three long-running processes:
+The public setup has three long-running processes. Port `8000` is host-routed:
+`ai.luvelox.com` serves the C2ES App login/module workspace, while
+`laminate.luvelox.com` serves the Laminate forecast UI.
 
 | Process | Local URL | Public URL |
 |---|---|---|
-| DD Laminate | `http://127.0.0.1:8000` | `https://laminate.luvelox.com` |
+| C2ES App + DD Laminate | `http://127.0.0.1:8000` | `https://ai.luvelox.com`, `https://laminate.luvelox.com` |
 | Simple Injection | `http://127.0.0.1:8010` | `https://injection.luvelox.com` |
-| Cloudflare Tunnel | routes both apps | Cloudflare edge |
+| Cloudflare Tunnel | routes hostnames | Cloudflare edge |
 
 No inbound firewall port needs to be opened if Cloudflare Tunnel is used.
+
+Each app exposes two status endpoints:
+
+- `/health`: process liveness only.
+- `/ready`: verifies that the serving models and Python dependencies are
+  available. Use this before showing the app to someone else.
 
 ## Recommended Transfer Method
 
@@ -34,12 +42,11 @@ Set-ExecutionPolicy -Scope Process Bypass
 Then start local servers:
 
 ```powershell
-.\scripts\windows\Start-DD.ps1
+.\scripts\windows\Start-All.ps1 -SkipCloudflare
 ```
 
-```powershell
-.\scripts\windows\Start-Injection.ps1
-```
+This starts both DD Laminate and Simple Injection, then runs a local readiness
+check.
 
 Open:
 
@@ -68,8 +75,9 @@ C:\KyulAI_codex
 ```
 
 The bundle includes the runtime code, current models, DD curated data, Simple
-Injection data needed by the UI, Windows scripts, and docs. It intentionally
-does not include `.venv`, `.git`, local logs, or secrets.
+Injection data needed by the UI, the Luvelox/C2ES shell UI, Windows scripts,
+and docs. It intentionally does not include `.venv`, `.git`, local logs, or
+secrets.
 
 ## Windows Prerequisites
 
@@ -111,6 +119,7 @@ The setup script:
 - installs `requirements-serving.txt`
 - installs the PyTorch CPU wheel
 - verifies the main runtime imports
+- prints a DD/Injection model readiness summary
 
 ## Local Secrets
 
@@ -181,25 +190,36 @@ stop the Mac tunnel to avoid confusion.
 
 ## First Manual Start
 
-Start all three processes:
+Start local servers first, without Cloudflare:
 
 ```powershell
 cd C:\KyulAI_codex
-.\scripts\windows\Start-All.ps1
+.\scripts\windows\Start-All.ps1 -SkipCloudflare
 ```
 
 Then verify:
 
 ```powershell
-.\scripts\windows\Check-Health.ps1
+.\scripts\windows\Check-Health.ps1 -Ready -LocalOnly
 ```
 
 Expected output should show HTTP 200 for:
 
 - DD local
 - Injection local
-- DD public
-- Injection public
+
+After the local check passes and the Cloudflare config is ready, start all
+processes:
+
+```powershell
+.\scripts\windows\Start-All.ps1
+```
+
+Then verify both local and public readiness:
+
+```powershell
+.\scripts\windows\Check-Health.ps1 -Ready
+```
 
 If you want to debug foreground logs, open three PowerShell windows and run:
 
@@ -252,6 +272,22 @@ When code/models/data change on the Mac:
 
 ## Common Problems
 
+### `Start-All.ps1` says Cloudflare config is missing
+
+For local testing, run:
+
+```powershell
+.\scripts\windows\Start-All.ps1 -SkipCloudflare
+```
+
+For public URLs, create:
+
+```text
+C:\KyulAI_codex\infrastructure\cloudflare\kclab-composite-ai.windows.yml
+```
+
+from the `.example.yml` file and set the correct `credentials-file` path.
+
 ### Public URLs show Cloudflare 530 / 1033
 
 The local apps may be fine, but the tunnel is down.
@@ -298,6 +334,15 @@ Run:
 .\.venv\Scripts\python.exe -m pip install torch==2.2.0 --index-url https://download.pytorch.org/whl/cpu
 ```
 
+Then check:
+
+```powershell
+.\scripts\windows\Check-Health.ps1 -Ready -LocalOnly
+```
+
+If `/ready` reports a missing model file, the zip or Git checkout is missing
+that `models\...` folder.
+
 ### Slack `/kyulai` returns server configuration error
 
 Set `SLACK_SIGNING_SECRET` in `.env.local`, then restart DD.
@@ -319,8 +364,10 @@ cd C:\KyulAI_codex
 Set-ExecutionPolicy -Scope Process Bypass
 .\scripts\windows\Setup-WindowsServing.ps1
 Copy-Item .env.windows.example .env.local
+.\scripts\windows\Start-All.ps1 -SkipCloudflare
+.\scripts\windows\Check-Health.ps1 -Ready -LocalOnly
 Copy-Item infrastructure\cloudflare\kclab-composite-ai.windows.example.yml infrastructure\cloudflare\kclab-composite-ai.windows.yml
 notepad infrastructure\cloudflare\kclab-composite-ai.windows.yml
 .\scripts\windows\Start-All.ps1
-.\scripts\windows\Check-Health.ps1
+.\scripts\windows\Check-Health.ps1 -Ready
 ```

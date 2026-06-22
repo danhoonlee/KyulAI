@@ -341,6 +341,17 @@ struct U3PtResultDetailView: View {
 
 struct XAIExplanationCard: View {
     let xai: XAIExplanation
+    @State private var isShowingAllFeatures = false
+
+    private let visibleFeatureLimit = 5
+
+    private var visibleFeatures: [XAIFeature] {
+        isShowingAllFeatures ? xai.topFeatures : Array(xai.topFeatures.prefix(visibleFeatureLimit))
+    }
+
+    private var hiddenFeatureCount: Int {
+        max(xai.topFeatures.count - visibleFeatureLimit, 0)
+    }
 
     var body: some View {
         AppCard {
@@ -356,45 +367,74 @@ struct XAIExplanationCard: View {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(AppTheme.primary)
                 VStack(spacing: 0) {
-                    ForEach(xai.topFeatures) { feature in
-                        HStack(alignment: .center, spacing: 10) {
-                            VStack(alignment: .leading, spacing: 3) {
-                                HStack(spacing: 6) {
-                                    Text(localizedXAI(feature.label))
-                                        .font(.caption.weight(.bold))
-                                        .foregroundStyle(AppTheme.ink)
-                                        .lineLimit(1)
-                                    Text(localizedXAICategory(feature.category))
-                                        .font(.caption2.weight(.black))
-                                        .foregroundStyle(AppTheme.primary)
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(AppTheme.primary.opacity(0.10), in: Capsule())
-                                }
-                                Text(localizedXAI(feature.explanation))
-                                    .font(.caption2.weight(.semibold))
-                                    .foregroundStyle(AppTheme.muted)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            Spacer(minLength: 6)
-                            VStack(alignment: .trailing, spacing: 4) {
-                                Text(Optional(feature.importance).percentText)
-                                    .font(.caption2.weight(.black))
-                                    .foregroundStyle(AppTheme.primary)
-                                    .monospacedDigit()
-                                ProgressView(value: min(max(feature.importance, 0), 1))
-                                    .tint(AppTheme.primary)
-                                    .frame(width: 82)
-                            }
+                    ForEach(Array(visibleFeatures.enumerated()), id: \.element.id) { index, feature in
+                        featureImpactRow(feature)
+                        if index < visibleFeatures.count - 1 {
+                            Divider()
                         }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 7)
-                        Divider()
                     }
                 }
                 .background(AppTheme.field, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                if hiddenFeatureCount > 0 {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.22)) {
+                            isShowingAllFeatures.toggle()
+                        }
+                    } label: {
+                        Label(
+                            featureToggleTitle,
+                            systemImage: isShowingAllFeatures ? "chevron.up" : "chevron.down"
+                        )
+                        .font(.caption.weight(.bold))
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(SecondaryButtonStyle())
+                }
             }
         }
+    }
+
+    private var featureToggleTitle: String {
+        if isShowingAllFeatures {
+            return localText(en: "Show top 5 only", ko: "상위 5개만 보기")
+        }
+        return localText(en: "Show \(hiddenFeatureCount) more features", ko: "나머지 \(hiddenFeatureCount)개 feature 보기")
+    }
+
+    private func featureImpactRow(_ feature: XAIFeature) -> some View {
+        HStack(alignment: .center, spacing: 10) {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text(localizedXAI(feature.label))
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(AppTheme.ink)
+                        .lineLimit(1)
+                    Text(localizedXAICategory(feature.category))
+                        .font(.caption2.weight(.black))
+                        .foregroundStyle(AppTheme.primary)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(AppTheme.primary.opacity(0.10), in: Capsule())
+                }
+                Text(localizedXAI(feature.explanation))
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(AppTheme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 6)
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(Optional(feature.importance).percentText)
+                    .font(.caption2.weight(.black))
+                    .foregroundStyle(AppTheme.primary)
+                    .monospacedDigit()
+                ProgressView(value: min(max(feature.importance, 0), 1))
+                    .tint(AppTheme.primary)
+                    .frame(width: 82)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
     }
 
     private func localizedXAIFeatureSet(_ featureSet: String) -> String {
@@ -444,6 +484,16 @@ struct XAIExplanationCard: View {
                 "Laminate Forecast Tree + Physics XAI 모델의 설명입니다. θ₁, θ₂, Case에 CLT ABD 강성, membrane-bending coupling, 적층 anisotropy descriptor를 함께 사용합니다.",
             "This explanation uses the Laminate Forecast GointMLP + Physics XAI model. It masks one physics feature at a time and measures how much the neural Type, Pt, max-value, and curve heads move.":
                 "Laminate Forecast GointMLP + Physics XAI 모델의 설명입니다. 물리 feature를 하나씩 가리고 neural Type, Pt, max value, curve head가 얼마나 움직이는지 측정합니다.",
+            "This explanation uses the Laminate Forecast Machine Learning model. It keeps the strongest θ, Case, CLT stiffness, coupling, anisotropy, and stack-shape features.":
+                "Laminate Forecast Machine Learning 모델의 설명입니다. θ, Case, CLT 강성, coupling, anisotropy, 적층 형상 feature 중 영향이 큰 항목을 사용합니다.",
+            "This explanation uses the Laminate Forecast Deep Learning model. It keeps physics descriptors and selected basis terms that improved the neural multi-task surrogate.":
+                "Laminate Forecast Deep Learning 모델의 설명입니다. neural multi-task surrogate에 도움이 된 물리 descriptor와 선택된 basis 항목을 사용합니다.",
+            "This explanation uses the Laminate Forecast Deep Learning model. It masks one physics feature at a time for the current θ/Case input.":
+                "Laminate Forecast Deep Learning 모델의 설명입니다. 현재 θ/Case 입력에서 물리 feature를 하나씩 가려 민감도를 확인합니다.",
+            "This explanation uses the u3 Forecast Machine Learning model. It keeps θ periodicity, CLT stiffness, coupling, anisotropy, and stack-shape features.":
+                "u3 Forecast Machine Learning 모델의 설명입니다. θ 주기성, CLT 강성, coupling, anisotropy, 적층 형상 feature를 사용합니다.",
+            "This explanation uses the u3 Forecast Deep Learning model. It masks one physics feature at a time and measures how much the neural Pt, max-value, and curve heads move for the current θ/Case input.":
+                "u3 Forecast Deep Learning 모델의 설명입니다. 현재 θ/Case 입력에서 물리 feature를 하나씩 가리고 neural Pt, max value, curve head 변화량을 측정합니다.",
             "This explanation uses the GointMLP theta/case model. It masks one theta feature at a time and measures how much the neural Pt, max-value, and curve heads move.":
                 "GointMLP θ/Case 모델의 설명입니다. θ feature를 하나씩 가리고 neural Pt, max value, curve head가 얼마나 움직이는지 측정합니다.",
             "This explanation uses the original theta/case model. It mainly shows angle periodicity and case effects, not full laminate physics.":
@@ -765,12 +815,12 @@ extension ResponsePredictionResult {
     }
 
     private var theta1Line: String? {
-        guard let theta1 = inputValue("theta1") else { return nil }
+        guard let theta1 = inputValue("theta1", digits: 0) else { return nil }
         return "Theta 1: \(theta1) deg"
     }
 
     private var theta2Line: String? {
-        guard let theta2 = inputValue("theta2") else { return nil }
+        guard let theta2 = inputValue("theta2", digits: 0) else { return nil }
         return "Theta 2: \(theta2) deg"
     }
 

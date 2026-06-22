@@ -41,6 +41,8 @@ xcuserdata/
 .env
 .env.local
 .env.*.local
+data/luvelox_auth.sqlite3
+data/luvelox_auth.sqlite3-*
 
 # Local agent runtime
 .agent-bus/
@@ -55,6 +57,7 @@ xcuserdata/
 .DS_Store
 desktop.ini
 Thumbs.db
+~$*
 
 # MLflow
 mlruns/

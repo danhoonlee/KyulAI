@@ -10,14 +10,16 @@ import numpy as np
 import torch
 
 from .curve_features import DDCurveRecord
+from .pt_curve_consistency import enforce_pt_curve_consistency, kink_fit_details
 from .response_deep import DDResponseGointSurrogate, predict_from_logits
 from .response_feature_sets import feature_set_from_columns, prediction_feature_matrix
-from .train_cases_2_3_4_classical import DDRecord, theta_feature_row
 from .train_response_surrogate import make_feature_matrix
 
 
 def _smooth_monotonic_curve(values: np.ndarray) -> np.ndarray:
     curve = np.clip(np.asarray(values, dtype=float), 0.0, None)
+    if curve.size == 0:
+        return curve
     if curve.size < 5:
         curve[0] = 0.0
         return np.maximum.accumulate(curve)
@@ -29,14 +31,7 @@ def _smooth_monotonic_curve(values: np.ndarray) -> np.ndarray:
     return np.maximum.accumulate(smoothed)
 
 
-def predict_response_deep(
-    model_path: str | Path,
-    theta1: float,
-    theta2: float,
-    case: str,
-    device: str = "cpu",
-) -> dict:
-    checkpoint = torch.load(model_path, map_location=device, weights_only=False)
+def build_response_deep_model(checkpoint: dict, device: str = "cpu") -> DDResponseGointSurrogate:
     cfg = checkpoint["model_config"]
     model = DDResponseGointSurrogate(
         input_dim=cfg["input_dim"],
@@ -47,7 +42,29 @@ def predict_response_deep(
     ).to(device)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
+    return model
 
+
+def predict_response_deep(
+    model_path: str | Path,
+    theta1: float,
+    theta2: float,
+    case: str,
+    device: str = "cpu",
+) -> dict:
+    checkpoint = torch.load(model_path, map_location=device, weights_only=False)
+    model = build_response_deep_model(checkpoint, device)
+    return predict_response_deep_from_artifacts(checkpoint, model, theta1, theta2, case, device)
+
+
+def predict_response_deep_from_artifacts(
+    checkpoint: dict,
+    model: DDResponseGointSurrogate,
+    theta1: float,
+    theta2: float,
+    case: str,
+    device: str = "cpu",
+) -> dict:
     feature_columns = list(checkpoint.get("feature_columns") or [])
     feature_builder = str(checkpoint.get("feature_builder") or "")
     if feature_builder:
@@ -70,7 +87,7 @@ def predict_response_deep(
     x_norm = (x_raw - feature_mean) / np.maximum(feature_std, 1e-9)
     x = torch.tensor(x_norm, dtype=torch.float32, device=device)
 
-    with torch.no_grad():
+    with torch.inference_mode():
         class_logits, _, scalar_norm, curve_norm = model(x)
         probs = torch.softmax(class_logits, dim=1).squeeze(0).cpu().numpy()
         pred_type = int(predict_from_logits(class_logits).item()) + 1
@@ -84,8 +101,19 @@ def predict_response_deep(
 
     grid = np.asarray(checkpoint["grid"], dtype=float)
     force_norm = _smooth_monotonic_curve(curve_norm.squeeze(0).cpu().numpy())
+    consistency = enforce_pt_curve_consistency(
+        curve_norm=force_norm,
+        grid=grid,
+        max_displacement=max_displacement,
+        max_force=max_force,
+        predicted_pt=pt,
+    )
+    force_norm = consistency.curve_norm
+    max_force = consistency.max_force
     displacement = grid * max_displacement
     force = force_norm * max_force
+    metrics = dict(checkpoint.get("metrics", {}))
+    metrics.update(consistency.flat_metrics())
 
     return {
         "predicted_type": pred_type,
@@ -95,10 +123,11 @@ def predict_response_deep(
         "predicted_max_force": max_force,
         "curve": [
             {"displacement": float(d), "force": float(f)}
-            for d, f in zip(displacement, force)
+            for d, f in zip(displacement, force, strict=True)
         ],
+        "curve_fit": kink_fit_details(displacement, force),
         "model_name": "response_goint",
-        "metrics": checkpoint.get("metrics", {}),
+        "metrics": metrics,
     }
 
 

@@ -8,6 +8,7 @@
 "recent.clear" = "Clear recent";
 "recent.delete.title" = "Delete Recent";
 "recent.delete.select" = "Select the recent results you want to delete.";
+"recent.delete.select.all" = "Select All";
 "recent.delete.count" = "Delete %d";
 "recent.results" = "Recent Results";
 "recent.no.result" = "No result";
@@ -33,6 +34,7 @@
 "app.subtitle" = "Estimate laminate Type, Pt, and response curve from case and theta inputs.";
 "auto" = "Auto";
 "forecast.inputs" = "Forecast Inputs";
+"response.forecast" = "Response Forecast";
 "prediction.mode" = "Prediction Mode";
 "u3.forecast" = "u3 Forecast";
 "u3.result" = "u3 Pt Result";
@@ -45,8 +47,8 @@
 "model.tag.fast" = "Fast";
 "model.tag.deep" = "Deep learning";
 "model.tag.experimental" = "Experimental";
-"model.description.extratrees" = "Stable tree model with PCA compression. Fast and recommended for routine laminate forecasts.";
-"model.description.goint" = "Neural network model for nonlinear response patterns. Useful for comparison and experimental checks.";
+"model.description.extratrees" = "Fast machine-learning model recommended for routine laminate forecasts.";
+"model.description.goint" = "Deep-learning model for comparison and experimental checks.";
 "model.description.generic" = "Alternative response model available from this API server.";
 "model.loading" = "Models are loading.";
 "predicting" = "Predicting";
@@ -81,6 +83,7 @@
 "language" = "Language";
 "language.toggle" = "Switch language";
 "api.base.url" = "API base URL";
+"api.connected" = "Connected";
 "external.url.hint" = "Use https://laminate.luvelox.com for phones outside your local network.";
 "api.not.checked" = "API not checked";
 "checking.api" = "Checking API";

@@ -10,10 +10,18 @@ tunnel: 02b4b689-84ef-4459-91cd-48c81ea549ae
 credentials-file: C:\Users\YOUR_WINDOWS_USER\.cloudflared\02b4b689-84ef-4459-91cd-48c81ea549ae.json
 
 ingress:
+  - hostname: ai.luvelox.com
+    service: http://127.0.0.1:8000
   - hostname: laminate.luvelox.com
     service: http://127.0.0.1:8000
   - hostname: injection.luvelox.com
     service: http://127.0.0.1:8010
+  - hostname: cafedecafe.co.kr
+    service: http://127.0.0.1:8000
+  - hostname: www.cafedecafe.co.kr
+    service: http://127.0.0.1:8000
+  - hostname: laminate.cafedecafe.co.kr
+    service: http://127.0.0.1:8000
   - hostname: dd.cafedecafe.co.kr
     service: http://127.0.0.1:8000
   - hostname: injection.cafedecafe.co.kr

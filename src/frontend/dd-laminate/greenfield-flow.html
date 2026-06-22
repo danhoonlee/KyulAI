@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>C2ES Laminate Version A Variants</title>
+    <link rel="stylesheet" href="./greenfield-flow.css?v=20260618-version-a-variants" />
+  </head>
+  <body>
+    <main class="board" aria-labelledby="flow-title">
+      <header class="board-header">
+        <div>
+          <p class="eyebrow">Version A direction test</p>
+          <h1 id="flow-title">Decision Studio</h1>
+          <p class="lead">
+            Two ways to express the same guided single-candidate forecast flow: mobile wizard and desktop cockpit.
+          </p>
+        </div>
+        <nav class="board-links" aria-label="Reference links">
+          <a href="./index-v2.html">Wanted v2</a>
+          <a href="./index.html">Classic</a>
+        </nav>
+      </header>
+
+      <section class="concept-index two-up" aria-label="Version A variants">
+        <a href="#version-a-mobile">
+          <span>M</span>
+          <strong>Version A Mobile</strong>
+          <p>Guided phone-first flow. One screen at a time, low cognitive load, strong step-by-step progression.</p>
+        </a>
+        <a href="#version-a-desktop">
+          <span>D</span>
+          <strong>Version A Desktop</strong>
+          <p>Guided decision cockpit. Same sequence, but inputs, preview, evidence, and handoff stay visible together.</p>
+        </a>
+      </section>
+
+      <section id="version-a-mobile" class="concept-section concept-a" aria-labelledby="version-a-mobile-title">
+        <div class="concept-intro">
+          <p class="eyebrow">Version A Mobile</p>
+          <h2 id="version-a-mobile-title">Guided Phone Flow</h2>
+          <p>
+            Best when the forecast should feel like a careful step-by-step assistant for one laminate candidate.
+          </p>
+        </div>
+
+        <section class="flow-map" aria-label="Version A Mobile flow map">
+          <div class="flow-step active"><span>01</span><strong>Start run</strong></div>
+          <div class="flow-step"><span>02</span><strong>Build stack</strong></div>
+          <div class="flow-step"><span>03</span><strong>Choose model</strong></div>
+          <div class="flow-step"><span>04</span><strong>Run forecast</strong></div>
+          <div class="flow-step"><span>05</span><strong>Read result</strong></div>
+          <div class="flow-step"><span>06</span><strong>Explain</strong></div>
+          <div class="flow-step"><span>07</span><strong>Package</strong></div>
+        </section>
+
+        <section class="screen-grid" aria-label="Version A Mobile sample screens">
+          <article class="screen-card">
+            <div class="screen-note">
+              <span>01</span>
+              <strong>Run Setup</strong>
+              <p>Begin with the engineering job, not raw model fields.</p>
+            </div>
+            <div class="phone">
+              <div class="phone-top"><span>Laminate Studio</span><i class="status-dot"></i></div>
+              <section class="phone-screen">
+                <p class="micro">New forecast</p>
+                <h2>What do you need to decide?</h2>
+                <div class="choice-list">
+                  <button class="choice selected"><span>Response + Pt</span><small>Estimate Type, Pt, and force curve</small></button>
+                  <button class="choice"><span>u3 Pt</span><small>Screen a u3-only laminate response</small></button>
+                  <button class="choice"><span>CSV validation</span><small>Classify after simulation output exists</small></button>
+                </div>
+                <div class="context-panel">
+                  <strong>Project context</strong>
+                  <div class="field-row"><span>Program</span><b>C2ES demo</b></div>
+                  <div class="field-row"><span>Target case</span><b>Case 2-4</b></div>
+                  <div class="field-row"><span>API</span><b class="ok">Ready</b></div>
+                </div>
+                <button class="primary">Continue</button>
+              </section>
+            </div>
+          </article>
+
+          <article class="screen-card">
+            <div class="screen-note">
+              <span>02</span>
+              <strong>Laminate Builder</strong>
+              <p>Turn theta and case into a visible stack before prediction.</p>
+            </div>
+            <div class="phone">
+              <div class="phone-top"><span>Stack setup</span><i class="status-dot"></i></div>
+              <section class="phone-screen">
+                <p class="micro">Case and theta</p>
+                <h2>Build the candidate stack</h2>
+                <div class="stack-preview">
+                  <img src="./assets/dd-ply-stack.svg" alt="Double-Double laminate ply stack" />
+                </div>
+                <div class="segmented"><button class="active">Case 2</button><button>Case 3</button><button>Case 4</button></div>
+                <div class="angle-grid"><label>Theta 1 <b>30 deg</b></label><label>Theta 2 <b>-30 deg</b></label></div>
+                <div class="physics-strip"><span>ABD compact</span><span>Coupling low</span><span>Stack balanced</span></div>
+              </section>
+            </div>
+          </article>
+
+          <article class="screen-card">
+            <div class="screen-note">
+              <span>03</span>
+              <strong>Model Strategy</strong>
+              <p>Keep model choice understandable without exposing internal keys.</p>
+            </div>
+            <div class="phone">
+              <div class="phone-top"><span>Model strategy</span><i class="status-dot"></i></div>
+              <section class="phone-screen">
+                <p class="micro">Recommended path</p>
+                <h2>Select the forecast strategy</h2>
+                <div class="model-card selected"><div><strong>Machine Learning</strong><small>Stable default for routine forecasts</small></div><b>Fast</b></div>
+                <div class="model-card"><div><strong>Deep Learning</strong><small>Comparison run for curve sensitivity</small></div><b>Check</b></div>
+                <div class="model-card"><div><strong>Dual run</strong><small>Compare ML and DL before simulation</small></div><b>Best</b></div>
+                <div class="readiness"><span>Training coverage</span><div><i style="width: 88%"></i></div><b>88%</b></div>
+                <button class="primary">Run dual forecast</button>
+              </section>
+            </div>
+          </article>
+
+          <article class="screen-card">
+            <div class="screen-note">
+              <span>04</span>
+              <strong>Forecast Progress</strong>
+              <p>Show validation, feature generation, model execution, and warnings.</p>
+            </div>
+            <div class="phone">
+              <div class="phone-top"><span>Running</span><i class="status-dot amber"></i></div>
+              <section class="phone-screen">
+                <p class="micro">Forecast in progress</p>
+                <h2>Checking candidate behavior</h2>
+                <div class="run-meter"><div class="ring">72%</div><div><strong>ML complete</strong><span>DL curve head is running</span></div></div>
+                <ol class="trace-list">
+                  <li class="done">Input schema verified</li>
+                  <li class="done">Compact physics features built</li>
+                  <li class="done">Machine-learning baseline complete</li>
+                  <li class="active">Deep-learning curve pass</li>
+                  <li>Pt consistency check</li>
+                </ol>
+                <div class="warning">Theta pair is near a sparse region. Treat curve shape as directional.</div>
+              </section>
+            </div>
+          </article>
+
+          <article class="screen-card">
+            <div class="screen-note">
+              <span>05</span>
+              <strong>Decision Result</strong>
+              <p>Put Type, Pt, curve, and model agreement on one decision surface.</p>
+            </div>
+            <div class="phone">
+              <div class="phone-top"><span>Result</span><i class="status-dot"></i></div>
+              <section class="phone-screen">
+                <p class="micro">Recommended decision</p>
+                <div class="result-hero"><span>Predicted Type</span><strong>Type 2</strong><b>91% agreement</b></div>
+                <div class="metric-row"><div><span>Pt</span><b>13.42 kN</b></div><div><span>u3 Pt</span><b>8.76 kN</b></div></div>
+                <svg class="curve" viewBox="0 0 300 160" role="img" aria-label="Predicted force displacement curve">
+                  <path class="gridline" d="M28 25 H284 M28 70 H284 M28 115 H284" />
+                  <path class="axis" d="M28 12 V132 H288" />
+                  <path class="main-curve" d="M28 125 C68 116 82 94 110 80 C152 58 182 62 215 43 C242 28 266 24 286 20" />
+                  <path class="alt-curve" d="M28 128 C70 120 90 102 121 86 C160 68 185 72 216 52 C245 36 266 32 286 29" />
+                  <circle cx="215" cy="43" r="6" />
+                </svg>
+                <div class="consistency ok"><span>Pt-curve consistency</span><b>Pass</b></div>
+              </section>
+            </div>
+          </article>
+
+          <article class="screen-card">
+            <div class="screen-note">
+              <span>06</span>
+              <strong>Explain and Compare</strong>
+              <p>Compress XAI into top drivers and model agreement.</p>
+            </div>
+            <div class="phone">
+              <div class="phone-top"><span>Explain</span><i class="status-dot"></i></div>
+              <section class="phone-screen">
+                <p class="micro">Why this result</p>
+                <h2>Top drivers</h2>
+                <div class="driver-list">
+                  <div><span>ABD_A11</span><i style="width: 96%"></i><b>0.96</b></div>
+                  <div><span>Theta 1</span><i style="width: 78%"></i><b>0.78</b></div>
+                  <div><span>Coupling</span><i style="width: 62%"></i><b>0.62</b></div>
+                  <div><span>Case</span><i style="width: 48%"></i><b>0.48</b></div>
+                  <div><span>ABD_D22</span><i style="width: 36%"></i><b>0.36</b></div>
+                </div>
+                <div class="compare-card"><strong>ML vs DL</strong><div class="split-bar"><i></i></div><p>Both agree on Type 2. DL predicts a slightly softer post-Pt curve.</p></div>
+                <button class="secondary-action">Open sensitivity view</button>
+              </section>
+            </div>
+          </article>
+
+          <article class="screen-card">
+            <div class="screen-note">
+              <span>07</span>
+              <strong>Review Package</strong>
+              <p>End with a shareable engineering artifact and next-step status.</p>
+            </div>
+            <div class="phone">
+              <div class="phone-top"><span>Package</span><i class="status-dot"></i></div>
+              <section class="phone-screen">
+                <p class="micro">Decision package</p>
+                <h2>Ready for team review</h2>
+                <div class="package-card"><strong>C2ES-Case2-30--30</strong><span>Response forecast, ML + DL comparison</span><b>Saved</b></div>
+                <div class="handoff-grid"><button>PDF report</button><button>CSV export</button><button>Simulation queue</button><button>Copy run link</button></div>
+                <div class="timeline"><div><span></span><p>Forecast saved</p></div><div><span></span><p>Review requested</p></div><div><span></span><p>Simulation pending</p></div></div>
+              </section>
+            </div>
+          </article>
+        </section>
+      </section>
+
+      <section id="version-a-desktop" class="concept-section desktop-variant" aria-labelledby="version-a-desktop-title">
+        <div class="concept-intro">
+          <p class="eyebrow">Version A Desktop</p>
+          <h2 id="version-a-desktop-title">Guided Decision Cockpit</h2>
+          <p>
+            Same Decision Studio sequence, redesigned for desktop so setup, preview, evidence, and handoff remain visible together.
+          </p>
+        </div>
+
+        <section class="desktop-studio" aria-label="Version A Desktop cockpit">
+          <aside class="studio-rail">
+            <div class="studio-brand">
+              <span>C2ES</span>
+              <strong>Decision Studio</strong>
+            </div>
+            <ol class="studio-steps">
+              <li class="active"><b>01</b><span>Run setup</span></li>
+              <li class="active"><b>02</b><span>Stack builder</span></li>
+              <li class="active"><b>03</b><span>Model strategy</span></li>
+              <li><b>04</b><span>Forecast</span></li>
+              <li><b>05</b><span>Evidence</span></li>
+              <li><b>06</b><span>Package</span></li>
+            </ol>
+            <div class="studio-status">
+              <span>API</span><b class="ok">Ready</b>
+              <span>Case family</span><b>Case 2</b>
+              <span>Run mode</span><b>Dual forecast</b>
+            </div>
+          </aside>
+
+          <section class="studio-main">
+            <header class="studio-toolbar">
+              <div>
+                <p class="micro">Candidate C2ES-Case2-30--30</p>
+                <h3>Response + Pt decision run</h3>
+              </div>
+              <button class="primary">Run Forecast</button>
+            </header>
+
+            <div class="studio-canvas">
+              <section class="studio-panel input-stack">
+                <p class="micro">Stack setup</p>
+                <h4>Build candidate</h4>
+                <div class="desktop-case-tabs"><button class="active">Case 2</button><button>Case 3</button><button>Case 4</button></div>
+                <div class="desktop-inputs">
+                  <label>Theta 1 <strong>30 deg</strong></label>
+                  <label>Theta 2 <strong>-30 deg</strong></label>
+                </div>
+                <div class="stack-preview desktop-stack">
+                  <img src="./assets/dd-ply-stack.svg" alt="Double-Double laminate ply stack" />
+                </div>
+              </section>
+
+              <section class="studio-panel result-preview">
+                <p class="micro">Decision preview</p>
+                <div class="desktop-result-head">
+                  <div><span>Predicted Type</span><strong>Type 2</strong></div>
+                  <div><span>Pt</span><strong>13.42 kN</strong></div>
+                  <div><span>Agreement</span><strong>91%</strong></div>
+                </div>
+                <svg class="desktop-curve" viewBox="0 0 620 260" role="img" aria-label="Desktop force displacement curve">
+                  <path class="gridline" d="M48 40 H580 M48 95 H580 M48 150 H580 M48 205 H580" />
+                  <path class="axis" d="M48 24 V220 H590" />
+                  <path class="main-curve" d="M50 210 C120 195 158 152 220 126 C294 94 384 82 478 50 C526 34 555 28 586 25" />
+                  <path class="alt-curve" d="M50 214 C116 204 168 170 230 145 C310 112 402 102 480 72 C530 52 558 47 586 42" />
+                  <circle cx="478" cy="50" r="8" />
+                </svg>
+                <div class="desktop-legend"><span><i></i>Machine Learning</span><span><i class="alt"></i>Deep Learning</span><span><i class="pt"></i>Predicted Pt</span></div>
+              </section>
+            </div>
+          </section>
+
+          <aside class="studio-inspector">
+            <section class="studio-panel">
+              <p class="micro">Model strategy</p>
+              <div class="model-card selected"><div><strong>Dual run</strong><small>ML default + DL comparison</small></div><b>Best</b></div>
+              <div class="readiness"><span>Coverage</span><div><i style="width: 88%"></i></div><b>88%</b></div>
+            </section>
+            <section class="studio-panel">
+              <p class="micro">Confidence gate</p>
+              <div class="gate compact-gate">
+                <div><small>Pt consistency</small><b>Pass</b></div>
+                <div><small>Sparse risk</small><b class="warn">Medium</b></div>
+                <div><small>Agreement</small><b>91%</b></div>
+              </div>
+            </section>
+            <section class="studio-panel">
+              <p class="micro">Top drivers</p>
+              <div class="driver-list desktop-drivers">
+                <div><span>ABD_A11</span><i style="width: 96%"></i><b>0.96</b></div>
+                <div><span>Theta 1</span><i style="width: 78%"></i><b>0.78</b></div>
+                <div><span>Coupling</span><i style="width: 62%"></i><b>0.62</b></div>
+                <div><span>Case</span><i style="width: 48%"></i><b>0.48</b></div>
+                <div><span>ABD_D22</span><i style="width: 36%"></i><b>0.36</b></div>
+              </div>
+            </section>
+            <section class="studio-panel handoff-panel">
+              <p class="micro">Review package</p>
+              <button>Export PDF</button>
+              <button>Queue simulation</button>
+              <button>Copy run link</button>
+            </section>
+          </aside>
+        </section>
+
+        <section class="desktop-storyboard" aria-label="Version A Desktop storyboard">
+          <article class="desktop-step-card">
+            <span>01</span>
+            <strong>Persistent Run Setup</strong>
+            <p>Run goal, API status, case family, and step progress stay in the left rail while the user edits the candidate.</p>
+          </article>
+          <article class="desktop-step-card">
+            <span>02</span>
+            <strong>Large Stack Canvas</strong>
+            <p>The laminate preview gets enough space to become a real inspection surface, not just a thumbnail.</p>
+          </article>
+          <article class="desktop-step-card">
+            <span>03</span>
+            <strong>Live Result Preview</strong>
+            <p>Type, Pt, agreement, and curve update in the center so users see consequences without changing pages.</p>
+          </article>
+          <article class="desktop-step-card">
+            <span>04</span>
+            <strong>Evidence Inspector</strong>
+            <p>Model strategy, confidence gates, warnings, and top XAI drivers live in the right panel.</p>
+          </article>
+          <article class="desktop-step-card">
+            <span>05</span>
+            <strong>Handoff Actions</strong>
+            <p>The final decision can immediately become a PDF, simulation queue item, or review link.</p>
+          </article>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

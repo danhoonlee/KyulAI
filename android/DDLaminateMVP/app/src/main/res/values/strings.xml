@@ -14,8 +14,8 @@
     <string name="model_tag_fast">Fast</string>
     <string name="model_tag_deep">Deep learning</string>
     <string name="model_tag_experimental">Experimental</string>
-    <string name="model_description_extratrees">Stable tree model with PCA compression. Fast and recommended for routine laminate forecasts.</string>
-    <string name="model_description_goint">Neural network model for nonlinear response patterns. Useful for comparison and experimental checks.</string>
+    <string name="model_description_extratrees">Fast machine-learning model recommended for routine laminate forecasts.</string>
+    <string name="model_description_goint">Deep-learning model for comparison and experimental checks.</string>
     <string name="model_description_generic">Alternative response model available from this API server.</string>
     <string name="recent_inputs">Recent</string>
     <string name="recent_latest">Latest</string>
@@ -48,6 +48,11 @@
     <string name="compare_interpretation_confidence_similar">Both results have similar model confidence.</string>
     <string name="theta_1">Theta 1</string>
     <string name="theta_2">Theta 2</string>
+    <string name="live_laminate_preview">Live laminate preview</string>
+    <string name="angle_aware_ply_stack">Angle-aware ply stack</string>
+    <string name="ply_count_format">%1$d plies</string>
+    <string name="stack_formula_label">Formula</string>
+    <string name="stack_compact_physics_note">Compact physics features are used by the model layer; this preview follows the current Case and theta inputs.</string>
     <string name="predict_forecast">Predict Forecast</string>
     <string name="model_unavailable">Model unavailable</string>
     <string name="connection_failed">Connection failed</string>
@@ -66,6 +71,10 @@
     <string name="pt_marker">Pt marker</string>
     <string name="class_probabilities">Class Probabilities</string>
     <string name="no_probabilities">No probabilities returned.</string>
+    <string name="xai_title">Why this prediction?</string>
+    <string name="xai_method_format">Method: %1$s · Feature set: %2$s</string>
+    <string name="xai_show_more">Show %1$d more features</string>
+    <string name="xai_hide_more">Hide extra features</string>
     <string name="interpretation">Interpretation</string>
     <string name="interpretation_disclaimer">Rule-based summary from predicted values. Validate important candidates with simulation or experiment.</string>
     <string name="interpretation_confidence_high">This condition is predicted as Type %1$d with high model confidence.</string>

@@ -23,6 +23,7 @@ struct CurveChartView: View {
                     .fill(AppTheme.field)
                 Canvas { context, size in
                     guard let layout = ChartLayout(points: points, size: size, predictedPt: predictedPt, fitMode: fitMode) else { return }
+                    drawAxes(context: context, layout: layout)
                     if let bilinearFit = layout.bilinearFit {
                         drawBilinearFit(context: context, layout: layout, fit: bilinearFit)
                     }
@@ -111,6 +112,43 @@ struct CurveChartView: View {
         .accessibilityLabel(L10n.f("curve.accessibility", points.count))
     }
 
+    private func drawAxes(context: GraphicsContext, layout: ChartLayout) {
+        var gridPath = Path()
+        layout.yTicks.dropFirst().dropLast().forEach { value in
+            let y = layout.yPosition(for: value)
+            gridPath.move(to: CGPoint(x: layout.plotFrame.minX, y: y))
+            gridPath.addLine(to: CGPoint(x: layout.plotFrame.maxX, y: y))
+        }
+        layout.xTicks.dropFirst().dropLast().forEach { value in
+            let x = layout.xPosition(for: value)
+            gridPath.move(to: CGPoint(x: x, y: layout.plotFrame.minY))
+            gridPath.addLine(to: CGPoint(x: x, y: layout.plotFrame.maxY))
+        }
+        context.stroke(gridPath, with: .color(Color(.sRGB, red: 0.90, green: 0.93, blue: 0.95, opacity: 1)), lineWidth: 1)
+
+        var axisPath = Path()
+        axisPath.move(to: CGPoint(x: layout.plotFrame.minX, y: layout.plotFrame.minY))
+        axisPath.addLine(to: CGPoint(x: layout.plotFrame.minX, y: layout.plotFrame.maxY))
+        axisPath.addLine(to: CGPoint(x: layout.plotFrame.maxX, y: layout.plotFrame.maxY))
+        context.stroke(axisPath, with: .color(AppTheme.muted.opacity(0.48)), lineWidth: 1)
+
+        let tickStyle = Font.caption2.monospacedDigit().weight(.semibold)
+        layout.yTicks.forEach { value in
+            context.draw(
+                Text(value.axisTickText(smallValueDigits: 2)).font(tickStyle).foregroundStyle(AppTheme.muted),
+                at: CGPoint(x: layout.plotFrame.minX - 6, y: layout.yPosition(for: value)),
+                anchor: .trailing
+            )
+        }
+        layout.xTicks.forEach { value in
+            context.draw(
+                Text(value.axisTickText(smallValueDigits: 4)).font(tickStyle).foregroundStyle(AppTheme.muted),
+                at: CGPoint(x: layout.xPosition(for: value), y: layout.plotFrame.maxY + 16),
+                anchor: .top
+            )
+        }
+    }
+
     private func drawBilinearFit(context: GraphicsContext, layout: ChartLayout, fit: BilinearFit) {
         var slopePath = Path()
         slopePath.move(to: layout.coordinate(displacement: fit.firstStartX, force: fit.firstLine.y(at: fit.firstStartX)))
@@ -195,12 +233,28 @@ private struct ChartLayout {
     private let maxY: Double
 
     init?(points: [ResponseCurvePoint], size: CGSize, predictedPt: Double?, fitMode: CurveFitMode = .standard) {
-        let inset: CGFloat = 28
+        let leftInset: CGFloat = 54
+        let rightInset: CGFloat = 18
+        let topInset: CGFloat = 32
+        let bottomInset: CGFloat = 58
+        let availableFrame = CGRect(
+            x: leftInset,
+            y: topInset,
+            width: max(1, size.width - leftInset - rightInset),
+            height: max(1, size.height - topInset - bottomInset)
+        )
+        let targetRatio: CGFloat = 5.0 / 3.0
+        var plotWidth = availableFrame.width
+        var plotHeight = plotWidth / targetRatio
+        if plotHeight > availableFrame.height {
+            plotHeight = availableFrame.height
+            plotWidth = plotHeight * targetRatio
+        }
         let plotFrame = CGRect(
-            x: inset,
-            y: inset,
-            width: max(1, size.width - inset * 2),
-            height: max(1, size.height - inset * 2)
+            x: availableFrame.midX - plotWidth / 2,
+            y: availableFrame.midY - plotHeight / 2,
+            width: max(1, plotWidth),
+            height: max(1, plotHeight)
         )
         guard points.count > 1,
               let minX = points.map(\.displacement).min(),
@@ -228,7 +282,7 @@ private struct ChartLayout {
                 bilinearFit.kink.force,
             ])
         }
-        let adjustedMinY = yValues.min() ?? minY
+        let adjustedMinY = min(0, yValues.min() ?? minY)
         let adjustedMaxY = (yValues.max() ?? maxY) * 1.06
 
         var path = Path()
@@ -253,21 +307,33 @@ private struct ChartLayout {
         self.maxY = adjustedMaxY
     }
 
+    var xTicks: [Double] {
+        Self.tickValues(min: minX, max: maxX, count: 6)
+    }
+
+    var yTicks: [Double] {
+        Self.tickValues(min: minY, max: maxY, count: 6)
+    }
+
+    func xPosition(for value: Double) -> CGFloat {
+        plotFrame.minX + (value - minX) / (maxX - minX) * plotFrame.width
+    }
+
+    func yPosition(for value: Double) -> CGFloat {
+        plotFrame.maxY - (value - minY) / (maxY - minY) * plotFrame.height
+    }
+
     func ptMarker(force predictedPt: Double?) -> CGPoint? {
         guard let predictedPt,
               predictedPt.isFinite,
               let curvePoint = interpolatedPoint(atForce: predictedPt) else {
             return nil
         }
-        let x = plotFrame.minX + (curvePoint.displacement - minX) / (maxX - minX) * plotFrame.width
-        let y = plotFrame.maxY - (curvePoint.force - minY) / (maxY - minY) * plotFrame.height
-        return CGPoint(x: x, y: y)
+        return CGPoint(x: xPosition(for: curvePoint.displacement), y: yPosition(for: curvePoint.force))
     }
 
     func coordinate(displacement: Double, force: Double) -> CGPoint {
-        let x = plotFrame.minX + (displacement - minX) / (maxX - minX) * plotFrame.width
-        let y = plotFrame.maxY - (force - minY) / (maxY - minY) * plotFrame.height
-        return CGPoint(x: x, y: y)
+        CGPoint(x: xPosition(for: displacement), y: yPosition(for: force))
     }
 
     func nearestPoint(to location: CGPoint) -> ResponseCurvePoint? {
@@ -301,6 +367,14 @@ private struct ChartLayout {
         }
         guard let last = points.last else { return nil }
         return CurveCoordinate(displacement: last.displacement, force: last.force)
+    }
+
+    private static func tickValues(min: Double, max: Double, count: Int) -> [Double] {
+        guard count > 1 else { return [min] }
+        let span = max - min
+        return (0..<count).map { index in
+            min + span * Double(index) / Double(count - 1)
+        }
     }
 
     private static func buildBilinearFit(points: [ResponseCurvePoint], predictedPt: Double?) -> BilinearFit? {
@@ -552,4 +626,29 @@ private struct BilinearFit {
     let firstEndX: Double
     let secondStartX: Double
     let secondEndX: Double
+}
+
+private extension Double {
+    func axisTickText(smallValueDigits: Int) -> String {
+        guard isFinite else { return "0" }
+        let absolute = abs(self)
+        let digits: Int
+        if absolute >= 100 {
+            digits = 0
+        } else if absolute >= 10 {
+            digits = 1
+        } else if absolute >= 1 {
+            digits = 2
+        } else {
+            digits = smallValueDigits
+        }
+        var text = String(format: "%.\(digits)f", self)
+        while text.contains(".") && text.last == "0" {
+            text.removeLast()
+        }
+        if text.last == "." {
+            text.removeLast()
+        }
+        return text == "-0" ? "0" : text
+    }
 }

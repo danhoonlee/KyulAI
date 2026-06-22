@@ -31,6 +31,14 @@ public final class PredictionViewModel: ObservableObject {
     @Published public var isPredictingU3Pt = false
     @Published public private(set) var recentRuns: [DDLaminateRecentRun] = []
 
+    public var responseForecastRecentRuns: [DDLaminateRecentRun] {
+        recentRuns.filter { $0.kind == .responseForecast }
+    }
+
+    public var u3ForecastRecentRuns: [DDLaminateRecentRun] {
+        recentRuns.filter { $0.kind == .u3Forecast }
+    }
+
     public init(
         apiClient: DDLaminateAPIClientProtocol = DDLaminateAPIClient(),
         fixtureLoader: FixtureLoading = BundleFixtureLoader(),
@@ -67,8 +75,8 @@ public final class PredictionViewModel: ObservableObject {
         do {
             _ = try await apiClient.health(baseURL: baseURL)
             let models = try await apiClient.models(baseURL: baseURL)
-            responseModels = models.responseModels
-            u3PtModels = models.u3PtModels
+            responseModels = Self.optimalResponseModels(from: models.responseModels)
+            u3PtModels = Self.optimalU3PtModels(from: models.u3PtModels)
             normalizeModelSelection()
             normalizeU3PtModelSelection()
             connectionState = .ready(responseSurrogateAvailable: responseModel?.available == true)
@@ -95,14 +103,12 @@ public final class PredictionViewModel: ObservableObject {
     }
 
     public func predict(baseURL: URL) async {
-        guard let theta1Value = Double(theta1), let theta2Value = Double(theta2) else {
+        guard let theta1Value = normalizedThetaValue(theta1), let theta2Value = normalizedThetaValue(theta2) else {
             errorMessage = "Enter numeric theta values."
             return
         }
-        guard (-90...90).contains(theta1Value), (-90...90).contains(theta2Value) else {
-            errorMessage = "Theta values must be between -90 and 90 degrees."
-            return
-        }
+        theta1 = Self.thetaInputString(theta1Value)
+        theta2 = Self.thetaInputString(theta2Value)
         if responseModels.isEmpty {
             await checkConnection(baseURL: baseURL)
         }
@@ -131,18 +137,16 @@ public final class PredictionViewModel: ObservableObject {
     }
 
     public func predictU3Pt(baseURL: URL, csvURL: URL, u3Bucket: String) async {
-        guard selectedU3PtModelKey != DDLaminateDefaults.u3PtModelKey else {
+        guard !DDLaminateDefaults.u3PtModelKeys.contains(selectedU3PtModelKey) else {
             await predictU3Forecast(baseURL: baseURL)
             return
         }
-        guard let theta1Value = Double(theta1), let theta2Value = Double(theta2) else {
+        guard let theta1Value = normalizedThetaValue(theta1), let theta2Value = normalizedThetaValue(theta2) else {
             errorMessage = "Enter numeric theta values."
             return
         }
-        guard (-90...90).contains(theta1Value), (-90...90).contains(theta2Value) else {
-            errorMessage = "Theta values must be between -90 and 90 degrees."
-            return
-        }
+        theta1 = Self.thetaInputString(theta1Value)
+        theta2 = Self.thetaInputString(theta2Value)
         if u3PtModels.isEmpty {
             await checkConnection(baseURL: baseURL)
         }
@@ -170,14 +174,12 @@ public final class PredictionViewModel: ObservableObject {
     }
 
     public func predictU3Forecast(baseURL: URL) async {
-        guard let theta1Value = Double(theta1), let theta2Value = Double(theta2) else {
+        guard let theta1Value = normalizedThetaValue(theta1), let theta2Value = normalizedThetaValue(theta2) else {
             errorMessage = "Enter numeric theta values."
             return
         }
-        guard (-90...90).contains(theta1Value), (-90...90).contains(theta2Value) else {
-            errorMessage = "Theta values must be between -90 and 90 degrees."
-            return
-        }
+        theta1 = Self.thetaInputString(theta1Value)
+        theta2 = Self.thetaInputString(theta2Value)
         if u3PtModels.isEmpty {
             await checkConnection(baseURL: baseURL)
         }
@@ -197,18 +199,28 @@ public final class PredictionViewModel: ObservableObject {
         )
         do {
             u3PtResult = try await apiClient.predictU3Forecast(baseURL: baseURL, request: request)
+            if let u3PtResult {
+                saveRecentRun(from: request, result: u3PtResult)
+            }
         } catch {
             errorMessage = "u3 Forecast failed: \(error.localizedDescription)"
         }
     }
 
     public func applyRecentRun(_ run: DDLaminateRecentRun) {
-        theta1 = run.theta1
-        theta2 = run.theta2
+        theta1 = run.theta1Display
+        theta2 = run.theta2Display
         selectedCase = run.selectedCase
-        selectedResponseModelKey = run.responseModelKey
-        responseModel = responseModels.first { $0.key == run.responseModelKey } ?? responseModel
+        switch run.kind {
+        case .responseForecast:
+            selectedResponseModelKey = run.responseModelKey
+            responseModel = responseModels.first { $0.key == run.responseModelKey } ?? responseModel
+        case .u3Forecast:
+            selectedU3PtModelKey = run.responseModelKey
+            u3PtModel = u3PtModels.first { $0.key == run.responseModelKey } ?? u3PtModel
+        }
         result = nil
+        u3PtResult = nil
         updateReadyStateIfNeeded()
     }
 
@@ -243,6 +255,29 @@ public final class PredictionViewModel: ObservableObject {
 
     private func saveRecentRun(from request: ResponsePredictionRequest, result: ResponsePredictionResult) {
         let run = DDLaminateRecentRun(
+            kind: .responseForecast,
+            selectedCase: request.case,
+            responseModelKey: request.model,
+            theta1: theta1,
+            theta2: theta2,
+            createdAt: Date(),
+            predictedType: result.predictedType,
+            confidence: result.confidence,
+            predictedPt: result.predictedPt,
+            predictedMaxForce: result.predictedMaxForce,
+            predictedMaxDisplacement: result.predictedMaxDisplacement,
+            modelLabel: result.displayModelLabel,
+            curve: result.curve
+        )
+        recentRuns = ([run] + recentRuns.filter { $0.signature != run.signature }).prefix(5).map { $0 }
+        if let data = try? JSONEncoder().encode(recentRuns) {
+            userDefaults.set(data, forKey: recentRunsKey)
+        }
+    }
+
+    private func saveRecentRun(from request: U3ForecastPredictionRequest, result: U3PtPredictionResult) {
+        let run = DDLaminateRecentRun(
+            kind: .u3Forecast,
             selectedCase: request.case,
             responseModelKey: request.model,
             theta1: theta1,
@@ -271,6 +306,29 @@ public final class PredictionViewModel: ObservableObject {
         return Array(runs.prefix(5))
     }
 
+    private func normalizedThetaValue(_ text: String) -> Double? {
+        guard let value = Double(text.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+            return nil
+        }
+        return min(90, max(-90, value)).rounded()
+    }
+
+    private static func thetaInputString(_ value: Double) -> String {
+        String(Int(min(90, max(-90, value)).rounded()))
+    }
+
+    private static func optimalResponseModels(from models: [ModelInfo]) -> [ModelInfo] {
+        let byKey = Dictionary(uniqueKeysWithValues: models.map { ($0.key, $0) })
+        let optimalModels = DDLaminateDefaults.responseModelKeys.compactMap { byKey[$0] }
+        return optimalModels.isEmpty ? models : optimalModels
+    }
+
+    private static func optimalU3PtModels(from models: [ModelInfo]) -> [ModelInfo] {
+        let byKey = Dictionary(uniqueKeysWithValues: models.map { ($0.key, $0) })
+        let optimalModels = DDLaminateDefaults.u3PtModelKeys.compactMap { byKey[$0] }
+        return optimalModels.isEmpty ? models : optimalModels
+    }
+
     private func normalizeModelSelection() {
         if responseModels.first(where: { $0.key == selectedResponseModelKey && $0.available }) == nil,
            let fallback = responseModels.first(where: { $0.key == DDLaminateDefaults.responseModelKey && $0.available }) ?? responseModels.first(where: \.available) ?? responseModels.first {
@@ -293,8 +351,14 @@ public final class PredictionViewModel: ObservableObject {
     }
 }
 
+public enum DDLaminateRecentRunKind: String, Codable, Equatable, Sendable {
+    case responseForecast
+    case u3Forecast
+}
+
 public struct DDLaminateRecentRun: Identifiable, Codable, Equatable, Sendable {
     public var id: String { signature }
+    public let kind: DDLaminateRecentRunKind
     public let selectedCase: DDLaminateCase
     public let responseModelKey: String
     public let theta1: String
@@ -309,6 +373,7 @@ public struct DDLaminateRecentRun: Identifiable, Codable, Equatable, Sendable {
     public let curve: [ResponseCurvePoint]
 
     public init(
+        kind: DDLaminateRecentRunKind = .responseForecast,
         selectedCase: DDLaminateCase,
         responseModelKey: String,
         theta1: String,
@@ -322,6 +387,7 @@ public struct DDLaminateRecentRun: Identifiable, Codable, Equatable, Sendable {
         modelLabel: String? = nil,
         curve: [ResponseCurvePoint] = []
     ) {
+        self.kind = kind
         self.selectedCase = selectedCase
         self.responseModelKey = responseModelKey
         self.theta1 = theta1
@@ -337,6 +403,7 @@ public struct DDLaminateRecentRun: Identifiable, Codable, Equatable, Sendable {
     }
 
     enum CodingKeys: String, CodingKey {
+        case kind
         case selectedCase
         case responseModelKey
         case theta1
@@ -353,6 +420,7 @@ public struct DDLaminateRecentRun: Identifiable, Codable, Equatable, Sendable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        kind = try container.decodeIfPresent(DDLaminateRecentRunKind.self, forKey: .kind) ?? .responseForecast
         selectedCase = try container.decode(DDLaminateCase.self, forKey: .selectedCase)
         responseModelKey = try container.decodeIfPresent(String.self, forKey: .responseModelKey) ?? DDLaminateDefaults.responseModelKey
         theta1 = try container.decode(String.self, forKey: .theta1)
@@ -372,14 +440,29 @@ public struct DDLaminateRecentRun: Identifiable, Codable, Equatable, Sendable {
     }
 
     public var displaySubtitle: String {
-        "\(DDLaminateModelDisplayLabel.cleanKey(responseModelKey)) · Theta \(theta1) / \(theta2)"
+        "\(DDLaminateModelDisplayLabel.cleanKey(responseModelKey)) · Theta \(theta1Display) / \(theta2Display)"
     }
 
     public var displayModelLabel: String {
-        modelLabel ?? DDLaminateModelDisplayLabel.cleanKey(responseModelKey)
+        modelLabel.map(DDLaminateModelDisplayLabel.clean) ?? DDLaminateModelDisplayLabel.cleanKey(responseModelKey)
+    }
+
+    public var theta1Display: String {
+        Self.integerAngleText(theta1)
+    }
+
+    public var theta2Display: String {
+        Self.integerAngleText(theta2)
     }
 
     fileprivate var signature: String {
-        "\(selectedCase.rawValue)|\(responseModelKey)|\(theta1)|\(theta2)"
+        "\(kind.rawValue)|\(selectedCase.rawValue)|\(responseModelKey)|\(theta1)|\(theta2)"
+    }
+
+    private static func integerAngleText(_ text: String) -> String {
+        guard let value = Double(text.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+            return text
+        }
+        return String(Int(min(90, max(-90, value)).rounded()))
     }
 }

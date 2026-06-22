@@ -13,6 +13,7 @@ import math
 import random
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import joblib
 import numpy as np
@@ -20,7 +21,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from sklearn.base import clone
-from sklearn.ensemble import ExtraTreesRegressor, HistGradientBoostingRegressor, RandomForestRegressor
+from sklearn.ensemble import (
+    ExtraTreesRegressor,
+    HistGradientBoostingRegressor,
+    RandomForestRegressor,
+)
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import GroupKFold
@@ -28,7 +33,6 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from torch.utils.data import DataLoader, Dataset, Subset
-
 
 CASES = ("Case2", "Case3", "Case4")
 FOLDERS = ("2-2", "2-3", "3-2", "3-3", "4-2", "4-3")
@@ -168,7 +172,7 @@ def metadata_matrix(records: list[U3Record], curve_meta: list[dict[str, float]])
         *[f"folder_{folder.replace('-', '_')}" for folder in FOLDERS],
         *curve_meta[0].keys(),
     ]
-    for record, curve_row in zip(records, curve_meta):
+    for record, curve_row in zip(records, curve_meta, strict=True):
         rows.append(
             [
                 record.theta1,
@@ -206,7 +210,7 @@ def regression_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, floa
     }
 
 
-def candidate_regressors(seed: int) -> dict[str, object]:
+def candidate_regressors(seed: int) -> dict[str, Any]:
     return {
         "extra_trees": ExtraTreesRegressor(
             n_estimators=700,
@@ -280,7 +284,7 @@ def train_classical(
             metrics = regression_metrics(y_pt[val_idx], pred)
             metrics["fold"] = fold
             fold_rows.append(metrics)
-            for idx, pred_value in zip(val_idx, pred):
+            for idx, pred_value in zip(val_idx, pred, strict=True):
                 oof_rows.append(
                     {
                         "model": name,
@@ -297,9 +301,10 @@ def train_classical(
         mean_mae = float(np.mean([row["mae"] for row in fold_rows]))
         print(f"classical {name}: cv_mae={mean_mae:.2f}", flush=True)
 
-    summary: dict[str, object] = {"models": {}}
+    summary_models: dict[str, dict[str, Any]] = {}
+    summary: dict[str, Any] = {"models": summary_models}
     for name, rows in model_rows.items():
-        summary["models"][name] = {
+        summary_models[name] = {
             "folds": rows,
             "cv_mae_mean": float(np.mean([row["mae"] for row in rows])),
             "cv_mae_std": float(np.std([row["mae"] for row in rows])),
@@ -307,7 +312,7 @@ def train_classical(
             "cv_r2_mean": float(np.mean([row["r2"] for row in rows])),
         }
 
-    best_name = min(summary["models"], key=lambda key: summary["models"][key]["cv_mae_mean"])  # type: ignore[index]
+    best_name = min(summary_models, key=lambda key: float(summary_models[key]["cv_mae_mean"]))
     final_model = clone(candidate_regressors(seed)[best_name])
     final_model.fit(x, y_pt)
 
@@ -319,7 +324,7 @@ def train_classical(
             "grid_len": GRID_LEN,
             "cases": CASES,
             "folders": FOLDERS,
-            "metrics": summary["models"][best_name],
+            "metrics": summary_models[best_name],
         },
         output_dir / "u3_pt_regressor.joblib",
     )
@@ -495,7 +500,7 @@ def train_deep(
             f"deep fold {fold}: mae={metrics['mae']:.2f}, r2={metrics['r2']:.4f}, best_epoch={best_epoch}",
             flush=True,
         )
-        for idx, pred_value in zip(val_idx, y_pred):
+        for idx, pred_value in zip(val_idx, y_pred, strict=True):
             oof_rows.append(
                 {
                     "fold": fold,
@@ -522,7 +527,7 @@ def train_deep(
         "cv_mae_std": float(np.std([row["mae"] for row in fold_rows])),
         "cv_rmse_mean": float(np.mean([row["rmse"] for row in fold_rows])),
         "cv_r2_mean": float(np.mean([row["r2"] for row in fold_rows])),
-        "n_samples": int(len(records)),
+        "n_samples": len(records),
         "device": str(device),
     }
     torch.save(

@@ -59,7 +59,12 @@ Then open:
 http://127.0.0.1:8000
 ```
 
-The standalone module domains can continue to run in parallel:
+The web C2ES App entry now lives at:
+
+- `https://ai.luvelox.com`
+
+Standalone module domains continue to run in parallel and are opened from the
+AI workspace:
 
 - `https://laminate.luvelox.com`
 - `https://injection.luvelox.com`

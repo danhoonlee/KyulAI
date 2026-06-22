@@ -10,6 +10,7 @@ import joblib
 import numpy as np
 
 from .curve_features import DDCurveRecord
+from .pt_curve_consistency import enforce_pt_curve_consistency, kink_fit_details
 from .response_feature_sets import feature_set_from_columns, prediction_feature_matrix
 from .train_response_surrogate import make_feature_matrix
 
@@ -41,6 +42,15 @@ def predict_response(
     case: str,
 ) -> dict:
     bundle = joblib.load(model_path)
+    return predict_response_from_bundle(bundle, theta1, theta2, case)
+
+
+def predict_response_from_bundle(
+    bundle: dict,
+    theta1: float,
+    theta2: float,
+    case: str,
+) -> dict:
     feature_columns = bundle.get("feature_columns", [])
     feature_builder = str(bundle.get("feature_builder") or "")
     if feature_builder:
@@ -68,7 +78,7 @@ def predict_response(
     if hasattr(classifier, "predict_proba"):
         probs = classifier.predict_proba(x)[0]
         probabilities = {f"type{label}": 0.0 for label in [1, 2, 3]}
-        for cls, prob in zip(classifier.classes_, probs):
+        for cls, prob in zip(classifier.classes_, probs, strict=True):
             probabilities[f"type{int(cls)}"] = float(prob)
 
     scalars = scalar_model.predict(x)[0]
@@ -78,8 +88,19 @@ def predict_response(
 
     curve_norm = np.clip(pca.inverse_transform(curve_model.predict(x))[0], 0.0, None)
     grid = np.asarray(bundle["grid"], dtype=float)
+    consistency = enforce_pt_curve_consistency(
+        curve_norm=curve_norm,
+        grid=grid,
+        max_displacement=max_displacement,
+        max_force=max_force,
+        predicted_pt=pt,
+    )
+    curve_norm = consistency.curve_norm
+    max_force = consistency.max_force
     displacement = grid * max_displacement
     force = curve_norm * max_force
+    metrics = dict(bundle.get("metrics", {}))
+    metrics.update(consistency.flat_metrics())
 
     return {
         "predicted_type": pred_type,
@@ -89,10 +110,11 @@ def predict_response(
         "predicted_max_force": max_force,
         "curve": [
             {"displacement": float(d), "force": float(f)}
-            for d, f in zip(displacement, force)
+            for d, f in zip(displacement, force, strict=True)
         ],
+        "curve_fit": kink_fit_details(displacement, force),
         "model_name": bundle.get("model_name", "response_surrogate"),
-        "metrics": bundle.get("metrics", {}),
+        "metrics": metrics,
     }
 
 

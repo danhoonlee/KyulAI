@@ -45,7 +45,7 @@ struct DDLaminateComparisonView: View {
                                 Text(index == 0 ? "\(index + 1). \(L10n.t("recent.latest"))" : "\(index + 1). \(run.displayTitle)")
                                     .font(.subheadline.weight(.bold))
                                     .foregroundStyle(AppTheme.ink)
-                                Text("\(run.displayModelLabel) · Theta \(run.theta1) / \(run.theta2)")
+                                Text("\(run.displayModelLabel) · Theta \(run.theta1Display) / \(run.theta2Display)")
                                     .font(.caption)
                                     .foregroundStyle(AppTheme.muted)
                             }

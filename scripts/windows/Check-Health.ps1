@@ -1,28 +1,87 @@
 param(
-    [switch]$PublicOnly
+    [switch]$PublicOnly,
+    [switch]$LocalOnly,
+    [switch]$Ready,
+    [switch]$Strict,
+    [int]$Retries = 1,
+    [int]$RetryDelaySec = 3,
+    [string[]]$PublicBaseUrls = @(
+        "https://ai.luvelox.com",
+        "https://luvelox.com",
+        "https://www.luvelox.com",
+        "https://laminate.luvelox.com",
+        "https://injection.luvelox.com",
+        "https://cafedecafe.co.kr",
+        "https://www.cafedecafe.co.kr",
+        "https://laminate.cafedecafe.co.kr",
+        "https://dd.cafedecafe.co.kr",
+        "https://injection.cafedecafe.co.kr"
+    )
 )
 
 $ErrorActionPreference = "Continue"
+if ($PublicOnly -and $LocalOnly) {
+    throw "Choose either -PublicOnly or -LocalOnly, not both."
+}
+
+$EndpointPath = if ($Ready) { "/ready" } else { "/health" }
 
 $targets = @()
 if (-not $PublicOnly) {
     $targets += @(
-        @{ Name = "DD local"; Url = "http://127.0.0.1:8000/health" },
-        @{ Name = "Injection local"; Url = "http://127.0.0.1:8010/health" }
+        @{ Name = "DD local"; Url = "http://127.0.0.1:8000$EndpointPath" },
+        @{ Name = "Injection local"; Url = "http://127.0.0.1:8010$EndpointPath" }
     )
 }
-$targets += @(
-    @{ Name = "Laminate public"; Url = "https://laminate.luvelox.com/health" },
-    @{ Name = "Injection public"; Url = "https://injection.luvelox.com/health" },
-    @{ Name = "DD legacy public"; Url = "https://dd.cafedecafe.co.kr/health" },
-    @{ Name = "Injection legacy public"; Url = "https://injection.cafedecafe.co.kr/health" }
-)
 
-foreach ($target in $targets) {
-    try {
-        $response = Invoke-WebRequest -Uri $target.Url -UseBasicParsing -TimeoutSec 10
-        Write-Host ("{0}: HTTP {1} {2}" -f $target.Name, $response.StatusCode, $response.Content)
-    } catch {
-        Write-Host ("{0}: FAILED {1}" -f $target.Name, $_.Exception.Message)
+if (-not $LocalOnly) {
+    foreach ($baseUrl in $PublicBaseUrls) {
+        $name = $baseUrl.Replace("https://", "").Replace("http://", "")
+        $targets += @{ Name = "$name public"; Url = "$($baseUrl.TrimEnd('/'))$EndpointPath" }
     }
+}
+
+$failures = 0
+foreach ($target in $targets) {
+    $passed = $false
+    $lastMessage = ""
+
+    for ($attempt = 1; $attempt -le $Retries; $attempt++) {
+        try {
+            $response = Invoke-WebRequest -Uri $target.Url -UseBasicParsing -TimeoutSec 10
+            $content = $response.Content.Trim()
+            $isReady = $true
+            if ($Ready) {
+                try {
+                    $json = $content | ConvertFrom-Json
+                    $isReady = $json.status -eq "ready"
+                } catch {
+                    $isReady = $false
+                }
+            }
+
+            if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 300 -and $isReady) {
+                Write-Host ("{0}: HTTP {1} {2}" -f $target.Name, $response.StatusCode, $content)
+                $passed = $true
+                break
+            }
+
+            $lastMessage = ("{0}: NOT READY HTTP {1} {2}" -f $target.Name, $response.StatusCode, $content)
+        } catch {
+            $lastMessage = ("{0}: FAILED {1}" -f $target.Name, $_.Exception.Message)
+        }
+
+        if ($attempt -lt $Retries) {
+            Start-Sleep -Seconds $RetryDelaySec
+        }
+    }
+
+    if (-not $passed) {
+        $failures += 1
+        Write-Host $lastMessage
+    }
+}
+
+if ($Strict -and $failures -gt 0) {
+    exit 1
 }

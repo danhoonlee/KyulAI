@@ -7,25 +7,69 @@ $ErrorActionPreference = "Stop"
 $ProjectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 Set-Location $ProjectRoot
 
+function Invoke-ConfiguredPython {
+    param(
+        [string]$Arguments
+    )
+
+    Invoke-Expression "$Python $Arguments"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Python command failed: $Python $Arguments"
+    }
+}
+
 Write-Host "Project root: $ProjectRoot"
+Write-Host "Checking Python command: $Python"
+Invoke-ConfiguredPython "--version"
+
 Write-Host "Creating virtual environment..."
-Invoke-Expression "$Python -m venv .venv"
+Invoke-ConfiguredPython "-m venv .venv"
 
 $VenvPython = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
-& $VenvPython -m pip install --upgrade pip
-& $VenvPython -m pip install -r requirements-serving.txt
+if (-not (Test-Path $VenvPython)) {
+    throw "Virtual environment Python was not created at $VenvPython"
+}
+
+function Invoke-VenvPython {
+    param(
+        [string[]]$Arguments
+    )
+
+    & $VenvPython @Arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "Virtualenv Python command failed: python $($Arguments -join ' ')"
+    }
+}
+
+try {
+    Invoke-VenvPython -Arguments @("-c", "import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)")
+} catch {
+    throw "Python 3.11 or newer is required. Install Python 3.11 x64 and rerun this script."
+}
+
+Invoke-VenvPython -Arguments @("-m", "pip", "install", "--upgrade", "pip")
+Invoke-VenvPython -Arguments @("-m", "pip", "install", "-r", "requirements-serving.txt")
 
 if (-not $SkipTorch) {
     Write-Host "Installing PyTorch CPU wheel..."
-    & $VenvPython -m pip install torch==2.2.0 --index-url https://download.pytorch.org/whl/cpu
+    Invoke-VenvPython -Arguments @("-m", "pip", "install", "torch==2.2.0", "--index-url", "https://download.pytorch.org/whl/cpu")
 }
 
 Write-Host "Verifying runtime imports..."
-& $VenvPython -c "import fastapi, uvicorn, joblib, numpy, sklearn; print('api/classical deps ok')"
+Invoke-VenvPython -Arguments @("-c", "import fastapi, uvicorn, joblib, numpy, sklearn; print('api/classical deps ok')")
 if (-not $SkipTorch) {
-    & $VenvPython -c "import torch; print('torch ok', torch.__version__)"
+    Invoke-VenvPython -Arguments @("-c", "import torch; print('torch ok', torch.__version__)")
 }
+
+Write-Host "Checking package consistency..."
+Invoke-VenvPython -Arguments @("-m", "pip", "check")
+
+Write-Host "Checking model readiness summary..."
+Invoke-VenvPython -Arguments @("-c", "from src.backend.api.v1.dd_laminate import warm_prediction_models; from src.backend.api.v1.simple_injection import model_availability_status; print('dd:', warm_prediction_models()); print('injection:', model_availability_status())")
 
 Write-Host ""
 Write-Host "Setup complete."
-Write-Host "Next: copy .env.windows.example to .env.local and fill Slack values if needed."
+Write-Host "Next:"
+Write-Host "  1. Copy .env.windows.example to .env.local and fill Slack values if needed."
+Write-Host "  2. Start servers with scripts\windows\Start-All.ps1 -SkipCloudflare for local-only testing."
+Write-Host "  3. Verify with scripts\windows\Check-Health.ps1 -Ready."

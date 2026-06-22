@@ -11,10 +11,11 @@ import csv
 import math
 import shutil
 import tempfile
-from importlib.util import find_spec
+from collections.abc import Callable
 from functools import lru_cache
+from importlib.util import find_spec
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal, cast
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 from pydantic import BaseModel, Field
@@ -34,6 +35,14 @@ ResponseModelKey = Literal[
     "response_goint_physics_v2",
     "response_goint_physics_nn_v2",
 ]
+OPTIMAL_RESPONSE_MODEL_KEYS = (
+    "response_surrogate_physics_v2",
+    "response_goint_physics_nn_v2",
+)
+OPTIMAL_U3_FORECAST_MODEL_KEYS = (
+    "u3_forecast_physics_v2",
+    "u3_forecast_goint_physics_v2",
+)
 U3ForecastModelKey = Literal[
     "u3_forecast",
     "u3_forecast_goint",
@@ -74,7 +83,7 @@ class ResponsePredictionRequest(BaseModel):
     theta1: float = Field(..., ge=-90, le=90)
     theta2: float = Field(..., ge=-90, le=90)
     case: CaseKey
-    model: ResponseModelKey = "response_surrogate_physics"
+    model: ResponseModelKey = "response_surrogate_physics_v2"
 
 
 class U3ForecastPredictionRequest(BaseModel):
@@ -83,7 +92,14 @@ class U3ForecastPredictionRequest(BaseModel):
     case: CaseKey
     u3_bucket: U3BucketKey | None = None
     test_id: str = "Forecast"
-    model: U3ForecastModelKey = "u3_forecast_physics"
+    model: U3ForecastModelKey = "u3_forecast_physics_v2"
+
+
+class LocalXAIRequest(BaseModel):
+    theta1: float = Field(..., ge=-90, le=90)
+    theta2: float = Field(..., ge=-90, le=90)
+    case: CaseKey
+    model: str
 
 
 class PredictionResponse(BaseModel):
@@ -125,6 +141,7 @@ class ResponseSurrogateResponse(PredictionResponse):
     predicted_max_displacement: float
     predicted_max_force: float
     curve: list[ResponseCurvePoint]
+    curve_fit: dict[str, object] | None = None
     metrics: dict[str, float | int | str] = {}
     xai: XAIExplanation | None = None
 
@@ -137,6 +154,7 @@ class U3PtPredictionResponse(BaseModel):
     predicted_max_displacement: float
     predicted_max_force: float
     curve: list[ResponseCurvePoint]
+    curve_fit: dict[str, object] | None = None
     model_key: str
     model_label: str
     input_mode: Literal["u3_pt"]
@@ -184,8 +202,8 @@ RESPONSE_MODELS: dict[str, dict[str, str]] = {
         "requires": "joblib,sklearn,numpy",
     },
     "response_surrogate_physics_v2": {
-        "label": "Laminate Forecast - Tree + Compact Physics XAI",
-        "description": "De-duplicated physics-feature Laminate Forecast using theta/case plus compact CLT stiffness, coupling, anisotropy, and stack descriptors.",
+        "label": "Laminate Forecast - Machine Learning",
+        "description": "Fast, stable machine-learning forecast for routine laminate Type, Pt, and response-curve predictions.",
         "path": "models/dd_laminate_response_physics_xai_v2/response_surrogate.joblib",
         "requires": "joblib,sklearn,numpy",
     },
@@ -196,14 +214,14 @@ RESPONSE_MODELS: dict[str, dict[str, str]] = {
         "requires": "torch,numpy",
     },
     "response_goint_physics_nn_v2": {
-        "label": "Laminate Forecast - GointMLP + NN-Friendly Physics XAI",
-        "description": "GointMLP-style Laminate Forecast using a neural-friendly compact physics feature pack with selected redundant basis terms.",
+        "label": "Laminate Forecast - Deep Learning",
+        "description": "Neural deep-learning forecast for comparing laminate Type, Pt, and response-curve predictions against the machine-learning baseline.",
         "path": "models/dd_laminate_response_goint_physics_nn_v2/response_goint.pt",
         "requires": "torch,numpy",
     },
     "response_goint_physics_v2": {
-        "label": "Laminate Forecast - GointMLP + Compact Physics XAI",
-        "description": "GointMLP-style Laminate Forecast with a de-duplicated CLT physics feature pack and occlusion XAI.",
+        "label": "Laminate Forecast - Deep Learning",
+        "description": "Neural deep-learning forecast for comparing laminate Type, Pt, and response-curve predictions against the machine-learning baseline.",
         "path": "models/dd_laminate_response_goint_physics_xai_v2/response_goint.pt",
         "requires": "torch,numpy",
     },
@@ -229,8 +247,8 @@ U3_PT_MODELS: dict[str, dict[str, str]] = {
         "requires": "joblib,sklearn,numpy",
     },
     "u3_forecast_physics_v2": {
-        "label": "u3 Forecast - Tree + Compact Physics XAI",
-        "description": "De-duplicated physics-feature u3 forecast using theta/case plus compact CLT stiffness, coupling, anisotropy, and stack descriptors.",
+        "label": "u3 Forecast - Machine Learning",
+        "description": "Fast, stable machine-learning forecast for routine u3 Type, Pt, and response-curve predictions.",
         "path": "models/dd_laminate_u3_forecast_physics_v3/u3_forecast.joblib",
         "requires": "joblib,sklearn,numpy",
     },
@@ -241,8 +259,8 @@ U3_PT_MODELS: dict[str, dict[str, str]] = {
         "requires": "torch,numpy",
     },
     "u3_forecast_goint_physics_v2": {
-        "label": "u3 Forecast - GointMLP + Compact Physics XAI",
-        "description": "Deep GointMLP-style u3 Pt and curve forecast with a de-duplicated CLT physics feature pack and occlusion XAI.",
+        "label": "u3 Forecast - Deep Learning",
+        "description": "Neural deep-learning forecast for comparing u3 Type, Pt, and response-curve predictions against the machine-learning baseline.",
         "path": "models/dd_laminate_u3_forecast_physics_v3/u3_forecast_goint.pt",
         "requires": "torch,numpy",
     },
@@ -275,6 +293,8 @@ U3_FINDER_MODELS: dict[str, dict[str, str]] = {
     },
 }
 
+LOCAL_XAI_MASK_LIMIT = 12
+
 
 def _model_path(model_meta: dict[str, str]) -> Path:
     return PROJECT_ROOT / model_meta["path"]
@@ -290,6 +310,34 @@ def _clean_probabilities(probabilities: dict[str, float] | None) -> dict[str, fl
     if probabilities is None:
         return None
     return {key: round(float(value), 6) for key, value in probabilities.items()}
+
+
+def _result_float(value: object) -> float:
+    return float(cast(Any, value))
+
+
+def _result_optional_int(value: object) -> int | None:
+    return None if value is None else int(cast(Any, value))
+
+
+def _result_optional_float(value: object) -> float | None:
+    return None if value is None else float(cast(Any, value))
+
+
+def _result_probabilities(value: object) -> dict[str, float] | None:
+    return cast(dict[str, float] | None, value)
+
+
+def _result_curve(value: object) -> list[ResponseCurvePoint]:
+    return cast(list[ResponseCurvePoint], value)
+
+
+def _result_curve_fit(value: object) -> dict[str, object] | None:
+    return cast(dict[str, object] | None, value)
+
+
+def _result_metrics(value: object) -> dict[str, float | int | str]:
+    return cast(dict[str, float | int | str], value or {})
 
 
 def _notes(probabilities: dict[str, float] | None, input_mode: str) -> list[str]:
@@ -322,8 +370,14 @@ def _models_response() -> DDLaminateModelsResponse:
     return DDLaminateModelsResponse(
         theta_models=[_model_info(key, meta, "theta") for key, meta in THETA_MODELS.items()],
         curve_models=[_model_info(key, meta, "curve") for key, meta in CURVE_MODELS.items()],
-        response_models=[_model_info(key, meta, "response") for key, meta in RESPONSE_MODELS.items()],
-        u3_pt_models=[_model_info(key, meta, "u3_pt") for key, meta in U3_PT_MODELS.items()],
+        response_models=[
+            _model_info(key, RESPONSE_MODELS[key], "response")
+            for key in OPTIMAL_RESPONSE_MODEL_KEYS
+        ],
+        u3_pt_models=[
+            _model_info(key, U3_PT_MODELS[key], "u3_pt")
+            for key in OPTIMAL_U3_FORECAST_MODEL_KEYS
+        ],
     )
 
 
@@ -346,6 +400,35 @@ def _ensure_available(model_key: str, registry: dict[str, dict[str, str]]) -> di
             detail=f"Missing runtime dependencies for this model: {', '.join(missing)}",
         )
     return meta
+
+
+def warm_prediction_models() -> dict[str, str]:
+    """Preload primary DD forecast models into the process caches."""
+    warmed: dict[str, str] = {}
+    for key in OPTIMAL_RESPONSE_MODEL_KEYS:
+        try:
+            meta = _ensure_available(key, RESPONSE_MODELS)
+            path = str(_model_path(meta))
+            if key in {"response_goint", "response_goint_physics", "response_goint_physics_v2", "response_goint_physics_nn_v2"}:
+                _cached_response_deep_artifacts(path)
+            else:
+                _cached_joblib_model(path)
+            warmed[key] = "ok"
+        except Exception as exc:
+            warmed[key] = f"skipped: {exc}"
+
+    for key in OPTIMAL_U3_FORECAST_MODEL_KEYS:
+        try:
+            meta = _ensure_available(key, U3_PT_MODELS)
+            path = str(_model_path(meta))
+            if key in {"u3_forecast_goint", "u3_forecast_goint_physics", "u3_forecast_goint_physics_v2"}:
+                _cached_u3_deep_artifacts(path)
+            else:
+                _cached_joblib_model(path)
+            warmed[key] = "ok"
+        except Exception as exc:
+            warmed[key] = f"skipped: {exc}"
+    return warmed
 
 
 FEATURE_EXPLANATIONS: dict[str, tuple[str, str, str]] = {
@@ -695,8 +778,8 @@ def _xai_config(model_key: str) -> tuple[Path, str, str, str] | None:
         xai_path = PROJECT_ROOT / "reports/dd_response_xai_physics_v2/response_feature_importance.csv"
         feature_set = "theta + compact CLT physics"
         summary = (
-            "This explanation uses the Laminate Forecast Tree + Compact Physics XAI model. It removes duplicate/static descriptors and keeps "
-            "the strongest θ, Case, CLT stiffness, coupling, anisotropy, and stack-shape features."
+            "This explanation uses the Laminate Forecast Machine Learning model. It keeps the strongest θ, Case, CLT stiffness, "
+            "coupling, anisotropy, and stack-shape features."
         )
         method = "Tree ensemble feature importance + live local feature masking"
     elif model_key == "response_goint_physics":
@@ -711,16 +794,16 @@ def _xai_config(model_key: str) -> tuple[Path, str, str, str] | None:
         xai_path = PROJECT_ROOT / "reports/dd_response_xai_goint_physics_nn_v2/response_feature_importance.csv"
         feature_set = "theta + NN-friendly CLT physics"
         summary = (
-            "This explanation uses the Laminate Forecast GointMLP + NN-Friendly Physics XAI model. It keeps compact physics descriptors plus selected "
-            "redundant basis terms that improved the neural multi-task surrogate."
+            "This explanation uses the Laminate Forecast Deep Learning model. It keeps physics descriptors and selected basis terms "
+            "that improved the neural multi-task surrogate."
         )
         method = "GointMLP occlusion sensitivity + live local feature masking"
     elif model_key == "response_goint_physics_v2":
         xai_path = PROJECT_ROOT / "reports/dd_response_xai_goint_physics_v2/response_feature_importance.csv"
         feature_set = "theta + compact CLT physics"
         summary = (
-            "This explanation uses the Laminate Forecast GointMLP + Compact Physics XAI model. It removes duplicate/static descriptors and masks one "
-            "compact physics feature at a time for the current θ/Case input."
+            "This explanation uses the Laminate Forecast Deep Learning model. It masks one physics feature at a time "
+            "for the current θ/Case input."
         )
         method = "GointMLP occlusion sensitivity + live local feature masking"
     elif model_key == "u3_forecast_physics":
@@ -735,8 +818,8 @@ def _xai_config(model_key: str) -> tuple[Path, str, str, str] | None:
         xai_path = PROJECT_ROOT / "reports/dd_u3_xai_physics_v3/u3_feature_importance.csv"
         feature_set = "theta + compact CLT physics"
         summary = (
-            "This explanation uses the Tree + Compact Physics XAI model. It removes duplicate/static descriptors and keeps compact θ periodicity, "
-            "CLT stiffness, coupling, anisotropy, and stack-shape features."
+            "This explanation uses the u3 Forecast Machine Learning model. It keeps θ periodicity, CLT stiffness, "
+            "coupling, anisotropy, and stack-shape features."
         )
         method = "Tree ensemble feature importance + live local feature masking"
     elif model_key == "u3_forecast_goint_physics":
@@ -751,7 +834,7 @@ def _xai_config(model_key: str) -> tuple[Path, str, str, str] | None:
         xai_path = PROJECT_ROOT / "reports/dd_u3_xai_goint_physics_v3/u3_feature_importance.csv"
         feature_set = "theta + compact CLT physics"
         summary = (
-            "This explanation uses the GointMLP + Compact Physics XAI model. It masks one compact physics feature at a time and measures how much "
+            "This explanation uses the u3 Forecast Deep Learning model. It masks one physics feature at a time and measures how much "
             "the neural Pt, max-value, and curve heads move for the current θ/Case input."
         )
         method = "GointMLP occlusion sensitivity + live local feature masking"
@@ -791,7 +874,7 @@ def _normalize_scores(scores: dict[str, float]) -> dict[str, float]:
     total = sum(clean.values())
     if total <= 0:
         count = max(len(clean), 1)
-        return {key: 1.0 / count for key in clean}
+        return dict.fromkeys(clean, 1.0 / count)
     return {key: value / total for key, value in clean.items()}
 
 
@@ -890,44 +973,60 @@ def _cached_torch_checkpoint(path: str):
     return torch.load(path, map_location="cpu", weights_only=False)
 
 
-def _local_xai_scores(model_key: str, theta1: float, theta2: float, case: str) -> dict[str, float]:
+@lru_cache(maxsize=4)
+def _cached_response_deep_artifacts(path: str):
+    from src.ml.dd_laminate.predict_response_deep_surrogate import build_response_deep_model
+
+    checkpoint = _cached_torch_checkpoint(path)
+    return checkpoint, build_response_deep_model(checkpoint, "cpu")
+
+
+@lru_cache(maxsize=4)
+def _cached_u3_deep_artifacts(path: str):
+    from src.ml.dd_laminate.predict_u3_forecast import build_u3_forecast_deep_model
+
+    checkpoint = _cached_torch_checkpoint(path)
+    sibling = Path(path).with_name("u3_forecast.joblib")
+    type_bundle = _cached_joblib_model(str(sibling)) if sibling.exists() else None
+    return checkpoint, build_u3_forecast_deep_model(checkpoint, "cpu"), type_bundle
+
+
+def _local_xai_scores(
+    model_key: str,
+    theta1: float,
+    theta2: float,
+    case: str,
+    candidate_features: tuple[str, ...] = (),
+) -> dict[str, float]:
     try:
         import numpy as np
         import torch
 
-        from src.ml.dd_laminate.response_feature_sets import feature_set_from_columns, prediction_feature_matrix
         from src.ml.dd_laminate.predict_u3_forecast import _record
-        from src.ml.dd_laminate.response_deep import DDResponseGointSurrogate
-        from src.ml.dd_laminate.train_u3_forecast_models import U3ForecastGointMLP
+        from src.ml.dd_laminate.response_feature_sets import (
+            feature_set_from_columns,
+            prediction_feature_matrix,
+        )
         from src.ml.dd_laminate.train_u3_forecast_models import u3_feature_matrix
     except Exception:
         return {}
 
     try:
+        output_fn: Callable[[Any], Any]
         if model_key in RESPONSE_MODELS:
             meta = RESPONSE_MODELS[model_key]
             model_path = _model_path(meta)
             if model_key in {"response_goint", "response_goint_physics", "response_goint_physics_v2", "response_goint_physics_nn_v2"}:
-                checkpoint = _cached_torch_checkpoint(str(model_path))
+                checkpoint, model = _cached_response_deep_artifacts(str(model_path))
                 feature_columns = list(checkpoint.get("feature_columns") or [])
                 feature_builder = str(checkpoint.get("feature_builder") or feature_set_from_columns(feature_columns))
                 x = prediction_feature_matrix(theta1, theta2, case, feature_builder)
-                cfg = checkpoint["model_config"]
-                model = DDResponseGointSurrogate(
-                    input_dim=cfg["input_dim"],
-                    seq_len=cfg["seq_len"],
-                    hidden_dim=cfg["hidden_dim"],
-                    num_branches=cfg["num_branches"],
-                    dropout=cfg["dropout"],
-                )
-                model.load_state_dict(checkpoint["model_state_dict"])
-                model.eval()
                 feature_mean = np.asarray(checkpoint["feature_mean"], dtype=float)
                 feature_std = np.maximum(np.asarray(checkpoint["feature_std"], dtype=float), 1e-9)
 
-                def output_fn(matrix, *, _model=model, _mean=feature_mean, _std=feature_std):
+                def output_fn(matrix: Any, *, _model: Any = model, _mean: Any = feature_mean, _std: Any = feature_std) -> Any:
                     x_norm = (matrix - _mean) / _std
-                    with torch.no_grad():
+                    with torch.inference_mode():
                         class_logits, _, scalar_norm, curve_norm = _model(torch.tensor(x_norm, dtype=torch.float32))
                         probabilities = torch.softmax(class_logits, dim=1).cpu().numpy()[0]
                     return np.concatenate([probabilities, scalar_norm.cpu().numpy()[0], curve_norm.cpu().numpy()[0]])
@@ -936,7 +1035,10 @@ def _local_xai_scores(model_key: str, theta1: float, theta2: float, case: str) -
                 feature_columns = list(bundle.get("feature_columns") or [])
                 feature_builder = str(bundle.get("feature_builder") or feature_set_from_columns(feature_columns))
                 x = prediction_feature_matrix(theta1, theta2, case, feature_builder)
-                output_fn = lambda matrix: _response_tree_output_vector(bundle, matrix)
+
+                def output_fn(matrix: Any, *, _bundle: Any = bundle) -> Any:
+                    return _response_tree_output_vector(_bundle, matrix)
+
                 if not feature_columns:
                     feature_columns = list(bundle.get("feature_columns") or [])
             names = feature_columns
@@ -945,25 +1047,24 @@ def _local_xai_scores(model_key: str, theta1: float, theta2: float, case: str) -
             model_path = _model_path(meta)
             record = _record(theta1, theta2, case)
             if model_key in {"u3_forecast_goint", "u3_forecast_goint_physics", "u3_forecast_goint_physics_v2"}:
-                checkpoint = _cached_torch_checkpoint(str(model_path))
+                checkpoint, model, _type_bundle = _cached_u3_deep_artifacts(str(model_path))
                 feature_builder = str(checkpoint.get("feature_builder") or "theta")
                 x, names = u3_feature_matrix([record], feature_builder)
-                model = U3ForecastGointMLP(**checkpoint["model_config"])
-                model.load_state_dict(checkpoint["model_state_dict"])
-                model.eval()
                 feature_mean = np.asarray(checkpoint["feature_mean"], dtype=float)
                 feature_std = np.maximum(np.asarray(checkpoint["feature_std"], dtype=float), 1e-9)
 
-                def output_fn(matrix, *, _model=model, _mean=feature_mean, _std=feature_std):
+                def output_fn(matrix: Any, *, _model: Any = model, _mean: Any = feature_mean, _std: Any = feature_std) -> Any:
                     x_norm = (matrix - _mean) / _std
-                    with torch.no_grad():
+                    with torch.inference_mode():
                         scalar_norm, curve_norm = _model(torch.tensor(x_norm, dtype=torch.float32))
                     return np.concatenate([scalar_norm.cpu().numpy()[0], curve_norm.cpu().numpy()[0]])
             else:
                 bundle = _cached_joblib_model(str(model_path))
                 feature_builder = str(bundle.get("feature_builder") or "theta")
                 x, names = u3_feature_matrix([record], feature_builder)
-                output_fn = lambda matrix: _u3_tree_output_vector(bundle, matrix)
+
+                def output_fn(matrix: Any, *, _bundle: Any = bundle) -> Any:
+                    return _u3_tree_output_vector(_bundle, matrix)
         else:
             return {}
 
@@ -972,8 +1073,11 @@ def _local_xai_scores(model_key: str, theta1: float, theta2: float, case: str) -
             return {}
 
         base_output = output_fn(x)
+        candidate_set = set(candidate_features)
         raw_scores: dict[str, float] = {}
         for index, name in enumerate(names):
+            if candidate_set and name not in candidate_set:
+                continue
             variant = np.asarray(x, dtype=float).copy()
             original = float(variant[0, index])
             if abs(original) <= 1e-12:
@@ -991,6 +1095,7 @@ def _local_xai_scores(model_key: str, theta1: float, theta2: float, case: str) -
         return {}
 
 
+@lru_cache(maxsize=256)
 def _load_local_xai_for_model(model_key: str, theta1: float, theta2: float, case: str) -> XAIExplanation | None:
     loaded = _load_global_xai_rows(model_key)
     if loaded is None:
@@ -1000,7 +1105,11 @@ def _load_local_xai_for_model(model_key: str, theta1: float, theta2: float, case
         row["feature"]: float(row.get("combined_importance") or 0.0)
         for row in rows
     }
-    local_scores = _local_xai_scores(model_key, theta1, theta2, case)
+    local_candidates = tuple(
+        feature
+        for feature, _score in sorted(global_scores.items(), key=lambda item: item[1], reverse=True)[:LOCAL_XAI_MASK_LIMIT]
+    )
+    local_scores = _local_xai_scores(model_key, theta1, theta2, case, local_candidates)
     if local_scores:
         combined_scores = {
             feature: 0.75 * local_scores.get(feature, 0.0) + 0.25 * global_scores.get(feature, 0.0)
@@ -1008,7 +1117,7 @@ def _load_local_xai_for_model(model_key: str, theta1: float, theta2: float, case
         }
         combined_scores = _normalize_scores(combined_scores)
         notes = [
-            "Feature importance is local: values are recomputed for this theta/case input by masking one feature at a time.",
+            f"Feature importance is local: the strongest {LOCAL_XAI_MASK_LIMIT} global candidates are recomputed for this theta/case input by feature masking.",
             "A small global prior is blended in to keep known model-level drivers visible.",
             "Use the explanation as engineering guidance; promising candidates still need simulation validation.",
         ]
@@ -1070,7 +1179,9 @@ async def predict_from_theta(payload: ThetaPredictionRequest) -> PredictionRespo
 
     try:
         if payload.model == "theta_goint":
-            from src.ml.dd_laminate.predict_theta_deep_classifier import predict as predict_theta_deep
+            from src.ml.dd_laminate.predict_theta_deep_classifier import (
+                predict as predict_theta_deep,
+            )
 
             result = predict_theta_deep(payload.theta1, payload.theta2, path, case=payload.case, device="cpu")
         else:
@@ -1103,20 +1214,25 @@ async def predict_estimated_response(payload: ResponsePredictionRequest) -> Resp
     model_path = _model_path(meta)
     try:
         if payload.model in {"response_goint", "response_goint_physics", "response_goint_physics_v2", "response_goint_physics_nn_v2"}:
-            from src.ml.dd_laminate.predict_response_deep_surrogate import predict_response_deep
+            from src.ml.dd_laminate.predict_response_deep_surrogate import (
+                predict_response_deep_from_artifacts,
+            )
 
-            result = predict_response_deep(
-                model_path=model_path,
+            checkpoint, model = _cached_response_deep_artifacts(str(model_path))
+            result = predict_response_deep_from_artifacts(
+                checkpoint=checkpoint,
+                model=model,
                 theta1=payload.theta1,
                 theta2=payload.theta2,
                 case=payload.case,
                 device="cpu",
             )
         else:
-            from src.ml.dd_laminate.predict_response_surrogate import predict_response
+            from src.ml.dd_laminate.predict_response_surrogate import predict_response_from_bundle
 
-            result = predict_response(
-                model_path=model_path,
+            bundle = _cached_joblib_model(str(model_path))
+            result = predict_response_from_bundle(
+                bundle=bundle,
                 theta1=payload.theta1,
                 theta2=payload.theta2,
                 case=payload.case,
@@ -1140,8 +1256,8 @@ async def predict_estimated_response(payload: ResponsePredictionRequest) -> Resp
         predicted_max_displacement=float(result["predicted_max_displacement"]),
         predicted_max_force=float(result["predicted_max_force"]),
         curve=result["curve"],
+        curve_fit=result.get("curve_fit"),
         metrics=result.get("metrics", {}),
-        xai=_load_local_xai_for_model(payload.model, payload.theta1, payload.theta2, payload.case),
     )
 
 
@@ -1164,7 +1280,7 @@ async def predict_from_curve(
     model_path = _model_path(meta)
 
     with tempfile.NamedTemporaryFile(suffix=".csv", delete=True) as tmp:
-        shutil.copyfileobj(file.file, tmp)
+        shutil.copyfileobj(cast(Any, file.file), tmp)
         tmp.flush()
         csv_path = Path(tmp.name)
         try:
@@ -1232,7 +1348,7 @@ async def predict_u3_pt(
     model_path = _model_path(meta)
 
     with tempfile.NamedTemporaryFile(suffix=".csv", delete=True) as tmp:
-        shutil.copyfileobj(file.file, tmp)
+        shutil.copyfileobj(cast(Any, file.file), tmp)
         tmp.flush()
         csv_path = Path(tmp.name)
         try:
@@ -1263,10 +1379,10 @@ async def predict_u3_pt(
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
     return U3PtPredictionResponse(
-        predicted_pt=float(result["predicted_pt"]),
-        predicted_max_displacement=float(result["predicted_max_displacement"]),
-        predicted_max_force=float(result["predicted_max_force"]),
-        curve=result["curve"],
+        predicted_pt=_result_float(result["predicted_pt"]),
+        predicted_max_displacement=_result_float(result["predicted_max_displacement"]),
+        predicted_max_force=_result_float(result["predicted_max_force"]),
+        curve=_result_curve(result["curve"]),
         model_key=model,
         model_label=meta["label"],
         input_mode="u3_pt",
@@ -1281,7 +1397,7 @@ async def predict_u3_pt(
             f"{meta['label']} predicts the u3 transition load from the uploaded force-displacement CSV.",
             "Use this model only for the u3 curve family; the earlier Laminate Forecast models use a different Pt definition.",
         ],
-        metrics=result.get("metrics", {}),
+        metrics=_result_metrics(result.get("metrics", {})),
     )
 
 
@@ -1295,20 +1411,26 @@ async def predict_u3_forecast(payload: U3ForecastPredictionRequest) -> U3PtPredi
     model_path = _model_path(meta)
     try:
         if payload.model in {"u3_forecast_goint", "u3_forecast_goint_physics", "u3_forecast_goint_physics_v2"}:
-            from src.ml.dd_laminate.predict_u3_forecast import predict_u3_forecast_deep
+            from src.ml.dd_laminate.predict_u3_forecast import (
+                predict_u3_forecast_deep_from_artifacts,
+            )
 
-            result = predict_u3_forecast_deep(
-                model_path=model_path,
+            checkpoint, model, type_bundle = _cached_u3_deep_artifacts(str(model_path))
+            result = predict_u3_forecast_deep_from_artifacts(
+                checkpoint=checkpoint,
+                model=model,
+                type_bundle=type_bundle,
                 theta1=payload.theta1,
                 theta2=payload.theta2,
                 case=payload.case,
                 device="cpu",
             )
         else:
-            from src.ml.dd_laminate.predict_u3_forecast import predict_u3_forecast as predict_u3_forecast_impl
+            from src.ml.dd_laminate.predict_u3_forecast import predict_u3_forecast_from_bundle
 
-            result = predict_u3_forecast_impl(
-                model_path=model_path,
+            bundle = _cached_joblib_model(str(model_path))
+            result = predict_u3_forecast_from_bundle(
+                bundle=bundle,
                 theta1=payload.theta1,
                 theta2=payload.theta2,
                 case=payload.case,
@@ -1317,13 +1439,14 @@ async def predict_u3_forecast(payload: U3ForecastPredictionRequest) -> U3PtPredi
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
     return U3PtPredictionResponse(
-        predicted_type=result.get("predicted_type"),
-        confidence=result.get("type_confidence"),
-        probabilities=_clean_probabilities(result.get("type_probabilities")),
-        predicted_pt=float(result["predicted_pt"]),
-        predicted_max_displacement=float(result["predicted_max_displacement"]),
-        predicted_max_force=float(result["predicted_max_force"]),
-        curve=result["curve"],
+        predicted_type=_result_optional_int(result.get("predicted_type")),
+        confidence=_result_optional_float(result.get("type_confidence")),
+        probabilities=_clean_probabilities(_result_probabilities(result.get("type_probabilities"))),
+        predicted_pt=_result_float(result["predicted_pt"]),
+        predicted_max_displacement=_result_float(result["predicted_max_displacement"]),
+        predicted_max_force=_result_float(result["predicted_max_force"]),
+        curve=_result_curve(result["curve"]),
+        curve_fit=_result_curve_fit(result.get("curve_fit")),
         model_key=payload.model,
         model_label=meta["label"],
         input_mode="u3_pt",
@@ -1337,9 +1460,29 @@ async def predict_u3_forecast(payload: U3ForecastPredictionRequest) -> U3PtPredi
             f"{meta['label']} prediction; validate promising candidates with simulation.",
             "This u3 forecast uses only theta and case inputs; u3 Type is predicted, not user-selected.",
         ],
-        metrics=result.get("metrics", {}),
-        xai=_load_local_xai_for_model(payload.model, payload.theta1, payload.theta2, payload.case),
+        metrics=_result_metrics(result.get("metrics", {})),
     )
+
+
+@router.post("/xai/local", response_model=XAIExplanation, summary="Explain local theta/case prediction drivers")
+async def explain_local_prediction(payload: LocalXAIRequest) -> XAIExplanation:
+    if payload.model in RESPONSE_MODELS:
+        _ensure_available(payload.model, RESPONSE_MODELS)
+    elif payload.model in U3_PT_MODELS:
+        _ensure_available(payload.model, U3_PT_MODELS)
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Unknown XAI model: {payload.model}",
+        )
+
+    xai = _load_local_xai_for_model(payload.model, payload.theta1, payload.theta2, payload.case)
+    if xai is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No XAI report is available for model: {payload.model}",
+        )
+    return xai
 
 
 @router.get("/xai/u3/{model_key}", response_model=XAIExplanation, summary="Explain u3 forecast model drivers")

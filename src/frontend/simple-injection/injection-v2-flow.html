@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Injection Forecast v2 Flow</title>
+    <link rel="stylesheet" href="./injection-v2-flow.css?v=20260619-flow1" />
+  </head>
+  <body>
+    <main class="flow-shell">
+      <header class="flow-hero">
+        <div>
+          <p class="eyebrow">Injection v2 concept</p>
+          <h1>Injection Forecast Flow</h1>
+          <p class="hero-copy">
+            A fresh flow proposal for Sprue Pressure, Filling Pressure, 3D preview,
+            validation, and reporting. Existing Injection stays untouched.
+          </p>
+        </div>
+        <nav class="hero-actions" aria-label="Prototype links">
+          <a href="./index-v2.html">Open v2</a>
+          <a href="./index.html">Classic</a>
+          <a href="#screen-01">Flow start</a>
+        </nav>
+      </header>
+
+      <section class="flow-map" aria-label="Screen flow map">
+        <a href="#screen-01"><span>01</span> Workspace</a>
+        <a href="#screen-02"><span>02</span> DOE setup</a>
+        <a href="#screen-03"><span>03</span> Process</a>
+        <a href="#screen-04"><span>04</span> 3D preview</a>
+        <a href="#screen-05"><span>05</span> Results</a>
+        <a href="#screen-06"><span>06</span> Report</a>
+      </section>
+
+      <section class="screen-grid" aria-label="Injection v2 screen concepts">
+        <article class="phone-screen" id="screen-01">
+          <div class="phone-top">
+            <span>01</span>
+            <strong>Workspace</strong>
+          </div>
+          <section class="app-frame">
+            <header class="app-header">
+              <div>
+                <p class="eyebrow">Moldex3D surrogate</p>
+                <h2>Injection Forecast</h2>
+              </div>
+              <span class="ready-pill">API ready</span>
+            </header>
+            <div class="primary-band injection-band">
+              <div>
+                <span>Active run</span>
+                <strong>G18 / P07</strong>
+              </div>
+              <button type="button">Start</button>
+            </div>
+            <div class="metric-row">
+              <div><span>Sprue</span><strong>MPa curve</strong></div>
+              <div><span>Filling</span><strong>Histogram</strong></div>
+              <div><span>Shape</span><strong>3D ready</strong></div>
+            </div>
+            <div class="module-list">
+              <div class="module-row active">
+                <i class="dot blue"></i>
+                <div>
+                  <strong>Predict both targets</strong>
+                  <span>Sprue pressure + filling distribution</span>
+                </div>
+              </div>
+              <div class="module-row">
+                <i class="dot orange"></i>
+                <div>
+                  <strong>Compare Moldex3D result</strong>
+                  <span>Upload CSV after simulation</span>
+                </div>
+              </div>
+            </div>
+          </section>
+        </article>
+
+        <article class="phone-screen" id="screen-02">
+          <div class="phone-top">
+            <span>02</span>
+            <strong>DOE Setup</strong>
+          </div>
+          <section class="app-frame">
+            <header class="compact-header">
+              <p class="eyebrow">Geometry</p>
+              <h2>Choose DOE</h2>
+            </header>
+            <div class="selector-card">
+              <span>Geometry DOE</span>
+              <strong>G18</strong>
+              <small>Plate, center hole, edge gate</small>
+            </div>
+            <div class="selector-card">
+              <span>Process DOE</span>
+              <strong>P07</strong>
+              <small>Balanced injection time</small>
+            </div>
+            <div class="shape-card">
+              <div class="plate">
+                <span class="gate"></span>
+                <span class="hole"></span>
+                <span class="flow-arrow"></span>
+              </div>
+              <div class="shape-stats">
+                <span>L 120</span>
+                <span>W 80</span>
+                <span>t 2.4</span>
+                <span>D 18</span>
+              </div>
+            </div>
+            <div class="warning-strip ok">Prevention check passed</div>
+          </section>
+        </article>
+
+        <article class="phone-screen" id="screen-03">
+          <div class="phone-top">
+            <span>03</span>
+            <strong>Process & Model</strong>
+          </div>
+          <section class="app-frame">
+            <header class="compact-header">
+              <p class="eyebrow">Model setup</p>
+              <h2>Run conditions</h2>
+            </header>
+            <div class="model-pair">
+              <div>
+                <span>Sprue model</span>
+                <strong>Machine Learning</strong>
+              </div>
+              <div>
+                <span>Filling model</span>
+                <strong>Machine Learning</strong>
+              </div>
+            </div>
+            <div class="process-list">
+              <label><span>Melt temp</span><b>250 C</b><i style="--value: 72%"></i></label>
+              <label><span>Mold temp</span><b>85 C</b><i style="--value: 46%"></i></label>
+              <label><span>Packing pressure</span><b>72 MPa</b><i style="--value: 64%"></i></label>
+              <label><span>Injection time</span><b>1.26 s</b><i style="--value: 38%"></i></label>
+            </div>
+            <button class="full-action" type="button">Predict Sprue & Filling</button>
+          </section>
+        </article>
+
+        <article class="phone-screen" id="screen-04">
+          <div class="phone-top">
+            <span>04</span>
+            <strong>3D / Flow Preview</strong>
+          </div>
+          <section class="app-frame">
+            <header class="compact-header">
+              <p class="eyebrow">Live preview</p>
+              <h2>Gate and filling path</h2>
+            </header>
+            <div class="viewer-card">
+              <div class="viewer-plate">
+                <span class="viewer-hole"></span>
+                <span class="viewer-gate"></span>
+                <span class="flow-wave one"></span>
+                <span class="flow-wave two"></span>
+                <span class="flow-wave three"></span>
+              </div>
+            </div>
+            <div class="timeline">
+              <span class="active"></span>
+              <span class="active"></span>
+              <span class="active"></span>
+              <span></span>
+              <span></span>
+            </div>
+            <div class="preview-caption">
+              <strong>Filling reaches center hole zone at 62%</strong>
+              <span>Generated preview from predicted filling pressure histogram.</span>
+            </div>
+          </section>
+        </article>
+
+        <article class="phone-screen" id="screen-05">
+          <div class="phone-top">
+            <span>05</span>
+            <strong>Prediction Result</strong>
+          </div>
+          <section class="app-frame result-frame">
+            <header class="app-header">
+              <div>
+                <p class="eyebrow">Prediction</p>
+                <h2>Sprue & Filling</h2>
+              </div>
+              <span class="ready-pill">Complete</span>
+            </header>
+            <div class="result-hero">
+              <span>Max sprue pressure</span>
+              <strong>84.6 MPa</strong>
+            </div>
+            <div class="curve-card">
+              <svg viewBox="0 0 260 112" role="img" aria-label="Sprue pressure curve">
+                <path d="M15 92 C 55 88, 56 34, 98 34 S 150 38, 170 52 S 218 78, 244 70" />
+                <circle cx="98" cy="34" r="5" />
+              </svg>
+            </div>
+            <div class="filling-bars">
+              <div><span>Low</span><i style="--bar: 16%"></i></div>
+              <div><span>Nominal</span><i style="--bar: 68%"></i></div>
+              <div><span>High</span><i style="--bar: 31%"></i></div>
+            </div>
+          </section>
+        </article>
+
+        <article class="phone-screen" id="screen-06">
+          <div class="phone-top">
+            <span>06</span>
+            <strong>Validation & Report</strong>
+          </div>
+          <section class="app-frame">
+            <header class="compact-header">
+              <p class="eyebrow">Review</p>
+              <h2>Compare and export</h2>
+            </header>
+            <div class="upload-zone">
+              <strong>Upload Moldex3D CSV</strong>
+              <span>Sprue curve and filling histogram comparison</span>
+            </div>
+            <div class="comparison-card">
+              <div>
+                <span>Sprue RMSE</span>
+                <strong>2.41 MPa</strong>
+              </div>
+              <div>
+                <span>Filling MAE</span>
+                <strong>1.90 MPa</strong>
+              </div>
+            </div>
+            <div class="report-list">
+              <div><span></span> Prediction summary</div>
+              <div><span></span> Sprue curve overlay</div>
+              <div><span></span> Filling pressure bins</div>
+              <div><span></span> Prevention notes</div>
+            </div>
+            <button class="full-action" type="button">Export report</button>
+          </section>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

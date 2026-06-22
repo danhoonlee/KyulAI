@@ -18,6 +18,8 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
@@ -33,12 +35,14 @@ import android.widget.PopupMenu
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.ScrollView
+import android.widget.SeekBar
 import android.widget.Spinner
 import android.widget.TextView
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.Locale
 import java.util.concurrent.Executors
+import kotlin.math.roundToInt
 
 class MainActivity : Activity() {
     private val api = DDLaminateApi()
@@ -55,7 +59,14 @@ class MainActivity : Activity() {
     private lateinit var responseModelDescription: TextView
     private lateinit var theta1Field: EditText
     private lateinit var theta2Field: EditText
+    private lateinit var theta1Readout: TextView
+    private lateinit var theta2Readout: TextView
+    private lateinit var theta1SeekBar: SeekBar
+    private lateinit var theta2SeekBar: SeekBar
     private lateinit var caseGroup: RadioGroup
+    private lateinit var plyPreview: PlyStackPreviewView
+    private lateinit var plyCountText: TextView
+    private lateinit var stackFormulaText: TextView
     private lateinit var recentButton: Button
     private lateinit var predictButton: Button
     private lateinit var resultSection: LinearLayout
@@ -65,6 +76,7 @@ class MainActivity : Activity() {
     private var selectedResponseModelKey = Defaults.RESPONSE_MODEL_KEY
     private var responseModel: ModelInfo? = null
     private var isBusy = false
+    private var isSyncingTheta = false
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(localizedContext(newBase))
@@ -151,6 +163,7 @@ class MainActivity : Activity() {
                     })
                 }
                 check(100)
+                setOnCheckedChangeListener { _, _ -> updatePlyPreview() }
             }
             addView(caseGroup)
             addView(label(getString(R.string.response_model)))
@@ -176,10 +189,13 @@ class MainActivity : Activity() {
             addView(responseModelCard)
             theta1Field = input("30")
             theta2Field = input("-30")
-            addView(label(getString(R.string.theta_1)))
-            addView(theta1Field)
-            addView(label(getString(R.string.theta_2)))
-            addView(theta2Field)
+            theta1Readout = angleReadout(30)
+            theta2Readout = angleReadout(-30)
+            theta1SeekBar = angleSeekBar(30)
+            theta2SeekBar = angleSeekBar(-30)
+            addView(angleControl(getString(R.string.theta_1), theta1Field, theta1Readout, theta1SeekBar))
+            addView(angleControl(getString(R.string.theta_2), theta2Field, theta2Readout, theta2SeekBar))
+            addView(plyPreviewCard())
             predictButton = Button(context).apply {
                 text = getString(R.string.predict_forecast)
                 setTextColor(Color.WHITE)
@@ -187,6 +203,8 @@ class MainActivity : Activity() {
                 setOnClickListener { predict() }
             }
             addView(predictButton)
+            bindThetaControls()
+            updatePlyPreview()
             updateRecentButton()
         })
 
@@ -234,16 +252,15 @@ class MainActivity : Activity() {
     }
 
     private fun predict() {
-        val theta1 = theta1Field.text.toString().toDoubleOrNull()
-        val theta2 = theta2Field.text.toString().toDoubleOrNull()
+        val theta1 = parseThetaDegrees(theta1Field.text.toString())
+        val theta2 = parseThetaDegrees(theta2Field.text.toString())
         if (theta1 == null || theta2 == null) {
             modelText.text = getString(R.string.friendly_input)
             return
         }
-        if (theta1 !in -90.0..90.0 || theta2 !in -90.0..90.0) {
-            modelText.text = getString(R.string.friendly_input)
-            return
-        }
+        theta1Field.setText(theta1.toString())
+        theta2Field.setText(theta2.toString())
+        updatePlyPreview()
 
         isBusy = true
         renderBusy(getString(R.string.predicting))
@@ -259,14 +276,14 @@ class MainActivity : Activity() {
                 main.post { populateResponseModelSpinner() }
                 val model = selectedResponseModel()
                 check(model?.available == true) { getString(R.string.response_unavailable) }
-                api.predictResponse(baseUrl, caseName, theta1, theta2, selectedResponseModelKey)
+                api.predictResponse(baseUrl, caseName, theta1.toDouble(), theta2.toDouble(), selectedResponseModelKey)
             }.onSuccess { result ->
                 main.post {
                     isBusy = false
                     predictButton.isEnabled = true
                     setStatus(null)
                     showApiSettings(false)
-                    saveRecentRun(caseName, selectedResponseModelKey, theta1Field.text.toString(), theta2Field.text.toString(), result)
+                    saveRecentRun(caseName, selectedResponseModelKey, theta1.toString(), theta2.toString(), result)
                     renderResult(result)
                 }
             }.onFailure { error ->
@@ -282,23 +299,33 @@ class MainActivity : Activity() {
     }
 
     private fun populateResponseModelSpinner() {
-        val selectedKey = responseModels.firstOrNull { it.key == selectedResponseModelKey }?.key
-            ?: responseModels.firstOrNull { it.key == Defaults.RESPONSE_MODEL_KEY && it.available }?.key
-            ?: responseModels.firstOrNull { it.available }?.key
-            ?: responseModels.firstOrNull()?.key
+        val visibleModels = responseModelOptions()
+        val selectedKey = visibleModels.firstOrNull { it.key == selectedResponseModelKey }?.key
+            ?: visibleModels.firstOrNull { it.key == Defaults.RESPONSE_MODEL_KEY && it.available }?.key
+            ?: visibleModels.firstOrNull { it.available }?.key
+            ?: visibleModels.firstOrNull()?.key
             ?: selectedResponseModelKey
         selectedResponseModelKey = selectedKey
         responseModel = responseModels.firstOrNull { it.key == selectedKey }
 
-        val items = if (responseModels.isEmpty()) {
+        val items = if (visibleModels.isEmpty()) {
             listOf(ModelPickerItem(selectedResponseModelKey, selectedResponseModelKey, false))
         } else {
-            responseModels.map { ModelPickerItem(it.key, it.displayLabel, it.available) }
+            visibleModels.map { ModelPickerItem(it.key, it.displayLabel, it.available) }
         }
         responseModelSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, items)
         val selectedIndex = items.indexOfFirst { it.key == selectedResponseModelKey }.coerceAtLeast(0)
         responseModelSpinner.setSelection(selectedIndex)
         updateResponseModelCard()
+    }
+
+    private fun responseModelOptions(): List<ModelInfo> {
+        val byKey = responseModels.associateBy { it.key }
+        val selected = listOfNotNull(
+            listOf(Defaults.RESPONSE_MODEL_KEY, "response_surrogate_physics").firstNotNullOfOrNull { byKey[it] },
+            listOf(Defaults.RESPONSE_DEEP_MODEL_KEY, "response_goint_physics").firstNotNullOfOrNull { byKey[it] },
+        )
+        return selected.ifEmpty { responseModels.filter { it.available }.take(2).ifEmpty { responseModels.take(2) } }
     }
 
     private fun modelSelectionCard(): LinearLayout {
@@ -368,7 +395,8 @@ class MainActivity : Activity() {
     }
 
     private fun showResponseModelDialog() {
-        if (responseModels.isEmpty()) {
+        val visibleModels = responseModelOptions()
+        if (visibleModels.isEmpty()) {
             AlertDialog.Builder(this)
                 .setTitle(getString(R.string.choose_model))
                 .setMessage(getString(R.string.model_loading))
@@ -383,7 +411,7 @@ class MainActivity : Activity() {
             })
         }
         var dialog: AlertDialog? = null
-        responseModels.forEach { model ->
+        visibleModels.forEach { model ->
             content.addView(modelOptionCard(model) {
                 if (!model.available) {
                     setStatus(getString(R.string.model_unavailable))
@@ -408,8 +436,8 @@ class MainActivity : Activity() {
     private fun modelTag(model: ModelInfo): String {
         val label = model.displayLabel.lowercase()
         return when {
-            model.key.contains("goint") || label.contains("nn") -> getString(R.string.model_tag_deep)
-            model.key == Defaults.RESPONSE_MODEL_KEY || label.contains("extratrees") -> getString(R.string.model_tag_fast)
+            model.key == Defaults.RESPONSE_DEEP_MODEL_KEY || model.key.contains("goint") || label.contains("deep learning") || label.contains("nn") -> getString(R.string.model_tag_deep)
+            model.key == Defaults.RESPONSE_MODEL_KEY || label.contains("machine learning") || label.contains("extratrees") -> getString(R.string.model_tag_fast)
             else -> getString(R.string.model_tag_experimental)
         }
     }
@@ -418,24 +446,162 @@ class MainActivity : Activity() {
         val label = model?.displayLabel?.lowercase().orEmpty()
         return when {
             model == null -> getString(R.string.model_loading)
-            model.key == Defaults.RESPONSE_MODEL_KEY || label.contains("extratrees") -> getString(R.string.model_description_extratrees)
-            model.key.contains("goint") || label.contains("goint") -> getString(R.string.model_description_goint)
+            model.key == Defaults.RESPONSE_MODEL_KEY || label.contains("machine learning") || label.contains("extratrees") -> getString(R.string.model_description_extratrees)
+            model.key == Defaults.RESPONSE_DEEP_MODEL_KEY || model.key.contains("goint") || label.contains("deep learning") || label.contains("goint") -> getString(R.string.model_description_goint)
             model.description.isNotBlank() -> model.description
             else -> getString(R.string.model_description_generic)
         }
     }
 
     private fun selectedResponseModel(): ModelInfo? {
-        val selected = responseModels.firstOrNull { it.key == selectedResponseModelKey && it.available }
-            ?: responseModels.firstOrNull { it.key == Defaults.RESPONSE_MODEL_KEY && it.available }
-            ?: responseModels.firstOrNull { it.available }
-            ?: responseModels.firstOrNull { it.key == selectedResponseModelKey }
+        val visibleModels = responseModelOptions()
+        val selected = visibleModels.firstOrNull { it.key == selectedResponseModelKey && it.available }
+            ?: visibleModels.firstOrNull { it.key == Defaults.RESPONSE_MODEL_KEY && it.available }
+            ?: visibleModels.firstOrNull { it.available }
+            ?: visibleModels.firstOrNull { it.key == selectedResponseModelKey }
             ?: responseModel
         if (selected != null) {
             selectedResponseModelKey = selected.key
             responseModel = selected
         }
         return selected
+    }
+
+    private fun angleControl(title: String, field: EditText, readout: TextView, seekBar: SeekBar): LinearLayout {
+        return vertical(spacing = 8).apply {
+            setPadding(dp(12), dp(12), dp(12), dp(12))
+            background = fieldBackground()
+            addView(LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                addView(caption(title), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+                addView(readout)
+            })
+            addView(field)
+            addView(seekBar)
+        }
+    }
+
+    private fun angleReadout(value: Int): TextView {
+        return TextView(this).apply {
+            text = value.thetaReadout()
+            textSize = 13f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(Ui.primary)
+            setPadding(dp(8), dp(4), dp(8), dp(4))
+            background = tintedBackground(Ui.primary, alpha = 22)
+        }
+    }
+
+    private fun angleSeekBar(value: Int): SeekBar {
+        return SeekBar(this).apply {
+            max = 180
+            progress = value.coerceIn(-90, 90) + 90
+        }
+    }
+
+    private fun bindThetaControls() {
+        bindThetaControl(theta1Field, theta1SeekBar, theta1Readout)
+        bindThetaControl(theta2Field, theta2SeekBar, theta2Readout)
+    }
+
+    private fun bindThetaControl(field: EditText, seekBar: SeekBar, readout: TextView) {
+        field.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+
+            override fun afterTextChanged(s: Editable?) {
+                if (isSyncingTheta) return
+                val value = parseThetaDegrees(s?.toString().orEmpty()) ?: return
+                isSyncingTheta = true
+                seekBar.progress = value + 90
+                readout.text = value.thetaReadout()
+                isSyncingTheta = false
+                updatePlyPreview()
+            }
+        })
+        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(bar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (!fromUser || isSyncingTheta) return
+                val value = (progress - 90).coerceIn(-90, 90)
+                isSyncingTheta = true
+                field.setText(value.toString())
+                field.setSelection(field.text.length)
+                readout.text = value.thetaReadout()
+                isSyncingTheta = false
+                updatePlyPreview()
+            }
+
+            override fun onStartTrackingTouch(bar: SeekBar?) = Unit
+            override fun onStopTrackingTouch(bar: SeekBar?) = Unit
+        })
+    }
+
+    private fun plyPreviewCard(): LinearLayout {
+        return vertical(spacing = 9).apply {
+            setPadding(dp(12), dp(12), dp(12), dp(12))
+            background = fieldBackground()
+            addView(LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.TOP
+                addView(vertical(spacing = 2).apply {
+                    addView(caption(getString(R.string.live_laminate_preview)).apply {
+                        setTextColor(Ui.primary)
+                    })
+                    addView(headline(getString(R.string.angle_aware_ply_stack)).apply {
+                        textSize = 16f
+                    })
+                }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+                plyCountText = modelBadgeView(getString(R.string.ply_count_format, 16), Ui.primary)
+                addView(plyCountText)
+            })
+            plyPreview = PlyStackPreviewView(this@MainActivity).apply {
+                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(220))
+                background = strokedPreviewBackground()
+            }
+            addView(plyPreview)
+            addView(LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                showDividers = LinearLayout.SHOW_DIVIDER_MIDDLE
+                dividerDrawable = SpaceDrawable(dp(6))
+                addView(legendBadge("theta1", Color.rgb(101, 122, 212)))
+                addView(legendBadge("theta2", Color.rgb(188, 143, 112)))
+                addView(legendBadge("+", Ui.success))
+                addView(legendBadge("-", Ui.danger))
+            })
+            addView(LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                addView(caption(getString(R.string.stack_formula_label)), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+                stackFormulaText = caption(caseFormula("Case2")).apply {
+                    gravity = Gravity.END
+                    setTextColor(Ui.ink)
+                    maxLines = 2
+                }
+                addView(stackFormulaText)
+            })
+            addView(caption(getString(R.string.stack_compact_physics_note)).apply {
+                textSize = 11f
+            })
+        }
+    }
+
+    private fun updatePlyPreview() {
+        if (!::plyPreview.isInitialized) return
+        val caseName = selectedCase()
+        val theta1 = parseThetaDegrees(theta1Field.text.toString()) ?: 0
+        val theta2 = parseThetaDegrees(theta2Field.text.toString()) ?: 0
+        plyPreview.updateStack(caseName, theta1, theta2)
+        plyCountText.text = getString(R.string.ply_count_format, plyPreview.plyCount)
+        stackFormulaText.text = caseFormula(caseName)
+    }
+
+    private fun caseFormula(caseName: String): String {
+        return when (caseName) {
+            "Case3" -> "[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]] x 2"
+            "Case4" -> "([+/-theta1]/[+/-theta2]) x 2 + ([-/+theta1]/[-/+theta2]) x 2"
+            else -> "[[+/-theta1]/[+/-theta2]] x 4"
+        }
     }
 
     private fun renderBusy(message: String) {
@@ -637,16 +803,43 @@ class MainActivity : Activity() {
 
     private fun xaiCard(xai: ForecastXai): LinearLayout {
         return card().apply {
-            addView(headline("Why this prediction?"))
+            addView(headline(getString(R.string.xai_title)))
             addView(body(xai.summary).apply {
                 setTextColor(Ui.muted)
             })
-            addView(caption("Method: ${xai.method} · Feature set: ${xai.featureSet}").apply {
+            addView(caption(getString(R.string.xai_method_format, xai.method, xai.featureSet)).apply {
                 setTextColor(Ui.primary)
                 typeface = Typeface.DEFAULT_BOLD
             })
-            xai.topFeatures.forEach { feature ->
+            xai.topFeatures.take(5).forEach { feature ->
                 addView(xaiFeatureRow(feature))
+            }
+            val hiddenFeatures = xai.topFeatures.drop(5)
+            if (hiddenFeatures.isNotEmpty()) {
+                val hiddenList = vertical(spacing = 0).apply {
+                    visibility = View.GONE
+                    hiddenFeatures.forEach { feature ->
+                        addView(xaiFeatureRow(feature))
+                    }
+                }
+                val toggle = Button(context).apply {
+                    text = getString(R.string.xai_show_more, hiddenFeatures.size)
+                    textSize = 13f
+                    setTextColor(Ui.primary)
+                    typeface = Typeface.DEFAULT_BOLD
+                    background = secondaryButtonBackground()
+                    setOnClickListener {
+                        val shouldExpand = hiddenList.visibility != View.VISIBLE
+                        hiddenList.visibility = if (shouldExpand) View.VISIBLE else View.GONE
+                        text = if (shouldExpand) {
+                            getString(R.string.xai_hide_more)
+                        } else {
+                            getString(R.string.xai_show_more, hiddenFeatures.size)
+                        }
+                    }
+                }
+                addView(toggle)
+                addView(hiddenList)
             }
         }
     }
@@ -756,8 +949,8 @@ class MainActivity : Activity() {
     private fun laminateShareText(result: ForecastResult): String {
         val inputLines = listOf(
             "• Case: ${selectedCase()}",
-            "• Theta 1: ${theta1Field.text} deg",
-            "• Theta 2: ${theta2Field.text} deg",
+            "• Theta 1: ${displayThetaDegrees(theta1Field.text.toString())} deg",
+            "• Theta 2: ${displayThetaDegrees(theta2Field.text.toString())} deg",
         )
 
         return (
@@ -839,8 +1032,8 @@ class MainActivity : Activity() {
                 )), weightedReportParams(0))
                 addView(reportSection("INPUTS", listOf(
                     "Case: ${selectedCase()}",
-                    "Theta 1: ${theta1Field.text} deg",
-                    "Theta 2: ${theta2Field.text} deg",
+                    "Theta 1: ${displayThetaDegrees(theta1Field.text.toString())} deg",
+                    "Theta 2: ${displayThetaDegrees(theta2Field.text.toString())} deg",
                 )), weightedReportParams(8))
             })
 
@@ -1043,6 +1236,20 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun parseThetaDegrees(rawValue: String): Int? {
+        val value = rawValue.trim().toDoubleOrNull() ?: return null
+        if (value !in -90.0..90.0) return null
+        return value.roundToInt().coerceIn(-90, 90)
+    }
+
+    private fun displayThetaDegrees(rawValue: String): String {
+        return rawValue.trim().toDoubleOrNull()
+            ?.roundToInt()
+            ?.coerceIn(-90, 90)
+            ?.toString()
+            ?: rawValue.trim()
+    }
+
     private fun showRecentMenu() {
         val runs = loadRecentRuns()
         if (runs.length() == 0) return
@@ -1081,10 +1288,11 @@ class MainActivity : Activity() {
             "Case4" -> caseGroup.check(102)
             else -> caseGroup.check(100)
         }
-        theta1Field.setText(item.optString("theta1", theta1Field.text.toString()))
-        theta2Field.setText(item.optString("theta2", theta2Field.text.toString()))
+        theta1Field.setText(displayThetaDegrees(item.optString("theta1", theta1Field.text.toString())))
+        theta2Field.setText(displayThetaDegrees(item.optString("theta2", theta2Field.text.toString())))
         selectedResponseModelKey = item.optString("model", Defaults.RESPONSE_MODEL_KEY)
         populateResponseModelSpinner()
+        updatePlyPreview()
         resultSection.visibility = LinearLayout.GONE
     }
 
@@ -1099,8 +1307,8 @@ class MainActivity : Activity() {
             "",
             "INPUTS",
             "• Case: ${item.optString("case")}",
-            "• Theta 1: ${item.optString("theta1")} deg",
-            "• Theta 2: ${item.optString("theta2")} deg",
+            "• Theta 1: ${displayThetaDegrees(item.optString("theta1"))} deg",
+            "• Theta 2: ${displayThetaDegrees(item.optString("theta2"))} deg",
             "",
             "RESULTS",
             "• Predicted type: $type",
@@ -1157,7 +1365,7 @@ class MainActivity : Activity() {
             val item = runs.getJSONObject(index)
             val model = item.optString("model", Defaults.RESPONSE_MODEL_KEY).cleanModelKeyLabel()
             val prefix = if (index == 0) "${index + 1}. ${getString(R.string.recent_latest)}" else "${index + 1}."
-            "$prefix ${item.optString("case")} · $model · Theta ${item.optString("theta1")}/${item.optString("theta2")} · Pt ${item.optDoubleOrNull("predicted_pt").numberText(2)}"
+            "$prefix ${item.optString("case")} · $model · Theta ${displayThetaDegrees(item.optString("theta1"))}/${displayThetaDegrees(item.optString("theta2"))} · Pt ${item.optDoubleOrNull("predicted_pt").numberText(2)}"
         }
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.recent_delete_title))
@@ -1223,8 +1431,8 @@ class MainActivity : Activity() {
                     rightPt = second.optDoubleOrNull("predicted_pt")
                     layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(250))
                 })
-                addView(body("${getString(R.string.compare_first)}: ${first.optString("case")} · ${first.optString("theta1")}/${first.optString("theta2")} · Pt ${first.optDoubleOrNull("predicted_pt").numberText(2)}"))
-                addView(body("${getString(R.string.compare_second)}: ${second.optString("case")} · ${second.optString("theta1")}/${second.optString("theta2")} · Pt ${second.optDoubleOrNull("predicted_pt").numberText(2)}"))
+                addView(body("${getString(R.string.compare_first)}: ${first.optString("case")} · ${displayThetaDegrees(first.optString("theta1"))}/${displayThetaDegrees(first.optString("theta2"))} · Pt ${first.optDoubleOrNull("predicted_pt").numberText(2)}"))
+                addView(body("${getString(R.string.compare_second)}: ${second.optString("case")} · ${displayThetaDegrees(second.optString("theta1"))}/${displayThetaDegrees(second.optString("theta2"))} · Pt ${second.optDoubleOrNull("predicted_pt").numberText(2)}"))
             } else {
                 addView(body(getString(R.string.compare_curve_missing)))
             }
@@ -1347,6 +1555,12 @@ class MainActivity : Activity() {
         setColor(Ui.field)
         cornerRadius = dp(8).toFloat()
         setStroke(1, Ui.fieldBorder)
+    }
+
+    private fun strokedPreviewBackground(): GradientDrawable = GradientDrawable().apply {
+        setColor(Color.rgb(236, 243, 246))
+        cornerRadius = dp(8).toFloat()
+        setStroke(1, Ui.border)
     }
 
     private fun modelCardBackground(accent: Int, selected: Boolean): GradientDrawable = GradientDrawable().apply {
@@ -1490,6 +1704,19 @@ class MainActivity : Activity() {
         background = tintedBackground(color, alpha = 22)
     }
 
+    private fun legendBadge(text: String, color: Int): TextView = TextView(this).apply {
+        this.text = text
+        textSize = 10f
+        typeface = Typeface.DEFAULT_BOLD
+        setTextColor(color)
+        setPadding(dp(7), dp(4), dp(7), dp(4))
+        background = GradientDrawable().apply {
+            setColor(Color.WHITE)
+            cornerRadius = dp(999).toFloat()
+            setStroke(1, Ui.border)
+        }
+    }
+
     private fun input(value: String): EditText = EditText(this).apply {
         setText(value)
         setSingleLine(true)
@@ -1510,7 +1737,6 @@ class MainActivity : Activity() {
             }
         }
         inputType = android.text.InputType.TYPE_CLASS_NUMBER or
-            android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL or
             android.text.InputType.TYPE_NUMBER_FLAG_SIGNED
     }
 

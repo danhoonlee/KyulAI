@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Create Luvelox Account</title>
+    <link rel="alternate" hreflang="ko" href="https://ai.luvelox.com/signup-v2.ko.html" />
+    <link rel="stylesheet" href="./login-v2.css?v=20260619-forgot1" />
+  </head>
+  <body>
+    <main class="login-shell">
+      <header class="login-topbar" aria-label="Signup navigation">
+        <a class="brand-mark" href="https://ai.luvelox.com/login-v2.html" aria-label="Back to sign in">
+          <span class="brand-wordmark">C2ES</span>
+        </a>
+        <div class="topbar-actions">
+          <a class="language-link" href="https://ai.luvelox.com/signup-v2.ko.html" hreflang="ko">한국어</a>
+          <a class="language-link" href="https://ai.luvelox.com/login-v2.html">Sign in</a>
+        </div>
+      </header>
+
+      <section class="access-layout" aria-labelledby="signup-title">
+        <div class="workspace-panel">
+          <div class="workspace-copy">
+            <p class="eyebrow">Account creation</p>
+            <h1 id="signup-title">
+              <span>Create</span>
+              <span>Luvelox Account</span>
+            </h1>
+            <p>
+              Set up an account once, then open Laminate and Injection modules
+              from the same workspace.
+            </p>
+          </div>
+
+          <div class="command-board" aria-label="Account setup preview">
+            <div class="command-head">
+              <span>Default access</span>
+              <strong>2 modules</strong>
+            </div>
+            <div class="signal-grid">
+              <div><span class="signal-dot"></span>Laminate</div>
+              <div><span class="signal-dot"></span>Injection</div>
+              <div><span class="signal-dot"></span>Account DB</div>
+            </div>
+            <svg class="forecast-preview" viewBox="0 0 680 260" role="img" aria-label="Account module preview">
+              <defs>
+                <linearGradient id="signupGlow" x1="0" x2="1" y1="0" y2="0">
+                  <stop offset="0%" stop-color="#111318" />
+                  <stop offset="55%" stop-color="#2167ff" />
+                  <stop offset="100%" stop-color="#00a878" />
+                </linearGradient>
+              </defs>
+              <path class="grid-line" d="M44 58H636M44 128H636M44 198H636" />
+              <path class="grid-line vertical" d="M138 34V220M274 34V220M410 34V220M546 34V220" />
+              <path
+                class="curve-line"
+                d="M50 190 C138 174 188 95 260 110 C330 126 370 186 454 154 C526 126 575 82 634 70"
+                style="stroke: url('#signupGlow')"
+              />
+              <circle class="pt-marker" cx="260" cy="110" r="9" />
+              <circle class="pt-ring" cx="260" cy="110" r="21" />
+            </svg>
+          </div>
+        </div>
+
+        <form class="login-panel signup-panel" id="signup-v2-form" novalidate>
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">New account</p>
+              <h2>Create account</h2>
+            </div>
+          </div>
+
+          <label class="field">
+            <span>Name</span>
+            <input id="signup-name" type="text" autocomplete="name" placeholder="Your name" />
+          </label>
+          <label class="field">
+            <span>Company</span>
+            <input id="signup-company" type="text" autocomplete="organization" placeholder="Company or lab" />
+          </label>
+          <label class="field">
+            <span>Location</span>
+            <input id="signup-location" type="text" autocomplete="address-level2" placeholder="City, country" />
+          </label>
+          <label class="field">
+            <span>Mobile</span>
+            <input id="signup-mobile" type="tel" autocomplete="tel" placeholder="+82 ..." />
+          </label>
+          <label class="field">
+            <span>Email</span>
+            <input id="signup-email" type="email" autocomplete="email" placeholder="you@company.com" />
+          </label>
+          <p class="field-note">This email becomes your sign-in ID.</p>
+          <label class="field">
+            <span>Password</span>
+            <input id="signup-password" type="password" autocomplete="new-password" placeholder="At least 8 characters" />
+          </label>
+
+          <p class="form-message" id="signup-message" role="status"></p>
+
+          <div class="button-row">
+            <button class="primary-button" type="submit">
+              <span class="button-icon" aria-hidden="true">-></span>
+              Create account
+            </button>
+            <a class="secondary-button account-link" href="https://ai.luvelox.com/login-v2.html">Back to sign in</a>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <script src="./signup-v2.js?v=20260619-forgot1" type="module"></script>
+  </body>
+</html>

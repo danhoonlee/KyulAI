@@ -25,11 +25,11 @@ from the PPT so future modeling work can stay aligned with the Abaqus study.
 
 ## Double-Double Case Scope
 
-The current AI dataset/modeling scope uses Case2, Case3, and Case4.  Earlier
-project notes define them as:
+The current AI dataset/modeling scope uses Case2, Case3, and Case4. Direct
+render-check of Slide 6 in `data/PPT/Final ver2.pptx` defines them as:
 
 - Case2: `[[±theta1]/[±theta2]]4`
-- Case3: `[[±theta1]/[±theta2]/[∓theta2]/[∓theta2]]2`
+- Case3: `[[±theta1]/[±theta2]/[∓theta1]/[∓theta2]]2`
 - Case4: `[([±theta1]/[±theta2])2 / ([∓theta1]/[∓theta2])2]`
 
 The PPT also discusses Case1 and Case5, but those are not yet in the current

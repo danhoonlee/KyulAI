@@ -3,34 +3,122 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>C2ES</title>
-    <link rel="stylesheet" href="./styles.css" />
+    <title>C2ES Forecast Workspace</title>
+    <link rel="alternate" hreflang="ko" href="./index.ko.html" />
+    <link rel="stylesheet" href="./styles.css?v=20260619-forgot1" />
   </head>
   <body>
     <main class="app-shell">
-      <header class="topbar">
-        <div>
-          <p class="eyebrow">Unified CAE-AI Workspace</p>
-          <h1>C2ES</h1>
-        </div>
-        <div class="account-chip">
-          <span class="status-dot"></span>
-          MVP workspace
-        </div>
+      <header class="login-language-bar">
+        <a class="language-link" href="./index.ko.html" hreflang="ko">한국어</a>
       </header>
-
-      <section class="intro-band">
-        <div>
-          <h2>Prediction modules</h2>
+      <section class="login-view" id="login-view">
+        <div class="login-copy">
+          <p class="eyebrow">C2ES AI Workspace</p>
+          <h1>
+            <span>C2ES</span>
+            <span>Forecast Workspace</span>
+          </h1>
           <p>
-            Open Laminate, Injection, and future CAE-AI modules from one account.
-            Module access is controlled by server-side entitlements.
+            Sign in once, then open the prediction module built for each
+            engineering analysis.
           </p>
+          <div class="login-module-strip" aria-label="Module preview">
+            <div class="login-module-item">
+              <span class="login-module-mark mark-laminate" aria-hidden="true">L</span>
+              <strong>Laminate</strong>
+              <small>Type, Pt, curve</small>
+            </div>
+            <div class="login-module-item">
+              <span class="login-module-mark mark-injection" aria-hidden="true">I</span>
+              <strong>Injection</strong>
+              <small>Sprue, filling</small>
+            </div>
+            <div class="login-module-item">
+              <span class="login-module-mark mark-optimization" aria-hidden="true">O</span>
+              <strong>Optimization</strong>
+              <small>Design search</small>
+            </div>
+          </div>
         </div>
-        <button id="refresh-button" type="button">Refresh</button>
+
+        <form class="login-card" id="login-form">
+          <div>
+            <p class="eyebrow">Account</p>
+            <h2 id="auth-title">Sign in</h2>
+          </div>
+          <label>
+            Email
+            <input id="email-input" type="email" autocomplete="email" value="demo@luvelox.com" />
+          </label>
+          <p class="field-note">This email is used as your sign-in ID.</p>
+          <label>
+            Password
+            <input id="password-input" type="password" autocomplete="current-password" placeholder="Password" />
+          </label>
+          <div class="form-link-row">
+            <a class="form-link" href="https://ai.luvelox.com/forgot-v2.html">Forgot password?</a>
+          </div>
+          <p class="form-error" id="login-error" role="alert"></p>
+          <button id="signin-button" type="submit">Sign in</button>
+          <a class="secondary-button account-link" href="https://ai.luvelox.com/signup-v2.html">Create account</a>
+          <button class="secondary-button demo-button" id="demo-button" type="button">Demo</button>
+          <p class="login-hint" id="auth-hint">New accounts include Laminate and Injection access.</p>
+        </form>
       </section>
 
-      <section class="module-grid" id="module-grid" aria-live="polite"></section>
+      <section class="workspace-view is-hidden" id="workspace-view">
+        <header class="topbar workspace-hero">
+          <div class="brand-lockup">
+            <p class="eyebrow">C2ES AI Workspace</p>
+            <h1>
+              <span>C2ES</span>
+              <span>Forecast Workspace</span>
+            </h1>
+            <p class="hero-copy">
+              Choose a module to open its prediction screen.
+            </p>
+          </div>
+          <div class="account-cluster">
+            <button class="account-chip" id="account-button" type="button">
+              <span class="status-dot"></span>
+              <span id="account-label">Account workspace</span>
+            </button>
+            <button class="ghost-button" id="signout-button" type="button">Sign out</button>
+          </div>
+        </header>
+
+        <section class="summary-strip" aria-label="Workspace flow">
+          <div>
+            <span>01</span>
+            <strong>Account</strong>
+            <p>Demo access ready.</p>
+          </div>
+          <div>
+            <span>02</span>
+            <strong>Choose module</strong>
+            <p>Laminate, Injection, Optimization</p>
+          </div>
+          <div>
+            <span>03</span>
+            <strong>Forecast</strong>
+            <p>Open a focused model workspace.</p>
+          </div>
+        </section>
+
+        <section class="intro-band">
+          <div>
+            <p class="eyebrow">Module workspace</p>
+            <h2>Prediction modules</h2>
+            <p>
+              Open prediction modules from one account.
+            </p>
+          </div>
+          <button id="refresh-button" type="button">Refresh</button>
+        </section>
+
+        <section class="module-grid" id="module-grid" aria-live="polite"></section>
+      </section>
     </main>
 
     <template id="module-card-template">
@@ -47,12 +135,44 @@
         <div class="tag-row"></div>
         <div class="capability-list"></div>
         <div class="module-actions">
-          <a class="primary-link" target="_self" rel="noreferrer">Open</a>
-          <span class="route-text"></span>
+          <button class="primary-link" type="button">Open</button>
         </div>
       </article>
     </template>
 
-    <script src="./app.js" type="module"></script>
+    <dialog class="modal" id="access-dialog">
+      <form method="dialog" class="modal-card">
+        <button class="close-button" value="close" aria-label="Close">×</button>
+        <p class="eyebrow" id="access-category"></p>
+        <h2 id="access-title"></h2>
+        <p id="access-summary"></p>
+        <div class="modal-panel">
+          <h3>Access</h3>
+          <p id="access-reason"></p>
+          <p class="route-text" id="access-entitlement"></p>
+        </div>
+        <div class="modal-panel">
+          <h3>Included capabilities</h3>
+          <div class="capability-list modal-capabilities" id="access-capabilities"></div>
+        </div>
+        <p class="request-status" id="request-status" role="status"></p>
+        <button id="request-access-button" type="button">Request access</button>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="account-dialog">
+      <form method="dialog" class="modal-card">
+        <button class="close-button" value="close" aria-label="Close">×</button>
+        <p class="eyebrow">Account</p>
+        <h2 id="account-dialog-name"></h2>
+        <p id="account-dialog-email"></p>
+        <div class="modal-panel">
+          <h3>Module access</h3>
+          <div class="access-list" id="account-access-list"></div>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="./app.js?v=20260619-forgot1" type="module"></script>
   </body>
 </html>

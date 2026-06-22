@@ -276,8 +276,16 @@ public enum JSONValue: Codable, Equatable, Hashable, Sendable {
 }
 
 public enum DDLaminateDefaults {
-    public static let responseModelKey = "response_surrogate_physics"
-    public static let u3PtModelKey = "u3_forecast_physics"
+    public static let responseModelKey = "response_surrogate_physics_v2"
+    public static let responseModelKeys = [
+        "response_surrogate_physics_v2",
+        "response_goint_physics_nn_v2",
+    ]
+    public static let u3PtModelKey = "u3_forecast_physics_v2"
+    public static let u3PtModelKeys = [
+        "u3_forecast_physics_v2",
+        "u3_forecast_goint_physics_v2",
+    ]
     public static let fallbackBaseURL = "https://laminate.luvelox.com"
 }
 
@@ -305,30 +313,43 @@ enum DDLaminateModelDisplayLabel {
         "extratrees + pca": "ExtraTrees + PCA",
         "gointmlp-style nn": "GointMLP NN",
         "u3 forecast - extratrees + pca": "u3 Forecast - ExtraTrees + PCA",
-        "u3 forecast - physics xai": "u3 Forecast - Physics XAI",
+        "u3 forecast - physics xai": "u3 Forecast - Machine Learning",
         "u3 forecast - gointmlp nn": "u3 Forecast - GointMLP NN",
         "u3 forecast - tree (theta)": "u3 Forecast - Tree (Theta)",
-        "u3 forecast - tree + physics xai": "u3 Forecast - Tree + Physics XAI",
+        "u3 forecast - tree + physics xai": "u3 Forecast - Machine Learning",
+        "u3 forecast - tree + compact physics xai": "u3 Forecast - Machine Learning",
+        "u3 forecast - machine learning": "u3 Forecast - Machine Learning",
         "u3 forecast - gointmlp (theta)": "u3 Forecast - GointMLP (Theta)",
-        "u3 forecast - gointmlp + physics xai": "u3 Forecast - GointMLP + Physics XAI",
+        "u3 forecast - gointmlp + physics xai": "u3 Forecast - Deep Learning",
+        "u3 forecast - gointmlp + compact physics xai": "u3 Forecast - Deep Learning",
+        "u3 forecast - deep learning": "u3 Forecast - Deep Learning",
         "laminate forecast - tree (theta)": "Laminate Forecast - Tree (Theta)",
         "laminate forecast - gointmlp (theta)": "Laminate Forecast - GointMLP (Theta)",
-        "laminate forecast - tree + physics xai": "Laminate Forecast - Tree + Physics XAI",
-        "laminate forecast - gointmlp + physics xai": "Laminate Forecast - GointMLP + Physics XAI",
+        "laminate forecast - tree + physics xai": "Laminate Forecast - Machine Learning",
+        "laminate forecast - tree + compact physics xai": "Laminate Forecast - Machine Learning",
+        "laminate forecast - machine learning": "Laminate Forecast - Machine Learning",
+        "laminate forecast - gointmlp + physics xai": "Laminate Forecast - Deep Learning",
+        "laminate forecast - gointmlp + nn-friendly physics xai": "Laminate Forecast - Deep Learning",
+        "laminate forecast - gointmlp + compact physics xai": "Laminate Forecast - Deep Learning",
+        "laminate forecast - deep learning": "Laminate Forecast - Deep Learning",
     ]
 
     private static let keyAliases: [String: String] = [
         "response_surrogate": "ExtraTrees + PCA",
         "response_goint": "GointMLP NN",
-        "response_surrogate_physics": "Laminate Forecast - Tree + Physics XAI",
-        "response_goint_physics": "Laminate Forecast - GointMLP + Physics XAI",
+        "response_surrogate_physics": "Laminate Forecast - Machine Learning",
+        "response_surrogate_physics_v2": "Laminate Forecast - Machine Learning",
+        "response_goint_physics": "Laminate Forecast - Deep Learning",
+        "response_goint_physics_nn_v2": "Laminate Forecast - Deep Learning",
         "theta_classical": "RandomForest",
         "theta_goint": "GointMLP NN",
         "curve_classical": "ExtraTrees",
         "curve_goint": "GRU + GointMLP NN",
         "u3_forecast": "u3 Forecast - Tree (Theta)",
-        "u3_forecast_physics": "u3 Forecast - Tree + Physics XAI",
+        "u3_forecast_physics": "u3 Forecast - Machine Learning",
+        "u3_forecast_physics_v2": "u3 Forecast - Machine Learning",
         "u3_forecast_goint": "u3 Forecast - GointMLP (Theta)",
-        "u3_forecast_goint_physics": "u3 Forecast - GointMLP + Physics XAI",
+        "u3_forecast_goint_physics": "u3 Forecast - Deep Learning",
+        "u3_forecast_goint_physics_v2": "u3 Forecast - Deep Learning",
     ]
 }

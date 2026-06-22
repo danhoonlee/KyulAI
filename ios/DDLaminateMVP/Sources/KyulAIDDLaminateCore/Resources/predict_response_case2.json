@@ -6,7 +6,7 @@
     "theta1": 30,
     "theta2": -30,
     "case": "Case2",
-    "model": "response_surrogate_physics"
+    "model": "response_surrogate_physics_v2"
   },
   "response": {
     "predicted_type": 2,
@@ -16,8 +16,8 @@
       "type2": 0.51125,
       "type3": 0.44625
     },
-    "model_key": "response_surrogate_physics",
-    "model_label": "Laminate Forecast - Tree + Physics XAI",
+    "model_key": "response_surrogate_physics_v2",
+    "model_label": "Laminate Forecast - Machine Learning",
     "input_mode": "response",
     "inputs": {
       "theta1": 30.0,
@@ -25,7 +25,7 @@
       "case": "Case2"
     },
     "notes": [
-      "Laminate Forecast - Tree + Physics XAI prediction; validate promising candidates with simulation.",
+      "Laminate Forecast - Machine Learning prediction; validate promising candidates with simulation.",
       "Top two class probabilities are close; treat this as an ambiguous candidate."
     ],
     "features": null,

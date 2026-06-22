@@ -14,8 +14,8 @@
     <string name="model_tag_fast">빠름</string>
     <string name="model_tag_deep">딥러닝</string>
     <string name="model_tag_experimental">실험적</string>
-    <string name="model_description_extratrees">PCA 압축을 사용하는 안정적인 트리 모델입니다. 일반적인 적층 예측에는 이 모델을 추천합니다.</string>
-    <string name="model_description_goint">비선형 응답 패턴을 보기 위한 신경망 모델입니다. 비교용 또는 실험 확인용으로 좋습니다.</string>
+    <string name="model_description_extratrees">일반적인 적층 예측에 추천하는 빠른 Machine Learning 모델입니다.</string>
+    <string name="model_description_goint">비교와 실험 확인에 사용하는 Deep Learning 모델입니다.</string>
     <string name="model_description_generic">이 API 서버에서 사용할 수 있는 대체 응답 모델입니다.</string>
     <string name="recent_inputs">최근</string>
     <string name="recent_latest">최신</string>
@@ -48,6 +48,11 @@
     <string name="compare_interpretation_confidence_similar">두 결과의 모델 신뢰도는 비슷한 수준입니다.</string>
     <string name="theta_1">Theta 1</string>
     <string name="theta_2">Theta 2</string>
+    <string name="live_laminate_preview">실시간 적층 미리보기</string>
+    <string name="angle_aware_ply_stack">각도 반영 ply stack</string>
+    <string name="ply_count_format">Ply %1$d개</string>
+    <string name="stack_formula_label">공식</string>
+    <string name="stack_compact_physics_note">Compact physics feature는 모델 layer에서 사용되며, 이 미리보기는 현재 Case와 theta 입력을 따릅니다.</string>
     <string name="predict_forecast">예측 실행</string>
     <string name="model_unavailable">모델 사용 불가</string>
     <string name="connection_failed">연결 실패</string>
@@ -66,6 +71,10 @@
     <string name="pt_marker">Pt 표시</string>
     <string name="class_probabilities">분류 확률</string>
     <string name="no_probabilities">확률 값이 없습니다.</string>
+    <string name="xai_title">이 예측의 주요 근거</string>
+    <string name="xai_method_format">방법: %1$s · Feature set: %2$s</string>
+    <string name="xai_show_more">나머지 feature %1$d개 보기</string>
+    <string name="xai_hide_more">추가 feature 접기</string>
     <string name="interpretation">해석</string>
     <string name="interpretation_disclaimer">예측값 기반의 규칙 요약입니다. 중요한 후보는 해석 또는 실험으로 검증하세요.</string>
     <string name="interpretation_confidence_high">이 조건은 Type %1$d로 예측되었고, 모델 신뢰도는 높은 편입니다.</string>
