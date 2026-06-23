@@ -10424,3 +10424,16 @@ Follow-up in same debugging pass:
     returned 3 `case_insights`; default Case2 response focus was 27/300 samples.
   - Browser smoke check on `http://127.0.0.1:8000/index-v2.html` confirmed
     3 Case behavior cards render and the selected Case card is highlighted.
+- Follow-up layout change:
+  - User said the Case behavior cards would be easier to read as 3 horizontal
+    rows rather than 3 cards in one row.
+  - Changed `case-insight-list` to a single-column stack.
+  - Changed each card to a horizontal row layout: Case/zone label on the left,
+    theta window / best observed / sample count on the right.
+  - Mobile still collapses cards and details to one column.
+  - Bumped DD v2 asset query strings to `20260623-case-insight-rows`.
+  - Browser smoke check confirmed:
+    - 3 cards render.
+    - `case-insight-list` has one grid column.
+    - the first card uses two internal columns.
+    - selected Case highlight remains.

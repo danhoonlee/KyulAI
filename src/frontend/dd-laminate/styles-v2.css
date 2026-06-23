@@ -1198,13 +1198,14 @@ summary:focus-visible {
 
 .case-insight-list {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
 .case-insight-card {
   display: grid;
-  gap: 8px;
+  grid-template-columns: minmax(150px, 0.28fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
   min-width: 0;
   padding: 10px;
   border: 1px solid #d9e4ef;
@@ -1218,9 +1219,7 @@ summary:focus-visible {
 }
 
 .case-insight-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
   gap: 8px;
 }
 
@@ -1231,7 +1230,7 @@ summary:focus-visible {
 }
 
 .case-insight-head strong {
-  flex: 0 0 auto;
+  width: fit-content;
   padding: 3px 8px;
   border-radius: 999px;
   background: #e9f7ff;
@@ -1247,6 +1246,7 @@ summary:focus-visible {
 
 .case-insight-card dl {
   display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.25fr) minmax(112px, 0.7fr);
   gap: 6px;
   margin: 0;
 }
@@ -1492,6 +1492,8 @@ button.recommendation-card:focus-visible {
   .two-col,
   .comparison-grid,
   .case-insight-list,
+  .case-insight-card,
+  .case-insight-card dl,
   .research-grid {
     grid-template-columns: 1fr;
   }
