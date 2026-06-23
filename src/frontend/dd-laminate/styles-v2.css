@@ -1184,6 +1184,91 @@ summary:focus-visible {
   color: var(--ink);
 }
 
+.case-insight-block {
+  display: grid;
+  gap: 8px;
+}
+
+.case-insight-block h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.case-insight-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.case-insight-card {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #d9e4ef;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.case-insight-card.selected {
+  border-color: #9ad9be;
+  box-shadow: inset 3px 0 0 #08a863;
+}
+
+.case-insight-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.case-insight-head span {
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 950;
+}
+
+.case-insight-head strong {
+  flex: 0 0 auto;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #e9f7ff;
+  color: var(--blue-strong);
+  font-size: 0.64rem;
+  font-weight: 950;
+}
+
+.case-insight-card.selected .case-insight-head strong {
+  background: #e7f8ef;
+  color: #087344;
+}
+
+.case-insight-card dl {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.case-insight-card dl div {
+  min-width: 0;
+}
+
+.case-insight-card dt {
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 820;
+}
+
+.case-insight-card dd {
+  margin: 1px 0 0;
+  color: var(--ink);
+  font-size: 0.71rem;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
 .research-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
@@ -1406,6 +1491,7 @@ button.recommendation-card:focus-visible {
   .preview-stats,
   .two-col,
   .comparison-grid,
+  .case-insight-list,
   .research-grid {
     grid-template-columns: 1fr;
   }

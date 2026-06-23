@@ -196,6 +196,22 @@ class DesignSpaceCaseSummary(BaseModel):
     risk_label: Literal["low", "medium", "high"]
 
 
+class DesignSpaceCaseInsight(BaseModel):
+    case: CaseKey
+    count: int
+    focus_kind: Literal["type1", "high_pt"]
+    focus_count: int
+    focus_rate: float
+    theta1_min: float | None = None
+    theta1_max: float | None = None
+    theta2_min: float | None = None
+    theta2_max: float | None = None
+    best_theta1: float | None = None
+    best_theta2: float | None = None
+    best_pt: float | None = None
+    best_type: int | None = None
+
+
 class DesignSpaceRecommendation(BaseModel):
     theta1: float
     theta2: float
@@ -212,6 +228,7 @@ class DesignSpaceResponse(BaseModel):
     map_points: list[DesignSpacePoint]
     nearest_points: list[DesignSpacePoint]
     case_summaries: list[DesignSpaceCaseSummary]
+    case_insights: list[DesignSpaceCaseInsight]
     recommendations: list[DesignSpaceRecommendation]
     notes: list[str]
 
@@ -1354,6 +1371,53 @@ def _case_summaries(rows: list[dict[str, Any]], scope: DesignSpaceScope) -> list
     return summaries
 
 
+def _top_pt_rows(rows: list[dict[str, Any]], fraction: float = 0.25) -> list[dict[str, Any]]:
+    if not rows:
+        return []
+    count = max(1, math.ceil(len(rows) * fraction))
+    return sorted(rows, key=lambda row: float(row["pt"]), reverse=True)[:count]
+
+
+def _case_insights(rows: list[dict[str, Any]], scope: DesignSpaceScope) -> list[DesignSpaceCaseInsight]:
+    insights: list[DesignSpaceCaseInsight] = []
+    for case in ("Case2", "Case3", "Case4"):
+        case_rows = [row for row in rows if row["case"] == case]
+        if not case_rows:
+            continue
+        if scope == "response":
+            type1_rows = [row for row in case_rows if row.get("type") == 1]
+            focus_rows = _top_pt_rows(type1_rows)
+            focus_kind: Literal["type1", "high_pt"] = "type1"
+            if not focus_rows:
+                focus_rows = _top_pt_rows(case_rows)
+                focus_kind = "high_pt"
+        else:
+            focus_rows = _top_pt_rows(case_rows)
+            focus_kind = "high_pt"
+
+        best_row = max(focus_rows or case_rows, key=lambda row: float(row["pt"]))
+        theta1_values = [float(row["theta1"]) for row in focus_rows]
+        theta2_values = [float(row["theta2"]) for row in focus_rows]
+        insights.append(
+            DesignSpaceCaseInsight(
+                case=cast(CaseKey, case),
+                count=len(case_rows),
+                focus_kind=focus_kind,
+                focus_count=len(focus_rows),
+                focus_rate=round(len(focus_rows) / len(case_rows), 4),
+                theta1_min=round(min(theta1_values), 4) if theta1_values else None,
+                theta1_max=round(max(theta1_values), 4) if theta1_values else None,
+                theta2_min=round(min(theta2_values), 4) if theta2_values else None,
+                theta2_max=round(max(theta2_values), 4) if theta2_values else None,
+                best_theta1=round(float(best_row["theta1"]), 4),
+                best_theta2=round(float(best_row["theta2"]), 4),
+                best_pt=round(float(best_row["pt"]), 4),
+                best_type=cast(int | None, best_row.get("type")),
+            )
+        )
+    return insights
+
+
 def _recommendations(
     rows: list[dict[str, Any]],
     theta1: float,
@@ -1448,6 +1512,7 @@ async def summarize_design_space(payload: DesignSpaceRequest) -> DesignSpaceResp
     map_points = [_space_point(row, payload.theta1, payload.theta2) for row in _map_rows(rows, payload.theta1, payload.theta2, payload.case)]
     nearest_points = [_space_point(row, payload.theta1, payload.theta2) for row in nearest_rows]
     summaries = _case_summaries(rows, payload.scope)
+    case_insights = _case_insights(rows, payload.scope)
     recommendations = _recommendations(rows, payload.theta1, payload.theta2, payload.scope)
     if payload.scope == "u3":
         notes = [
@@ -1467,6 +1532,7 @@ async def summarize_design_space(payload: DesignSpaceRequest) -> DesignSpaceResp
         map_points=map_points,
         nearest_points=nearest_points,
         case_summaries=summaries,
+        case_insights=case_insights,
         recommendations=recommendations,
         notes=notes,
     )

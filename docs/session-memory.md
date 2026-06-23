@@ -10392,3 +10392,35 @@ Follow-up in same debugging pass:
     - Confirmed tooltip appears with `Case 2`, `Type 1`, `Pt 16,888.95`,
       and `Test 255`.
     - Confirmed tooltip is hidden again after moving outside the map.
+
+## 2026-06-23 - Research Insight Case Behavior Zones
+
+- User asked for the next Research Insight improvement.
+- Added backend `case_insights` to `POST /api/v1/dd-laminate/design-space`.
+- Response scope:
+  - Each Case insight focuses on the high-Pt subset of Type 1 rows.
+  - This intentionally avoids using every Type 1 row because the full Type 1
+    range can span almost the entire theta design space and is less useful as a
+    quick screening zone.
+- u3 scope:
+  - Each Case insight focuses on the high-Pt subset because u3 Type 2/3 is used
+    as curve-family context while Pt is the primary target.
+- Frontend v2 now shows compact `Case behavior zones` / `Case별 유리 영역`
+  cards below the current-vs-candidate comparison:
+  - focus zone label
+  - theta window
+  - best observed Pt/theta/type sample
+  - zone sample count and rate
+  - selected Case highlight
+- Bumped DD v2 asset query strings to `20260623-case-insight`.
+- Restarted local DD/Luvelox server on port `8000`; new listener PID was
+  `15345`.
+- Verification:
+  - `node --check src/frontend/dd-laminate/app-v2.js`
+  - `git diff --check -- src/backend/api/v1/dd_laminate.py tests/backend/test_dd_laminate_ios_contract.py src/frontend/dd-laminate/app-v2.js src/frontend/dd-laminate/index-v2.html src/frontend/dd-laminate/index-v2.ko.html src/frontend/dd-laminate/styles-v2.css`
+  - `/Users/danlee/KyulAI_codex/.venv/bin/python -m pytest tests/backend/test_dd_laminate_ios_contract.py::test_design_space_endpoint_returns_research_context tests/backend/test_dd_laminate_ios_contract.py::test_u3_design_space_endpoint_returns_curve_family_context -q`
+  - `/Users/danlee/KyulAI_codex/.venv/bin/ruff check src/backend/api/v1/dd_laminate.py tests/backend/test_dd_laminate_ios_contract.py`
+  - Live API check on `http://127.0.0.1:8000/api/v1/dd-laminate/design-space`
+    returned 3 `case_insights`; default Case2 response focus was 27/300 samples.
+  - Browser smoke check on `http://127.0.0.1:8000/index-v2.html` confirmed
+    3 Case behavior cards render and the selected Case card is highlighted.

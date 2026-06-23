@@ -72,6 +72,12 @@ const TEXT = {
   whyCandidate: IS_KO ? "왜 이 후보인가요?" : "Why this candidate?",
   selectedCasePoint: IS_KO ? "선택한 Case 데이터" : "Selected Case data",
   otherCasePoint: IS_KO ? "다른 Case 데이터" : "Other Case data",
+  caseBehaviorZones: IS_KO ? "Case별 유리 영역" : "Case behavior zones",
+  type1Zone: IS_KO ? "상위 Pt Type 1 영역" : "High-Pt Type 1 zone",
+  highPtZone: IS_KO ? "상위 Pt 영역" : "High-Pt zone",
+  thetaWindow: IS_KO ? "θ 범위" : "Theta window",
+  bestObserved: IS_KO ? "최고 관측값" : "Best observed",
+  coverage: IS_KO ? "영역 샘플" : "Zone samples",
   noComparison: IS_KO
     ? "비교할 추천 후보가 아직 없습니다."
     : "No recommendation candidate is available for comparison yet.",
@@ -197,6 +203,8 @@ const researchSummary = document.querySelector("#research-summary");
 const researchMapCanvas = document.querySelector("#research-map-canvas");
 const researchMapTooltip = document.querySelector("#research-map-tooltip");
 const researchComparison = document.querySelector("#research-comparison");
+const researchCaseInsights = document.querySelector("#research-case-insights");
+const researchCaseInsightList = document.querySelector("#research-case-insight-list");
 const researchCaseList = document.querySelector("#research-case-list");
 const researchNearestList = document.querySelector("#research-nearest-list");
 const researchRecommendations = document.querySelector("#research-recommendations");
@@ -1152,6 +1160,12 @@ function renderResearchHidden() {
     researchComparison.classList.add("hidden");
     researchComparison.innerHTML = "";
   }
+  if (researchCaseInsights) {
+    researchCaseInsights.classList.add("hidden");
+  }
+  if (researchCaseInsightList) {
+    researchCaseInsightList.innerHTML = "";
+  }
   if (researchMapCanvas) {
     const ctx = researchMapCanvas.getContext("2d");
     ctx.clearRect(0, 0, researchMapCanvas.width, researchMapCanvas.height);
@@ -1169,6 +1183,12 @@ function renderResearchLoading() {
   if (researchComparison) {
     researchComparison.classList.add("hidden");
     researchComparison.innerHTML = "";
+  }
+  if (researchCaseInsights) {
+    researchCaseInsights.classList.add("hidden");
+  }
+  if (researchCaseInsightList) {
+    researchCaseInsightList.innerHTML = "";
   }
   researchCaseList.innerHTML = "";
   researchNearestList.innerHTML = "";
@@ -1188,6 +1208,12 @@ function renderResearchFailed() {
   if (researchComparison) {
     researchComparison.classList.add("hidden");
     researchComparison.innerHTML = "";
+  }
+  if (researchCaseInsights) {
+    researchCaseInsights.classList.add("hidden");
+  }
+  if (researchCaseInsightList) {
+    researchCaseInsightList.innerHTML = "";
   }
   researchCaseList.innerHTML = "";
   researchNearestList.innerHTML = "";
@@ -1582,6 +1608,64 @@ function renderResearchComparison(insight) {
   `;
 }
 
+function focusKindLabel(kind) {
+  return kind === "type1" ? TEXT.type1Zone : TEXT.highPtZone;
+}
+
+function formatThetaRange(minValue, maxValue) {
+  const min = Number(minValue);
+  const max = Number(maxValue);
+  if (!Number.isFinite(min) || !Number.isFinite(max)) {
+    return "-";
+  }
+  if (Math.round(min) === Math.round(max)) {
+    return formatMetric(min, 0);
+  }
+  return IS_KO
+    ? `${formatMetric(min, 0)} ~ ${formatMetric(max, 0)}`
+    : `${formatMetric(min, 0)} to ${formatMetric(max, 0)}`;
+}
+
+function renderCaseInsights(insight) {
+  if (!researchCaseInsights || !researchCaseInsightList) {
+    return;
+  }
+  const items = insight.case_insights || [];
+  if (!items.length) {
+    researchCaseInsights.classList.add("hidden");
+    researchCaseInsightList.innerHTML = "";
+    return;
+  }
+  const selectedCase = insight.inputs?.case;
+  researchCaseInsights.classList.remove("hidden");
+  researchCaseInsightList.innerHTML = "";
+  items.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = `case-insight-card${item.case === selectedCase ? " selected" : ""}`;
+    card.innerHTML = `
+      <div class="case-insight-head">
+        <span>${caseLabel(item.case)}</span>
+        <strong>${focusKindLabel(item.focus_kind)}</strong>
+      </div>
+      <dl>
+        <div>
+          <dt>${TEXT.thetaWindow}</dt>
+          <dd>θ₁ ${formatThetaRange(item.theta1_min, item.theta1_max)} / θ₂ ${formatThetaRange(item.theta2_min, item.theta2_max)}</dd>
+        </div>
+        <div>
+          <dt>${TEXT.bestObserved}</dt>
+          <dd>Pt ${formatMetric(item.best_pt, 0)} · θ₁ ${formatMetric(item.best_theta1, 0)} / θ₂ ${formatMetric(item.best_theta2, 0)} · ${typeLabel(item.best_type)}</dd>
+        </div>
+        <div>
+          <dt>${TEXT.coverage}</dt>
+          <dd>${item.focus_count}/${item.count} · ${percent(item.focus_rate)}</dd>
+        </div>
+      </dl>
+    `;
+    researchCaseInsightList.appendChild(card);
+  });
+}
+
 function renderDesignSpace(insight) {
   if (!researchPanel) {
     return;
@@ -1595,6 +1679,7 @@ function renderDesignSpace(insight) {
 
   drawDesignSpaceMap(insight.map_points || [], inputs);
   renderResearchComparison(insight);
+  renderCaseInsights(insight);
 
   researchCaseList.innerHTML = "";
   (insight.case_summaries || []).forEach((summary) => {
