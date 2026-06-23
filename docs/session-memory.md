@@ -10296,3 +10296,9 @@ Follow-up in same debugging pass:
 - Updated DD v2 HTML asset query strings to
   `20260623-research-insight` so browsers/Cloudflare fetch the current
   `app-v2.js` and `styles-v2.css`.
+- Follow-up:
+  - User asked whether design-space map colors represent Type or Case.
+  - Confirmed colors represent Type 1/2/3; the current input is purple and
+    selected Case points are drawn with stronger opacity.
+  - Added English/Korean map legends under the Research Insight canvas.
+  - Bumped DD v2 asset query strings again to `20260623-research-legend`.

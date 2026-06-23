@@ -961,6 +961,55 @@ summary:focus-visible {
   background: #f8fbfe;
 }
 
+.research-map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px 12px;
+  margin-top: -4px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 820;
+}
+
+.research-map-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.map-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #708195;
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 3px rgba(112, 129, 149, 0.25);
+}
+
+.map-dot.type-1 {
+  background: #0f9f6e;
+}
+
+.map-dot.type-2 {
+  background: #0c8fd8;
+}
+
+.map-dot.type-3 {
+  background: #df4b3f;
+}
+
+.map-dot.current {
+  width: 13px;
+  height: 13px;
+  background: #7c3aed;
+}
+
+.map-dot.selected-case {
+  background: #334155;
+  opacity: 0.78;
+}
+
 .research-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
