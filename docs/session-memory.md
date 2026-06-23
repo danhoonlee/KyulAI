@@ -10333,3 +10333,37 @@ Follow-up in same debugging pass:
       `Case3`.
     - Confirmed prediction refreshed with Pt `16,960.47` and Research Insight
       reloaded with 5 recommendation buttons.
+
+## 2026-06-23 - Research Insight Candidate Comparison
+
+- User asked to continue to the next Research Insight improvement.
+- Implemented the second planned feature: `Current input vs top candidate`.
+- Added a compact comparison block under the design-space map legend:
+  - Current forecast card:
+    - Case, θ₁, θ₂
+    - model-predicted Pt
+    - model-predicted Type
+    - current Case risk
+  - Top candidate card:
+    - Case, θ₁, θ₂
+    - observed dataset Pt
+    - observed Type
+    - candidate Case risk
+  - Pt delta pill comparing candidate observed Pt against current model Pt.
+  - Rationale line explaining why the candidate was recommended.
+- UI wording explicitly distinguishes `Model estimate` from
+  `Dataset observation` so the comparison is useful without pretending both
+  numbers have the same provenance.
+- Added Korean labels for the same comparison UI.
+- Bumped DD v2 asset query strings to `20260623-research-comparison`.
+- Verification:
+  - `node --check src/frontend/dd-laminate/app-v2.js`
+  - `git diff --check -- src/frontend/dd-laminate/app-v2.js src/frontend/dd-laminate/index-v2.html src/frontend/dd-laminate/index-v2.ko.html src/frontend/dd-laminate/styles-v2.css`
+  - `python -m pytest tests/backend/test_dd_laminate_ios_contract.py::test_design_space_endpoint_returns_research_context -q`
+  - Browser smoke test on `http://127.0.0.1:8000/index-v2.html`:
+    - Ran default Response Forecast.
+    - Confirmed comparison block shows `Current input vs top candidate`.
+    - Confirmed current card for default `Case2`, `θ₁=30`, `θ₂=-30` and top
+      candidate card for `Case3`, `θ₁=32`, `θ₂=-60`.
+    - Confirmed recommendation click still applies the candidate and refreshes
+      the comparison block to the applied `Case3`, `θ₁=32`, `θ₂=-60` input.

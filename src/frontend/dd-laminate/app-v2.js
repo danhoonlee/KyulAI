@@ -62,6 +62,17 @@ const TEXT = {
   nearestSimulations: IS_KO ? "가까운 해석 데이터" : "Nearest simulations",
   recommendedCandidates: IS_KO ? "추천 후보" : "Recommended candidates",
   applyCandidate: IS_KO ? "입력에 적용하고 예측" : "Apply and forecast",
+  comparisonTitle: IS_KO ? "현재 입력 vs 추천 후보" : "Current input vs top candidate",
+  currentPrediction: IS_KO ? "현재 예측" : "Current forecast",
+  topCandidate: IS_KO ? "추천 후보" : "Top candidate",
+  modelEstimate: IS_KO ? "모델 예측" : "Model estimate",
+  datasetObservation: IS_KO ? "Dataset 관측값" : "Dataset observation",
+  ptDelta: IS_KO ? "Pt 차이" : "Pt delta",
+  caseRiskLabel: IS_KO ? "Case 위험도" : "Case risk",
+  whyCandidate: IS_KO ? "왜 이 후보인가요?" : "Why this candidate?",
+  noComparison: IS_KO
+    ? "비교할 추천 후보가 아직 없습니다."
+    : "No recommendation candidate is available for comparison yet.",
   riskLow: IS_KO ? "낮음" : "Low",
   riskMedium: IS_KO ? "중간" : "Medium",
   riskHigh: IS_KO ? "높음" : "High",
@@ -182,6 +193,7 @@ const researchPanel = document.querySelector("#research-panel");
 const researchTitle = document.querySelector("#research-title");
 const researchSummary = document.querySelector("#research-summary");
 const researchMapCanvas = document.querySelector("#research-map-canvas");
+const researchComparison = document.querySelector("#research-comparison");
 const researchCaseList = document.querySelector("#research-case-list");
 const researchNearestList = document.querySelector("#research-nearest-list");
 const researchRecommendations = document.querySelector("#research-recommendations");
@@ -1130,6 +1142,10 @@ function renderResearchHidden() {
     return;
   }
   researchPanel.classList.add("hidden");
+  if (researchComparison) {
+    researchComparison.classList.add("hidden");
+    researchComparison.innerHTML = "";
+  }
   if (researchMapCanvas) {
     const ctx = researchMapCanvas.getContext("2d");
     ctx.clearRect(0, 0, researchMapCanvas.width, researchMapCanvas.height);
@@ -1143,6 +1159,10 @@ function renderResearchLoading() {
   researchPanel.classList.remove("hidden");
   researchTitle.textContent = TEXT.researchLoadingTitle;
   researchSummary.textContent = TEXT.researchLoadingSummary;
+  if (researchComparison) {
+    researchComparison.classList.add("hidden");
+    researchComparison.innerHTML = "";
+  }
   researchCaseList.innerHTML = "";
   researchNearestList.innerHTML = "";
   researchRecommendations.innerHTML = "";
@@ -1157,6 +1177,10 @@ function renderResearchFailed() {
   researchPanel.classList.remove("hidden");
   researchTitle.textContent = TEXT.designSpaceTitle;
   researchSummary.textContent = TEXT.researchFailed;
+  if (researchComparison) {
+    researchComparison.classList.add("hidden");
+    researchComparison.innerHTML = "";
+  }
   researchCaseList.innerHTML = "";
   researchNearestList.innerHTML = "";
   researchRecommendations.innerHTML = "";
@@ -1320,6 +1344,92 @@ function applyRecommendationCandidate(candidate, scope) {
   submitForecastForm(form);
 }
 
+function caseLabel(caseValue) {
+  return String(caseValue || TEXT.unknown).replace("Case", "Case ");
+}
+
+function caseRiskSummary(caseSummaries, caseValue) {
+  return (caseSummaries || []).find((summary) => summary.case === caseValue) || null;
+}
+
+function formatRiskSummary(summary) {
+  if (!summary) {
+    return "-";
+  }
+  return `${riskLabel(summary.risk_label)} · ${percent(summary.risk_score)}`;
+}
+
+function signedMetric(value, digits = 0) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return "-";
+  }
+  const sign = numeric > 0 ? "+" : "";
+  return `${sign}${formatMetric(numeric, digits)}`;
+}
+
+function renderResearchComparison(insight) {
+  if (!researchComparison) {
+    return;
+  }
+  const topCandidate = (insight.recommendations || [])[0];
+  if (!topCandidate) {
+    researchComparison.classList.remove("hidden");
+    researchComparison.innerHTML = `<p>${TEXT.noComparison}</p>`;
+    return;
+  }
+
+  const inputs = latestPredictionData?.inputs || insight.inputs || {};
+  const currentCase = inputs.case || insight.inputs?.case;
+  const currentRisk = caseRiskSummary(insight.case_summaries, currentCase);
+  const candidateRisk = caseRiskSummary(insight.case_summaries, topCandidate.case);
+  const currentPt = Number(latestPredictionData?.predicted_pt);
+  const candidatePt = Number(topCandidate.expected_pt);
+  const deltaPt = Number.isFinite(currentPt) && Number.isFinite(candidatePt)
+    ? candidatePt - currentPt
+    : null;
+  const currentType = latestPredictionData?.predicted_type;
+  const candidateCase = caseLabel(topCandidate.case);
+  const currentCaseLabel = caseLabel(currentCase);
+  const currentPtText = formatMetric(currentPt, 0);
+  const candidatePtText = formatMetric(candidatePt, 0);
+  const deltaClass = Number.isFinite(Number(deltaPt))
+    ? (Number(deltaPt) >= 0 ? "positive" : "negative")
+    : "neutral";
+
+  researchComparison.classList.remove("hidden");
+  researchComparison.innerHTML = `
+    <div class="comparison-head">
+      <div>
+        <h3>${TEXT.comparisonTitle}</h3>
+        <p>${TEXT.modelEstimate} ↔ ${TEXT.datasetObservation}</p>
+      </div>
+      <span class="comparison-delta ${deltaClass}">${TEXT.ptDelta} ${signedMetric(deltaPt, 0)}</span>
+    </div>
+    <div class="comparison-grid">
+      <article class="comparison-card current">
+        <span>${TEXT.currentPrediction}</span>
+        <strong>${currentCaseLabel} · θ₁ ${formatMetric(inputs.theta1, 0)} / θ₂ ${formatMetric(inputs.theta2, 0)}</strong>
+        <dl>
+          <div><dt>Pt</dt><dd>${currentPtText}</dd></div>
+          <div><dt>Type</dt><dd>${typeLabel(currentType)}</dd></div>
+          <div><dt>${TEXT.caseRiskLabel}</dt><dd>${formatRiskSummary(currentRisk)}</dd></div>
+        </dl>
+      </article>
+      <article class="comparison-card candidate">
+        <span>${TEXT.topCandidate}</span>
+        <strong>${candidateCase} · θ₁ ${formatMetric(topCandidate.theta1, 0)} / θ₂ ${formatMetric(topCandidate.theta2, 0)}</strong>
+        <dl>
+          <div><dt>Pt</dt><dd>${candidatePtText}</dd></div>
+          <div><dt>Type</dt><dd>${typeLabel(topCandidate.observed_type)}</dd></div>
+          <div><dt>${TEXT.caseRiskLabel}</dt><dd>${formatRiskSummary(candidateRisk)}</dd></div>
+        </dl>
+      </article>
+    </div>
+    <p class="comparison-rationale"><strong>${TEXT.whyCandidate}</strong> ${localizeResearchText(topCandidate.rationale)}</p>
+  `;
+}
+
 function renderDesignSpace(insight) {
   if (!researchPanel) {
     return;
@@ -1332,6 +1442,7 @@ function renderDesignSpace(insight) {
     : (IS_KO ? "현재 θ 조합이 Case2/3/4 응답 데이터 공간 어디에 있는지와 Type/Pt 경향을 보여줍니다." : "Shows where the current theta pair sits in the Case2/3/4 response design space.");
 
   drawDesignSpaceMap(insight.map_points || [], inputs);
+  renderResearchComparison(insight);
 
   researchCaseList.innerHTML = "";
   (insight.case_summaries || []).forEach((summary) => {
@@ -1364,7 +1475,7 @@ function renderDesignSpace(insight) {
 
   researchRecommendations.innerHTML = "";
   (insight.recommendations || []).slice(0, 5).forEach((candidate, index) => {
-    const candidateCaseLabel = String(candidate.case || TEXT.unknown).replace("Case", "Case ");
+    const candidateCaseLabel = caseLabel(candidate.case);
     const item = document.createElement("button");
     item.type = "button";
     item.className = "recommendation-card recommendation-action";
