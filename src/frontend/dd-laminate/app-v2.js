@@ -78,6 +78,11 @@ const TEXT = {
   thetaWindow: IS_KO ? "θ 범위" : "Theta window",
   bestObserved: IS_KO ? "최고 관측값" : "Best observed",
   coverage: IS_KO ? "영역 샘플" : "Zone samples",
+  scoringBasis: IS_KO ? "추천 점수 구성" : "Recommendation score",
+  ptContribution: IS_KO ? "Pt 기여" : "Pt",
+  typeContribution: IS_KO ? "Type 기여" : "Type",
+  proximityContribution: IS_KO ? "거리 기여" : "Distance",
+  totalScore: IS_KO ? "총점" : "Total",
   noComparison: IS_KO
     ? "비교할 추천 후보가 아직 없습니다."
     : "No recommendation candidate is available for comparison yet.",
@@ -1546,6 +1551,27 @@ function signedMetric(value, digits = 0) {
   return `${sign}${formatMetric(numeric, digits)}`;
 }
 
+function renderScoreBreakdown(candidate) {
+  const components = candidate?.score_components;
+  if (!components) {
+    return "";
+  }
+  const items = [
+    [TEXT.ptContribution, components.pt],
+    [TEXT.typeContribution, components.type],
+    [TEXT.proximityContribution, components.proximity],
+    [TEXT.totalScore, candidate.score],
+  ];
+  return `
+    <div class="comparison-score">
+      <span>${TEXT.scoringBasis}</span>
+      <div>
+        ${items.map(([label, value]) => `<i><strong>${label}</strong>${percent(value)}</i>`).join("")}
+      </div>
+    </div>
+  `;
+}
+
 function renderResearchComparison(insight) {
   if (!researchComparison) {
     return;
@@ -1604,6 +1630,7 @@ function renderResearchComparison(insight) {
         </dl>
       </article>
     </div>
+    ${renderScoreBreakdown(topCandidate)}
     <p class="comparison-rationale"><strong>${TEXT.whyCandidate}</strong> ${localizeResearchText(topCandidate.rationale)}</p>
   `;
 }

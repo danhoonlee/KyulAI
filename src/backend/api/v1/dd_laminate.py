@@ -212,6 +212,15 @@ class DesignSpaceCaseInsight(BaseModel):
     best_type: int | None = None
 
 
+class DesignSpaceScoreBreakdown(BaseModel):
+    pt: float
+    type: float
+    proximity: float
+    pt_raw: float
+    type_raw: float
+    proximity_raw: float
+
+
 class DesignSpaceRecommendation(BaseModel):
     theta1: float
     theta2: float
@@ -219,6 +228,7 @@ class DesignSpaceRecommendation(BaseModel):
     expected_pt: float
     observed_type: int | None = None
     score: float
+    score_components: DesignSpaceScoreBreakdown
     rationale: str
 
 
@@ -1432,7 +1442,7 @@ def _recommendations(
     pts = [float(row["pt"]) for row in rows]
     pt_min = min(pts)
     pt_span = max(max(pts) - pt_min, 1.0)
-    scored: list[tuple[float, dict[str, Any], str]] = []
+    scored: list[tuple[float, dict[str, Any], str, DesignSpaceScoreBreakdown]] = []
     for row in scoring_rows:
         pt_norm = (float(row["pt"]) - pt_min) / pt_span
         type_value = row.get("type")
@@ -1447,12 +1457,23 @@ def _recommendations(
                 else "High observed Pt candidate; Type shape should be reviewed before simulation follow-up."
             )
         proximity = 1.0 / (1.0 + _distance(theta1, theta2, row) / 90.0)
-        score = 0.72 * pt_norm + 0.18 * type_bonus + 0.10 * proximity
-        scored.append((score, row, rationale))
+        pt_component = 0.72 * pt_norm
+        type_component = 0.18 * type_bonus
+        proximity_component = 0.10 * proximity
+        score = pt_component + type_component + proximity_component
+        components = DesignSpaceScoreBreakdown(
+            pt=round(pt_component, 4),
+            type=round(type_component, 4),
+            proximity=round(proximity_component, 4),
+            pt_raw=round(pt_norm, 4),
+            type_raw=round(type_bonus, 4),
+            proximity_raw=round(proximity, 4),
+        )
+        scored.append((score, row, rationale, components))
 
     recommendations: list[DesignSpaceRecommendation] = []
     seen: set[tuple[str, int, int]] = set()
-    for score, row, rationale in sorted(scored, key=lambda item: item[0], reverse=True):
+    for score, row, rationale, components in sorted(scored, key=lambda item: item[0], reverse=True):
         key = (str(row["case"]), round(float(row["theta1"])), round(float(row["theta2"])))
         if key in seen:
             continue
@@ -1465,6 +1486,7 @@ def _recommendations(
                 expected_pt=round(float(row["pt"]), 4),
                 observed_type=cast(int | None, row.get("type")),
                 score=round(score, 4),
+                score_components=components,
                 rationale=rationale,
             )
         )

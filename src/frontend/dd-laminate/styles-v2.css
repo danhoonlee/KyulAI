@@ -1187,6 +1187,53 @@ summary:focus-visible {
   font-weight: 900;
 }
 
+.comparison-score {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px 10px;
+  padding: 8px 9px;
+  border: 1px solid #d9e4ef;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.comparison-score > span {
+  color: var(--ink);
+  font-size: 0.7rem;
+  font-weight: 950;
+}
+
+.comparison-score div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.comparison-score i {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: #eef6fc;
+  color: var(--blue-strong);
+  font-size: 0.66rem;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.comparison-score i:last-child {
+  background: #e7f8ef;
+  color: #087344;
+}
+
+.comparison-score strong {
+  color: inherit;
+  font-size: inherit;
+  font-weight: 950;
+}
+
 .comparison-rationale strong {
   color: var(--ink);
 }

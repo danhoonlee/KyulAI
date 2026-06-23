@@ -110,6 +110,9 @@ def test_design_space_endpoint_returns_research_context(client: TestClient) -> N
     assert data["recommendations"]
     assert {"case", "risk_score", "risk_label", "type_rates"}.issubset(data["case_summaries"][0])
     assert {"case", "focus_kind", "focus_rate", "best_pt"}.issubset(data["case_insights"][0])
+    assert {"pt", "type", "proximity", "pt_raw", "type_raw", "proximity_raw"}.issubset(
+        data["recommendations"][0]["score_components"]
+    )
 
 
 def test_u3_design_space_endpoint_returns_curve_family_context(client: TestClient) -> None:
@@ -127,6 +130,7 @@ def test_u3_design_space_endpoint_returns_curve_family_context(client: TestClien
     assert data["case_insights"]
     assert data["recommendations"]
     assert {insight["focus_kind"] for insight in data["case_insights"]} == {"high_pt"}
+    assert {"pt", "type", "proximity"}.issubset(data["recommendations"][0]["score_components"])
     assert all(point["source"] == "curated_u3" for point in data["nearest_points"])
 
 

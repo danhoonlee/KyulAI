@@ -10450,3 +10450,30 @@ Follow-up in same debugging pass:
     - 2 comparison cards render.
     - `.comparison-grid` has one grid column.
     - the first comparison row uses two internal columns.
+- Follow-up score explanation:
+  - User asked what condition determines `Top candidate`.
+  - Next action was to make that condition visible in the UI.
+  - Added backend `score_components` to each design-space recommendation:
+    - weighted Pt contribution
+    - weighted Type contribution
+    - weighted proximity/distance contribution
+    - raw normalized Pt/Type/proximity values
+  - `score_components.pt + score_components.type + score_components.proximity`
+    equals the recommendation `score`.
+  - Frontend v2 now shows a compact `Recommendation score` row under
+    `Current input vs top candidate`.
+  - Default live API check for `θ₁=30`, `θ₂=-30`, `Case2`, response scope:
+    - total score `0.5474`
+    - Pt `0.2924`
+    - Type `0.18`
+    - Distance/proximity `0.075`
+  - Bumped DD v2 asset query strings to `20260623-score-breakdown`.
+  - Restarted local DD/Luvelox server on port `8000`; new listener PID was
+    `46131`.
+  - Verification:
+    - `node --check src/frontend/dd-laminate/app-v2.js`
+    - `git diff --check -- src/backend/api/v1/dd_laminate.py tests/backend/test_dd_laminate_ios_contract.py src/frontend/dd-laminate/app-v2.js src/frontend/dd-laminate/index-v2.html src/frontend/dd-laminate/index-v2.ko.html src/frontend/dd-laminate/styles-v2.css`
+    - `/Users/danlee/KyulAI_codex/.venv/bin/python -m pytest tests/backend/test_dd_laminate_ios_contract.py::test_design_space_endpoint_returns_research_context tests/backend/test_dd_laminate_ios_contract.py::test_u3_design_space_endpoint_returns_curve_family_context -q`
+    - `/Users/danlee/KyulAI_codex/.venv/bin/ruff check src/backend/api/v1/dd_laminate.py tests/backend/test_dd_laminate_ios_contract.py`
+    - Browser smoke check confirmed score chips render:
+      `Pt 29.2%`, `Type 18%`, `Distance 7.5%`, `Total 54.7%`.
