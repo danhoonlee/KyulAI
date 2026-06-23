@@ -953,12 +953,70 @@ summary:focus-visible {
   line-height: 1.42;
 }
 
+.research-map-shell {
+  position: relative;
+}
+
 #research-map-canvas {
+  display: block;
   width: 100%;
   height: auto;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #f8fbfe;
+}
+
+.research-map-tooltip {
+  position: absolute;
+  z-index: 5;
+  display: grid;
+  gap: 6px;
+  min-width: 178px;
+  max-width: min(240px, calc(100% - 16px));
+  padding: 10px;
+  border: 1px solid #bed4e8;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 16px 36px rgba(17, 24, 39, 0.16);
+  color: var(--ink);
+  pointer-events: none;
+}
+
+.research-map-tooltip strong {
+  color: var(--ink);
+  font-size: 0.8rem;
+  font-weight: 950;
+}
+
+.research-map-tooltip > span {
+  color: var(--blue-strong);
+  font-size: 0.66rem;
+  font-weight: 900;
+}
+
+.research-map-tooltip dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 10px;
+  margin: 0;
+}
+
+.research-map-tooltip dl div {
+  display: grid;
+  gap: 1px;
+}
+
+.research-map-tooltip dt {
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 820;
+}
+
+.research-map-tooltip dd {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.72rem;
+  font-weight: 900;
 }
 
 .research-map-legend {

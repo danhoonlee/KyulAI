@@ -10367,3 +10367,28 @@ Follow-up in same debugging pass:
       candidate card for `Case3`, `θ₁=32`, `θ₂=-60`.
     - Confirmed recommendation click still applies the candidate and refreshes
       the comparison block to the applied `Case3`, `θ₁=32`, `θ₂=-60` input.
+
+## 2026-06-23 - Research Insight Map Tooltip
+
+- User asked to continue to the next Research Insight improvement.
+- Implemented point detail tooltip for the design-space map:
+  - Hover or click a point to see Case, Type, θ₁, θ₂, Pt, and Test ID.
+  - Tooltip labels whether the point belongs to the selected Case or another
+    Case.
+  - Hit testing uses the same canvas coordinates as the rendered points.
+  - When overlapping points are close, points from the selected Case are
+    prioritized.
+  - Tooltip closes when the pointer leaves the map area.
+- Wrapped the map canvas in a positioned shell and added compact tooltip
+  styling.
+- Bumped DD v2 asset query strings to `20260623-research-tooltip`.
+- Verification:
+  - `node --check src/frontend/dd-laminate/app-v2.js`
+  - `git diff --check -- src/frontend/dd-laminate/app-v2.js src/frontend/dd-laminate/index-v2.html src/frontend/dd-laminate/index-v2.ko.html src/frontend/dd-laminate/styles-v2.css`
+  - `/Users/danlee/KyulAI_codex/.venv/bin/python -m pytest tests/backend/test_dd_laminate_ios_contract.py::test_design_space_endpoint_returns_research_context -q`
+  - Browser smoke test on `http://127.0.0.1:8000/index-v2.html`:
+    - Ran default Response Forecast.
+    - Hovered the design-space map near `θ₁=32`, `θ₂=-60`.
+    - Confirmed tooltip appears with `Case 2`, `Type 1`, `Pt 16,888.95`,
+      and `Test 255`.
+    - Confirmed tooltip is hidden again after moving outside the map.

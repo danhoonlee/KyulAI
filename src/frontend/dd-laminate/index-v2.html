@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>C2ES Laminate Forecast v2</title>
-    <link rel="stylesheet" href="./styles-v2.css?v=20260623-research-comparison" />
+    <link rel="stylesheet" href="./styles-v2.css?v=20260623-research-tooltip" />
   </head>
   <body>
     <main class="shell shell-v2">
@@ -368,7 +368,10 @@
                   </div>
                 </div>
                 <p class="research-summary" id="research-summary"></p>
-                <canvas id="research-map-canvas" width="720" height="320"></canvas>
+                <div class="research-map-shell">
+                  <canvas id="research-map-canvas" width="720" height="320"></canvas>
+                  <div class="research-map-tooltip hidden" id="research-map-tooltip"></div>
+                </div>
                 <div class="research-map-legend" aria-label="Design-space map legend">
                   <span><i class="map-dot type-1"></i>Type 1</span>
                   <span><i class="map-dot type-2"></i>Type 2</span>
@@ -403,6 +406,6 @@
       </section>
     </main>
 
-    <script src="./app-v2.js?v=20260623-research-comparison"></script>
+    <script src="./app-v2.js?v=20260623-research-tooltip"></script>
   </body>
 </html>

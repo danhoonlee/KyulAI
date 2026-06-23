@@ -70,6 +70,8 @@ const TEXT = {
   ptDelta: IS_KO ? "Pt 차이" : "Pt delta",
   caseRiskLabel: IS_KO ? "Case 위험도" : "Case risk",
   whyCandidate: IS_KO ? "왜 이 후보인가요?" : "Why this candidate?",
+  selectedCasePoint: IS_KO ? "선택한 Case 데이터" : "Selected Case data",
+  otherCasePoint: IS_KO ? "다른 Case 데이터" : "Other Case data",
   noComparison: IS_KO
     ? "비교할 추천 후보가 아직 없습니다."
     : "No recommendation candidate is available for comparison yet.",
@@ -193,6 +195,7 @@ const researchPanel = document.querySelector("#research-panel");
 const researchTitle = document.querySelector("#research-title");
 const researchSummary = document.querySelector("#research-summary");
 const researchMapCanvas = document.querySelector("#research-map-canvas");
+const researchMapTooltip = document.querySelector("#research-map-tooltip");
 const researchComparison = document.querySelector("#research-comparison");
 const researchCaseList = document.querySelector("#research-case-list");
 const researchNearestList = document.querySelector("#research-nearest-list");
@@ -203,6 +206,7 @@ const exportReportPdf = document.querySelector("#export-report-pdf");
 let latestPredictionData = null;
 let xaiRequestSerial = 0;
 let researchRequestSerial = 0;
+let researchMapState = { hoverPoints: [], inputs: null };
 
 const PRIMARY_RESPONSE_MODEL_KEYS = [
   "response_surrogate_physics_v2",
@@ -1142,6 +1146,8 @@ function renderResearchHidden() {
     return;
   }
   researchPanel.classList.add("hidden");
+  hideResearchMapTooltip();
+  researchMapState = { hoverPoints: [], inputs: null };
   if (researchComparison) {
     researchComparison.classList.add("hidden");
     researchComparison.innerHTML = "";
@@ -1159,6 +1165,7 @@ function renderResearchLoading() {
   researchPanel.classList.remove("hidden");
   researchTitle.textContent = TEXT.researchLoadingTitle;
   researchSummary.textContent = TEXT.researchLoadingSummary;
+  hideResearchMapTooltip();
   if (researchComparison) {
     researchComparison.classList.add("hidden");
     researchComparison.innerHTML = "";
@@ -1177,6 +1184,7 @@ function renderResearchFailed() {
   researchPanel.classList.remove("hidden");
   researchTitle.textContent = TEXT.designSpaceTitle;
   researchSummary.textContent = TEXT.researchFailed;
+  hideResearchMapTooltip();
   if (researchComparison) {
     researchComparison.classList.add("hidden");
     researchComparison.innerHTML = "";
@@ -1211,6 +1219,139 @@ async function requestDesignSpace(data, scope) {
     if (serial === researchRequestSerial) {
       renderResearchFailed();
     }
+  }
+}
+
+function hideResearchMapTooltip() {
+  if (!researchMapTooltip) {
+    return;
+  }
+  researchMapTooltip.classList.add("hidden");
+  researchMapTooltip.innerHTML = "";
+}
+
+function mapEventPosition(event) {
+  if (!researchMapCanvas) {
+    return null;
+  }
+  const rect = researchMapCanvas.getBoundingClientRect();
+  if (!rect.width || !rect.height) {
+    return null;
+  }
+  const cssX = event.clientX - rect.left;
+  const cssY = event.clientY - rect.top;
+  return {
+    canvasX: cssX * (researchMapCanvas.width / rect.width),
+    canvasY: cssY * (researchMapCanvas.height / rect.height),
+    cssX,
+    cssY,
+  };
+}
+
+function nearestResearchMapPoint(canvasX, canvasY) {
+  let best = null;
+  let bestScore = Number.POSITIVE_INFINITY;
+  (researchMapState.hoverPoints || []).forEach((entry) => {
+    const distance = Math.hypot(entry.x - canvasX, entry.y - canvasY);
+    const threshold = Math.max(11, entry.radius + 6);
+    if (distance > threshold) {
+      return;
+    }
+    const selectedCaseBonus = entry.point.case === researchMapState.inputs?.case ? -2.5 : 0;
+    const score = distance + selectedCaseBonus;
+    if (score < bestScore) {
+      best = { ...entry, distance };
+      bestScore = score;
+    }
+  });
+  return best;
+}
+
+function addTooltipField(list, label, value) {
+  const group = document.createElement("div");
+  const term = document.createElement("dt");
+  const detail = document.createElement("dd");
+  term.textContent = label;
+  detail.textContent = value;
+  group.append(term, detail);
+  list.appendChild(group);
+}
+
+function renderResearchMapTooltip(point) {
+  if (!researchMapTooltip || !point) {
+    return;
+  }
+  researchMapTooltip.innerHTML = "";
+  const title = document.createElement("strong");
+  title.textContent = `${caseLabel(point.case)} · ${typeLabel(point.type)}`;
+  const meta = document.createElement("span");
+  meta.textContent = point.case === researchMapState.inputs?.case
+    ? TEXT.selectedCasePoint
+    : TEXT.otherCasePoint;
+  const list = document.createElement("dl");
+  addTooltipField(list, "θ₁", formatMetric(point.theta1, 0));
+  addTooltipField(list, "θ₂", formatMetric(point.theta2, 0));
+  addTooltipField(list, "Pt", formatMetric(point.pt, 2));
+  addTooltipField(list, "Test", point.test_id || "-");
+  researchMapTooltip.append(title, meta, list);
+}
+
+function showResearchMapTooltip(point, cssX, cssY) {
+  if (!researchMapTooltip) {
+    return;
+  }
+  renderResearchMapTooltip(point);
+  researchMapTooltip.classList.remove("hidden");
+  const shell = researchMapTooltip.parentElement;
+  if (!shell) {
+    return;
+  }
+  const shellRect = shell.getBoundingClientRect();
+  const tooltipRect = researchMapTooltip.getBoundingClientRect();
+  const gap = 14;
+  let left = cssX + gap;
+  let top = cssY + gap;
+  if (left + tooltipRect.width > shellRect.width - 8) {
+    left = cssX - tooltipRect.width - gap;
+  }
+  if (top + tooltipRect.height > shellRect.height - 8) {
+    top = cssY - tooltipRect.height - gap;
+  }
+  researchMapTooltip.style.left = `${Math.max(8, left)}px`;
+  researchMapTooltip.style.top = `${Math.max(8, top)}px`;
+}
+
+function handleResearchMapPointer(event) {
+  const position = mapEventPosition(event);
+  if (!position) {
+    hideResearchMapTooltip();
+    return;
+  }
+  const nearest = nearestResearchMapPoint(position.canvasX, position.canvasY);
+  if (!nearest) {
+    hideResearchMapTooltip();
+    if (researchMapCanvas) {
+      researchMapCanvas.style.cursor = "default";
+    }
+    return;
+  }
+  if (researchMapCanvas) {
+    researchMapCanvas.style.cursor = "pointer";
+  }
+  showResearchMapTooltip(nearest.point, position.cssX, position.cssY);
+}
+
+function handleResearchMapDocumentPointer(event) {
+  if (!researchMapTooltip || researchMapTooltip.classList.contains("hidden")) {
+    return;
+  }
+  const shell = researchMapTooltip.parentElement;
+  if (!shell || shell.contains(event.target)) {
+    return;
+  }
+  hideResearchMapTooltip();
+  if (researchMapCanvas) {
+    researchMapCanvas.style.cursor = "default";
   }
 }
 
@@ -1255,15 +1396,26 @@ function drawDesignSpaceMap(points, inputs) {
     2: "#0c8fd8",
     3: "#df4b3f",
   };
+  const hoverPoints = [];
   (points || []).forEach((point) => {
     const type = point.type || 0;
     const radius = 3.5 + Math.min(3, Math.max(0, Number(point.pt || 0) / 12000));
+    const pointX = x(point.theta1);
+    const pointY = y(point.theta2);
+    hoverPoints.push({
+      x: pointX,
+      y: pointY,
+      radius,
+      point,
+    });
     ctx.beginPath();
     ctx.fillStyle = colors[type] || "#708195";
     ctx.globalAlpha = point.case === inputs?.case ? 0.78 : 0.32;
-    ctx.arc(x(point.theta1), y(point.theta2), radius, 0, Math.PI * 2);
+    ctx.arc(pointX, pointY, radius, 0, Math.PI * 2);
     ctx.fill();
   });
+  researchMapState = { hoverPoints, inputs };
+  hideResearchMapTooltip();
   ctx.globalAlpha = 1;
 
   if (inputs) {
@@ -2814,6 +2966,16 @@ if (exportReportPng) {
 
 if (exportReportPdf) {
   exportReportPdf.addEventListener("click", exportReportAsPdf);
+}
+
+if (researchMapCanvas) {
+  researchMapCanvas.addEventListener("mousemove", handleResearchMapPointer);
+  researchMapCanvas.addEventListener("click", handleResearchMapPointer);
+  researchMapCanvas.addEventListener("mouseleave", () => {
+    researchMapCanvas.style.cursor = "default";
+    hideResearchMapTooltip();
+  });
+  document.addEventListener("mousemove", handleResearchMapDocumentPointer);
 }
 
 setupThetaSliders(responseForm);
