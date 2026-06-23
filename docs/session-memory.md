@@ -10277,3 +10277,22 @@ Follow-up in same debugging pass:
   - `mypy --explicit-package-bases src/backend/api/v1/dd_laminate.py --ignore-missing-imports`
   - `pytest tests/backend/test_dd_laminate_ios_contract.py -q` -> 16 passed.
   - `node --check src/frontend/dd-laminate/app-v2.js`
+
+## 2026-06-23 - Research Insight Visibility Check
+
+- User reported Research Insight was not visible for θ₁=-30, θ₂=30, Case2.
+- Confirmed the backend design-space endpoint returns data for that input:
+  - status 200
+  - 509 map points
+  - 8 nearest points
+  - 8 recommendation candidates
+- Clarified behavior:
+  - Research Insight runs only on DD v2 `Laminate Forecast` and `u3 Forecast`
+    results.
+  - It does not run for Curve CSV preview/classification flows.
+  - Local `/` may still serve the legacy page unless the host is
+    `laminate.luvelox.com`; local v2 testing should use `/index-v2.html` or
+    the v2 route exposed by the server.
+- Updated DD v2 HTML asset query strings to
+  `20260623-research-insight` so browsers/Cloudflare fetch the current
+  `app-v2.js` and `styles-v2.css`.
