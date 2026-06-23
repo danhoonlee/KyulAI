@@ -1104,6 +1104,27 @@ summary:focus-visible {
   padding: 9px;
 }
 
+button.recommendation-card {
+  width: 100%;
+  cursor: pointer;
+  appearance: none;
+  text-align: left;
+  font: inherit;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+button.recommendation-card:hover {
+  border-color: #97d9f5;
+  box-shadow: 0 10px 24px rgba(12, 143, 216, 0.12);
+  transform: translateY(-1px);
+}
+
+button.recommendation-card:focus-visible {
+  outline: 3px solid rgba(12, 143, 216, 0.24);
+  outline-offset: 2px;
+  border-color: var(--cyan);
+}
+
 .recommendation-rank {
   display: grid;
   place-items: center;
@@ -1120,6 +1141,17 @@ summary:focus-visible {
   display: grid;
   gap: 3px;
   min-width: 0;
+}
+
+.recommendation-apply {
+  justify-self: start;
+  margin-top: 2px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--blue-soft);
+  color: var(--blue-strong);
+  font-size: 0.66rem;
+  font-weight: 900;
 }
 
 .research-notes {

@@ -61,6 +61,7 @@ const TEXT = {
   caseRisk: IS_KO ? "Case 위험도" : "Case risk",
   nearestSimulations: IS_KO ? "가까운 해석 데이터" : "Nearest simulations",
   recommendedCandidates: IS_KO ? "추천 후보" : "Recommended candidates",
+  applyCandidate: IS_KO ? "입력에 적용하고 예측" : "Apply and forecast",
   riskLow: IS_KO ? "낮음" : "Low",
   riskMedium: IS_KO ? "중간" : "Medium",
   riskHigh: IS_KO ? "높음" : "High",
@@ -1277,6 +1278,48 @@ function drawDesignSpaceMap(points, inputs) {
   ctx.restore();
 }
 
+function setForecastControlValue(form, name, value) {
+  if (!form) {
+    return;
+  }
+  const control = form.querySelector(`[name="${name}"]`);
+  if (!control) {
+    return;
+  }
+  control.value = name === "theta1" || name === "theta2"
+    ? formatThetaInputValue(value)
+    : String(value);
+  control.dispatchEvent(new Event(name === "case" ? "change" : "input", { bubbles: true }));
+}
+
+function submitForecastForm(form) {
+  if (!form) {
+    return;
+  }
+  const submitButton = form.querySelector('button[type="submit"]');
+  if (submitButton?.disabled) {
+    return;
+  }
+  if (typeof form.requestSubmit === "function") {
+    form.requestSubmit();
+    return;
+  }
+  form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+}
+
+function applyRecommendationCandidate(candidate, scope) {
+  const form = scope === "u3" ? u3PtForm : responseForm;
+  if (!form || !candidate) {
+    return;
+  }
+  setForecastControlValue(form, "theta1", candidate.theta1);
+  setForecastControlValue(form, "theta2", candidate.theta2);
+  setForecastControlValue(form, "case", candidate.case);
+  updateDynamicStackPreview();
+  clearError();
+  submitForecastForm(form);
+}
+
 function renderDesignSpace(insight) {
   if (!researchPanel) {
     return;
@@ -1321,16 +1364,24 @@ function renderDesignSpace(insight) {
 
   researchRecommendations.innerHTML = "";
   (insight.recommendations || []).slice(0, 5).forEach((candidate, index) => {
-    const item = document.createElement("article");
-    item.className = "recommendation-card";
+    const candidateCaseLabel = String(candidate.case || TEXT.unknown).replace("Case", "Case ");
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "recommendation-card recommendation-action";
+    item.setAttribute(
+      "aria-label",
+      `${TEXT.applyCandidate}: ${candidateCaseLabel} θ₁ ${formatMetric(candidate.theta1, 0)} θ₂ ${formatMetric(candidate.theta2, 0)}`,
+    );
     item.innerHTML = `
       <div class="recommendation-rank">${index + 1}</div>
       <div>
-        <strong>${candidate.case.replace("Case", "Case ")} · θ₁ ${formatMetric(candidate.theta1, 0)} / θ₂ ${formatMetric(candidate.theta2, 0)}</strong>
+        <strong>${candidateCaseLabel} · θ₁ ${formatMetric(candidate.theta1, 0)} / θ₂ ${formatMetric(candidate.theta2, 0)}</strong>
         <span>Pt ${formatMetric(candidate.expected_pt, 0)} · ${TEXT.observedType} ${candidate.observed_type ?? "-"} · ${TEXT.score} ${percent(candidate.score)}</span>
         <p>${localizeResearchText(candidate.rationale)}</p>
+        <small class="recommendation-apply">${TEXT.applyCandidate}</small>
       </div>
     `;
+    item.addEventListener("click", () => applyRecommendationCandidate(candidate, insight.scope));
     researchRecommendations.appendChild(item);
   });
 

@@ -10302,3 +10302,34 @@ Follow-up in same debugging pass:
     selected Case points are drawn with stronger opacity.
   - Added English/Korean map legends under the Research Insight canvas.
   - Bumped DD v2 asset query strings again to `20260623-research-legend`.
+
+## 2026-06-23 - Research Insight Candidate Apply
+
+- User chose the first next-step feature: make Research Insight recommended
+  candidates actionable.
+- Added click behavior to `Recommended candidates` cards:
+  - Card is now a real button.
+  - Clicking it applies candidate `θ₁`, `θ₂`, and `Case` to the active forecast
+    form.
+  - It then immediately submits the matching forecast mode:
+    - `Laminate Forecast` -> `POST /predict/response`
+    - `u3 Forecast` -> `POST /predict/u3-forecast`
+  - Existing model selection is preserved.
+- Added English/Korean compact CTA text:
+  - English: `Apply and forecast`
+  - Korean: `입력에 적용하고 예측`
+- Updated button styling so recommendation cards read as clickable without
+  changing the research card layout.
+- Bumped DD v2 asset query strings to `20260623-recommendation-apply`.
+- Verification:
+  - `node --check src/frontend/dd-laminate/app-v2.js`
+  - `git diff --check -- src/frontend/dd-laminate/app-v2.js src/frontend/dd-laminate/index-v2.html src/frontend/dd-laminate/index-v2.ko.html src/frontend/dd-laminate/styles-v2.css`
+  - `python -m pytest tests/backend/test_dd_laminate_ios_contract.py::test_design_space_endpoint_returns_research_context -q`
+  - Browser smoke test on `http://127.0.0.1:8000/index-v2.html`:
+    - Ran default Response Forecast.
+    - Confirmed 5 recommendation buttons render.
+    - Clicked first candidate (`Case3`, `θ₁=32`, `θ₂=-60`).
+    - Confirmed the Response Forecast form changed to `θ₁=32`, `θ₂=-60`,
+      `Case3`.
+    - Confirmed prediction refreshed with Pt `16,960.47` and Research Insight
+      reloaded with 5 recommendation buttons.
