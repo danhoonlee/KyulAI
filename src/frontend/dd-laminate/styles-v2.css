@@ -1122,13 +1122,17 @@ summary:focus-visible {
 
 .comparison-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
 .comparison-card {
   display: grid;
-  gap: 7px;
+  grid-template-columns: minmax(150px, 0.3fr) minmax(0, 1fr);
+  grid-template-areas:
+    "label metrics"
+    "identity metrics";
+  align-items: center;
+  gap: 4px 12px;
   min-width: 0;
   padding: 9px;
   border: 1px solid #d9e4ef;
@@ -1137,6 +1141,7 @@ summary:focus-visible {
 }
 
 .comparison-card > span {
+  grid-area: label;
   color: var(--blue-strong);
   font-size: 0.67rem;
   font-weight: 950;
@@ -1149,12 +1154,14 @@ summary:focus-visible {
 }
 
 .comparison-card strong {
+  grid-area: identity;
   color: var(--ink);
   font-size: 0.78rem;
   font-weight: 920;
 }
 
 .comparison-card dl {
+  grid-area: metrics;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
@@ -1491,6 +1498,8 @@ button.recommendation-card:focus-visible {
   .preview-stats,
   .two-col,
   .comparison-grid,
+  .comparison-card,
+  .comparison-card dl,
   .case-insight-list,
   .case-insight-card,
   .case-insight-card dl,
@@ -1500,6 +1509,13 @@ button.recommendation-card:focus-visible {
 
   .comparison-head {
     display: grid;
+  }
+
+  .comparison-card {
+    grid-template-areas:
+      "label"
+      "identity"
+      "metrics";
   }
 
   .topbar {

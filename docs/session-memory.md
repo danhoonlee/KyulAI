@@ -10437,3 +10437,16 @@ Follow-up in same debugging pass:
     - `case-insight-list` has one grid column.
     - the first card uses two internal columns.
     - selected Case highlight remains.
+- Follow-up comparison layout change:
+  - User asked to make the `Current input vs top candidate` section horizontal
+    as well.
+  - Changed the comparison grid from two compact side-by-side cards into two
+    full-width rows.
+  - Each row now keeps the Case/theta identity on the left and Pt/Type/Risk
+    metrics on the right.
+  - Mobile still collapses the row internals into a single column.
+  - Bumped DD v2 asset query strings to `20260623-comparison-rows`.
+  - Browser smoke check confirmed:
+    - 2 comparison cards render.
+    - `.comparison-grid` has one grid column.
+    - the first comparison row uses two internal columns.
