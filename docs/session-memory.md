@@ -169,6 +169,237 @@ Start implementation with the Data Engineering foundation:
 
 After this, Backend and AI/ML can depend on stable data contracts.
 
+## 2026-06-23 DD Native App Research Insight Update
+
+The DD Laminate web v2 Research Insight work was extended into the native app
+surface.
+
+Implemented:
+
+- Android Luvelox/C2ES Laminate app now calls
+  `/api/v1/dd-laminate/design-space` after a successful response forecast.
+- Android result screen now shows a compact Research Insight card with:
+  - Top candidate
+  - recommendation score breakdown: Pt, Type, Distance, Total
+  - Case behavior zones
+- iOS shared `KyulAIDDLaminateCore` now includes `DesignSpaceRequest`,
+  `DesignSpaceResponse`, `DesignSpaceRecommendation`,
+  `DesignSpaceScoreBreakdown`, and `DesignSpaceCaseInsight`.
+- iOS shared API client now supports the design-space endpoint.
+- iOS `PredictionViewModel` lazily loads response design-space insight after
+  successful Laminate Forecast prediction without blocking the prediction if
+  insight loading fails.
+- iOS Luvelox Laminate forecast view shows compact Research Insight UI below
+  class probabilities.
+
+Verification:
+
+- `swift test` in `ios/DDLaminateMVP` passed: 11 tests.
+- `swift build` in `ios/LuveloxMVP` passed.
+- Initial Android build failed because system Java was not configured.
+- Homebrew `openjdk@17` was available and used with:
+  `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home`.
+- Android build passed with `gradle :app:assembleDebug`.
+- Latest debug APK:
+  `android/LuveloxMVP/app/build/outputs/apk/debug/app-debug.apk`.
+- Convenience copy:
+  `artifacts/android/C2ES-debug-design-space.apk`.
+
+## 2026-06-24 Native Design-Space Map Follow-Up
+
+The native DD Laminate result screens were updated so Research Insight maps are
+inspectable like the web UI.
+
+Implemented:
+
+- iOS `DDLaminateMVP` result detail Research Insight map now supports tapping
+  dots to select the nearest experiment point.
+- iOS map now shows a selected-point panel with Case, Test ID, theta values,
+  Pt, Type, and distance.
+- iOS map now shows nearest experiment-point rows that can also be tapped to
+  change the selected point.
+
+## 2026-06-25 DD Laminate Web Report Export Fix
+
+The DD Laminate web v2 report export was updated because PNG/PDF downloads were
+still using an older fixed report canvas and did not include the full current
+result surface.
+
+Implemented:
+
+- `src/frontend/dd-laminate/app-v2.js` now builds report exports from the
+  current prediction result plus visible XAI and Research Insight sections.
+- Report PNG now includes the response curve, design-space map, XAI feature
+  explanations, current-vs-candidate comparison, Case behavior zones, Case risk,
+  nearest simulations, recommended candidates, and notes when those panels are
+  loaded.
+- Report PDF now slices the tall report canvas into printable page images so
+  long reports are not clipped into a single oversized image.
+- Lazy XAI and design-space responses now merge into `latestPredictionData`
+  even when the other async result has already updated that object.
+- `index-v2.html` and `index-v2.ko.html` now use
+  `app-v2.js?v=20260625-report-full` to avoid stale browser cache.
+
+Verification:
+
+- `node --check src/frontend/dd-laminate/app-v2.js` passed.
+- Temporary local DD server on `127.0.0.1:3000` served the updated
+  `index-v2.html` script tag.
+- `/api/v1/dd-laminate/predict/response`, `/xai/local`, and `/design-space`
+  returned valid data for a sample `theta1=30`, `theta2=-30`, `Case3` request.
+
+## 2026-06-25 DD Laminate Current Input Tooltip
+
+The web Laminate Design-space map now treats the purple `Current input` point
+as an interactive map point instead of drawing it as a visual-only marker.
+
+Implemented:
+
+- Current input is added to the map hover target list with model-estimated Type,
+  Pt, and confidence from `latestPredictionData`.
+- Tooltip copy distinguishes current model estimates from dataset observation
+  points.
+- The current input marker receives hover priority when it overlaps nearby
+  curated simulation points.
+- `index-v2.html` and `index-v2.ko.html` now use
+  `app-v2.js?v=20260625-current-input-tooltip`.
+
+Verification:
+
+- `node --check src/frontend/dd-laminate/app-v2.js` passed.
+- `git diff --check` on touched DD web files passed.
+- Temporary local server on `127.0.0.1:3000` served the updated script tag and
+  JS containing `currentInputPoint`, `isCurrentInput`, and current-input hover
+  priority logic.
+
+## 2026-06-25 DD Laminate Workflow Grid Alignment
+
+The DD Laminate web v2 workflow summary strip was aligned with the three actual
+work columns below it.
+
+Implemented:
+
+- `styles-v2.css` now defines shared `--workspace-columns` variables for the
+  Forecast setup, preview, and Prediction columns.
+- The top `01 Set case / 02 Pick model / 03 Review` cards now use the same
+  grid tracks as the lower workspace grid.
+- Curve CSV and u3 modes keep their mode-specific column widths, and the
+  summary strip receives matching `curve-active` / `u3-active` classes.
+- At tablet widths where the lower workspace collapses to one column, the
+  summary strip also collapses to one column.
+- English and Korean pages now load `styles-v2.css?v=20260625-workflow-grid`
+  and `app-v2.js?v=20260625-workflow-grid`.
+
+Verification:
+
+- `node --check src/frontend/dd-laminate/app-v2.js` passed.
+- `git diff --check` on touched DD web files passed.
+- Temporary local server on `127.0.0.1:3000` served the updated CSS/JS version
+  tags for both English and Korean pages.
+
+## 2026-06-24 Android Design-Space Map Follow-Up
+
+Implemented:
+
+- Android result screen design-space map now has explicit loading/error states,
+  a map-point count label, a fixed measured map size, a visible field
+  background, horizontal scrolling, selected-point details, and nearest-point
+  buttons.
+- The live design-space API was checked and returns `map_points`, so the
+  remaining Android risk is stale APK/device install state or device-specific
+  rendering, not missing server data.
+
+Verification:
+
+- `swift test` in `ios/DDLaminateMVP` passed: 11 tests.
+- `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+- Android debug build passed with:
+  `JAVA_HOME=/Applications/PyCharm.app/Contents/jbr/Contents/Home gradle :app:assembleDebug`.
+- Latest Android APK copies:
+  `artifacts/android/C2ES-debug-design-space-map.apk` and
+  `artifacts/android/C2ES-debug-design-space-map-v2.apk`.
+
+## 2026-06-24 iOS Response Curve Zoom Update
+
+The iOS DD Laminate response-curve chart was updated so overlapping curve,
+linear-fit, kink-guide, and Pt markers can be inspected more clearly.
+
+Implemented:
+
+- `CurveChartView` now supports pinch zoom up to 500%.
+- The chart can be panned while zoomed.
+- Compact zoom controls were added: zoom out, current zoom percentage, zoom in,
+  and reset.
+- Chart axes, curve, two red linear-fit slopes, kink guide, selected point, and
+  Pt marker now use the same viewport-aware coordinate system.
+- Result-detail response curves were given more vertical space.
+- Report/share image rendering keeps chart controls hidden.
+
+Verification:
+
+- `swift test` in `ios/DDLaminateMVP` passed: 11 tests.
+- `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+- XcodeBuildMCP built and launched `LuveloxMVPHost` on the iPhone 17 simulator.
+
+## 2026-06-24 DD Laminate Classic Removal And iOS History Cards
+
+User asked to stop exposing the old Classic DD Laminate UI and to make the iOS
+empty result area more useful.
+
+Implemented:
+
+- iOS `DDLaminateModuleView` now opens the current `ContentViewV2` screen
+  directly instead of showing a `v2` / `Classic` design picker.
+- iOS `ContentViewV2` navigation title no longer says `v2`; it is presented as
+  the normal Laminate screen.
+- When Laminate Forecast or u3 Forecast has no active result, the old
+  `Ready for input` panel now shows compact prediction-history cards if recent
+  runs exist.
+- History cards are mode-specific and summarize Case, model, θ₁, θ₂, Type,
+  confidence, and Pt; tapping a card restores that setup.
+- Web DD Laminate v2 titles no longer include `v2`.
+- Web v2 headers no longer link to Classic.
+- Direct classic URLs (`index.html`, `index.ko.html`) now redirect to the
+  current forecast pages so the old UI is hidden.
+
+Verification:
+
+- `swift test` in `ios/DDLaminateMVP` passed: 11 tests.
+- `swift build` in `ios/LuveloxMVP` passed.
+- Repository search found no remaining visible `Classic`, `Wanted v2`,
+  `Laminate v2`, or `적층 v2` strings in DD Laminate web/app surfaces.
+
+## 2026-06-24 DD Laminate Web And Android Prediction History
+
+User asked to add the same prediction-history idea to Android and web if it was
+missing.
+
+Implemented:
+
+- Web DD Laminate v2 now stores recent Response Forecast and u3 Forecast runs in
+  `localStorage`.
+- Web empty result panel now shows mode-specific prediction-history cards when
+  recent runs exist.
+- Web history cards summarize Case, θ₁, θ₂, Type, confidence, Pt, and model.
+- Tapping a web history card restores that setup into the active prediction
+  form.
+- Web mobile layout now keeps the result panel visible when history exists,
+  instead of hiding it just because there is no active result.
+- Android native Laminate screen now stores recent Response Forecast summaries
+  in app preferences.
+- Android Laminate screen now shows compact recent forecast cards below the
+  input form.
+- Tapping an Android history card restores Case, θ₁, θ₂, and model selection.
+- New Android debug APK copied to:
+  `artifacts/android/C2ES-debug-prediction-history.apk`.
+
+Verification:
+
+- `node --check src/frontend/dd-laminate/app-v2.js` passed.
+- `JAVA_HOME=/Applications/PyCharm.app/Contents/jbr/Contents/Home gradle :app:assembleDebug`
+  in `android/LuveloxMVP` passed.
+- `git diff --check` on touched web/Android files passed.
+
 ## Current Code Status As Of Latest Review
 
 The repository now contains the first product implementation slice for the Data
@@ -10477,3 +10708,2328 @@ Follow-up in same debugging pass:
     - `/Users/danlee/KyulAI_codex/.venv/bin/ruff check src/backend/api/v1/dd_laminate.py tests/backend/test_dd_laminate_ios_contract.py`
     - Browser smoke check confirmed score chips render:
       `Pt 29.2%`, `Type 18%`, `Distance 7.5%`, `Total 54.7%`.
+
+## 2026-06-23 - iOS DD Laminate graph/XAI parity pass
+- User reported the iOS app was tangled and did not match the web content,
+  starting with a mismatched DD Laminate graph.
+- Root cause:
+  - Web v2 renders response curves from backend `curve_fit` when available.
+  - iOS decoded only `curve`/`predicted_pt` and recomputed bilinear fits locally,
+    so slope/intersection placement could diverge from the web.
+  - Web now loads XAI separately through `/api/v1/dd-laminate/xai/local`, but
+    iOS only displayed XAI when it was embedded in the prediction response.
+- Changes:
+  - Added iOS Core models for `curve_fit`:
+    `ResponseCurveFit`, fit lines, fit points, and fit windows.
+  - Added optional `curveFit` decoding to `ResponsePredictionResult` and
+    `U3PtPredictionResult`.
+  - Updated all DD iOS graph callsites to pass `curveFit`.
+  - Reworked `CurveChartView` so standard Laminate Forecast graphs prefer
+    backend `curve_fit`, while u3 keeps its web-style u3 fit behavior.
+  - Made the chart module public enough for the Luvelox package to reuse.
+  - Added `/xai/local` support to the iOS API client and ViewModel:
+    if prediction responses do not include XAI, iOS now fetches local XAI with
+    the same `theta1`, `theta2`, `Case`, and model key, then attaches it before
+    presenting the result detail.
+  - Added a compact graph + XAI block to the Luvelox-specific
+    `LaminateForecastView`; the actual app path currently opens
+    `DDLaminateModuleView`, which also received the graph/XAI fixes.
+- Verification:
+  - `swift test` in `ios/DDLaminateMVP`: 11 tests passed.
+  - `swift build` in `ios/LuveloxMVP`: passed.
+  - XcodeBuildMCP simulator run:
+    - project: `ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj`
+    - scheme: `LuveloxMVPHost`
+    - simulator: `iPhone 17`
+    - build/install/launch succeeded.
+  - Simulator smoke flow:
+    - opened C2ES app
+    - opened Laminate module
+    - ran default `Case2`, `theta1=30`, `theta2=-30` forecast
+    - result showed Type 2, Predicted Pt `17,163.21`, 128 curve points
+    - graph showed Pt label/marker at `17,163.21`
+    - XAI detail card appeared with `Why this prediction?` and feature
+      importance rows, e.g. `D11 bending stiffness` at `23.4%`.
+  - Useful simulator screenshots from this pass:
+    - graph view:
+      `/var/folders/7p/c3j_sb0j539805ngspmnb34r0000gn/T/screenshot_optimized_816dfc7a-7eee-49de-b290-0433d21e4862.jpg`
+    - XAI view:
+      `/var/folders/7p/c3j_sb0j539805ngspmnb34r0000gn/T/screenshot_optimized_bc89dc88-a5c0-428f-b74d-d1f84b72355b.jpg`
+
+## 2026-06-23 - iOS DD Laminate Research Insight parity pass
+- User asked to keep adding the next web features into the iOS app after the
+  graph/XAI parity pass.
+- Added iOS Research Insight support for both Laminate Forecast and u3 Forecast:
+  - `PredictionViewModel` now loads design-space context for u3 as well as
+    response forecasts.
+  - iOS detail routes now carry the current `DesignSpaceResponse` into result
+    detail pages.
+  - Added a shared `ResearchInsightCard` to the DD iOS result detail screen.
+  - The card mirrors the web feature hierarchy:
+    `Current input vs top candidate`, `Recommendation score`, and
+    `Case behavior zones`.
+  - Recommendation score displays Pt, Type, Distance, and Total percentages.
+  - Case behavior zones are shown as vertical rows for Case 2/3/4, matching the
+    revised web layout direction.
+- Verification:
+  - `swift test` in `ios/DDLaminateMVP`: 11 tests passed.
+  - `swift build` in `ios/LuveloxMVP`: passed.
+  - XcodeBuildMCP simulator run succeeded with:
+    - project: `ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj`
+    - scheme: `LuveloxMVPHost`
+    - simulator: `iPhone 17`
+  - Laminate Forecast smoke check:
+    - default `Case2`, `theta1=30`, `theta2=-30`
+    - Research Insight appeared with top candidate:
+      `Case 3 · theta1 +32 deg · theta2 -60 deg`
+    - score chips appeared: Pt `29.2%`, Type `18.0%`,
+      Distance `7.5%`, Total `54.7%`.
+  - u3 Forecast smoke check:
+    - default `Case2`, `theta1=30`, `theta2=-30`
+    - result showed Predicted Pt `10,205.06` and graph label `Pt 10,205.06`
+    - Research Insight appeared with top candidate:
+      `Case 4 · theta1 -38 deg · theta2 -40 deg`
+    - score chips appeared: Pt `72.0%`, Type `12.6%`,
+      Distance `5.7%`, Total `90.3%`.
+  - Useful simulator screenshots from this pass:
+    - Laminate Research Insight:
+      `/var/folders/7p/c3j_sb0j539805ngspmnb34r0000gn/T/screenshot_optimized_8bb48db7-3e9a-4f78-9b98-9cb12f0c67ed.jpg`
+    - u3 Research Insight:
+      `/var/folders/7p/c3j_sb0j539805ngspmnb34r0000gn/T/screenshot_optimized_d86f2a6a-5bbe-4c49-83da-1bfa3031142c.jpg`
+
+## 2026-06-23 - iOS DD Laminate Design-space map polish
+- User asked whether the theta range text such as `-56 to 67` could be made
+  easier to read, and whether a design-space dot graph could be added to the
+  app.
+- Changes:
+  - Replaced range wording with a compact angle format:
+    `theta1 -56 deg to +67 deg` -> `theta1 -56° ~ +67°`.
+  - Changed Research Insight angle labels from `deg` to `°`.
+  - Added `DesignSpacePoint` and `mapPoints` decoding on iOS for backend
+    `map_points`.
+  - Added a compact SwiftUI `Canvas` design-space scatter map inside the iOS
+    `ResearchInsightCard`.
+  - Map rules match the web behavior:
+    - Type 1/2/3 color coding.
+    - Same-Case points are stronger, other Case points are faded.
+    - Current input is a purple marker.
+    - Top candidate is a highlighted diamond marker.
+    - Axes are theta1 x theta2 from -90 to +90.
+- Verification:
+  - `swift test` in `ios/DDLaminateMVP`: 11 tests passed.
+  - `swift build` in `ios/LuveloxMVP`: passed.
+  - XcodeBuildMCP build/run succeeded on `iPhone 17`.
+  - Laminate Forecast simulator smoke check confirmed:
+    - `Design-space map` appears in Research Insight.
+    - Range labels render as e.g.
+      `theta1 -56° ~ +67° · theta2 -66° ~ +65°`.
+  - u3 Forecast simulator smoke check confirmed:
+    - `Design-space map` appears in Research Insight.
+    - Candidate/current angle labels use `°`.
+  - Useful simulator screenshots from this pass:
+    - Laminate map:
+      `/var/folders/7p/c3j_sb0j539805ngspmnb34r0000gn/T/screenshot_optimized_0812630a-13b1-4d88-bf79-5dfd8aad96a6.jpg`
+    - u3 map:
+      `/var/folders/7p/c3j_sb0j539805ngspmnb34r0000gn/T/screenshot_optimized_62c3cd25-764a-4108-a10a-e237022cafa9.jpg`
+
+## 2026-06-23 - iOS DD Laminate v2 result-detail refresh
+- User reported that the iOS result page still looked like the old classic
+  page even when entering from the v2 Laminate screen.
+- Cause:
+  - The v2 input screen and the classic input screen both route into the same
+    shared `ResultDetailView` / `U3PtResultDetailView`.
+  - The shared detail views still used the older classic-style result layout.
+- Changes:
+  - Refreshed the shared Laminate Forecast result detail into a v2-style page:
+    dark gradient hero, compact confidence/model/points badges, stronger metric
+    tiles, v2 section headers, and the existing curve/XAI/research cards below.
+  - Refreshed the shared u3 Forecast result detail with the same v2 treatment.
+  - Kept the backend curve-fit, Pt marker, XAI, and Research Insight behavior
+    unchanged; this pass was visual/readability-focused.
+- Verification:
+  - `swift test` in `ios/DDLaminateMVP`: 11 tests passed.
+  - `swift build` in `ios/LuveloxMVP`: passed.
+  - XcodeBuildMCP simulator smoke check on `iPhone 17` confirmed:
+    - Laminate Forecast result detail shows the v2 hero and result cards.
+    - u3 Forecast result detail shows the v2 hero and result cards.
+  - Useful simulator screenshots from this pass:
+    - Laminate v2 result detail:
+      `/var/folders/7p/c3j_sb0j539805ngspmnb34r0000gn/T/screenshot_optimized_4ae91a4e-f7d5-43d8-8d31-c9643584b1e7.jpg`
+    - u3 v2 result detail:
+      `/var/folders/7p/c3j_sb0j539805ngspmnb34r0000gn/T/screenshot_optimized_bb18fa12-8b9f-4412-a739-73dff27d5cf9.jpg`
+
+## 2026-06-23 - iOS Research Insight Case-zone readability polish
+- User said the three `Case behavior zones` examples were hard to distinguish,
+  especially the two theta ranges inside each row.
+- Changes:
+  - Updated the shared iOS `ResearchInsightCard` case-zone rows.
+  - Each Case row now has a stronger Case-specific accent color:
+    Case 2 blue, Case 3 cyan, Case 4 amber.
+  - Added a colored Case badge, tinted background, and stronger border.
+  - Split theta ranges into two separate chips:
+    `theta1 range` and `theta2 range` are no longer combined into one dense
+    sentence.
+  - Separated Best Pt, Type, sample count, and focus-rate information into
+    distinct visual positions.
+- Verification:
+  - `swift test` in `ios/DDLaminateMVP`: 11 tests passed.
+  - `swift build` in `ios/LuveloxMVP`: passed.
+  - XcodeBuildMCP build/run succeeded on `iPhone 17`.
+  - Laminate Forecast simulator smoke check confirmed the updated
+    `Case behavior zones` layout.
+  - Useful simulator screenshot:
+    `/var/folders/7p/c3j_sb0j539805ngspmnb34r0000gn/T/screenshot_optimized_f81cb8c9-759e-48b2-a72b-0b499e41c744.jpg`
+
+## 2026-06-23 - Web Research Insight Case-zone readability polish
+- User asked to apply the same Case behavior zone readability improvement to
+  the web DD Laminate v2 UI.
+- Changes:
+  - Updated `src/frontend/dd-laminate/app-v2.js` Case Insight rendering.
+  - Case rows now receive stable classes for Case 2, Case 3, and Case 4.
+  - Theta ranges now use a compact `~` range separator in all languages.
+  - Split dense theta range text into separate theta1/theta2 range chips.
+  - Split Best Pt, Best theta, Best Type, and sample coverage into separate
+    metric cells.
+  - Updated `src/frontend/dd-laminate/styles-v2.css` with Case-specific colors:
+    Case 2 blue, Case 3 cyan, Case 4 amber.
+  - Added stronger card backgrounds, colored badges, borders, and mobile metric
+    grid behavior.
+  - Updated `index-v2.html` and `index-v2.ko.html` cache-bust query strings to
+    `v=20260623-case-zones` so browsers request the new JS/CSS.
+- Verification:
+  - `node --check src/frontend/dd-laminate/app-v2.js` passed.
+  - `git diff --check` for the changed DD web v2 files passed.
+  - `http://127.0.0.1:8000/index-v2.html` returned HTTP 200 while the local DD
+    server was running.
+  - A live design-space POST previously returned 3 `case_insights` for the
+    default `Case2`, `theta1=30`, `theta2=-30` response request; later POST
+    smoke attempts were intermittent in the sandbox, while the server process
+    remained listening on port 8000.
+
+## 2026-06-23 - C2ES app login-screen check
+- User asked whether the mobile app was missing a login page.
+- Findings:
+  - iOS and Android both have a login page; the app skips it when a saved
+    account/demo session exists.
+  - iOS stores the session under `luvelox.auth.session.v1` in `UserDefaults`.
+  - Android stores the session under the `luvelox_auth` SharedPreferences.
+  - Both apps expose `Sign out`, which clears the saved session and re-renders
+    the login page.
+- Verification:
+  - XcodeBuildMCP simulator check on `iPhone 17` first showed the app already
+    inside the workspace as `Demo Account · 2 modules`.
+  - Tapping `Sign out` immediately displayed the login page with email,
+    password, `Sign in`, `Create a new account`, and
+    `Continue with demo account`.
+
+## 2026-06-23 - C2ES app session timeout
+- User asked whether the app can automatically log out after staying logged in
+  for some time.
+- Decision:
+  - Added a local 24-hour session lifetime to both iOS and Android apps.
+  - Existing saved sessions without a timestamp are migrated by assigning the
+    first app launch time after this update, so users are not logged out
+    immediately on upgrade.
+- iOS:
+  - Stores `luvelox.auth.saved_at.v1` next to the existing
+    `luvelox.auth.session.v1` session in `UserDefaults`.
+  - Checks expiry on startup, refresh/request actions, and app active-state
+    transitions.
+  - Expired sessions are cleared and the login screen shows
+    `Session expired. Please sign in again.`
+  - Added tests for expired-session clearing and legacy-session timestamp
+    migration.
+- Android:
+  - Stores `saved_at_ms` next to the existing `luvelox_auth` SharedPreferences
+    values.
+  - Checks expiry on startup, resume, and before opening a module.
+  - Expired sessions are cleared and the login screen shows the same message.
+- Verification:
+  - `swift test` in `ios/LuveloxMVP`: 6 tests passed.
+  - `swift build` in `ios/LuveloxMVP`: passed.
+  - XcodeBuildMCP `build_run_sim` for `LuveloxMVPHost` on `iPhone 17`: passed.
+  - Runtime UI snapshot showed the login screen with email/password fields,
+    `Sign in`, `Create a new account`, and `Continue with demo account`.
+  - Android `gradle :app:assembleDebug` passed when run with
+    `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home`.
+
+## 2026-06-23 - C2ES app Optimization module routing
+- User asked whether Optimization was reflected in the app.
+- Findings:
+  - Optimization backend/API and web page already existed:
+    `/api/v1/optimization/search` and `src/frontend/luvelox/optimization.html`.
+  - iOS/Android apps already listed the Optimization module, but the fallback
+    copy still treated it as planned/coming soon and the app route pointed at
+    the generic `https://ai.luvelox.com` module page.
+- Changes:
+  - Updated iOS and Android fallback module metadata to treat Optimization as
+    an active, access-controlled module.
+  - Updated Optimization module route to
+    `https://ai.luvelox.com/optimization.html`.
+  - Updated login preview copy from `Coming soon` to `Design search`.
+  - iOS now opens granted Optimization access inside the existing in-app
+    WebView with the session token attached.
+  - Android now opens Optimization with the existing WebView activity and the
+    session token attached.
+- Verification:
+  - `swift test` in `ios/LuveloxMVP`: 6 tests passed.
+  - `swift build` in `ios/LuveloxMVP`: passed.
+  - Android `gradle :app:assembleDebug` passed with Java 17 `JAVA_HOME`.
+  - XcodeBuildMCP simulator smoke:
+    - Login preview shows Optimization as `Design search`.
+    - Dan Lee account shows `Optimization` as `Available`.
+    - `Open Optimize` opens the in-app `Optimization` WebView.
+  - Useful simulator screenshot:
+    `/var/folders/7p/c3j_sb0j539805ngspmnb34r0000gn/T/screenshot_optimized_75752447-0c90-48df-9aba-8f02cacb38bc.jpg`
+
+## 2026-06-23 - Admin account control inside the app
+- User asked whether accounts can be controlled from the app Admin surface.
+- Decision:
+  - The mobile apps already open Admin through the shared in-app WebView with
+    the `session_token`, so account management should be implemented in the
+    Admin web/API layer and will be visible from both iOS and Android.
+- Backend changes:
+  - Added admin account creation:
+    `POST /api/v1/modules/admin/users`.
+  - Added admin profile update:
+    `PUT /api/v1/modules/admin/users/{user_id}/profile`.
+  - Account creation supports selected module entitlements. If entitlements are
+    omitted, default Laminate/Injection access is used; if an empty list is
+    sent, the account is created with no module access.
+- Admin UI changes:
+  - Added a `Create account` / `계정 생성` card to `admin.html` and
+    `admin.ko.html`.
+  - Added module entitlement checkboxes for new accounts.
+  - Added per-user `Edit profile` / `정보 수정` action next to password reset.
+  - Existing module access toggles and password reset remain available.
+  - Bumped Admin asset cache version to `20260623-admin-account`.
+- Verification:
+  - `/Users/danlee/KyulAI_codex/.venv/bin/python -m pytest tests/backend/test_luvelox_modules.py`:
+    29 passed.
+  - `node --check src/frontend/luvelox/admin.js`: passed.
+  - `git diff --check`: passed.
+
+## 2026-06-24 - C2ES app interactive design-space map
+- User asked for the in-app design-space map to show point details when dots
+  are tapped, and to remain usable when the map does not fit the screen.
+- iOS changes:
+  - Added an interactive `InteractiveDesignSpaceMapView` inside
+    `ios/LuveloxMVP/Sources/LuveloxApp/LaminateForecastView.swift`.
+  - The map is wider than the card and wrapped in a horizontal `ScrollView`,
+    so users can pan across the full theta1/theta2 design space.
+  - Tapping a map dot selects the nearest simulation/design point and shows
+    Case, Test ID, theta1, theta2, Pt, Type, and distance below the map.
+  - Current input and top candidate markers remain visually distinct.
+- Android changes:
+  - Preserved backend `map_points` in
+    `android/LuveloxMVP/app/src/main/java/com/luvelox/app/LaminateActivity.kt`.
+  - Added a custom `DesignSpaceMapView` in
+    `android/LuveloxMVP/app/src/main/java/com/luvelox/app/LaminateResultActivity.kt`.
+  - The map is placed in a `HorizontalScrollView`; short taps select points,
+    while drags continue to scroll the map.
+  - Point details update in a compact info panel below the map.
+- Artifact:
+  - Copied the refreshed Android APK to
+    `artifacts/android/C2ES-debug-design-space-map.apk`.
+- Verification:
+  - `swift test` in `ios/LuveloxMVP`: 6 tests passed.
+  - Android `gradle :app:assembleDebug` passed with Java 17 `JAVA_HOME`.
+  - `git diff --check`: passed.
+
+## 2026-06-24 - Android design-space map visibility cleanup
+- User reported that the Android app still did not show the design-space map.
+- Applied the `ai-slop-cleaner` workflow to the Android Laminate result path.
+- Behavior lock:
+  - The backend design-space endpoint was already known to return
+    `map_points`; the Android path was treated as the display/failure-handling
+    layer to lock.
+  - Android `gradle :app:assembleDebug` passed after the fix.
+- Fallback/slop findings:
+  - The design-space API call used a silent `getOrNull()` path, so failures
+    could be hidden from the result screen.
+  - The map rendering was too tightly coupled to the recommendation/candidate
+    block instead of being shown whenever `map_points` exist.
+- Changes:
+  - `LaminateActivity.kt` now carries either parsed design-space data or an
+    explicit design-space error into `LaminateResultActivity`.
+  - `LaminateResultActivity.kt` now renders the design-space map whenever
+    `mapPoints` is non-empty, independent of whether a top candidate exists.
+  - If the design-space request fails, the result page shows a visible
+    unavailable card instead of silently omitting Research Insight.
+  - Refreshed Android APK artifact:
+    `artifacts/android/C2ES-debug-design-space-map.apk`.
+- Verification:
+  - Android `gradle :app:assembleDebug` passed with Java 17 `JAVA_HOME`.
+  - Android `gradle :app:lintDebug` passed with Java 17 `JAVA_HOME`.
+  - `git diff --check` passed.
+
+## 2026-06-24 - Workspace refresh and password visibility UX
+- User reported that the Android Workspace `Prediction modules` Refresh button
+  did not visibly react, and that the login email/password fields were too
+  cramped with password text visible.
+- Product rule captured:
+  - When a login/password UX issue is fixed on one platform, check and align
+    Android, iOS, and web instead of leaving platform-specific drift.
+- Android unified app:
+  - Enlarged login input vertical padding/min-height.
+  - Password field now uses password masking by default.
+  - Added a side `Show` / `Hide` button for password visibility.
+  - Refresh now disables itself while loading, changes to `Refreshing...`, and
+    shows status text such as `Modules refreshed` or `Offline fallback shown`.
+- iOS unified app:
+  - Replaced the plain `SecureField` with a password entry row that supports
+    show/hide via an eye icon while staying masked by default.
+  - Increased login field height to reduce cramped input appearance.
+  - Workspace Refresh now shows text plus progress/refresh state instead of an
+    icon-only button.
+- Web workspace/login:
+  - Added show/hide password controls to `index.html`, `index.ko.html`,
+    `login-v2.html`, and `login-v2.ko.html`.
+  - Added visible Refresh status in the web workspace with loading, updated,
+    and offline-fallback states.
+  - Bumped web asset query versions to `20260624-auth-refresh1`.
+- Artifact:
+  - Refreshed Android APK:
+    `artifacts/android/C2ES-debug-design-space-map.apk`.
+- Verification:
+  - `node --check src/frontend/luvelox/app.js`: passed.
+  - `node --check src/frontend/luvelox/login-v2.js`: passed.
+  - `swift test` in `ios/LuveloxMVP`: 6 tests passed.
+  - Android `gradle :app:assembleDebug` passed with Java 17 `JAVA_HOME`.
+  - Android `gradle :app:lintDebug` passed with Java 17 `JAVA_HOME`.
+  - `git diff --check` passed.
+
+## 2026-06-24 - Demo email placeholder cleanup
+- User asked that `demo@luvelox.com` should not be pre-filled as actual text in
+  the login ID field. It should appear like an example/placeholder and
+  disappear automatically when the user taps and types.
+- Platform alignment:
+  - Android already used `demo@luvelox.com` as an `EditText` hint rather than a
+    direct input value, so no Android source change was needed.
+  - iOS now starts with an empty email state and uses `demo@luvelox.com` as the
+    `TextField` placeholder.
+  - iOS blank Sign in still resolves to the demo email internally, preserving
+    the demo-account convenience without forcing users to erase text.
+  - Web `index`, `index.ko`, `login-v2`, and `login-v2.ko` now use
+    `placeholder="demo@luvelox.com"` instead of a `value`.
+  - Web demo buttons clear the email field instead of filling it with the demo
+    address, while the existing blank-email demo fallback remains active.
+  - Web asset query versions bumped to `20260624-auth-placeholder1`.
+- Verification:
+  - Search confirmed no remaining `value="demo@luvelox.com"` or prefilled iOS
+    email state in the login inputs.
+  - `node --check src/frontend/luvelox/app.js`: passed.
+  - `node --check src/frontend/luvelox/login-v2.js`: passed.
+  - `swift test` in `ios/LuveloxMVP`: 6 tests passed.
+
+## 2026-06-24 - App design-space point selection fix
+- User reported that tapping the design-space control/points inside the app did
+  not show point information reliably.
+- Root cause:
+  - Android renders the map as a custom `View` inside a horizontal scroll
+    container, so small taps could be swallowed or treated like scroll gestures.
+  - iOS renders the map as a `Canvas` inside a horizontal `ScrollView`, where
+    dot-only tap targets were too fragile for touch use.
+- Android unified app:
+  - Preselects the nearest experiment point so the info panel is populated as
+    soon as the result screen opens.
+  - Adds `Nearest experiment points` buttons under the map; tapping a row
+    updates both the info panel and the map selection ring.
+  - Increases map tap tolerance and improves touch-parent coordination so dot
+    taps work more reliably while preserving horizontal scrolling.
+- iOS unified app:
+  - Adds the same nearest-point row buttons under the design-space map.
+  - Preselects the nearest experiment point on first render.
+  - Uses a higher-priority map tap gesture and a larger nearest-point radius.
+- Artifact:
+  - Refreshed Android APK:
+    `artifacts/android/C2ES-debug-design-space-map.apk`.
+- Verification:
+  - `swift test` in `ios/LuveloxMVP`: 6 tests passed.
+  - Android `gradle :app:assembleDebug` passed with JetBrains JBR Java 17.
+  - Android `gradle :app:lintDebug` passed with JetBrains JBR Java 17.
+  - `git diff --check` passed.
+
+## 2026-06-24 - Codex phone/watch notification helper
+- User asked whether permission-request and completion notifications can be
+  received on a phone or watch because they may miss Codex while doing other
+  work.
+- Added `scripts/codex-notify.py`, a direct notification helper independent of
+  the local agent bus.
+- Supported events:
+  - `approval`: use before a Codex approval prompt or other user attention
+    requirement.
+  - `complete`: use when a task/build/test pass is done.
+  - `failed`: use when a task fails and needs user attention.
+  - `info` and `test`: general updates and setup verification.
+- Supported channels:
+  - Telegram via `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`.
+  - Slack via `SLACK_WEBHOOK_URL`.
+  - `--channel auto` sends to whichever channel environment variables are
+    configured.
+- Added usage documentation to `docs/architecture/agent-communication.md`,
+  including private `~/.codex/notify.env` setup, test notification examples,
+  approval notification examples, and completion notification examples.
+- Important limitation:
+  - The Codex app approval button itself still must be pressed in Codex. The
+    notification helper is a phone/watch nudge that tells the user to return to
+    the app.
+- Verification:
+  - `PYTHONPYCACHEPREFIX=/private/tmp/codex-pycache python3 -m py_compile
+    scripts/codex-notify.py` passed.
+  - `python3 scripts/codex-notify.py --status` passed.
+  - `python3 scripts/codex-notify.py approval --dry-run ...` printed Telegram
+    and Slack dry-run payloads.
+  - `python3 scripts/codex-notify.py complete --channel telegram --dry-run ...`
+    printed a Telegram dry-run payload.
+  - `git diff --check -- scripts/codex-notify.py
+    docs/architecture/agent-communication.md` passed.
+
+## 2026-06-24 - Android design-space visibility and theta symbol fix
+- User reported that Android still did not show the design-space section, and
+  that the Live Laminate Preview formula still displayed `theta1` / `theta2`
+  instead of Greek symbols.
+- Root correction:
+  - The previous Android change improved point selection only after a
+    design-space map was already rendered. It did not make the design-space
+    section impossible to miss when the data was delayed, missing, or hidden
+    below the larger result/XAI card.
+- Android Laminate result screen:
+  - Moved the Research Insight / design-space section directly under the input
+    summary and before the large result/XAI card.
+  - Result screen now fetches design-space data itself instead of relying on a
+    large serializable Intent payload from the input screen.
+  - Added an always-visible loading card: `Loading design-space map`.
+  - Added an always-visible unavailable card if the design-space request fails,
+    including the server/network error text.
+  - Kept nearest-point row buttons and map selection behavior from the previous
+    interaction fix.
+- Android Live Laminate Preview:
+  - Formula strings now use `θ₁`, `θ₂`, `±`, `∓`, and `×`.
+  - Preview legend and angle input labels now use `θ₁` / `θ₂`.
+  - Result summary and design-space point/candidate labels now use `θ₁` /
+    `θ₂`, with degrees displayed as `°`.
+- Artifact:
+  - Refreshed Android APK:
+    `artifacts/android/C2ES-debug-design-space-map.apk`.
+- Verification:
+  - Android `gradle :app:assembleDebug` passed with JetBrains JBR Java 17.
+  - Android `gradle :app:lintDebug` passed with JetBrains JBR Java 17.
+  - `git diff --check` for the touched Android files and session memory passed.
+
+## 2026-06-24 - iOS Response Curve chart legend and fit-line polish
+- User asked to refine the iOS Response Curve graph so it matches the web
+  presentation more closely, including visible legend items and two clear red
+  slope/linear-fit lines.
+- Updated the shared SwiftUI `CurveChartView` used by both DD Laminate iOS and
+  the Luvelox/C2ES iOS host:
+  - Added a responsive legend for predicted curve, linear fit, kink guide, and
+    Predicted Pt.
+  - Added English/Korean localized legend strings.
+  - Changed draw order so the predicted curve is drawn first, then the red
+    dashed linear-fit segments are drawn above it for better visibility.
+  - Increased the red dashed line weight/opacity so both fit segments are easier
+    to distinguish on phone screens.
+  - Kept backend `curve_fit` usage for standard forecasts and u3 fit behavior.
+- Increased chart frame heights in DD result panels, detail views, share image,
+  and the Luvelox Laminate forecast result so adding the legend does not shrink
+  the graph too aggressively.
+- Verification:
+  - `swift test` in `ios/DDLaminateMVP`: 11 tests passed.
+  - `swift test` in `ios/LuveloxMVP`: 6 tests passed.
+  - `git diff --check` passed.
+  - XcodeBuildMCP built and launched `LuveloxMVPHost` on the iPhone 17
+    simulator successfully.
+  - Simulator smoke test ran a Laminate forecast and confirmed the Response
+    Curve result screen renders the new legend.
+
+## 2026-06-24 - Android Response Curve zoom and fit-line parity
+- User asked whether the same Response Curve zoom/polish work was applied to
+  Android.
+- Finding:
+  - Android already had the Laminate result page and design-space map, but the
+    Response Curve chart itself was not rendered in the result card.
+- Android unified app updates:
+  - Added parsing for backend `curve_fit` data in `LaminateActivity.kt`.
+  - Added a custom Android `ResponseCurveChartView` in
+    `LaminateResultActivity.kt`.
+  - The chart renders the predicted force-displacement curve, red dashed
+    two-segment linear fit, purple kink/Pt guide, axis labels, and compact
+    legend.
+  - Added pinch zoom, pan while zoomed, and `- / + / reset` controls.
+  - Uses backend fit details when available and falls back to a curve-derived
+    fit only when the API does not provide `curve_fit`.
+- Artifact:
+  - Refreshed Android APK:
+    `artifacts/android/C2ES-debug-response-curve-zoom.apk`.
+  - Also refreshed the usual install path:
+    `artifacts/android/C2ES-debug-design-space-map.apk`.
+- Verification:
+  - Android `gradle :app:assembleDebug` passed with JetBrains JBR Java 17.
+  - Android `gradle :app:lintDebug` passed with JetBrains JBR Java 17.
+
+## 2026-06-24 - Android result order and chart pan polish
+- User reported that the Android Laminate result page order still did not match
+  the iOS/web flow, and that Response Curve zoom worked but one-finger graph
+  movement was difficult.
+- Android result page order:
+  - Changed the page sequence to `input summary -> result card -> Research
+    Insight / design-space -> back button`.
+  - This matches the iOS result-card flow where metrics, curve, probabilities,
+    and XAI come before research/design-space context.
+- Android Response Curve interaction:
+  - Button zoom and pinch zoom now keep the visible chart area centered instead
+    of anchoring at the lower-left edge.
+  - One-finger panning while zoomed now follows the same direction convention
+    as iOS, including vertical movement.
+  - The chart now asks parent scroll containers to stay out of the gesture while
+    zooming or panning, so the page scroll should no longer steal the graph
+    drag.
+- Artifact:
+  - Refreshed Android APK:
+    `artifacts/android/C2ES-debug-result-order-zoom.apk`.
+  - Also refreshed:
+    `artifacts/android/C2ES-debug-design-space-map.apk`.
+- Verification:
+  - Android `gradle :app:assembleDebug` passed with JetBrains JBR Java 17.
+  - Android `gradle :app:lintDebug` passed with JetBrains JBR Java 17.
+
+## 2026-06-24 - Android Response Curve point selection
+- User asked whether tapping the Android Response Curve still selects curve
+  points like iOS.
+- Finding:
+  - The Android chart had zoom/pan and fit-line rendering, but tap-to-select
+    curve point callouts were not yet implemented.
+- Android Response Curve update:
+  - Added tap selection to `ResponseCurveChartView`.
+  - A tap inside the plot selects the closest curve point by displacement.
+  - Selected points show a dashed crosshair, a highlighted marker, and an
+    `x/y` value callout.
+  - Panning while zoomed clears the selected point so chart movement stays
+    uncluttered.
+- Artifact:
+  - Refreshed Android APK:
+    `artifacts/android/C2ES-debug-curve-tap.apk`.
+  - Also refreshed:
+    `artifacts/android/C2ES-debug-design-space-map.apk`.
+- Verification:
+  - Android `gradle :app:assembleDebug` passed with JetBrains JBR Java 17.
+  - Android `gradle :app:lintDebug` passed with JetBrains JBR Java 17.
+
+## 2026-06-24 - Android Response Curve point scrubbing
+- User asked whether a selected chart point can move along the graph while the
+  finger moves on screen.
+- Android Response Curve update:
+  - Added curve scrubbing to `ResponseCurveChartView`.
+  - In normal zoom, dragging inside the plot now moves the selected point along
+    the predicted curve by nearest displacement.
+  - In zoomed view, starting near the curve enters scrub mode; starting away
+    from the curve keeps the existing one-finger pan behavior.
+  - The selected point keeps the same dashed crosshair and `x/y` callout while
+    scrubbing.
+  - Edge clamping keeps the selected point stable when the finger approaches the
+    plot boundaries.
+- Artifact:
+  - Refreshed Android APK:
+    `artifacts/android/C2ES-debug-curve-scrub.apk`.
+  - Also refreshed:
+    `artifacts/android/C2ES-debug-design-space-map.apk`.
+- Verification:
+  - Android `gradle :app:assembleDebug` passed with JetBrains JBR Java 17.
+  - Android `gradle :app:lintDebug` passed with JetBrains JBR Java 17.
+
+## 2026-06-24 - Android iOS-style visual polish
+- User asked to make the Android UI closer to the cleaner iOS look, especially
+  font/color feel.
+- Android visual update:
+  - Kept the existing Pretendard font setup and aligned the Android palette to
+    the iOS `WantedV2Theme` tone: softer page background, calmer field surfaces,
+    lighter strokes, stronger blue accent, and darker ink text.
+  - Applied the refreshed palette to the Android workspace, Laminate Forecast,
+    Laminate Result, and Injection screens.
+  - Updated primary command buttons to use an ink-to-blue/cyan gradient similar
+    to the iOS button treatment.
+  - Added subtle card elevation and softened chart plot/grid colors so the
+    Response Curve and Design-space map feel less harsh.
+- Artifact:
+  - Created Android APK: `artifacts/android/C2ES-debug-ios-style.apk`.
+  - Refreshed shared Android APK path:
+    `artifacts/android/C2ES-debug-design-space-map.apk`.
+- Verification:
+  - Android `gradle :app:assembleDebug` passed with JetBrains JBR Java 17.
+  - Android `gradle :app:lintDebug` passed with JetBrains JBR Java 17.
+
+## 2026-06-24 - iOS/Android Research Insight parity pass
+- User pointed out that Android still missed iOS parity in specific Research
+  Insight details, and that iOS curve point scrubbing worked only at normal zoom.
+- Android Research Insight update:
+  - Added missing Design-space map legend entries for `Current` and `Candidate`
+    so Android now shows `Type 1`, `Type 2`, `Type 3`, `Current`, and
+    `Candidate` like iOS.
+  - Restyled Case behavior zones with Case-specific tint cards:
+    Case 2 blue, Case 3 cyan, Case 4 amber.
+  - Reworked the zone content into clearer theta range chips and compact
+    `Best Pt` / Type / count rows, matching the iOS layout intent.
+  - Changed theta ranges from `to` to `~` with signed degree symbols.
+- iOS Response Curve update:
+  - Changed zoomed drag behavior so starting near the predicted curve scrubs
+    the selected point along the curve, while starting away from the curve keeps
+    the zoomed pan behavior.
+  - This matches the Android curve interaction model more closely.
+- Artifact:
+  - Created Android APK: `artifacts/android/C2ES-debug-ios-android-parity.apk`.
+  - Refreshed shared Android APK path:
+    `artifacts/android/C2ES-debug-design-space-map.apk`.
+- Verification:
+  - Android `gradle :app:assembleDebug` passed with JetBrains JBR Java 17.
+  - Android `gradle :app:lintDebug` passed with JetBrains JBR Java 17.
+  - iOS `swift build` passed in `ios/DDLaminateMVP`.
+  - iOS `swift test` passed in `ios/DDLaminateMVP` with 11 tests.
+
+## 2026-06-24 - Android Forecast setup section clarity
+- User reported that Android Forecast setup did not clearly separate Case,
+  angle, and Model inputs.
+- Android Laminate Forecast update:
+  - Split Forecast setup into numbered sections:
+    `01 Case`, `02 Angles`, and `03 Model`.
+  - Added short helper subtitles for each setup section.
+  - Wrapped Case and Model controls in their own section cards instead of
+    leaving raw spinners directly in the setup card.
+  - Added a Case formula readout under the Case picker and update it when the
+    selected Case changes.
+  - Kept θ₁ and θ₂ angle controls grouped inside a dedicated Angles section.
+  - Increased Case/Model spinner touch height for clearer mobile input.
+- Artifact:
+  - Created Android APK:
+    `artifacts/android/C2ES-debug-forecast-setup-sections.apk`.
+  - Refreshed shared Android APK path:
+    `artifacts/android/C2ES-debug-design-space-map.apk`.
+- Verification:
+  - Android `gradle :app:assembleDebug` passed with JetBrains JBR Java 17.
+  - Android `gradle :app:lintDebug` passed with JetBrains JBR Java 17.
+
+## 2026-06-24 - DD Laminate Prediction History deletion
+- User asked to restore a history deletion screen with individual selection and
+  a select-all option, and to apply it to web, iOS, and Android.
+- Web DD Laminate v2:
+  - Added a `Manage` mode to the Prediction history panel.
+  - Users can select individual history cards, use `Select all`, clear the
+    selection, cancel management mode, or delete selected records.
+  - Deletion is scoped to the visible Response Forecast/u3 Forecast history and
+    removes matching records from `localStorage`.
+  - Mode switches and result resets clear stale delete-selection state.
+- iOS DD Laminate v2:
+  - Added a `Manage History` sheet from the Prediction history panel.
+  - The sheet supports per-record checkmarks, `Select all`, `Clear`, and
+    `Delete Selected`.
+  - Deletion reuses `PredictionViewModel.deleteRecentRuns(ids:)`, so Response
+    Forecast and u3 Forecast history remain separated by the existing model
+    layer.
+- Android Laminate Forecast:
+  - Added a `Manage` button to the native Prediction history card.
+  - Added a checkbox-based `Manage history` dialog with `Select all`, `Clear`,
+    and `Delete selected`.
+  - Added a shared recent-history writer plus selected-record deletion by
+    history signature.
+- Artifact:
+  - Created Android APK: `artifacts/android/C2ES-debug-history-delete.apk`.
+- Verification:
+  - Web `node --check src/frontend/dd-laminate/app-v2.js` passed.
+  - iOS `swift test` passed in `ios/DDLaminateMVP` with 11 tests.
+  - iOS `swift build` passed in `ios/LuveloxMVP`.
+  - Android `gradle :app:assembleDebug` passed with JetBrains JBR Java 17.
+
+## 2026-06-24 - Android u3 Forecast restoration
+- User noticed that Android no longer exposed u3 Forecast after the native
+  Laminate history work.
+- Root cause:
+  - Android `LaminateActivity` still only loaded `response_models` and only
+    called `/api/v1/dd-laminate/predict/response`.
+  - Web and iOS had separate Response Forecast/u3 Forecast modes, but Android
+    did not yet have a native mode switch.
+- Android Laminate Forecast update:
+  - Added a Response Forecast / u3 Forecast mode picker above the Forecast
+    setup card.
+  - Added u3 model constants:
+    `u3_forecast_physics_v2` and `u3_forecast_goint_physics_v2`.
+  - Updated model loading to parse both `response_models` and `u3_pt_models`
+    from `/api/v1/dd-laminate/models`.
+  - The model spinner now swaps between Response ML/DL models and u3 ML/DL
+    models based on the selected mode.
+  - Predict button now calls `/predict/response` for Response mode and
+    `/predict/u3-forecast` for u3 mode.
+  - Prediction history now stores a `kind` field and keeps Response/u3 histories
+    separated. Legacy history without `kind` defaults to Response.
+  - Result screen receives `EXTRA_LAMINATE_MODE`; u3 runs show `u3 Forecast`
+    as the result title and request Research Insight with `scope = "u3"`.
+- Artifact:
+  - Created Android APK: `artifacts/android/C2ES-debug-u3-restored.apk`.
+- Verification:
+  - Android `gradle :app:assembleDebug` passed with JetBrains JBR Java 17.
+  - Android `gradle :app:lintDebug` passed with JetBrains JBR Java 17.
+  - `git diff --check` passed for the Android Laminate files.
+
+## 2026-06-24 - Injection v2 workflow strip alignment
+- User reported that the Injection Forecast top workflow strip
+  (`01 Set DOE`, `02 Preview`, `03 Review`) looked like tabs but did not align
+  with the actual input, preview, and result columns below.
+- Web Injection v2 update:
+  - Added shared CSS variables for the workspace column template and gap.
+  - Updated `.summary-strip` and `.grid` to use the same
+    `--workspace-columns` / `--workspace-gap` values.
+  - Desktop now uses the same `0.95fr / 0.9fr / 1.15fr` proportions for both
+    the workflow strip and the working panels.
+  - Tablet layout now mirrors the lower workspace layout: first two workflow
+    cards align to the first two columns and `03 Review` spans the full width,
+    matching the result panel.
+  - Mobile remains single-column with the workflow strip hidden.
+  - Updated the CSS cache-busting query on English and Korean Injection v2
+    pages.
+
+## 2026-06-24 - Injection v2 Parametric preview restoration
+- User preferred the older Injection Parametric view and asked to replace the
+  current preview with that style while keeping geometry-driven updates.
+- Web Injection v2 update:
+  - Restored the visual-panel wording/structure to the older
+    `Shape Preview` / `DOE-driven 3D preview` / `Parametric` flow.
+  - Replaced the dark v2 preview card with a light `shape-preview` canvas area,
+    top-right circular zoom/reset controls, and a compact DOE dimension caption.
+  - Kept the current v2 element ids (`shape-visual`, `metric-*`,
+    `preview-title`, `preview-copy`) so the existing app logic remains wired.
+  - Updated the Three.js preview scene to use the older light background,
+    orthographic camera angle, grid helper, stronger lights, and default
+    oblique rotation.
+  - Initially added a v2-only geometry color approximation, but the user noted
+    the color direction did not match the older preview.
+  - Replaced that approximation with the v1 parametric rendering approach:
+    blue default plate, red gate, v1 bevel geometry, v1 gate placement, and
+    v1 filling-pressure vertex coloring only when prediction/filling summary
+    data is available.
+  - Removed the v2-only animated flow tubes/overlay from the base parametric
+    preview so the geometry preview behaves like the older version.
+  - Updated English and Korean v2 pages and bumped the CSS cache key.
+  - Bumped the JS cache key after restoring the v1 parametric renderer.
+- Verification:
+  - `node --check src/frontend/simple-injection/app-v2.js` passed.
+  - `git diff --check` passed for the Injection v2 files.
+  - Temporarily served `src.backend.simple_injection_app` on
+    `127.0.0.1:8011` and confirmed `index-v2.html`, `index-v2.ko.html`, and
+    the cache-busted `app-v2.js` were served.
+  - Captured a Chrome headless screenshot. Headless Chrome fell back from
+    WebGL to SVG, and the SVG fallback was fixed so the preview no longer
+    appears blank when WebGL initialization fails.
+
+## 2026-06-24 - Injection v2 DOE detail panel cleanup
+- User asked to clean up the Injection DOE input area:
+  - Rename `03 Process controls` to `03 Controls`.
+  - Add `Process details` similar to `Geometry details`.
+  - Keep `Geometry details` always open instead of a dropdown.
+- Web Injection v2 update:
+  - Updated English and Korean v2 pages.
+  - Replaced the collapsed `<details>` Geometry section with a permanently
+    visible detail card.
+  - Added a permanently visible Process details card with mirror inputs for
+    melt temperature, mold temperature, packing pressure, injection time, and
+    packing time.
+  - Kept the original compact process controls as the canonical form fields.
+    Process detail mirror inputs sync into those canonical fields so prediction
+    payloads remain unambiguous.
+  - Bumped CSS and JS cache keys to `20260624-injection-doe-details-1`.
+- Verification:
+  - `node --check src/frontend/simple-injection/app-v2.js` passed.
+  - `git diff --check` passed for the Injection v2 files.
+
+## 2026-06-24 - Injection v2 detail card consolidation
+- User clarified that the duplicated Process input area felt wrong and preferred
+  the compact photo-style process cards shown in the screenshot.
+- Web Injection v2 update:
+  - Removed the separate Process mirror-input approach from the active UI flow.
+  - Kept one canonical Process details card inside `03 Controls`, using the
+    compact card style with label, blue readout, mini gradient bar, and right
+    aligned input.
+  - Converted Geometry details to the same compact card style for L, W,
+    thickness, hole diameter, hole radius, gate type, gate width, and gate
+    height.
+  - Removed stale `data-process-detail-input` synchronization logic from
+    `app-v2.js` so prediction payloads are driven by a single input per field.
+  - Added geometry readout and mini-bar updates alongside the existing process
+    readout updates.
+  - Bumped English and Korean Injection v2 CSS/JS cache keys to
+    `20260624-injection-detail-cards-2`.
+- Verification:
+  - `node --check src/frontend/simple-injection/app-v2.js` passed.
+  - `git diff --check` passed for the Injection v2 files.
+  - `rg` confirmed no `data-process-detail-input` references remain.
+
+## 2026-06-24 - Injection v2 default DOE selection
+- User asked for the Injection Forecast page to start from `G01` and `P01`.
+- Web Injection v2 update:
+  - Changed the bootstrap DOE defaults from `G18 / P07` to `G01 / P01`.
+  - Updated the comparison Sample ID placeholder to `G01_P01`.
+  - Bumped the English and Korean v2 JS cache key to
+    `20260624-injection-default-g01-p01-1`.
+- Verification:
+  - `node --check src/frontend/simple-injection/app-v2.js` passed.
+  - `git diff --check` passed for the Injection v2 files.
+
+## 2026-06-24 - Injection app detail card parity
+- User said the web Injection page looked organized and asked to apply the same
+  cleanup to the apps.
+- iOS Injection app update:
+  - Replaced the separated Geometry/Gate/Process input blocks with two compact
+    detail cards: `Process details` and `Geometry details`.
+  - Kept the existing editable SwiftUI bindings and prediction payload contract.
+  - Added the same card pattern as web: label, blue readout, mini range bar,
+    and right-side input field.
+  - Added English and Korean localizations for the new section titles.
+  - Existing defaults already start from `G01 / P01`; this remains unchanged.
+- Android C2ES/Luvelox Injection app update:
+  - Explicitly selects `G01` and `P01` after DOE catalog loading when available.
+  - Replaced the flat value grid with `Process details` and `Geometry details`
+    sections using compact cards, blue readouts, mini bars, and value pills.
+  - Built and copied the updated debug APK to
+    `artifacts/android/C2ES-debug-injection-detail-cards.apk`.
+- Verification:
+  - `swift test` in `ios/InjectionMVP` passed: 8 tests.
+  - `swift build` in `ios/LuveloxMVP` passed.
+  - `JAVA_HOME=/Applications/PyCharm.app/Contents/jbr/Contents/Home gradle :app:assembleDebug`
+    in `android/LuveloxMVP` passed.
+  - `git diff --check` passed for the touched app files.
+
+## 2026-06-24 - Injection app prediction model label parity
+- User pointed out that Prediction models names still differed between web and
+  app.
+- Canonical Injection v2 web labels are now treated as the source of truth:
+  - `sprue_classical` / `filling_classical`: `Machine Learning`
+  - `sprue_goint` / `filling_goint`: `Deep Learning`
+  - `sprue_deeponet` / `filling_deeponet`: `Operator Learning`
+- iOS Injection core now displays model names by model key first, falling back
+  to cleaned labels only for unknown keys.
+- Android Injection screen now does the same for both spinner labels and result
+  labels, and parses `model_key` / `filling_model_key` from prediction
+  responses.
+- Tests were updated so old technical names such as `ExtraTrees + PCA`,
+  `GointMLP NN`, and `DeepONet NN` cannot silently reappear in app display
+  paths.
+- Built and copied the updated Android debug APK to
+  `artifacts/android/C2ES-debug-injection-model-label-parity.apk`.
+- Verification:
+  - `swift test` in `ios/InjectionMVP` passed: 8 tests.
+  - `swift build` in `ios/LuveloxMVP` passed.
+  - `JAVA_HOME=/Applications/PyCharm.app/Contents/jbr/Contents/Home gradle :app:assembleDebug`
+    in `android/LuveloxMVP` passed.
+  - `git diff --check` passed for the model-label app files and session memory.
+
+## 2026-06-24 - Laminate predict flow restored to history/result page
+- User clarified that the immediate result-page loading experiment should be
+  cancelled and that both Android and iOS should keep the previous
+  history/result-page behavior.
+- Android restore:
+  - The attempted Android autorun/result-page loading change was removed.
+  - Android again predicts in `LaminateActivity`, saves recent-run history
+    there, then opens `LaminateResultActivity` after success.
+  - No replacement Android APK was kept from the cancelled autorun experiment.
+- iOS restore:
+  - Removed the pending `responsePending` / `u3Pending` navigation routes.
+  - Removed the temporary `PredictionPendingDetailView`.
+  - Removed the temporary `prepareForResponsePrediction` /
+    `prepareForU3Prediction` methods.
+  - iOS again waits for prediction completion, updates the existing
+    latest-result/history state, and opens the normal result detail page only
+    when a result exists.
+- Verification:
+  - `swift test` in `ios/DDLaminateMVP` passed: 11 tests.
+  - `swift build` in `ios/LuveloxMVP` passed.
+  - `JAVA_HOME=/Applications/PyCharm.app/Contents/jbr/Contents/Home gradle :app:assembleDebug`
+    in `android/LuveloxMVP` passed.
+  - `git diff --check` passed for the touched Laminate app files and session
+    memory.
+
+## 2026-06-24 - iOS Laminate Forecast page keeps history panel
+- User clarified the intended iOS Laminate flow:
+  - `Run Forecast` should still open the separate result detail page.
+  - The Laminate Forecast page itself should not keep showing the latest result
+    summary/curve after prediction.
+  - The Forecast page result area should remain a history/empty-state panel.
+- Actual iOS app entry is `DDLaminateModuleView -> ContentViewV2()`, so the
+  fix was applied there.
+- `ContentViewV2.resultPanel` now always renders the history/empty panel:
+  - no history: `Ready for input`
+  - history exists: mode-specific prediction-history cards
+- Result detail navigation remains in `predict()` / `predictU3Pt()` after a
+  successful prediction, using the saved `selectedDetail` route.
+- Note: the previous removed code was the temporary pending/loading result
+  route experiment, not the history panel itself.
+- Verification:
+  - `swift test` in `ios/DDLaminateMVP` passed: 11 tests.
+  - `swift build` in `ios/LuveloxMVP` passed.
+  - `git diff --check` passed for `ContentViewV2.swift` and session memory.
+
+## 2026-06-24 - iOS Injection UI aligned with Laminate
+- User asked for the iOS Injection module to visually match the Laminate module
+  without needing to spell out every UI detail.
+- Injection app changes:
+  - Added Injection language state to `AppSettings` with the same English/Korean
+    toggle pattern used by Laminate.
+  - Updated Injection `L10n` to load the selected language bundle from
+    `kyulai.injection.languageCode`.
+  - Moved language and API actions to the top-right toolbar:
+    globe language toggle plus link/API settings button.
+  - Reworked the Injection header into a Laminate-style card with a compact API
+    connection badge.
+  - Added a compact three-step workflow strip: Set DOE, Preview, Review.
+  - Replaced the always-visible API connection card with a warning card only
+    when the connection/model state needs attention.
+  - Adjusted Injection theme colors, card border, shadow, and typography toward
+    the Laminate V2 style.
+  - Fixed the Injection SwiftUI preview to inject required environment objects.
+- Verification:
+  - `swift test` in `ios/InjectionMVP` passed: 8 tests.
+  - `swift build` in `ios/LuveloxMVP` passed.
+  - XcodeBuildMCP built and launched `LuveloxMVPHost` on the iPhone 17
+    simulator.
+  - Simulator screenshot reached the C2ES workspace/login flow; direct
+    Injection screen navigation was limited by the current UI automation
+    scroll gesture failing in this simulator environment.
+
+## 2026-06-26 - DD Laminate research-purpose brief added
+- User pointed to `data/PPT/Final ver2.pptx` and asked to expose the Laminate/u3
+  research motivation in the web/app so an external URL can explain the model.
+- PPT context captured for UI copy:
+  - Double-Double laminates are being explored as lighter, angle-driven
+    alternatives to quasi-isotropic layups for impact and post-impact
+    compression behavior.
+  - The model screens are meant to screen Case and theta candidates before
+    deeper analysis by estimating Type, transition load Pt, response curve, and
+    u3 behavior.
+  - Current study signals from the PPT: best DD candidates improved Pt by
+    28.93% and u3 metric by 31.31% versus quasi-isotropic baselines.
+- Web changes:
+  - Added a compact `Research purpose` section to
+    `src/frontend/dd-laminate/index-v2.html` and Korean equivalent in
+    `index-v2.ko.html`.
+  - Added responsive `.research-brief` styling in `styles-v2.css`; desktop uses
+    a two-column brief, mobile keeps the three purpose points in a horizontal
+    scroll row to avoid taking too much vertical space.
+  - Bumped the CSS cache query to `20260626-research-brief`.
+- App changes:
+  - Added the same research-purpose card to the active iOS DD module
+    `ContentViewV2`.
+  - Added the same research-purpose card to Android
+    `android/LuveloxMVP/.../LaminateActivity.kt`.
+- Design note:
+  - Refreshed `DESIGN.md` to record the DD Laminate research-purpose brief as a
+    supported top-of-screen context component.
+- Verification:
+  - `git diff --check` passed for the touched web/app/design files.
+  - `swift test` in `ios/DDLaminateMVP` passed: 11 tests.
+  - `JAVA_HOME=/Applications/PyCharm.app/Contents/jbr/Contents/Home gradle :app:assembleDebug`
+    in `android/LuveloxMVP` passed.
+  - Local web render check passed for English and Korean pages; mobile width
+    390px showed no page-level horizontal overflow.
+
+## 2026-06-26 - Korean line-breaking cleanup for DD Laminate
+- User asked to prevent awkward Korean word/syllable clipping after adding the
+  research-purpose content.
+- Web changes:
+  - Korean DD Laminate page now applies `word-break: keep-all`,
+    `overflow-wrap: break-word`, `line-break: strict`, and disables hyphenation
+    for normal Korean text.
+  - Korean one-line ellipsis areas for prediction history model names and XAI
+    feature labels now allow wrapping instead of clipping mid-word.
+  - CSS cache query was bumped to `20260626-ko-wrap`.
+- Android change:
+  - Base `label()` TextView helper now uses high-quality line breaking and
+    disables hyphenation on supported Android versions.
+- Verification:
+  - `git diff --check` passed for the touched files.
+  - Android `gradle :app:assembleDebug` passed.
+  - Korean web page at 390px viewport showed `word-break: keep-all` on the
+    research text and no page-level horizontal overflow.
+
+## 2026-06-26 - DD Laminate top title kept on one line
+- User asked for the very top Laminate name to fit on one line in both English
+  and Korean.
+- Web changes:
+  - `C2ES Laminate Forecast` and `C2ES 적층 예측` now render as one-line `h1`
+    text by removing the block-style span behavior.
+  - Web title sizing now uses a smaller responsive clamp and `white-space:
+    nowrap`.
+  - CSS cache query was bumped to `20260626-title-nowrap`.
+- App changes:
+  - iOS DD active screen `ContentViewV2` and legacy `ContentView` now use
+    `C2ES Laminate Forecast` / `C2ES 적층 예측` without embedded newlines.
+  - Legacy Luvelox Laminate SwiftUI screen also uses a one-line title.
+  - Android Luvelox Laminate screen now uses `C2ES Laminate Forecast` without
+    embedded newline and a smaller one-line title size.
+- Verification:
+  - `git diff --check` passed for the touched files.
+  - `swift test` in `ios/DDLaminateMVP` passed: 11 tests.
+  - `swift build` in `ios/LuveloxMVP` passed.
+  - Android `gradle :app:assembleDebug` passed.
+  - Web English/Korean pages at 320px and 390px rendered the top title as one
+    line with no page-level horizontal overflow.
+
+## 2026-06-26 - Composite RAG online source collection pipeline
+- User asked to start applying RAG and asked whether online composite-material
+  references can be added beyond internal PPT/PDF/model documents.
+- Decision:
+  - Start with a conservative online source collection pipeline before adding
+    an LLM endpoint.
+  - Use an allowlist and source metadata so RAG content remains traceable and
+    rights-aware.
+  - Keep paywalled/rights-managed journal pages as metadata-only unless access
+    rights are confirmed.
+- Added:
+  - `data/rag/online_sources.seed.json`: curated seed list for Double-Double,
+    laminate mechanics, NASA/FAA/CMH-17, and university publication pages.
+  - `data/rag/README.md`: run instructions and policy notes.
+  - `src/data/rag/sources.py`: `RagSource`, allowed-domain validation, catalog
+    loading.
+  - `src/data/rag/collector.py`: online fetch, HTML/PDF text extraction,
+    chunking, raw/text/chunk artifact writing, collection manifest writing.
+  - `scripts/rag_collect_online_sources.py`: CLI collector with
+    `--metadata-only`, `--limit`, `--allow-domain`, and `--fail-on-error`.
+  - `tests/unit/test_rag_online_collection.py`: allowlist, metadata-only,
+    fake HTML collection, blocked-domain, and chunking tests.
+- Collection result from `python scripts/rag_collect_online_sources.py`:
+  - 9 seed sources evaluated.
+  - 6 collected with text/chunks.
+  - 1 metadata-only: AIAA Tsai Double-Double DOI/landing page.
+  - 2 fetch errors: FAA PDF URLs returned HTTP 403 and should be handled by
+    alternate URLs or manual source attachment if needed.
+  - Generated artifacts under `data/rag/online_corpus/`, including raw files,
+    extracted text, JSONL chunks, and `collection_manifest.json`.
+- Verification:
+  - `python -m pytest tests/unit/test_rag_online_collection.py` passed: 5 tests.
+  - `python scripts/rag_collect_online_sources.py --metadata-only --limit 4`
+    wrote a manifest successfully.
+  - `python scripts/rag_collect_online_sources.py` wrote a full manifest and
+    collected 6 downloadable sources.
+
+## 2026-06-26 - Composite RAG local knowledge index and API
+- User asked to proceed to the next RAG step.
+- Added:
+  - `src/data/rag/indexer.py`: merges online JSONL chunks with internal
+    DD/Composite materials, extracts PPT/PDF/Markdown text, chunks content, and
+    builds a deterministic local TF-IDF style sparse-vector index.
+  - `scripts/rag_build_knowledge_index.py`: builds
+    `data/rag/knowledge_index.json`.
+  - `scripts/rag_query_index.py`: command-line retrieval smoke-test tool.
+  - `src/backend/api/v1/rag.py`: `GET /api/v1/rag/search`.
+  - Registered the RAG router in both the aggregate API router and the
+    standalone DD Laminate app.
+  - `tests/unit/test_rag_knowledge_index.py` and `tests/backend/test_rag_api.py`.
+- Built index result:
+  - `python scripts/rag_build_knowledge_index.py`
+  - Output: `data/rag/knowledge_index.json`
+  - 229 chunks from 54 sources.
+  - Index size was about 1.3 MB.
+- Retrieval smoke tests:
+  - `Double-Double laminate purpose theta Pt` returned internal DD Laminate
+    summary / paper chunks.
+  - `A12 membrane coupling physics XAI feature` returned Laminate Forecast
+    Physics XAI reports.
+  - `u3 forecast Pt model` returned u3 forecast training reports.
+- Verification:
+  - `.venv/bin/python -m pytest tests/unit/test_rag_online_collection.py
+    tests/unit/test_rag_knowledge_index.py tests/backend/test_rag_api.py`
+    passed: 10 tests.
+  - `.venv/bin/python` TestClient call to `/api/v1/rag/search` returned HTTP
+    200 and ranked RAG results.
+  - `python -m compileall src/data/rag src/backend/api/v1/rag.py
+    scripts/rag_build_knowledge_index.py scripts/rag_query_index.py` passed.
+
+## 2026-06-26 - Composite RAG answer endpoint and web panel
+- User asked to try the LLM/RAG assistant.
+- Added:
+  - `src/data/rag/answer.py`: grounded answer layer over the local RAG index.
+    It retrieves top chunks, builds citations, and either calls OpenAI
+    Responses API or falls back to a local extractive answer.
+  - `scripts/rag_answer.py`: CLI for asking the Composite RAG assistant.
+  - `POST /api/v1/rag/answer` in `src/backend/api/v1/rag.py`.
+  - Web panel in `src/frontend/dd-laminate/index-v2.html` and Korean version:
+    `Composite AI Assistant` / `복합재 AI Assistant`.
+  - `app-v2.js` now posts to `/api/v1/rag/answer` and renders the grounded
+    answer plus citations using safe DOM text nodes.
+  - `styles-v2.css` now styles the assistant card, answer body, provider badge,
+    and citation cards.
+  - Tests: `tests/unit/test_rag_answer.py`; backend RAG API test now covers
+    `/rag/answer`.
+- Runtime behavior:
+  - If `OPENAI_API_KEY` is set, `answer_query()` calls
+    `https://api.openai.com/v1/responses` with `store: false`.
+  - `OPENAI_RAG_MODEL` can override the default model; default is
+    `gpt-5.4-mini`.
+  - If no key is set or the OpenAI call fails, the endpoint returns a local
+    citation-backed extractive answer.
+- Verification:
+  - `.venv/bin/python -m pytest tests/unit/test_rag_online_collection.py
+    tests/unit/test_rag_knowledge_index.py tests/unit/test_rag_answer.py
+    tests/backend/test_rag_api.py` passed: 15 tests.
+  - `node --check src/frontend/dd-laminate/app-v2.js` passed.
+  - `python -m compileall src/data/rag src/backend/api/v1/rag.py
+    scripts/rag_answer.py scripts/rag_build_knowledge_index.py
+    scripts/rag_query_index.py` passed.
+  - Restarted DD server on port 8000; `/ready` returned ready and
+    `POST /api/v1/rag/answer` returned HTTP 200 with citations.
+  - HTML checks confirmed the English and Korean assistant panels are served.
+
+## 2026-06-26 - RAG assistant default question UX
+- User wanted one basic Composite AI question to be shown by default, while
+  clearing automatically when the user starts typing.
+- Updated DD Laminate English/Korean RAG panels:
+  - The question textarea now contains a real default question, so pressing
+    submit immediately asks it.
+  - The default text is stored as `data-default-query`.
+  - `app-v2.js` clears the default question on first focus or first input only
+    when the current value still matches the default.
+  - Bumped web asset query strings to `20260626-rag-default-question`.
+
+## 2026-06-26 - RAG local answer feature explanations
+- User reported that asking `D11 굽힘 강성이 왜 중요한가요?` showed only
+  citation/source-like content without a useful answer.
+- Root cause:
+  - The RAG API returned a valid response, but the local fallback answer only
+    summarized retrieved evidence and did not synthesize domain explanations.
+  - OpenAI LLM synthesis is optional and depends on `OPENAI_API_KEY`, so the
+    local fallback needs to be useful by itself.
+- Fix:
+  - Added a small physics-feature glossary to `src/data/rag/answer.py` for
+    CLT/ABD terms such as `D11`, `D22`, `D12`, `D66`, `A11`, `A22`, `A12`,
+    `A66`, and B-matrix coupling terms.
+  - `build_extractive_answer()` now detects feature names in the user query and
+    places a concise explanation before the citation list.
+  - Added unit tests for Korean `D11` explanation and English `A12 membrane
+    coupling` detection.
+- Verification:
+  - `.venv/bin/python -m pytest tests/unit/test_rag_answer.py
+    tests/backend/test_rag_api.py` passed: 8 tests.
+  - `python -m compileall src/data/rag/answer.py src/backend/api/v1/rag.py`
+    passed.
+  - Restarted DD server on port 8000.
+  - Public `https://laminate.luvelox.com/api/v1/rag/answer` now returns a
+    Korean D11 explanation before citations.
+
+## 2026-06-26 - RAG citation toggle and LLM setup note
+- User reported that RAG citations take too much space and asked to make them
+  accessible from a compact top-right control, similar to the language toggle.
+- Updated DD Laminate RAG UI:
+  - `renderRagAnswer()` now renders a `근거 보기` / `Show citations` button in
+    the answer header.
+  - Citation cards are hidden by default and can be toggled with the button.
+  - Added matching styles for the compact citation toggle.
+  - Bumped DD v2 asset query strings to `20260626-rag-citation-toggle`.
+- Updated local fallback answer text:
+  - It now keeps the answer body focused on the explanation.
+  - Citation snippets are no longer duplicated inside the answer body; they stay
+    in the API `citations` array and UI citation panel.
+- Added `data/rag/README.md` note for enabling LLM synthesis:
+  - Set `OPENAI_API_KEY`.
+  - Optionally set `OPENAI_RAG_MODEL`.
+  - Start the DD server with those environment variables.
+
+## 2026-06-26 - OpenAI RAG key local env setup
+- User asked where to enter the OpenAI API key and asked Codex to prepare the
+  setup.
+- Implemented:
+  - `scripts/run_public_ai_server.sh` now loads `.env.local` before starting
+    `src.backend.dd_laminate_app:app`.
+  - The script reports whether `OPENAI_API_KEY` is configured by length only,
+    never by printing the key value.
+  - `.env.windows.example` now documents optional `OPENAI_API_KEY` and
+    `OPENAI_RAG_MODEL` for Windows/server migration.
+  - Created local-only `.env.local` template with `OPENAI_RAG_MODEL=gpt-5.4-mini`
+    and a commented `OPENAI_API_KEY` placeholder.
+- Safety:
+  - `.env.local` is already ignored by `.gitignore`.
+  - Verified with `git check-ignore -v .env.local`.
+  - Did not paste or expose any actual OpenAI API key in chat or command output.
+- User action remaining:
+  - Create an API key from `https://platform.openai.com/api-keys`.
+  - Put it in `.env.local` as `OPENAI_API_KEY=...`.
+  - Restart the DD server using `scripts/run_public_ai_server.sh`.
+
+## 2026-06-26 - OpenAI RAG enabled on public DD server
+- User added `OPENAI_API_KEY` to `.env.local`.
+- Verified without printing the secret:
+  - `OPENAI_API_KEY configured`.
+  - `.env.local` remains ignored by git.
+- Restarted the DD public server with:
+  - `scripts/run_public_ai_server.sh`
+  - This loads `.env.local` before starting uvicorn.
+- Verification:
+  - `GET http://127.0.0.1:8000/ready` returned ready.
+  - Local `POST /api/v1/rag/answer` with `use_llm: true` returned:
+    - `provider: openai`
+    - `model: gpt-5.4-mini`
+    - `used_llm: true`
+  - Public `https://laminate.luvelox.com/api/v1/rag/answer` returned the same
+    OpenAI provider fields.
+- Safety:
+  - Did not print or store the actual key in logs, docs, or git-tracked files.
+
+## 2026-06-26 - RAG answer style cleanup
+- User reported that OpenAI RAG answers still looked too machine-written:
+  - LaTeX-like terms such as `\(A_{12}\)`.
+  - Markdown markers such as `**bold**`.
+  - Sentences not flowing naturally enough.
+- Updated:
+  - `src/data/rag/answer.py`
+    - OpenAI instructions now request natural connected prose, no Markdown,
+      no LaTeX notation, and plain engineering terms like `A12` and `D11`.
+    - Added `clean_answer_text()` to normalize returned answers:
+      - removes inline LaTeX wrappers,
+      - converts subscript notation such as `A_{12}` and `D_{11}` to `A12`
+        and `D11`,
+      - removes Markdown bold markers, headings, and list prefixes,
+      - replaces internal phrasing like `Retrieved context` with more natural
+        wording.
+  - `src/backend/api/v1/rag.py`
+    - Applies `clean_answer_text()` right before API response serialization as
+      a final guard.
+  - `tests/unit/test_rag_answer.py`
+    - Added coverage for Markdown/LaTeX cleanup and internal phrase removal.
+- Verification:
+  - `.venv/bin/python -m pytest tests/unit/test_rag_answer.py
+    tests/backend/test_rag_api.py` passed: 9 tests.
+  - `python -m compileall src/data/rag/answer.py src/backend/api/v1/rag.py`
+    passed.
+  - Restarted DD public server.
+  - Public OpenAI RAG check for `A12 membrane coupling이 왜 중요한가요?`
+    returned:
+    - `provider: openai`
+    - no `**`
+    - no `\(` / `\)`
+    - no subscript notation like `_12`
+    - no `Retrieved context`
+
+## 2026-06-26 - DD XAI local occlusion sensitivity
+- User asked whether SHAP/occlusion results and value-change sensitivity
+  analysis can be added for each feature.
+- Decision:
+  - Do not add a new SHAP dependency yet.
+  - First expose a robust SHAP-like local occlusion sensitivity already
+    compatible with the current Tree and GointMLP-style DD models.
+  - Keep global feature importance, but recompute the strongest global feature
+    candidates for the current `theta1`, `theta2`, and `case` input by masking
+    one feature at a time.
+- Backend update:
+  - `src/backend/api/v1/dd_laminate.py`
+    - Added `local_sensitivity`, `local_value`, and `perturbation` fields to
+      `XAIFeature`.
+    - Added `_local_xai_analysis()` to return normalized local score, raw
+      output-change sensitivity, current feature value, and masked value.
+    - `/api/v1/dd-laminate/xai/local` now returns the new fields for local XAI
+      explanations for both Laminate Forecast and u3 Forecast models.
+    - Method text now reports `live local feature masking` once.
+- Frontend update:
+  - `src/frontend/dd-laminate/app-v2.js`
+    - XAI feature rows now show compact `Current`, `Sensitivity`, and
+      `Perturbation` details when available.
+    - Korean UI labels use `현재값`, `민감도`, and `변화 조건`.
+    - Korean perturbation text changes `masked to ...` into `마스킹 값 ...`.
+  - `src/frontend/dd-laminate/styles-v2.css`
+    - Added compact styling for the local sensitivity line.
+  - `index-v2.html` and `index-v2.ko.html`
+    - Cache-busted JS/CSS to `20260626-xai-sensitivity`.
+- Verification:
+  - `.venv/bin/python -m compileall src/backend/api/v1/dd_laminate.py` passed.
+  - `node --check src/frontend/dd-laminate/app-v2.js` passed.
+  - `.venv/bin/python -m pytest tests/unit/test_rag_answer.py
+    tests/backend/test_rag_api.py -q` passed: 9 tests.
+  - Restarted DD public server and `GET /ready` returned all DD models ready.
+  - Public HTML includes `20260626-xai-sensitivity`.
+  - Public XAI API returned local fields:
+    - Laminate example top feature `d11` with `local_sensitivity`,
+      `local_value`, and `perturbation`.
+    - u3 example top feature `angle_min_abs` with `local_sensitivity`,
+      `local_value`, and `perturbation`.
+- Known note:
+  - Earlier broad iOS contract tests still have unrelated legacy page
+    expectation failures around `index.html` redirect behavior. This XAI
+    change did not edit that legacy contract.
+
+## 2026-06-26 - DD XAI perturbation label cleanup
+- User asked what `마스킹 값 0` means and requested clearer wording.
+- Updated `src/frontend/dd-laminate/app-v2.js`:
+  - Korean label changed from `변화 조건: 마스킹 값 0` to
+    `가상 제거: 0으로 대체`.
+  - English label changed from `Perturbation: masked to 0` to
+    `Virtual removal: replaced with 0`.
+- Updated DD v2 HTML cache busting to `20260626-xai-sensitivity-label`.
+- Verification:
+  - `node --check src/frontend/dd-laminate/app-v2.js` passed.
+  - `git diff --check` passed for the edited DD frontend files.
+  - Public Korean and English DD v2 pages include the new cache-busted asset
+    version.
+
+## 2026-06-26 - DD RAG Assistant linked to active prediction context
+- User asked whether the AI Assistant can read the current prediction result
+  and explain quantitative feature contribution, rather than only answering
+  from static RAG documents.
+- Finding:
+  - Before this change, the Assistant only sent `query`, `top_k`, `use_llm`,
+    and `language` to `/api/v1/rag/answer`.
+  - The frontend already stored the latest prediction in `latestPredictionData`,
+    but it was not included in the RAG request.
+  - Therefore questions like `A12 membrane coupling이 정량적으로 얼마나
+    기여했나요?` correctly received cautious answers saying the quantitative
+    contribution was hard to judge.
+- Backend update:
+  - `src/backend/api/v1/rag.py`
+    - `RagAnswerRequest` now accepts optional `prediction_context`.
+  - `src/data/rag/answer.py`
+    - `answer_query()` and `call_openai_responses()` now accept the active
+      prediction context.
+    - Added `compact_prediction_context()` to pass only concise app-result
+      fields to the LLM: mode, inputs, model, Type/confidence, Pt/max values,
+      XAI method, feature set, and top local XAI features.
+    - Prompt now instructs the assistant to use this as the active app result,
+      and to distinguish current-model XAI numbers from general laminate
+      theory.
+    - Cleanup normalizes joined terms such as `localsensitivity` and
+      `virtualremoval`.
+- Frontend update:
+  - `src/frontend/dd-laminate/app-v2.js`
+    - Added `ensurePredictionXaiForAssistant()` to fetch `/xai/local` before
+      asking RAG if the current prediction does not yet have XAI attached.
+    - Added `buildAssistantPredictionContext()` to send a compact version of
+      `latestPredictionData` and top XAI features with Assistant questions.
+  - DD v2 asset cache bumped to `20260626-rag-prediction-context`.
+- Behavior:
+  - If the user asks before running a prediction, Assistant still answers from
+    references and should say quantitative contribution needs a prediction/XAI
+    result.
+  - If the user asks after Laminate Forecast or u3 Forecast, Assistant receives
+    the current prediction and can mention supplied importance/local
+    sensitivity values.
+- Verification:
+  - `.venv/bin/python -m pytest tests/unit/test_rag_answer.py
+    tests/backend/test_rag_api.py -q` passed: 9 tests.
+  - `python -m compileall src/backend/api/v1/rag.py src/data/rag/answer.py`
+    passed.
+  - `node --check src/frontend/dd-laminate/app-v2.js` passed.
+  - Restarted DD public server and `/ready` returned all DD models ready.
+  - Public Korean DD page includes `20260626-rag-prediction-context`.
+  - Manual RAG API check with a supplied prediction context returned an OpenAI
+    answer that referenced the current A12 importance/local sensitivity values.
+
+## 2026-06-26 - RAG Assistant enriched with current laminate physics context
+- User reported that after `theta1=30`, `theta2=-30`, `Case2`, the Assistant
+  correctly identified D11 as influential but still ended by saying the D11
+  formula, stacking sequence, and actual response data were needed.
+- Investigation:
+  - D11 formula and CLT calculation already exist in
+    `src/ml/dd_laminate/laminate_physics.py`.
+  - Case stack expansion already exists:
+    - Case2 = `[[±theta1]/[±theta2]]4`.
+    - For `theta1=30`, `theta2=-30`, Case2 expands to
+      `[30, -30, -30, 30]` repeated four times, 16 plies total.
+  - Material constants already exist in code:
+    - `E11=21.5 Msi`, `E22=1.23 Msi`, `nu12=0.329`, `G12=0.571 Msi`,
+      `ply_thickness=0.0075 in`.
+  - For the exact input, there is no exact matching Abaqus CSV in the curated
+    Case2 dataset; the app result is a surrogate forecast unless a source CSV
+    is explicitly attached.
+- Backend update:
+  - `src/data/rag/answer.py`
+    - `compact_prediction_context()` now appends current laminate physics
+      context when `theta1`, `theta2`, and `case` are present.
+    - It includes stack formula, expanded stack, D11 calculation basis,
+      material/thickness constants, computed raw D11, normalized d11,
+      d22, d11/d22, and bending anisotropy.
+    - It explicitly tells the Assistant that the current app result is a
+      surrogate forecast, not an exact Abaqus result, unless source CSV/test
+      metadata is attached.
+    - Answer cleanup now normalizes `currentvalue` and `masked to 0`.
+- Current computed values for `theta1=30`, `theta2=-30`, `Case2`:
+  - total thickness = `0.12 in`
+  - raw D11 = `0.00184715`
+  - normalized d11 = `1.06895`
+  - d22 = `0.219105`
+  - d11/d22 = `4.87872`
+  - bending anisotropy = `0.65979`
+- Verification:
+  - Added unit coverage in `tests/unit/test_rag_answer.py`.
+  - `.venv/bin/python -m pytest tests/unit/test_rag_answer.py
+    tests/backend/test_rag_api.py -q` passed: 10 tests.
+  - `python -m compileall src/data/rag/answer.py` passed.
+  - Restarted DD public server and `/ready` returned all DD models ready.
+  - Manual RAG API check with the D11 question now returns an answer that
+    includes D11 formula context, expanded interpretation, and current computed
+    D11/d11 values.
+
+## 2026-06-26 - DD Case formula notation synced across UI and Assistant
+- User reported that Assistant sometimes writes Case formulas with `theta1`
+  and `theta2`, while the app UI uses Greek symbols and subscripts.
+- Updated:
+  - `src/data/rag/answer.py`
+    - Assistant prediction context now uses the same formula notation as the
+      app:
+      - Case2: `[[±θ₁]/[±θ₂]]₄`
+      - Case3: `[[±θ₁]/[±θ₂]/[∓θ₁]/[∓θ₂]]₂`
+      - Case4: `[([±θ₁]/[±θ₂])₂ / ([∓θ₁]/[∓θ₂])₂]`
+    - OpenAI instruction now allows app-style `θ₁` and `θ₂` in laminate case
+      formulas while still avoiding LaTeX notation.
+  - `src/frontend/dd-laminate/app-v2.js`
+    - Dynamic stack preview formulas now use the same symbols.
+  - `src/frontend/dd-laminate/index-v2.html` and `index-v2.ko.html`
+    - Dynamic preview default text now uses `[[±θ₁]/[±θ₂]]₄`.
+    - Asset cache bumped to `20260626-case-formula-symbols`.
+- Verification:
+  - `.venv/bin/python -m pytest tests/unit/test_rag_answer.py
+    tests/backend/test_rag_api.py -q` passed: 10 tests.
+  - `python -m compileall src/data/rag/answer.py src/backend/api/v1/rag.py`
+    passed.
+  - `node --check src/frontend/dd-laminate/app-v2.js` passed.
+  - Restarted public DD server; `/ready` returned all DD models ready.
+  - Public Korean page contains the new asset version and formula text.
+  - `compact_prediction_context()` now emits
+    `Laminate stack formula: Case2 = [[±θ₁]/[±θ₂]]₄.`
+
+## 2026-06-26 - RAG Assistant enriched with Type definitions and Pt distribution
+- User reported that Assistant still ended XAI explanations with
+  `타입 정의와 타깃 분포 정보가 추가로 있어야 더 정확히 설명할 수 있습니다`,
+  even though this project already has those definitions/data.
+- Investigation:
+  - Type definitions are in `docs/DD_Laminate_PPT_Basis.md`.
+  - The curated Case2/3/4 response manifest is
+    `data/datasets/DD_cases_2_3_4_curated_v1/label_manifest.csv`.
+  - For the current example `theta1=30`, `theta2=-30`, `Case2`,
+    predicted Pt 17163.21 sits around the Case2 median region.
+- Backend update:
+  - `src/data/rag/answer.py`
+    - Added project Type definitions to the prediction context:
+      - Type 1: clean bilinear response; Pt from two fitted line intersection.
+      - Type 2: initial branch linear, post-transition branch curved; u3 helps
+        define Pt.
+      - Type 3: heavy post-transition curvature; force bilinear fitting is
+        unreliable, Pt mainly from u3.
+    - Added cached target-distribution summary from the curated manifest:
+      - Case2: 300 samples; Type1=108, Type2=145, Type3=47.
+      - Case3/Case4 are also available from the same manifest.
+    - Added Case-specific Pt min/median/max and current predicted Pt percentile.
+    - Prompt now says if Type definitions/target distributions are present,
+      use them and do not claim they are missing.
+    - Cleanup normalizes feature names such as `bendinganisotropy` and
+      `d11_d22_ratio`.
+- Current example context now includes:
+  - Case2 Type distribution: Type1=36.0%, Type2=48.3%, Type3=15.7%.
+  - Case2 Pt distribution: min=4911.51, median=17391.04, max=34578.32.
+  - Current predicted Pt percentile within Case2: 48.3%.
+  - Current predicted Type meaning: Type 2 post-transition curved response.
+- Verification:
+  - Added/updated unit coverage in `tests/unit/test_rag_answer.py`.
+  - `.venv/bin/python -m pytest tests/unit/test_rag_answer.py
+    tests/backend/test_rag_api.py -q` passed: 10 tests.
+  - `python -m compileall src/data/rag/answer.py` passed.
+  - Restarted DD public server and `/ready` returned all DD models ready.
+  - Manual RAG API check no longer contains the missing-info phrase and now
+    explains Type 2 plus Case2 Pt percentile.
+
+## 2026-06-26 - Simple Injection XAI added
+- User asked whether Injection already had XAI like DD Laminate, then requested
+  the XAI pattern be ported while keeping Injection-specific feature meaning.
+- Investigation:
+  - Injection did not previously have an XAI API/response/UI.
+  - Existing Simple Injection models share 23 input features:
+    base geometry/process values, gate one-hot features, and derived flow
+    descriptors such as area, net area, gate area, flow length/thickness, and
+    process total time.
+- Backend update:
+  - `src/backend/api/v1/simple_injection.py`
+    - Added `InjectionXAIFeature` and `InjectionXAIExplanation`.
+    - `SpruePressurePredictionResponse` now includes optional `xai`.
+    - Added local perturbation/occlusion sensitivity for selected Sprue and
+      Filling models together.
+    - Supports `sprue_classical`, `sprue_goint`, `sprue_deeponet`,
+      `filling_classical`, `filling_goint`, and `filling_deeponet`.
+    - XAI categories are Injection-specific: geometry, process, gate, derived,
+      and other.
+- Frontend update:
+  - `src/frontend/simple-injection/index-v2.html`
+  - `src/frontend/simple-injection/index-v2.ko.html`
+  - `src/frontend/simple-injection/app-v2.js`
+  - `src/frontend/simple-injection/styles-v2.css`
+  - Added compact “Prediction Drivers” / “예측 영향 인자” card.
+  - Displays top 10 local feature drivers as percentages with current value,
+    local sensitivity, perturbation condition, category, and explanation.
+- Verification:
+  - `python -m compileall src/backend/api/v1/simple_injection.py` passed.
+  - `node --check src/frontend/simple-injection/app-v2.js` passed.
+  - `.venv/bin/python -m pytest tests/backend/test_simple_injection_model_labels.py -q`
+    passed: 2 tests.
+  - Direct G01/P01 prediction call returned `xai` with 23 features; top sample
+    features included `melt_temp_C`, `process_total_time_s`, and
+    `flow_length_to_thickness`.
+
+## 2026-06-26 - Injection default route fixed to v2
+- User noticed Injection opened as the old/classic UI after the XAI update.
+- Root cause:
+  - `src/backend/simple_injection_app.py` mounted the static frontend at `/`,
+    so `/` and `/index.html` still served `src/frontend/simple-injection/index.html`
+    in some paths.
+  - `index-v2.html` existed and worked, but the default URL was not guaranteed
+    to serve v2.
+  - `styles-v2.css` cache query was also still on an older version string.
+- Fix:
+  - `src/backend/simple_injection_app.py`
+    - `/`, `/index.html`, `/index.ko.html`, `/index-v2.html`,
+      `/index-v2.ko.html`, `/styles-v2.css`, and `/app-v2.js` now serve v2
+      assets with no-cache headers.
+    - Legacy `/simple-injection*` redirects remain pointed to v2.
+  - `src/frontend/simple-injection/index-v2.html` and `.ko.html`
+    - CSS cache version bumped to `20260626-injection-xai-1`.
+- Verification:
+  - `python -m compileall src/backend/simple_injection_app.py` passed.
+  - `node --check src/frontend/simple-injection/app-v2.js` passed.
+  - Restarted the Injection server on port 8010.
+  - `https://injection.luvelox.com/` now returns v2 markers and the updated
+    `styles-v2.css?v=20260626-injection-xai-1`.
+
+## 2026-06-26 - Injection Korean XAI copy and header cleanup
+- User reported that the Korean Injection page still showed XAI interpretation
+  text in English and asked to remove the top-right `Flow` and `Classic` links.
+- Frontend update:
+  - `src/frontend/simple-injection/app-v2.js`
+    - Added Korean XAI feature label/explanation mapping for Injection-specific
+      features such as melt temperature, mold temperature, gate area,
+      flow-length/thickness, total process time, and gate type one-hot features.
+    - Korean page now translates XAI summary, method label, perturbation text,
+      feature labels, feature explanations, and method notes.
+  - `src/frontend/simple-injection/index-v2.html`
+  - `src/frontend/simple-injection/index-v2.ko.html`
+    - Removed `Flow` and `Classic` links from the top-right action group.
+    - Bumped JS/CSS cache keys to `20260626-injection-xai-ko-1`.
+    - Korean workflow copy now says `게이트, 홀, 유동 경로`.
+  - `src/frontend/simple-injection/styles-v2.css`
+    - Adjusted mobile top-action grid for the reduced link count.
+- Verification:
+  - `node --check src/frontend/simple-injection/app-v2.js` passed.
+  - Public Korean Injection HTML contains the new asset version and no
+    top-right `Flow`/`Classic` links.
+  - Public `app-v2.js` contains the Korean XAI mapping, including `수지 온도`
+    and `형상 + 공정 + 게이트 + 파생 유동 descriptor`.
+
+## 2026-06-26 - Injection RAG/LLM assistant added
+- User asked to add the same kind of LLM assistant used in Laminate to the
+  Injection app, adapted to Injection-specific inputs and XAI.
+- Backend update:
+  - `src/backend/simple_injection_app.py`
+    - Mounted the shared RAG router under `/api/v1/rag` for Injection serving.
+  - `src/data/rag/answer.py`
+    - Extended prediction-context compaction for Injection geometry/process/gate
+      fields and Sprue/Filling outputs.
+    - Added Injection-aware fallback explanations so local RAG answers no longer
+      mention DD Laminate when the current context is Injection.
+    - Added safe `.env.local` loading for `OPENAI_API_KEY` and
+      `OPENAI_RAG_MODEL` during direct uvicorn launches.
+    - Updated the OpenAI prompt to handle both Double-Double laminate AI and
+      Moldex3D Injection AI.
+- Frontend update:
+  - `src/frontend/simple-injection/index-v2.html`
+  - `src/frontend/simple-injection/index-v2.ko.html`
+  - `src/frontend/simple-injection/app-v2.js`
+  - `src/frontend/simple-injection/styles-v2.css`
+  - Added “Injection AI Assistant” / “Injection 지식베이스에 질문하기” card.
+  - The assistant sends the latest prediction result, Injection inputs, Sprue
+    and Filling outputs, and top XAI feature drivers into the RAG answer API.
+  - Citations are hidden behind a compact toggle like the Laminate assistant.
+- Tests and verification:
+  - `python -m compileall src/backend/simple_injection_app.py src/data/rag/answer.py`
+    passed.
+  - `node --check src/frontend/simple-injection/app-v2.js` passed.
+  - `.venv/bin/python -m pytest tests/unit/test_rag_answer.py tests/backend/test_rag_api.py tests/backend/test_simple_injection_model_labels.py -q`
+    passed: 14 tests.
+  - Restarted the Injection server on port 8010.
+  - Local `/ready` reports all six Sprue/Filling models as `ok`.
+  - Local RAG smoke with `use_llm=true` returned provider `openai`,
+    model `gpt-5.4-mini`, and `used_llm=true`.
+  - Public Injection page includes the new RAG asset version
+    `20260626-injection-rag-1`.
+
+## 2026-06-26 - Injection assistant uses XAI context even when retrieval is empty
+- User found that asking “왜 수지 온도가 가장 큰 영향력을 주는 것 같아?”
+  after an XAI result with melt temperature at 25.6% returned
+  “관련 근거를 찾지 못했습니다.”
+- Root cause:
+  - `answer_query()` returned early when RAG retrieval had zero citations.
+  - That early return happened before the assistant used the active prediction
+    and XAI context sent from the Injection UI.
+- Fix:
+  - `src/data/rag/answer.py`
+    - If retrieval is empty but current prediction context contains Injection
+      XAI details, the API now returns a context-grounded local answer instead
+      of the generic “no evidence” message.
+    - Response model label for this path is `local-prediction-context`.
+  - `tests/unit/test_rag_answer.py`
+    - Added regression coverage for empty retrieval plus Injection XAI context.
+- Verification:
+  - `python -m compileall src/data/rag/answer.py` passed.
+  - `.venv/bin/python -m pytest tests/unit/test_rag_answer.py tests/backend/test_rag_api.py -q`
+    passed: 13 tests.
+  - Restarted Injection server on port 8010.
+  - Smoke test with the exact Korean question and XAI `importance=0.256`
+    returned an answer containing `수지 온도` and `25.6%`, with no generic
+    “관련 근거를 찾지 못했습니다” message.
+
+## 2026-06-26 - Injection assistant follows the feature named in the question
+- User noticed that asking about `보압 시간` still produced essentially the
+  same answer as asking about `수지 온도`.
+- Root cause:
+  - Injection local fallback explanation always described the first XAI feature
+    in `top_features`.
+  - It did not inspect the user's question to find the requested feature name.
+  - The frontend sent only the first 8 XAI features into the assistant context,
+    so lower-ranked requested features could be unavailable.
+- Fix:
+  - `src/data/rag/answer.py`
+    - Added Injection feature alias matching for Korean/English terms such as
+      `수지 온도`, `보압`, `보압 시간`, `melt temperature`, and `packing time`.
+    - Longer/more specific aliases win, so `보압 시간` no longer gets confused
+      with `보압`.
+    - If the requested feature appears in the XAI list, the assistant explains
+      that feature's own rank, importance, local sensitivity, current value, and
+      perturbation instead of repeating the strongest overall driver.
+    - If the requested feature is missing, the assistant now says it is missing
+      from the transmitted XAI list rather than pretending the top feature
+      answers the question.
+    - Increased compact prediction context XAI limit from 6 to 24 features.
+  - `src/frontend/simple-injection/app-v2.js`
+    - Assistant context now sends the full `xai.top_features` array instead of
+      slicing to the first 8.
+  - `src/frontend/simple-injection/index-v2.html`
+  - `src/frontend/simple-injection/index-v2.ko.html`
+    - Bumped asset cache version to `20260626-injection-rag-2`.
+- Verification:
+  - `node --check src/frontend/simple-injection/app-v2.js` passed.
+  - `python -m compileall src/data/rag/answer.py` passed.
+  - `.venv/bin/python -m pytest tests/unit/test_rag_answer.py tests/backend/test_rag_api.py -q`
+    passed: 15 tests.
+  - Restarted Injection server on port 8010.
+  - Smoke test for `보압 시간이 왜 영향력을 주는 것 같아?` with `수지 온도`
+    at 25.6% and `보압 시간` at 9.1% returned a `보압 시간`-specific answer
+    and did not repeat the 25.6% melt-temperature explanation.
+  - Public `https://injection.luvelox.com/` serves `20260626-injection-rag-2`,
+    and public `app-v2.js` uses the full `data.xai.top_features.map(...)`.
+
+## 2026-06-26 - Injection assistant causal explanation quality improved
+- User said the assistant still did not explain the reason behind XAI effects
+  well enough.
+- Root cause:
+  - The assistant mainly repeated XAI percentages, rank, and sensitivity.
+  - The compact prediction context sent to OpenAI did not include enough
+    Injection process-mechanism hints.
+  - Feature fallback copy was too short to explain the process/physics chain.
+- Fix:
+  - `src/data/rag/answer.py`
+    - Expanded Injection feature explanations for melt temperature, mold
+      temperature, injection time, packing pressure, packing time, total process
+      time, gate area, and flow-length/thickness.
+    - Added prompt context fields for app feature explanation and process
+      mechanism so LLM answers can connect XAI to pressure-curve behavior.
+    - Added explicit OpenAI instruction to explain causal chains such as
+      input -> viscosity/flow resistance/pressure loss/fill-pack timing ->
+      model sensitivity.
+    - Local fallback now explains why the feature can physically affect Sprue
+      Pressure/Filling Pressure, not just that it has a certain percentage.
+    - Added Korean particle cleanup so `수지 온도는` reads naturally.
+- Verification:
+  - `python -m compileall src/data/rag/answer.py` passed.
+  - `.venv/bin/python -m pytest tests/unit/test_rag_answer.py tests/backend/test_rag_api.py -q`
+    passed: 15 tests.
+  - Restarted Injection server on port 8010.
+  - Smoke test for `왜 수지 온도가 가장 큰 영향력을 주는 것 같아?`
+    now explains viscosity, flow resistance, pressure curve height/slope, and
+    local model sensitivity.
+
+## 2026-06-26 - Injection RAG assistant added to native apps
+- User asked whether the Injection RAG/XAI assistant improvements were also
+  reflected in the apps.
+- Status before this pass:
+  - Backend and web were updated.
+  - Native iOS/Android Injection apps did not yet expose the assistant UI or
+    `/api/v1/rag/answer` call path.
+- iOS changes:
+  - `InjectionAPIClient` now supports POST `/api/v1/rag/answer`.
+  - `PredictionViewModel` now keeps assistant question/answer/loading/error
+    state and sends the latest prediction context, inputs, curve summary, and
+    XAI top features to RAG.
+  - Injection result UI now includes an `Injection AI Assistant` card below the
+    forecast result.
+  - Core tests updated for the added `xai` field and RAG API protocol method.
+- Android changes:
+  - Injection result UI now includes an `Injection AI Assistant` card.
+  - Native client parses `xai.top_features`, filling pressure max, and backend
+    inputs from the prediction response.
+  - Native client sends question + prediction context to `/api/v1/rag/answer`.
+  - Nullable JSON values are explicitly encoded with `JSONObject.NULL`.
+- Verification:
+  - `swift test` in `ios/InjectionMVP` passed: 8 tests.
+  - Backend RAG regression test passed:
+    `.venv/bin/python -m pytest tests/unit/test_rag_answer.py tests/backend/test_rag_api.py -q`
+    passed: 15 tests.
+  - Android compile check was attempted with
+    `gradle :app:compileDebugKotlin`, but the local Mac has no Java 17 runtime,
+    so Gradle stopped before Kotlin compilation:
+    `Cannot find a Java installation ... matching languageVersion=17`.
+
+## 2026-06-26 - iOS Injection performance pass
+- User reported that the iOS app felt noticeably slow.
+- Code-first performance audit findings:
+  - Injection result detail rendered `FillingAnimationView` immediately after
+    prediction. That view uses a Canvas and nested fill-grid drawing, so opening
+    the result page could do expensive rendering before the user asked to see
+    the filling preview.
+  - Injection assistant question text was bound directly to
+    `PredictionViewModel.assistantQuestion`, an `@Published` field on the shared
+    observable object. Typing in the assistant could fan out updates through the
+    larger screen.
+- Fix:
+  - `ios/InjectionMVP/Sources/KyulAIInjectionApp/ResultDetailView.swift`
+    - Filling histogram still appears immediately.
+    - Filling animation is now lazy-loaded behind a `Show Filling Preview`
+      button.
+  - `ios/InjectionMVP/Sources/KyulAIInjectionApp/ContentView.swift`
+    - Assistant card moved into `InjectionAssistantCard` with local `@State`
+      question text.
+    - ViewModel receives the final question only when the user taps Ask.
+  - `ios/InjectionMVP/Sources/KyulAIInjectionCore/PredictionViewModel.swift`
+    - `askAssistant` now accepts an explicit question while preserving the old
+      default behavior.
+  - Injection localization resources added the `show.filling.preview` key.
+- Verification:
+  - `swift test` in `ios/InjectionMVP` passed: 8 tests.
+  - `swift test` in `ios/DDLaminateMVP` passed: 11 tests.
+  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+  - XcodeBuildMCP build/run of
+    `ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj` scheme `LuveloxMVPHost`
+    on booted iPhone 17 simulator succeeded.
+  - Simulator screenshot succeeded and showed the C2ES Forecast Workspace login
+    screen.
+- Remaining performance candidates:
+  - Laminate `DesignSpaceMapView` sorts nearby map points during view render.
+  - Laminate curve chart/fitting path still performs point sorting and kink-fit
+    calculations in the render path. These are good next targets if Laminate
+    result pages still feel slow.
+
+## 2026-06-26 - Fixed iOS Open Injection freeze in Luvelox host
+- User reported that tapping `Open Injection` froze the iOS app.
+- Root cause:
+  - `LuveloxMVP` opens module cards inside an existing `NavigationStack`.
+  - The Injection module destination used `InjectionModuleView()`, whose
+    internal `ContentView` created another `NavigationStack`.
+  - This nested NavigationStack path could freeze or heavily stall the
+    navigation transition.
+- Fix:
+  - `ios/InjectionMVP/Sources/KyulAIInjectionApp/ContentView.swift`
+    - Added `wrapsInNavigationStack` mode.
+    - Standalone Injection still owns its own `NavigationStack`.
+    - Embedded Injection can render inside the host's existing navigation stack.
+  - `ios/InjectionMVP/Sources/KyulAIInjectionApp/InjectionModuleView.swift`
+    - Added `embedInNavigationStack` initializer option.
+  - `ios/LuveloxMVP/Sources/LuveloxApp/ContentView.swift`
+    - `Open Injection` now uses
+      `InjectionModuleView(embedInNavigationStack: false)`.
+- Verification:
+  - `swift test` in `ios/InjectionMVP` passed: 8 tests.
+  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+  - XcodeBuildMCP rebuilt and launched `LuveloxMVPHost` on iPhone 17 simulator.
+  - UI automation flow:
+    - tapped `Continue with demo account`;
+    - scrolled to `Open Injection`;
+    - tapped `Open Injection`;
+    - confirmed the Injection screen opened with `C2ES Injection Forecast` and
+      `Connected` visible.
+
+## 2026-06-26 - Injection XAI visible in native apps
+- User asked to add Injection XAI to the app UI.
+- Status before this pass:
+  - Native apps already decoded or forwarded Injection XAI to the assistant
+    context.
+  - XAI was not visibly rendered as a result card section.
+- Fix:
+  - `ios/InjectionMVP/Sources/KyulAIInjectionApp/ContentView.swift`
+    - Latest Injection result card now shows an `Injection XAI` section when
+      `result.xai` is present.
+    - Shows top 5 features with percent bars and short explanations.
+  - `ios/InjectionMVP/Sources/KyulAIInjectionApp/ResultDetailView.swift`
+    - Full result page now shows an `Injection XAI` card after the pressure
+      curve.
+    - Shows top 8 features with category, percent bar, and explanation.
+  - `android/LuveloxMVP/app/src/main/java/com/luvelox/app/InjectionActivity.kt`
+    - Android Injection result card now shows an `Injection XAI` section when
+      `xaiFeatures` are present.
+    - Shows top 5 features with percent bars and explanations before the
+      assistant card.
+- Verification:
+  - `swift test` in `ios/InjectionMVP` passed: 8 tests.
+  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+  - Android compile check was attempted with
+    `gradle :app:compileDebugKotlin`, but the local Mac still has no Java 17
+    runtime, so Gradle stopped before Kotlin compilation.
+
+## 2026-06-26 - Added Laminate RAG assistant to native apps
+- User noticed RAG was not reflected in the app.
+- Status before this pass:
+  - Web RAG endpoint existed at `/api/v1/rag/answer`.
+  - Injection native app already had an assistant call path.
+  - Laminate native result pages showed XAI and design-space insight, but no
+    RAG assistant UI or RAG API request.
+- Fix:
+  - `ios/DDLaminateMVP/Sources/KyulAIDDLaminateCore/DDLaminateModels.swift`
+    - Added `RagAnswerRequest` and `RagAnswerResponse`.
+  - `ios/DDLaminateMVP/Sources/KyulAIDDLaminateCore/DDLaminateAPIClient.swift`
+    - Added `answerRag` using `POST /api/v1/rag/answer`.
+  - `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/ResultDetailView.swift`
+    - Added `LaminateAssistantCard` to both Laminate Response and u3 result
+      pages.
+    - The card sends the current prediction context with the question:
+      mode, model, inputs, predicted Type, Pt, max displacement/force, and
+      top XAI features.
+  - `android/LuveloxMVP/app/src/main/java/com/luvelox/app/LaminateResultActivity.kt`
+    - Added a Laminate AI Assistant card to the native Android result page.
+    - It posts the current result and XAI context to the same RAG endpoint.
+- Verification:
+  - `swift test` in `ios/DDLaminateMVP` passed: 11 tests.
+  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+  - Public RAG endpoint smoke test passed with a D11 bending stiffness question
+    and returned internal XAI report citations.
+  - Android compile check was attempted with
+    `gradle :app:compileDebugKotlin`, but Gradle still cannot start on this Mac
+    because Java 17 is not installed/configured.
+
+## 2026-06-26 - Added Injection Shape Preview to native app inputs
+- User asked whether Shape Preview could be shown inside the app and whether it
+  would be a large upgrade.
+- Decision:
+  - Implemented a lightweight native DOE-driven preview rather than a full CAD
+    or 3D engine integration.
+  - The preview uses the selected geometry values: L, W, thickness, hole
+    diameter, gate width, and gate height.
+- Fix:
+  - `ios/InjectionMVP/Sources/KyulAIInjectionApp/ContentView.swift`
+    - Added a `Shape Preview` section inside the Injection input card.
+    - Added `InjectionShapePreviewView`, a SwiftUI Canvas 2.5D panel preview
+      with hole, edge gate, flow guide, and dimension chips.
+  - `android/LuveloxMVP/app/src/main/java/com/luvelox/app/InjectionActivity.kt`
+    - Added a `Shape Preview` section above process/geometry details.
+    - Added `InjectionShapePreviewView`, a native Android custom View drawing
+      the same DOE-driven panel/hole/gate preview.
+- Verification:
+  - `swift test` in `ios/InjectionMVP` passed: 8 tests.
+  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+  - `git diff --check` passed for the changed iOS/Android files.
+  - Android compile check was attempted with
+    `gradle :app:compileDebugKotlin`, but Gradle still cannot start on this Mac
+    because Java 17 is not installed/configured.
+
+## 2026-06-26 - Hardened iOS Injection Shape Preview after main-thread crash report
+- User reported Xcode stopping at `Thread 1 Queue : com.apple.main-thread`.
+- Reproduction attempt:
+  - Built and launched `LuveloxMVPHost` on the iPhone 17 simulator.
+  - Opened the Injection module and scrolled to the new `Shape Preview`
+    section.
+  - The simulator did not reproduce a crash; the preview rendered normally.
+- Defensive fix:
+  - `ios/InjectionMVP/Sources/KyulAIInjectionApp/ContentView.swift`
+    - Changed `InjectionShapePreviewView` from asynchronous Canvas rendering to
+      normal Canvas rendering.
+    - Added `safeDimension` clamping so malformed/empty/NaN geometry values
+      cannot enter preview geometry calculations.
+- Verification:
+  - `swift test` in `ios/InjectionMVP` passed: 8 tests.
+  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+  - XcodeBuildMCP build/run of `LuveloxMVPHost` succeeded.
+  - UI automation opened Injection and confirmed the `Shape Preview` section
+    with G01 dimensions visible.
+
+## 2026-06-26 - Fixed iOS Laminate predict crash after RAG assistant addition
+- User reported the app froze after pressing Predict in Laminate.
+- Root cause:
+  - Predict itself completed, but opening the result detail page crashed.
+  - Runtime log showed:
+    `No ObservableObject of type AppSettings found`.
+  - The Laminate RAG assistant added `@EnvironmentObject AppSettings` to
+    `ResultDetailView` and `U3PtResultDetailView`, but navigation destinations
+    did not explicitly pass the environment object.
+- Fix:
+  - `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/ContentViewV2.swift`
+    - Added `.environmentObject(settings)` to both response and u3 result
+      destinations.
+  - `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/ContentView.swift`
+    - Added the same explicit environment object pass for the legacy content
+      path.
+- Verification:
+  - `swift test` in `ios/DDLaminateMVP` passed: 11 tests.
+  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+  - XcodeBuildMCP build/run of `LuveloxMVPHost` succeeded.
+  - UI automation opened Laminate, tapped `Run Forecast`, and confirmed the
+    result detail page opened with `Predicted Pt 17,163.21`.
+
+## 2026-06-28 - Fixed Injection entry flow, geometry preview, and result RAG surface
+- User reported that `Open Injection` froze, the Injection preview did not feel
+  consistent with DOE geometry, and Injection needed RAG inside the app.
+- Reproduction:
+  - Built and launched `LuveloxMVPHost` on the iPhone 17 simulator.
+  - Demo-login state was active.
+  - Tapped `Open Injection`; the current build entered the Injection module
+    without freezing.
+  - Ran `Predict Pressure`; the result detail page opened without crashing.
+- Fixes:
+  - `ios/InjectionMVP/Sources/KyulAIInjectionApp/ContentView.swift`
+    - Passed `AppSettings` explicitly into `ResultDetailView` navigation.
+    - Reworked `InjectionShapePreviewView` from decorative 2.5D geometry to a
+      top-view DOE geometry preview with scaled panel, centered hole, edge gate,
+      flow guide, grid, and dimension labels.
+  - `ios/InjectionMVP/Sources/KyulAIInjectionApp/ResultDetailView.swift`
+    - Added `Injection AI Assistant` to the full result page.
+    - The assistant now sends prediction context, inputs, XAI features, pressure,
+      filling, model labels, and curve metadata to `/api/v1/rag/answer`.
+  - `android/LuveloxMVP/app/src/main/java/com/luvelox/app/InjectionActivity.kt`
+    - Reworked native Injection shape preview to the same top-view DOE geometry
+      interpretation used by iOS.
+- Verification:
+  - `swift test` in `ios/InjectionMVP` passed: 8 tests.
+  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+  - `git diff --check` passed.
+  - XcodeBuildMCP build/run of `LuveloxMVPHost` succeeded.
+  - UI automation opened Injection, confirmed the `Shape Preview` section with
+    G01 dimensions visible, tapped `Predict Pressure`, and confirmed the result
+    detail page opened.
+  - Android compile check with `gradle :app:compileDebugKotlin` is still blocked
+    by the Mac environment missing a Java 17 toolchain, not by a reported Kotlin
+    compile error.
+
+## 2026-06-29 - Fixed Injection Assistant HTTP 500 from RAG index query
+- User reported `Assistant failed: HTTP 500: Internal Server Error` in the
+  Injection assistant.
+- Root cause:
+  - The RAG index stores `token_counts` as TF-IDF weights.
+  - `query_index` was recomputing document frequency by summing those stored
+    weights as if they were raw document counts.
+  - Common English assistant questions such as
+    `Why is the top XAI feature important in this prediction?` produced negative
+    pseudo document frequencies for tokens like `is`, `the`, and `in`, causing
+    `ZeroDivisionError` in IDF calculation.
+- Fix:
+  - `src/data/rag/indexer.py`
+    - Changed query-time document frequency to count whether a token appears in
+      each chunk, not to sum TF-IDF weights.
+  - `src/data/rag/answer.py`
+    - Broadened OpenAI response fallback handling so unexpected LLM/client
+      errors return local fallback text instead of surfacing as HTTP 500.
+    - Prioritized current Injection prediction/XAI context over generic RAG
+      retrieval when the request is explaining an active Injection prediction,
+      avoiding unrelated DD Laminate citations for generic assistant questions.
+  - `src/backend/api/v1/rag.py`
+    - Added a route-level safety fallback so answer generation exceptions return
+      a usable local explanation with `model=local-error-fallback` instead of
+      crashing the API.
+  - `tests/backend/test_rag_api.py`
+    - Added regression coverage for route-level fallback on answer generation
+      failure.
+  - `tests/unit/test_rag_answer.py`
+    - Added regression coverage for common English assistant questions against
+      the production RAG index.
+- Verification:
+  - Direct local reproduction no longer raises `ZeroDivisionError`.
+  - `.venv/bin/python -m pytest -q tests/backend/test_rag_api.py tests/unit/test_rag_answer.py`
+    passed: 17 tests.
+  - `git diff --check` passed.
+  - Restarted both uvicorn servers on ports 8000 and 8010.
+  - Public smoke checks against `https://injection.luvelox.com/api/v1/rag/answer`
+    returned HTTP 200 for both Korean and English Injection assistant questions.
+
+## 2026-06-29 - Improved Laminate Assistant keyboard dismissal on iOS
+- User reported that after asking the Laminate AI Assistant, the iOS keyboard
+  stayed open and did not dismiss when interacting outside the input field.
+- Fix:
+  - `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/ResultDetailView.swift`
+    - Added iOS keyboard dismissal helper using `UIResponder.resignFirstResponder`.
+    - Added interactive scroll keyboard dismissal to both Laminate and u3 result
+      detail scroll views.
+    - Added `@FocusState` to the shared `LaminateAssistantCard`.
+    - The assistant input now dismisses the keyboard on Done/submit.
+    - The Ask button dismisses the keyboard before sending the RAG request.
+    - Tapping assistant answer/error/background space also clears focus.
+- Verification:
+  - `swift test` in `ios/DDLaminateMVP` passed: 11 tests.
+
+## 2026-06-29 - Applied the same Assistant keyboard dismissal to Injection iOS
+- User pointed out that similar UX fixes should be checked across related
+  modules without needing a separate reminder.
+- Fix:
+  - `ios/InjectionMVP/Sources/KyulAIInjectionApp/ResultDetailView.swift`
+    - Added iOS keyboard dismissal support to the Injection result Assistant.
+    - The result Assistant now dismisses the keyboard when asking, tapping
+      response/error/background space, or scrolling interactively.
+  - `ios/InjectionMVP/Sources/KyulAIInjectionApp/ContentView.swift`
+    - Applied the same behavior to the Injection main-screen Assistant card.
+- Verification:
+  - `swift test` in `ios/InjectionMVP` passed: 8 tests.
+  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+  - `git diff --check` passed.
+
+## 2026-06-29 - Made mobile module cards tappable, not only the Open button
+- User reported that tapping Injection inside the app appeared to do nothing.
+- Finding:
+  - On iOS, the latest build could open Injection when tapping the explicit
+    `Open Injection` button.
+  - The module card itself was not a navigation target, so tapping the
+    `Injection` card/title/body felt unresponsive.
+- Fix:
+  - `ios/LuveloxMVP/Sources/LuveloxApp/ContentView.swift`
+    - Wrapped granted Laminate and Injection module cards in `NavigationLink`.
+    - The whole card is now tappable while preserving the existing button-like
+      visual label.
+  - `android/LuveloxMVP/app/src/main/java/com/luvelox/app/MainActivity.kt`
+    - Added a card-level click listener so tapping the Android module card also
+      opens the module or shows the access dialog.
+- Verification:
+  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+  - `swift test` in `ios/InjectionMVP` passed: 8 tests.
+  - XcodeBuildMCP build/run of `LuveloxMVPHost` succeeded.
+  - UI automation confirmed the Injection card is now one tap target and opens
+    the `Injection Forecast AI` screen.
+  - Android compile check is still blocked by missing Java 17 toolchain on the
+    Mac environment.
+
+## 2026-06-29 - Hardened Injection Shape Preview after Xcode stopped at ContentView line 327
+- User reported Xcode stopped on the main thread at
+  `ios/InjectionMVP/Sources/KyulAIInjectionApp/ContentView.swift:327`, which is
+  the start of the Injection `Shape Preview` card body.
+- Finding:
+  - The visible `Thread 1 Queue : com.apple.main-thread (serial)` text is a
+    thread/frame label, not the underlying exception message.
+  - In the current simulator build, Injection opened successfully and the Shape
+    Preview rendered.
+- Fix:
+  - Sanitized geometry strings before building the Shape Preview card so invalid
+    or transient DOE text values cannot enter the preview body.
+  - Added a Canvas size guard to skip drawing when SwiftUI gives a non-finite or
+    too-small preview size during layout.
+- Verification:
+  - `swift test` in `ios/InjectionMVP` passed: 8 tests.
+  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+  - `git diff --check` passed.
+  - XcodeBuildMCP build/run succeeded.
+  - UI automation opened Injection and scrolled to `Shape Preview`; the card
+    rendered with G01 dimensions visible.
+
+## 2026-06-29 - Removed Canvas from Injection Shape Preview after EXC_BAD_ACCESS
+- User reported a real crash:
+  `Thread 1: EXC_BAD_ACCESS (code=2, address=...)` at
+  `ios/InjectionMVP/Sources/KyulAIInjectionApp/ContentView.swift:333`.
+- Fix:
+  - Moved the Shape Preview content into a standalone `InjectionShapePreviewCard`
+    so the main `ContentView` body no longer owns the complex preview hierarchy.
+  - Replaced the `Canvas`-based preview renderer with pure SwiftUI
+    `GeometryReader`, `Shape`, `RoundedRectangle`, `Circle`, and `Path` views.
+  - Kept geometry value sanitization before rendering.
+- Verification:
+  - `swift test` in `ios/InjectionMVP` passed: 8 tests.
+  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+  - `git diff --check` passed.
+  - XcodeBuildMCP build/run succeeded.
+  - UI automation opened Injection and scrolled to `Shape Preview`; the preview
+    rendered with L/W/T/D/Gate labels visible and no simulator crash.
+
+## 2026-06-29 - Removed runtime content closure from Injection detail sections
+- User reported another real crash:
+  `Thread 1: EXC_BAD_ACCESS (code=2, address=...)` at
+  `ios/InjectionMVP/Sources/KyulAIInjectionApp/ContentView.swift:511`.
+- Root suspect:
+  - Line 511 was the generic `detailSection` helper's `content()` call.
+  - Multiple sections (`Shape Preview`, `Process details`, `Geometry details`)
+    passed complex controls through that runtime ViewBuilder closure.
+- Fix:
+  - Replaced the `detailSection(title:content:)` helper with a standalone
+    `InjectionDetailSection` view that stores its built content in `init`.
+  - Updated Shape Preview, Process details, and Geometry details to use the new
+    section view.
+  - The old line 511 `content()` crash site no longer exists.
+- Verification:
+  - `swift test` in `ios/InjectionMVP` passed: 8 tests.
+  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+  - `git diff --check` passed.
+  - XcodeBuildMCP build/run succeeded.
+  - UI automation opened Injection, scrolled through Shape Preview, Process
+    details, Geometry details, and reached `Predict Pressure` without simulator
+    crash.
+
+## 2026-06-29 - Improved Injection AI Assistant answer readability
+- User said the Injection AI Assistant answer was difficult to read and asked
+  for cleaner sentence organization.
+- Backend changes:
+  - `src/data/rag/answer.py`
+    - Injection local fallback answers now use clearer paragraph structure:
+      summary, current input/output, XAI mechanism, and caution/interpretation.
+    - Requested-feature explanations now separate quantitative XAI details,
+      physical mechanism, and interpretation into readable paragraphs.
+    - OpenAI-backed Injection answers are post-processed through
+      `format_answer_for_display()` so long single-paragraph responses are split
+      into compact display paragraphs.
+- Web changes:
+  - `src/frontend/simple-injection/app-v2.js`
+    - Renders Assistant answers as paragraph nodes instead of one large text
+      block.
+  - `src/frontend/simple-injection/styles-v2.css`
+    - Adds spacing and softer weight/line-height for answer paragraphs.
+- Native app changes:
+  - `ios/InjectionMVP/Sources/KyulAIInjectionApp/ContentView.swift`
+    - Added shared `InjectionAssistantAnswerBlock` to render answer provider and
+      paragraphs with better line spacing.
+  - `ios/InjectionMVP/Sources/KyulAIInjectionApp/ResultDetailView.swift`
+    - Result Assistant now uses the same answer block.
+  - `android/LuveloxMVP/app/src/main/java/com/luvelox/app/InjectionActivity.kt`
+    - Android Injection Assistant now renders answers as paragraph rows inside
+      a bordered answer block.
+- Verification:
+  - `python -m pytest tests/unit/test_rag_answer.py` passed: 14 tests.
+  - `swift test` in `ios/InjectionMVP` passed: 8 tests.
+  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+  - `git diff --check` passed.
+  - Backend API test collection is blocked in this local Python by missing
+    `fastapi`.
+  - Android Kotlin compile is still blocked by missing Java 17 toolchain.
+
+## 2026-06-29 - Pre-commit snapshot stabilization
+- User asked to proceed with the next cleanup stage: pre-commit snapshot
+  cleanup, web/app UI parity, Android build environment, and RAG/Assistant API
+  test stabilization.
+- Used the ai-slop-cleaner workflow:
+  - Locked behavior with targeted tests before and after edits.
+  - Classified fallback-like code before changing it.
+  - Kept compatibility/fail-safe fallbacks that protect offline modules,
+    local history, and local RAG answers.
+- Fixes:
+  - `android/LuveloxMVP/app/src/main/java/com/luvelox/app/MainActivity.kt`
+    - Removed an invalid login-card click handler that referenced `module`
+      outside scope and broke Android Kotlin compilation.
+  - `src/frontend/luvelox/login-v2.html`,
+    `src/frontend/luvelox/login-v2.ko.html`,
+    `src/frontend/luvelox/login-v2.js`, and
+    `src/frontend/luvelox/app.js`
+    - Replaced remaining visible web fallback `Luvelox Demo` account copy with
+      `Demo Account`.
+  - `tests/backend/test_dd_laminate_ios_contract.py`
+    - Updated stale route/static expectations to the current UX contract:
+      roots expose the forecast entry/current v2 path instead of old Classic
+      content, and workspace static JS now contains `Demo Account`.
+  - Added `docs/precommit-snapshot-2026-06-29.md` with reproducible verification
+    commands and environment notes.
+- Android environment:
+  - JDK 17 is installed at `/opt/homebrew/opt/openjdk@17`, but macOS
+    `java_home` does not discover it.
+  - Verified Android with explicit `JAVA_HOME=/opt/homebrew/opt/openjdk@17`.
+- Verification:
+  - JS syntax checks passed for DD Laminate, Simple Injection, Luvelox app,
+    Luvelox login, and Luvelox admin scripts.
+  - Python backend/RAG suite passed: 71 tests.
+  - `swift test` in `ios/DDLaminateMVP` passed: 11 tests.
+  - `swift test` in `ios/InjectionMVP` passed: 8 tests.
+  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+  - Android `gradle :app:assembleDebug --no-daemon` passed with explicit JDK 17.
+  - `git diff --check` passed.
+- Remaining notes:
+  - Current local Python is 3.10.20, while project metadata asks for Python
+    3.11+. Use a project venv on the Windows/server PC.
+  - Installing `requirements-serving.txt` into the shared local base
+    environment downgraded some packages and produced unrelated local package
+    compatibility warnings; this reinforces using an isolated venv.
+  - Gradle reports future Gradle 10 deprecation warnings, but current debug
+    build succeeds.
+
+## 2026-06-29 - Injection cleanup/debug pass
+- User asked to review the accumulated code, debug, and optimize.
+- Cleanup scope followed the ai-slop-cleaner workflow:
+  - Locked current behavior first with existing tests/checks.
+  - Kept the edit small and reversible.
+  - Focused on side-effect boundaries instead of broad refactoring.
+- Web Injection cleanup:
+  - `src/frontend/simple-injection/app-v2.js`
+    - Separated result rendering from history persistence. `renderResult()`
+      now only updates the UI, and successful prediction submission records
+      history explicitly afterward.
+    - Injection AI citation controls now appear only when citations are
+      actually present, avoiding a dead `Show citations` button.
+- Fallback/debug notes:
+  - Browser history storage failures remain intentionally non-blocking because
+    predictions should still work even if `localStorage` is unavailable.
+  - iOS/Android history parsing similarly treats stored recent runs as
+    recoverable local state rather than a prediction blocker.
+- Verification:
+  - `swift test` in `ios/InjectionMVP` passed after cleanup: 8 tests.
+  - `node --check src/frontend/simple-injection/app-v2.js` passed after cleanup.
+  - `git diff --check` passed after cleanup.
+  - Android Gradle verification is still blocked by missing local Java Runtime.
+
+## 2026-06-29 - Added Injection history and Korean XAI/Assistant UX
+- User asked to make Injection match Laminate's bottom prediction history and
+  fix remaining English-only Injection XAI/Assistant text in Korean mode.
+- iOS Injection changes:
+  - `ios/InjectionMVP/Sources/KyulAIInjectionApp/ContentView.swift`
+    - Added a bottom `Prediction history` / `예측 기록` card using the existing
+      `PredictionViewModel.recentRuns` store.
+    - Tapping a history card reapplies the saved DOE/model setup; the card also
+      exposes a clear-history action.
+    - Localized the main Injection Assistant default question to Korean when the
+      app language is Korean.
+    - Added shared Korean XAI helpers for Injection feature labels,
+      explanations, XAI summary/method, and runtime notes.
+  - `ios/InjectionMVP/Sources/KyulAIInjectionApp/ResultDetailView.swift`
+    - Reused the same Korean XAI helpers in the result detail page.
+    - Localized the result-detail Assistant default question and XAI notes.
+    - Sends translated XAI feature labels/explanations in the Assistant
+      prediction context when Korean is selected.
+- Web Injection changes:
+  - `src/frontend/simple-injection/index-v2.html` and
+    `src/frontend/simple-injection/index-v2.ko.html`
+    - Added a result-panel prediction history section.
+  - `src/frontend/simple-injection/app-v2.js`
+    - Stores recent Injection predictions in `localStorage`.
+    - Renders reusable history cards at the bottom of the result panel.
+    - Localizes backend result notes in Korean mode.
+  - `src/frontend/simple-injection/styles-v2.css`
+    - Added compact history-card styles.
+- Android Luvelox app changes:
+  - `android/LuveloxMVP/app/src/main/java/com/luvelox/app/InjectionActivity.kt`
+    - Added SharedPreferences-backed recent Injection history cards.
+    - Added Korean XAI label/explanation copy when the device locale is Korean.
+    - Added Korean Assistant default question/note text.
+    - Sends `ko`/`en` language to the RAG endpoint instead of `auto`.
+- Verification:
+  - `swift test` in `ios/InjectionMVP` passed: 8 tests.
+  - `node --check src/frontend/simple-injection/app-v2.js` passed.
+  - `git diff --check` passed.
+  - Android Gradle verification could not run because this Mac currently has no
+    Java Runtime available.
+
+## 2026-06-29 - Polished Injection AI Assistant answer presentation
+- User asked for Injection AI Assistant answers to appear in the same organized
+  style as Laminate instead of a loose text block.
+- Web Injection:
+  - `src/frontend/simple-injection/app-v2.js`
+    - Renders Assistant answers as structured paragraph cards.
+    - The first paragraph is labeled `Summary` / `요약`; later paragraphs are
+      labeled `Reasoning` / `해석`.
+  - `src/frontend/simple-injection/styles-v2.css`
+    - Added a bordered answer container, provider/citation header treatment,
+      highlighted summary card, and compact reasoning cards.
+- iOS Injection:
+  - `ios/InjectionMVP/Sources/KyulAIInjectionApp/ContentView.swift`
+    - Reworked `InjectionAssistantAnswerBlock` into a polished answer panel
+      with an `Injection AI` header, provider badge, summary/reasoning cards,
+      and retrieved-source count.
+  - `ios/InjectionMVP/Sources/KyulAIInjectionApp/ResultDetailView.swift`
+    - Updated result-detail Assistant to use the same polished answer block.
+- Android Injection:
+  - `android/LuveloxMVP/app/src/main/java/com/luvelox/app/InjectionActivity.kt`
+    - Renders Assistant answers as a headed block with summary/reasoning cards.
+- Verification:
+  - `swift test` in `ios/InjectionMVP` passed: 8 tests.
+  - `node --check src/frontend/simple-injection/app-v2.js` passed.
+  - `git diff --check` passed.
+  - Android Gradle verification is still blocked by missing local Java Runtime.

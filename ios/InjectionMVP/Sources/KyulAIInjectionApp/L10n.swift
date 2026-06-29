@@ -10,10 +10,18 @@ enum L10n {
     }
 
     private static var bundle: Bundle {
+        let baseBundle: Bundle
         #if SWIFT_PACKAGE
-        .module
+        baseBundle = .module
         #else
-        .main
+        baseBundle = .main
         #endif
+        let languageCode = UserDefaults.standard.string(forKey: "kyulai.injection.languageCode")
+            ?? (Locale.current.language.languageCode?.identifier == "ko" ? "ko" : "en")
+        if let path = baseBundle.path(forResource: languageCode, ofType: "lproj"),
+           let languageBundle = Bundle(path: path) {
+            return languageBundle
+        }
+        return baseBundle
     }
 }

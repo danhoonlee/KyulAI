@@ -12,7 +12,7 @@ public struct ModelInfo: Codable, Equatable, Hashable, Identifiable, Sendable {
     public let available: Bool
 
     public var id: String { key }
-    public var displayLabel: String { ModelDisplayLabel.clean(label) }
+    public var displayLabel: String { ModelDisplayLabel.display(key: key, fallbackLabel: label) }
 }
 
 public struct InjectionModelsResponse: Codable, Equatable, Hashable, Sendable {
@@ -191,17 +191,18 @@ public struct SpruePressurePredictionResult: Codable, Equatable, Hashable, Senda
     public let validationWarnings: [ValidationWarning]
     public let fillingPressure: FillingPressureSummary?
     public let predictedFillingPressure: FillingPressureSummary?
+    public let xai: InjectionXAIExplanation?
 
     public var bestFillingPressure: FillingPressureSummary? {
         predictedFillingPressure ?? fillingPressure
     }
 
     public var displayModelLabel: String {
-        ModelDisplayLabel.clean(modelLabel)
+        ModelDisplayLabel.display(key: modelKey, fallbackLabel: modelLabel)
     }
 
     public var displayFillingModelLabel: String {
-        ModelDisplayLabel.clean(fillingModelLabel)
+        ModelDisplayLabel.display(key: fillingModelKey, fallbackLabel: fillingModelLabel)
     }
 
     enum CodingKeys: String, CodingKey {
@@ -218,10 +219,104 @@ public struct SpruePressurePredictionResult: Codable, Equatable, Hashable, Senda
         case validationWarnings = "validation_warnings"
         case fillingPressure = "filling_pressure"
         case predictedFillingPressure = "predicted_filling_pressure"
+        case xai
+    }
+}
+
+public struct InjectionXAIExplanation: Codable, Equatable, Hashable, Sendable {
+    public let title: String
+    public let summary: String
+    public let method: String
+    public let featureSet: String
+    public let topFeatures: [InjectionXAIFeature]
+
+    enum CodingKeys: String, CodingKey {
+        case title
+        case summary
+        case method
+        case featureSet = "feature_set"
+        case topFeatures = "top_features"
+    }
+}
+
+public struct InjectionXAIFeature: Codable, Equatable, Hashable, Identifiable, Sendable {
+    public var id: String { name }
+    public let name: String
+    public let label: String
+    public let category: String
+    public let importance: Double
+    public let localSensitivity: Double
+    public let localValue: Double?
+    public let perturbation: String
+    public let explanation: String
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case label
+        case category
+        case importance
+        case localSensitivity = "local_sensitivity"
+        case localValue = "local_value"
+        case perturbation
+        case explanation
+    }
+}
+
+public struct RagAnswerRequest: Codable, Equatable, Sendable {
+    public let query: String
+    public let topK: Int
+    public let useLLM: Bool
+    public let language: String
+    public let predictionContext: JSONValue?
+
+    public init(
+        query: String,
+        topK: Int = 3,
+        useLLM: Bool = true,
+        language: String = "auto",
+        predictionContext: JSONValue? = nil
+    ) {
+        self.query = query
+        self.topK = topK
+        self.useLLM = useLLM
+        self.language = language
+        self.predictionContext = predictionContext
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case query
+        case topK = "top_k"
+        case useLLM = "use_llm"
+        case language
+        case predictionContext = "prediction_context"
+    }
+}
+
+public struct RagAnswerResponse: Codable, Equatable, Sendable {
+    public let query: String
+    public let answer: String
+    public let provider: String
+    public let model: String
+    public let retrievalCount: Int
+    public let usedLLM: Bool
+    public let error: String
+
+    enum CodingKeys: String, CodingKey {
+        case query
+        case answer
+        case provider
+        case model
+        case retrievalCount = "retrieval_count"
+        case usedLLM = "used_llm"
+        case error
     }
 }
 
 private enum ModelDisplayLabel {
+    static func display(key: String, fallbackLabel: String) -> String {
+        webLabels[key] ?? clean(fallbackLabel)
+    }
+
     static func clean(_ label: String) -> String {
         var cleaned = label.trimmingCharacters(in: .whitespacesAndNewlines)
         for prefix in rolePrefixes {
@@ -241,12 +336,21 @@ private enum ModelDisplayLabel {
         "Filling Pressure",
     ]
 
+    private static let webLabels = [
+        "sprue_classical": "Machine Learning",
+        "sprue_goint": "Deep Learning",
+        "sprue_deeponet": "Operator Learning",
+        "filling_classical": "Machine Learning",
+        "filling_goint": "Deep Learning",
+        "filling_deeponet": "Operator Learning",
+    ]
+
     private static let replacements = [
-        "classical ml + pca": "ExtraTrees + PCA",
-        "classical ml histogram": "ExtraTrees histogram",
-        "gointmlp-style nn": "GointMLP NN",
-        "deeponet operator nn": "DeepONet NN",
-        "deeponet histogram nn": "DeepONet NN",
+        "classical ml + pca": "Machine Learning",
+        "classical ml histogram": "Machine Learning",
+        "gointmlp-style nn": "Deep Learning",
+        "deeponet operator nn": "Operator Learning",
+        "deeponet histogram nn": "Operator Learning",
     ]
 }
 

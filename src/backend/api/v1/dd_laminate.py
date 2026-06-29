@@ -135,6 +135,9 @@ class XAIFeature(BaseModel):
     importance: float
     category: Literal["angle", "stiffness", "coupling", "case", "curve", "other"] = "other"
     explanation: str
+    local_sensitivity: float | None = None
+    local_value: float | None = None
+    perturbation: str | None = None
 
 
 class XAIExplanation(BaseModel):
@@ -826,7 +829,14 @@ def _feature_category(feature: str) -> Literal["angle", "stiffness", "coupling",
     return "other"
 
 
-def _xai_feature(feature: str, importance: float) -> XAIFeature:
+def _xai_feature(
+    feature: str,
+    importance: float,
+    *,
+    local_sensitivity: float | None = None,
+    local_value: float | None = None,
+    perturbation: str | None = None,
+) -> XAIFeature:
     label, category, explanation = FEATURE_EXPLANATIONS.get(
         feature,
         (
@@ -841,6 +851,9 @@ def _xai_feature(feature: str, importance: float) -> XAIFeature:
         importance=round(float(importance), 6),
         category=category,  # type: ignore[arg-type]
         explanation=explanation,
+        local_sensitivity=None if local_sensitivity is None else round(float(local_sensitivity), 6),
+        local_value=None if local_value is None else round(float(local_value), 6),
+        perturbation=perturbation,
     )
 
 
@@ -1070,13 +1083,13 @@ def _cached_u3_deep_artifacts(path: str):
     return checkpoint, build_u3_forecast_deep_model(checkpoint, "cpu"), type_bundle
 
 
-def _local_xai_scores(
+def _local_xai_analysis(
     model_key: str,
     theta1: float,
     theta2: float,
     case: str,
     candidate_features: tuple[str, ...] = (),
-) -> dict[str, float]:
+) -> dict[str, dict[str, float | str]]:
     try:
         import numpy as np
         import torch
@@ -1154,6 +1167,8 @@ def _local_xai_scores(
         base_output = output_fn(x)
         candidate_set = set(candidate_features)
         raw_scores: dict[str, float] = {}
+        raw_values: dict[str, float] = {}
+        masked_values: dict[str, float] = {}
         for index, name in enumerate(names):
             if candidate_set and name not in candidate_set:
                 continue
@@ -1166,12 +1181,36 @@ def _local_xai_scores(
             delta = _safe_output_delta(base_output, output_fn(variant))
             local_magnitude = math.log1p(abs(original))
             raw_scores[name] = max(delta, 0.0) * (1.0 + 0.05 * local_magnitude)
+            raw_values[name] = original
+            masked_values[name] = float(variant[0, index])
 
         if sum(raw_scores.values()) <= 0:
             raw_scores = {name: math.log1p(abs(float(x[0, idx]))) for idx, name in enumerate(names)}
-        return _normalize_scores(raw_scores)
+            raw_values = {name: float(x[0, idx]) for idx, name in enumerate(names)}
+            masked_values = dict.fromkeys(raw_values, 0.0)
+        normalized = _normalize_scores(raw_scores)
+        return {
+            name: {
+                "score": float(normalized.get(name, 0.0)),
+                "sensitivity": float(raw_scores.get(name, 0.0)),
+                "value": float(raw_values.get(name, 0.0)),
+                "masked_value": float(masked_values.get(name, 0.0)),
+            }
+            for name in raw_scores
+        }
     except Exception:
         return {}
+
+
+def _local_xai_scores(
+    model_key: str,
+    theta1: float,
+    theta2: float,
+    case: str,
+    candidate_features: tuple[str, ...] = (),
+) -> dict[str, float]:
+    analysis = _local_xai_analysis(model_key, theta1, theta2, case, candidate_features)
+    return {feature: float(values.get("score", 0.0)) for feature, values in analysis.items()}
 
 
 @lru_cache(maxsize=256)
@@ -1188,7 +1227,11 @@ def _load_local_xai_for_model(model_key: str, theta1: float, theta2: float, case
         feature
         for feature, _score in sorted(global_scores.items(), key=lambda item: item[1], reverse=True)[:LOCAL_XAI_MASK_LIMIT]
     )
-    local_scores = _local_xai_scores(model_key, theta1, theta2, case, local_candidates)
+    local_analysis = _local_xai_analysis(model_key, theta1, theta2, case, local_candidates)
+    local_scores = {
+        feature: float(values.get("score", 0.0))
+        for feature, values in local_analysis.items()
+    }
     if local_scores:
         combined_scores = {
             feature: 0.75 * local_scores.get(feature, 0.0) + 0.25 * global_scores.get(feature, 0.0)
@@ -1197,10 +1240,12 @@ def _load_local_xai_for_model(model_key: str, theta1: float, theta2: float, case
         combined_scores = _normalize_scores(combined_scores)
         notes = [
             f"Feature importance is local: the strongest {LOCAL_XAI_MASK_LIMIT} global candidates are recomputed for this theta/case input by feature masking.",
+            "Local sensitivity reports how much the model output changes when the current feature value is masked for this single input.",
             "A small global prior is blended in to keep known model-level drivers visible.",
             "Use the explanation as engineering guidance; promising candidates still need simulation validation.",
         ]
-        method = f"{method} · live local feature masking"
+        if "live local feature masking" not in method:
+            method = f"{method} · live local feature masking"
     else:
         combined_scores = _normalize_scores(global_scores)
         notes = [
@@ -1209,7 +1254,25 @@ def _load_local_xai_for_model(model_key: str, theta1: float, theta2: float, case
         ]
 
     top_features = [
-        _xai_feature(feature, importance)
+        _xai_feature(
+            feature,
+            importance,
+            local_sensitivity=(
+                float(local_analysis[feature]["sensitivity"])
+                if feature in local_analysis and isinstance(local_analysis[feature].get("sensitivity"), (int, float))
+                else None
+            ),
+            local_value=(
+                float(local_analysis[feature]["value"])
+                if feature in local_analysis and isinstance(local_analysis[feature].get("value"), (int, float))
+                else None
+            ),
+            perturbation=(
+                f"masked to {float(local_analysis[feature]['masked_value']):.4g}"
+                if feature in local_analysis and isinstance(local_analysis[feature].get("masked_value"), (int, float))
+                else None
+            ),
+        )
         for feature, importance in sorted(combined_scores.items(), key=lambda item: item[1], reverse=True)
     ]
     return XAIExplanation(

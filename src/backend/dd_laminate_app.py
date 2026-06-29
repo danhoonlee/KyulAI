@@ -20,6 +20,7 @@ from src.backend.api.v1.dd_laminate import router as dd_laminate_router
 from src.backend.api.v1.dd_laminate import warm_prediction_models
 from src.backend.api.v1.modules import router as modules_router
 from src.backend.api.v1.optimization import router as optimization_router
+from src.backend.api.v1.rag import router as rag_router
 from src.backend.api.v1.slack_commands import router as slack_commands_router
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -84,6 +85,7 @@ app.add_middleware(
 app.include_router(dd_laminate_router, prefix="/api/v1")
 app.include_router(modules_router, prefix="/api/v1")
 app.include_router(optimization_router, prefix="/api/v1")
+app.include_router(rag_router, prefix="/api/v1")
 app.include_router(slack_commands_router)
 
 

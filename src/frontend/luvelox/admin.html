@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Luvelox Admin</title>
     <link rel="alternate" hreflang="ko" href="https://ai.luvelox.com/admin.ko.html" />
-    <link rel="stylesheet" href="./styles.css?v=20260619-admin3" />
+    <link rel="stylesheet" href="./styles.css?v=20260623-admin-account" />
   </head>
   <body>
     <main class="app-shell admin-shell">
@@ -33,6 +33,48 @@
         </label>
         <button id="load-users" type="button">Load users</button>
         <p id="admin-status" class="request-status" role="status"></p>
+      </section>
+
+      <section class="admin-control-card" aria-label="Create account">
+        <div class="admin-table-head">
+          <div>
+            <p class="eyebrow">Account control</p>
+            <h2>Create account</h2>
+          </div>
+        </div>
+        <form class="admin-create-form" id="admin-create-form">
+          <div class="form-grid">
+            <label>
+              Name
+              <input id="create-name" type="text" autocomplete="name" required />
+            </label>
+            <label>
+              Email
+              <input id="create-email" type="email" autocomplete="email" required />
+            </label>
+            <label>
+              Temporary password
+              <input id="create-password" type="password" autocomplete="new-password" minlength="8" required />
+            </label>
+            <label>
+              Company
+              <input id="create-company" type="text" autocomplete="organization" />
+            </label>
+            <label>
+              Location
+              <input id="create-location" type="text" autocomplete="address-level2" />
+            </label>
+            <label>
+              Mobile
+              <input id="create-mobile" type="tel" autocomplete="tel" />
+            </label>
+          </div>
+          <div>
+            <p class="admin-field-label">Module access</p>
+            <div class="admin-create-entitlements" id="create-entitlements"></div>
+          </div>
+          <button id="create-user" type="submit">Create account</button>
+        </form>
       </section>
 
       <section class="summary-strip admin-summary" aria-label="Admin summary">
@@ -82,6 +124,6 @@
       </section>
     </main>
 
-    <script src="./admin.js?v=20260619-admin3" type="module"></script>
+    <script src="./admin.js?v=20260623-admin-account" type="module"></script>
   </body>
 </html>

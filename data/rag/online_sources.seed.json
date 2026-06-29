@@ -1,0 +1,104 @@
+{
+  "sources": [
+    {
+      "source_id": "tsai_aiaa_double_double_2021",
+      "title": "Double-Double: New Family of Composite Laminates",
+      "url": "https://arc.aiaa.org/doi/10.2514/1.J060659",
+      "topic": "double_double_laminate",
+      "source_type": "journal_landing_page",
+      "priority": 1,
+      "tags": ["double-double", "laminate", "Tsai", "AIAA"],
+      "ingest_mode": "metadata_only",
+      "license_note": "Paywalled/rights-managed journal page; keep metadata and DOI link only unless access rights are confirmed.",
+      "notes": "Use as canonical citation pointer for Double-Double laminate theory."
+    },
+    {
+      "source_id": "stanford_double_double_techfinder",
+      "title": "Double-Double Composite Laminates for Versatile Manufacturing",
+      "url": "https://techfinder.stanford.edu/technology/double-double-composite-laminates-versatile-manufacturing",
+      "topic": "double_double_laminate",
+      "source_type": "institutional_web_page",
+      "priority": 1,
+      "tags": ["double-double", "manufacturing", "Stanford"],
+      "ingest_mode": "download",
+      "license_note": "Institutional public web page; store short extracted text for retrieval with URL citation."
+    },
+    {
+      "source_id": "nasa_laminated_composite_plates_1995",
+      "title": "Basic Mechanics of Laminated Composite Plates",
+      "url": "https://ntrs.nasa.gov/api/citations/19950009349/downloads/19950009349.pdf",
+      "topic": "laminate_mechanics",
+      "source_type": "public_pdf",
+      "priority": 1,
+      "tags": ["NASA", "classical laminate theory", "laminated plates"],
+      "ingest_mode": "download",
+      "license_note": "NASA NTRS public technical document."
+    },
+    {
+      "source_id": "faa_ac_20_107b_composite_aircraft_structure",
+      "title": "AC 20-107B Composite Aircraft Structure",
+      "url": "https://www.faa.gov/documentLibrary/media/Advisory_Circular/AC_20-107B_with_change_1.pdf",
+      "topic": "aircraft_composite_guidance",
+      "source_type": "public_pdf",
+      "priority": 2,
+      "tags": ["FAA", "aircraft", "composite structure", "certification"],
+      "ingest_mode": "download",
+      "license_note": "FAA public advisory circular."
+    },
+    {
+      "source_id": "cmh17_about",
+      "title": "About CMH-17",
+      "url": "https://www.cmh17.org/",
+      "topic": "composite_materials_handbook",
+      "source_type": "institutional_web_page",
+      "priority": 2,
+      "tags": ["CMH-17", "composite materials handbook", "standardization"],
+      "ingest_mode": "download",
+      "license_note": "Public CMH-17 orientation page; handbook content itself should be handled according to access rights."
+    },
+    {
+      "source_id": "qub_double_double_homogenisation",
+      "title": "Double-Double (DD) laminates: homogenisation, mechanical performance and layup validation",
+      "url": "https://pure.qub.ac.uk/en/publications/double-double-dd-laminates-homogenisation-mechanical-performance-/",
+      "topic": "double_double_laminate",
+      "source_type": "university_publication_page",
+      "priority": 2,
+      "tags": ["double-double", "homogenisation", "mechanical performance"],
+      "ingest_mode": "download",
+      "license_note": "University publication metadata/abstract page; do not ingest paywalled full text unless rights are confirmed."
+    },
+    {
+      "source_id": "dlr_double_double_aerospace_applications_2022",
+      "title": "Double-Double laminates for aerospace applications",
+      "url": "https://elib.dlr.de/185945/1/2022_Kappel_Double-Double-laminates-for-aerospace-applications_2022_Composites-Part-C.pdf",
+      "topic": "double_double_laminate",
+      "source_type": "public_pdf",
+      "priority": 2,
+      "tags": ["double-double", "aerospace", "DLR"],
+      "ingest_mode": "download",
+      "license_note": "Public DLR-hosted PDF; verify publication license before redistributing extracted text."
+    },
+    {
+      "source_id": "westernsydney_double_double_simplifying_design",
+      "title": "Double-Double: Simplifying the Design and Manufacture of Composite Laminates",
+      "url": "https://researchers.westernsydney.edu.au/en/publications/double-double-simplifying-the-design-and-manufacture-of-composite/",
+      "topic": "double_double_laminate",
+      "source_type": "university_publication_page",
+      "priority": 3,
+      "tags": ["double-double", "manufacturing", "design simplification"],
+      "ingest_mode": "download",
+      "license_note": "University publication metadata/abstract page."
+    },
+    {
+      "source_id": "faa_ac_43_214a_composite_bonded_repair",
+      "title": "AC 43-214A Repairs and Alterations to Composite and Bonded Aircraft Structure",
+      "url": "https://www.faa.gov/documentLibrary/media/Advisory_Circular/AC_43-214A.pdf",
+      "topic": "aircraft_composite_repair",
+      "source_type": "public_pdf",
+      "priority": 3,
+      "tags": ["FAA", "repair", "bonded structure", "inspection"],
+      "ingest_mode": "download",
+      "license_note": "FAA public advisory circular."
+    }
+  ]
+}

@@ -107,6 +107,9 @@
 "confidence" = "신뢰도";
 "response.curve" = "응답 곡선";
 "pt.marker" = "Pt 표시";
+"curve.legend.predicted.curve" = "예측 곡선";
+"curve.legend.linear.fit" = "선형 fit";
+"curve.legend.kink.guide" = "굴곡 기준선";
 "class.probabilities" = "분류 확률";
 "no.probabilities" = "확률 값이 없습니다.";
 "notes" = "노트";

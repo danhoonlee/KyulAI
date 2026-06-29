@@ -25,6 +25,7 @@ public protocol InjectionAPIClientProtocol: Sendable {
     func models(baseURL: URL) async throws -> InjectionModelsResponse
     func doe(baseURL: URL) async throws -> InjectionDoeResponse
     func predictSpruePressure(baseURL: URL, request: SpruePressurePredictionRequest) async throws -> SpruePressurePredictionResult
+    func answerRag(baseURL: URL, request: RagAnswerRequest) async throws -> RagAnswerResponse
 }
 
 public struct InjectionAPIClient: InjectionAPIClientProtocol {
@@ -55,6 +56,14 @@ public struct InjectionAPIClient: InjectionAPIClientProtocol {
         request: SpruePressurePredictionRequest
     ) async throws -> SpruePressurePredictionResult {
         var urlRequest = URLRequest(url: Self.endpoint(baseURL: baseURL, path: "/api/v1/simple-injection/predict/sprue-pressure"))
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.httpBody = try encoder.encode(request)
+        return try await send(urlRequest)
+    }
+
+    public func answerRag(baseURL: URL, request: RagAnswerRequest) async throws -> RagAnswerResponse {
+        var urlRequest = URLRequest(url: Self.endpoint(baseURL: baseURL, path: "/api/v1/rag/answer"))
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         urlRequest.httpBody = try encoder.encode(request)

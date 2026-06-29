@@ -8,10 +8,11 @@ import mimetypes
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from src.backend.api.v1.modules import router as modules_router
+from src.backend.api.v1.rag import router as rag_router
 from src.backend.api.v1.simple_injection import model_availability_status
 from src.backend.api.v1.simple_injection import router as simple_injection_router
 
@@ -39,38 +40,85 @@ app.add_middleware(
 
 app.include_router(simple_injection_router, prefix="/api/v1")
 app.include_router(modules_router, prefix="/api/v1")
+app.include_router(rag_router, prefix="/api/v1")
 
 app.mount("/data", StaticFiles(directory=DATA_DIR), name="data")
 
 
+def _no_cache_file(path):
+    return FileResponse(
+        path,
+        headers={
+            "Cache-Control": "no-store, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
+
+
+@app.get("/")
+async def simple_injection_root() -> FileResponse:
+    return _no_cache_file(FRONTEND_DIR / "index-v2.html")
+
+
+@app.get("/index.html")
+async def simple_injection_default_en() -> FileResponse:
+    return _no_cache_file(FRONTEND_DIR / "index-v2.html")
+
+
+@app.get("/index.ko.html")
+async def simple_injection_default_ko() -> FileResponse:
+    return _no_cache_file(FRONTEND_DIR / "index-v2.ko.html")
+
+
+@app.get("/index-v2.html")
+async def simple_injection_v2_en() -> FileResponse:
+    return _no_cache_file(FRONTEND_DIR / "index-v2.html")
+
+
+@app.get("/index-v2.ko.html")
+async def simple_injection_v2_ko() -> FileResponse:
+    return _no_cache_file(FRONTEND_DIR / "index-v2.ko.html")
+
+
+@app.get("/styles-v2.css")
+async def simple_injection_styles_v2() -> FileResponse:
+    return _no_cache_file(FRONTEND_DIR / "styles-v2.css")
+
+
+@app.get("/app-v2.js")
+async def simple_injection_app_v2() -> FileResponse:
+    return _no_cache_file(FRONTEND_DIR / "app-v2.js")
+
+
 @app.get("/simple-injection")
 async def legacy_simple_injection_root() -> RedirectResponse:
-    return RedirectResponse(url="/")
+    return RedirectResponse(url="/index-v2.html")
 
 
 @app.get("/simple-injection/")
 async def legacy_simple_injection_slash() -> RedirectResponse:
-    return RedirectResponse(url="/")
+    return RedirectResponse(url="/index-v2.html")
 
 
 @app.get("/simple-injection/index.html")
 async def legacy_simple_injection_en() -> RedirectResponse:
-    return RedirectResponse(url="/")
+    return RedirectResponse(url="/index-v2.html")
 
 
 @app.get("/simple-injection/index.ko.html")
 async def legacy_simple_injection_ko() -> RedirectResponse:
-    return RedirectResponse(url="/index.ko.html")
+    return RedirectResponse(url="/index-v2.ko.html")
 
 
 @app.get("/simple-injection-ko")
 async def simple_injection_ko() -> RedirectResponse:
-    return RedirectResponse(url="/index.ko.html")
+    return RedirectResponse(url="/index-v2.ko.html")
 
 
 @app.get("/simple-injection-en")
 async def simple_injection_en() -> RedirectResponse:
-    return RedirectResponse(url="/")
+    return RedirectResponse(url="/index-v2.html")
 
 
 @app.get("/health")

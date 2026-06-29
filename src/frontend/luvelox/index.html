@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>C2ES Forecast Workspace</title>
     <link rel="alternate" hreflang="ko" href="./index.ko.html" />
-    <link rel="stylesheet" href="./styles.css?v=20260619-forgot1" />
+    <link rel="stylesheet" href="./styles.css?v=20260624-auth-placeholder1" />
   </head>
   <body>
     <main class="app-shell">
@@ -49,12 +49,15 @@
           </div>
           <label>
             Email
-            <input id="email-input" type="email" autocomplete="email" value="demo@luvelox.com" />
+            <input id="email-input" type="email" autocomplete="email" placeholder="demo@luvelox.com" />
           </label>
           <p class="field-note">This email is used as your sign-in ID.</p>
-          <label>
+          <label class="password-field">
             Password
-            <input id="password-input" type="password" autocomplete="current-password" placeholder="Password" />
+            <span class="password-control">
+              <input id="password-input" type="password" autocomplete="current-password" placeholder="Password" />
+              <button class="password-toggle" id="password-toggle" type="button" aria-label="Show password" aria-pressed="false">Show</button>
+            </span>
           </label>
           <div class="form-link-row">
             <a class="form-link" href="https://ai.luvelox.com/forgot-v2.html">Forgot password?</a>
@@ -114,7 +117,10 @@
               Open prediction modules from one account.
             </p>
           </div>
-          <button id="refresh-button" type="button">Refresh</button>
+          <div class="refresh-cluster">
+            <span id="refresh-status" role="status">Ready</span>
+            <button id="refresh-button" type="button">Refresh</button>
+          </div>
         </section>
 
         <section class="module-grid" id="module-grid" aria-live="polite"></section>
@@ -173,6 +179,6 @@
       </form>
     </dialog>
 
-    <script src="./app.js?v=20260619-forgot1" type="module"></script>
+    <script src="./app.js?v=20260624-auth-placeholder1" type="module"></script>
   </body>
 </html>

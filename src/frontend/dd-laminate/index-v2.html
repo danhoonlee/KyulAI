@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>C2ES Laminate Forecast v2</title>
-    <link rel="stylesheet" href="./styles-v2.css?v=20260623-score-breakdown" />
+    <title>C2ES Laminate Forecast</title>
+    <link rel="stylesheet" href="./styles-v2.css?v=20260626-case-formula-symbols" />
   </head>
   <body>
     <main class="shell shell-v2">
@@ -20,10 +20,76 @@
           <div class="top-actions">
             <div class="status-pill" id="api-status">Checking</div>
             <a class="language-link" href="https://ai.luvelox.com/index.html">Modules</a>
-            <a class="language-link" href="./index.html">Classic</a>
             <a class="language-link" href="./index-v2.ko.html">한국어</a>
           </div>
         </header>
+
+        <section class="research-brief" aria-label="Research purpose">
+          <div class="research-brief-main">
+            <p class="eyebrow">Research purpose</p>
+            <h2>Why Double-Double laminate forecasting?</h2>
+            <p>
+              Double-Double laminates are being explored as lightweight, angle-driven
+              alternatives to quasi-isotropic layups for impact and post-impact
+              compression performance. This tool turns the simulation study into a
+              fast screening interface: choose a Case and θ pair, then estimate Type,
+              transition load Pt, response curve, and u3 behavior before committing to
+              deeper analysis.
+            </p>
+          </div>
+          <div class="research-brief-points">
+            <div>
+              <strong>Problem</strong>
+              <span>Conventional 0/±45/90 stacks can add weight and limit design freedom.</span>
+            </div>
+            <div>
+              <strong>Target</strong>
+              <span>Find the knee/transition point where force and u3 curves reveal stability loss.</span>
+            </div>
+            <div>
+              <strong>Signal</strong>
+              <span>Current best DD candidates improved Pt by 28.93% and u3 metric by 31.31% vs. quasi-isotropic baselines.</span>
+            </div>
+          </div>
+          <details class="research-brief-details">
+            <summary>How Type and u3 are used</summary>
+            <p>
+              Type 1 has a clear bilinear knee from force-displacement fits. Type 2 and
+              Type 3 become more curved after the knee, so u3 displacement behavior is
+              used to support transition-load estimation.
+            </p>
+          </details>
+        </section>
+
+        <section class="rag-assistant" aria-labelledby="rag-title">
+          <div class="rag-assistant-copy">
+            <p class="eyebrow">Composite AI Assistant</p>
+            <h2 id="rag-title">Ask the laminate knowledge base</h2>
+            <p>
+              Search the internal DD reports, PPT/PDF notes, XAI documents, and curated online
+              composite references. Answers stay grounded with citations.
+            </p>
+          </div>
+          <form class="rag-form" id="rag-form">
+            <label>
+              Question
+              <textarea
+                name="query"
+                rows="3"
+                data-default-query="Why does A12 membrane coupling matter in the Physics XAI model?"
+                required
+              >Why does A12 membrane coupling matter in the Physics XAI model?</textarea>
+            </label>
+            <div class="rag-actions">
+              <label class="rag-toggle">
+                <input name="use_llm" type="checkbox" checked />
+                <span>Use LLM when API key exists</span>
+              </label>
+              <button class="secondary" type="submit">Ask Composite AI</button>
+            </div>
+          </form>
+          <div class="rag-answer hidden" id="rag-answer" aria-live="polite"></div>
+        </section>
 
         <section class="summary-strip" aria-label="Workflow summary">
           <div>
@@ -241,7 +307,7 @@
             <div class="stack-preview-meta" aria-label="Current stack summary">
               <div>
                 <span>Formula</span>
-                <strong id="dynamic-stack-formula">[[+/-θ1]/[+/-θ2]] x 4</strong>
+                <strong id="dynamic-stack-formula">[[±θ₁]/[±θ₂]]₄</strong>
               </div>
               <div>
                 <span>Plies</span>
@@ -283,9 +349,12 @@
 
           <section class="panel result-panel" aria-live="polite">
             <div class="empty-state" id="empty-state">
-              <p class="eyebrow">No run yet</p>
-              <h2>Ready for input</h2>
-              <p>Enter theta values to forecast response, or upload a CSV after simulation.</p>
+              <div class="ready-copy" id="ready-copy">
+                <p class="eyebrow">No run yet</p>
+                <h2>Ready for input</h2>
+                <p>Enter theta values to forecast response, or upload a CSV after simulation.</p>
+              </div>
+              <div class="prediction-history hidden" id="prediction-history"></div>
             </div>
 
             <div class="result hidden" id="result">
@@ -410,6 +479,6 @@
       </section>
     </main>
 
-    <script src="./app-v2.js?v=20260623-score-breakdown"></script>
+    <script src="./app-v2.js?v=20260626-case-formula-symbols"></script>
   </body>
 </html>

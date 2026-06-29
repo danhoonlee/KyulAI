@@ -15,10 +15,12 @@ from pydantic import BaseModel, Field
 
 from src.backend.services.luvelox_auth_store import (
     AuthSession,
+    DEFAULT_ENTITLEMENTS,
     DuplicateAccountError,
     InvalidCredentialsError,
     WeakPasswordError,
     create_account,
+    create_account_by_admin,
     list_admin_users,
     login,
     record_access_request,
@@ -26,6 +28,7 @@ from src.backend.services.luvelox_auth_store import (
     reset_password_by_user_id,
     session_from_token,
     set_user_entitlements,
+    update_user_profile,
 )
 
 router = APIRouter(prefix="/modules", tags=["modules"])
@@ -111,6 +114,23 @@ class AdminPasswordResetRequest(BaseModel):
     password: str = Field(min_length=8)
 
 
+class AdminAccountCreateRequest(BaseModel):
+    email: str
+    password: str = Field(min_length=8)
+    name: str
+    company: str | None = None
+    location: str | None = None
+    mobile: str | None = None
+    entitlements: list[str] | None = None
+
+
+class AdminAccountUpdateRequest(BaseModel):
+    name: str
+    company: str | None = None
+    location: str | None = None
+    mobile: str | None = None
+
+
 class AdminEntitlementUpdateRequest(BaseModel):
     entitlements: list[str] = Field(default_factory=list)
 
@@ -163,6 +183,17 @@ class AdminUsersResponse(BaseModel):
 
 
 class AdminPasswordResetResponse(BaseModel):
+    status: Literal["updated"] = "updated"
+    user: AccountUser
+
+
+class AdminAccountCreateResponse(BaseModel):
+    status: Literal["created"] = "created"
+    user: AccountUser
+    entitlements: list[str]
+
+
+class AdminAccountUpdateResponse(BaseModel):
     status: Literal["updated"] = "updated"
     user: AccountUser
 
@@ -361,6 +392,15 @@ def _admin_module_options() -> list[AdminModuleOption]:
     ]
 
 
+def _validate_admin_entitlements(entitlements: list[str]) -> tuple[str, ...]:
+    allowed_entitlements = {module.entitlement_key for module in MODULE_CATALOG}
+    requested = set(entitlements)
+    unknown = sorted(requested - allowed_entitlements)
+    if unknown:
+        raise HTTPException(status_code=422, detail=f"Unknown entitlement key: {', '.join(unknown)}")
+    return tuple(entitlements)
+
+
 @router.get("", response_model=ModuleCatalogResponse, summary="List Luvelox prediction modules")
 async def list_modules() -> ModuleCatalogResponse:
     return ModuleCatalogResponse(modules=list(MODULE_CATALOG))
@@ -420,6 +460,83 @@ async def admin_users(
 
 
 @router.post(
+    "/admin/users",
+    response_model=AdminAccountCreateResponse,
+    status_code=201,
+    summary="Create a Luvelox account as an admin",
+)
+async def admin_create_user(
+    payload: AdminAccountCreateRequest,
+    x_luvelox_admin_token: str | None = Header(default=None, alias="X-Luvelox-Admin-Token"),
+    authorization: str | None = Header(default=None, alias="Authorization"),
+) -> AdminAccountCreateResponse:
+    _require_admin_token(x_luvelox_admin_token, authorization)
+    raw_entitlements = payload.entitlements if payload.entitlements is not None else list(DEFAULT_ENTITLEMENTS)
+    entitlements = _validate_admin_entitlements(raw_entitlements)
+    try:
+        user = create_account_by_admin(
+            email=payload.email,
+            password=payload.password,
+            name=payload.name,
+            company=payload.company,
+            location=payload.location,
+            mobile=payload.mobile,
+            entitlements=entitlements,
+        )
+    except DuplicateAccountError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except WeakPasswordError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return AdminAccountCreateResponse(
+        user=AccountUser(
+            id=user.id,
+            email=user.email,
+            name=user.name,
+            company=user.company,
+            location=user.location,
+            mobile=user.mobile,
+        ),
+        entitlements=list(entitlements),
+    )
+
+
+@router.put(
+    "/admin/users/{user_id}/profile",
+    response_model=AdminAccountUpdateResponse,
+    summary="Update a Luvelox account profile as an admin",
+)
+async def admin_update_profile(
+    user_id: str,
+    payload: AdminAccountUpdateRequest,
+    x_luvelox_admin_token: str | None = Header(default=None, alias="X-Luvelox-Admin-Token"),
+    authorization: str | None = Header(default=None, alias="Authorization"),
+) -> AdminAccountUpdateResponse:
+    _require_admin_token(x_luvelox_admin_token, authorization)
+    if not payload.name.strip():
+        raise HTTPException(status_code=422, detail="Name is required.")
+    try:
+        user = update_user_profile(
+            user_id=user_id,
+            name=payload.name,
+            company=payload.company,
+            location=payload.location,
+            mobile=payload.mobile,
+        )
+    except InvalidCredentialsError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return AdminAccountUpdateResponse(
+        user=AccountUser(
+            id=user.id,
+            email=user.email,
+            name=user.name,
+            company=user.company,
+            location=user.location,
+            mobile=user.mobile,
+        )
+    )
+
+
+@router.post(
     "/admin/users/{user_id}/password",
     response_model=AdminPasswordResetResponse,
     summary="Reset a Luvelox account password as an admin",
@@ -461,13 +578,9 @@ async def admin_update_entitlements(
     authorization: str | None = Header(default=None, alias="Authorization"),
 ) -> AdminEntitlementUpdateResponse:
     _require_admin_token(x_luvelox_admin_token, authorization)
-    allowed_entitlements = {module.entitlement_key for module in MODULE_CATALOG}
-    requested = set(payload.entitlements)
-    unknown = sorted(requested - allowed_entitlements)
-    if unknown:
-        raise HTTPException(status_code=422, detail=f"Unknown entitlement key: {', '.join(unknown)}")
+    requested_entitlements = _validate_admin_entitlements(payload.entitlements)
     try:
-        entitlements = set_user_entitlements(user_id=user_id, entitlements=tuple(payload.entitlements))
+        entitlements = set_user_entitlements(user_id=user_id, entitlements=requested_entitlements)
     except InvalidCredentialsError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return AdminEntitlementUpdateResponse(user_id=user_id, entitlements=list(entitlements))

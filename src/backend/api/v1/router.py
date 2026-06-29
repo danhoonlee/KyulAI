@@ -10,6 +10,7 @@ from src.backend.api.v1 import (
     modules,
     models,
     predictions,
+    rag,
     research,
     visualization,
 )
@@ -26,5 +27,6 @@ router.include_router(experiments.router)
 router.include_router(modules.router)
 router.include_router(models.router)
 router.include_router(predictions.router)
+router.include_router(rag.router)
 router.include_router(visualization.router)
 router.include_router(research.router)

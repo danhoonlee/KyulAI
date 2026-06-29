@@ -7,6 +7,8 @@ data/experimental/
 # Model artifacts
 models/checkpoints/
 models/registry/
+models/dd_laminate_response_tabular_challengers_v1/extra_trees.joblib
+models/dd_laminate_response_tabular_challengers_v1/random_forest.joblib
 
 # Python
 __pycache__/
@@ -27,8 +29,10 @@ out/
 
 # Android / Gradle
 .gradle/
+.gradle-user/
 .gradle-cache/
 local.properties
+artifacts/android/*.apk
 
 # Swift / Xcode
 .build/
@@ -46,6 +50,9 @@ data/luvelox_auth.sqlite3-*
 
 # Local agent runtime
 .agent-bus/
+
+# RAG source files that can be regenerated from the manifest/seeds.
+data/rag/online_corpus/raw/
 
 # IDE
 .vscode/

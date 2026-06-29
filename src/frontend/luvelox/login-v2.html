@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>C2ES Account Access</title>
     <link rel="alternate" hreflang="ko" href="https://ai.luvelox.com/login-v2.ko.html" />
-    <link rel="stylesheet" href="./login-v2.css?v=20260619-forgot1" />
+    <link rel="stylesheet" href="./login-v2.css?v=20260624-auth-placeholder1" />
   </head>
   <body>
     <main class="login-shell">
@@ -80,11 +80,11 @@
 
           <label class="field">
             <span>Email</span>
-            <input id="login-v2-email" type="email" autocomplete="email" value="demo@luvelox.com" />
+            <input id="login-v2-email" type="email" autocomplete="email" placeholder="demo@luvelox.com" />
           </label>
           <p class="field-note">This email is used as your sign-in ID.</p>
 
-          <label class="field">
+          <label class="field password-field">
             <span>Password</span>
             <input
               id="login-v2-password"
@@ -92,6 +92,7 @@
               autocomplete="current-password"
               placeholder="Password"
             />
+            <button class="password-toggle" id="login-v2-password-toggle" type="button" aria-label="Show password" aria-pressed="false">Show</button>
           </label>
           <div class="form-link-row">
             <a class="form-link" href="https://ai.luvelox.com/forgot-v2.html">Forgot password?</a>
@@ -111,7 +112,7 @@
           <section class="account-preview" aria-label="Selected account preview">
             <div>
               <p class="preview-label">Selected account</p>
-              <strong id="login-v2-account-name">Luvelox Demo</strong>
+              <strong id="login-v2-account-name">Demo Account</strong>
               <span id="login-v2-account-email">demo@luvelox.com</span>
             </div>
             <span class="access-count" id="login-v2-access-count">2 modules</span>
@@ -179,6 +180,6 @@
       </section>
     </main>
 
-    <script src="./login-v2.js?v=20260619-forgot1" type="module"></script>
+    <script src="./login-v2.js?v=20260624-auth-placeholder1" type="module"></script>
   </body>
 </html>

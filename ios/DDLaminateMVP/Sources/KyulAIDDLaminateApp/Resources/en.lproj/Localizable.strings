@@ -107,6 +107,9 @@
 "confidence" = "confidence";
 "response.curve" = "Response Curve";
 "pt.marker" = "Pt marker";
+"curve.legend.predicted.curve" = "Predicted curve";
+"curve.legend.linear.fit" = "Linear fit";
+"curve.legend.kink.guide" = "Kink guide";
 "class.probabilities" = "Class Probabilities";
 "no.probabilities" = "No probabilities returned.";
 "notes" = "Notes";

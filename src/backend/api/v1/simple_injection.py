@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import math
 import re
 from functools import lru_cache
 from importlib.util import find_spec
@@ -21,6 +22,7 @@ from src.ml.simple_injection.data import (
     load_process_doe,
     load_training_doe_ids,
 )
+from src.ml.simple_injection.data import build_record_from_inputs
 from src.ml.simple_injection.validation import has_blocking_issues, validate_simple_injection_inputs
 
 router = APIRouter(prefix="/simple-injection", tags=["simple-injection"])
@@ -100,6 +102,26 @@ class FillingPressureSummary(BaseModel):
     animation_url: str | None = None
 
 
+class InjectionXAIFeature(BaseModel):
+    name: str
+    label: str
+    importance: float
+    category: Literal["geometry", "process", "gate", "derived", "other"]
+    explanation: str
+    local_sensitivity: float | None = None
+    local_value: float | None = None
+    perturbation: str | None = None
+
+
+class InjectionXAIExplanation(BaseModel):
+    title: str
+    summary: str
+    method: str
+    feature_set: str
+    top_features: list[InjectionXAIFeature] = []
+    notes: list[str] = []
+
+
 class SpruePressurePredictionResponse(BaseModel):
     model_key: str
     model_label: str
@@ -114,6 +136,7 @@ class SpruePressurePredictionResponse(BaseModel):
     validation_warnings: list[dict[str, str]] = []
     filling_pressure: FillingPressureSummary | None = None
     predicted_filling_pressure: FillingPressureSummary | None = None
+    xai: InjectionXAIExplanation | None = None
 
 
 SPRUE_MODELS: dict[str, dict[str, str]] = {
@@ -319,6 +342,336 @@ def _with_filling_pressure_assets(summary: dict[str, object]) -> dict[str, objec
         relative_path = animation_path.relative_to(filling_dir).as_posix()
         out["animation_url"] = f"/data/datasets/Simple_Injection/Filling_Pressure/{relative_path}"
     return out
+
+
+FEATURE_EXPLANATIONS: dict[str, tuple[str, Literal["geometry", "process", "gate", "derived", "other"], str]] = {
+    "L_mm": ("Length", "geometry", "Overall part length. Longer flow paths can increase pressure demand and shift the curve timing."),
+    "W_mm": ("Width", "geometry", "Overall part width. It changes the projected area and available flow region."),
+    "t_mm": ("Thickness", "geometry", "Part thickness. Thicker cavities usually reduce flow resistance, while thin sections tend to raise pressure sensitivity."),
+    "D_mm": ("Hole diameter", "geometry", "Central hole diameter. It reduces net flow area and changes the local filling path around the hole."),
+    "R_mm": ("Hole radius", "geometry", "Central hole radius. This is paired with hole diameter and affects the available cross-section."),
+    "gate_size_width_mm": ("Gate width", "gate", "Gate opening width. Larger gate area can reduce local pressure losses near the inlet."),
+    "gate_size_height_mm": ("Gate height", "gate", "Gate opening height. It directly changes gate area and gate restriction."),
+    "melt_temp_C": ("Melt temperature", "process", "Melt temperature. Higher temperature generally lowers viscosity and can reduce required pressure."),
+    "mold_temp_C": ("Mold temperature", "process", "Mold temperature. It affects cooling rate, viscosity growth, and near-wall flow resistance."),
+    "injection_time_s": ("Injection time", "process", "Filling time target. Faster injection can raise peak pressure, while slower injection changes the pressure curve shape."),
+    "packing_pressure_MPa": ("Packing pressure", "process", "Packing pressure setpoint. It can influence late pressure level and peak pressure response."),
+    "packing_time_s": ("Packing time", "process", "Packing duration. It mainly affects late-stage pressure behavior after filling."),
+    "area_mm2": ("Part area", "derived", "Derived plate area from length and width."),
+    "hole_area_mm2": ("Hole area", "derived", "Derived removed area from the center hole."),
+    "net_area_mm2": ("Net area", "derived", "Derived available area after subtracting the hole area."),
+    "volume_mm3": ("Part volume", "derived", "Derived cavity volume from net area and thickness."),
+    "aspect_ratio": ("Aspect ratio", "derived", "Length-to-width shape ratio. It indicates how elongated the flow domain is."),
+    "hole_diameter_ratio": ("Hole diameter ratio", "derived", "Hole diameter normalized by the smaller plate dimension."),
+    "gate_area_mm2": ("Gate area", "derived", "Derived gate cross-sectional area from gate width and height."),
+    "gate_to_thickness_ratio": ("Gate/thickness ratio", "derived", "Gate height relative to part thickness."),
+    "flow_length_to_thickness": ("Flow length/thickness", "derived", "Approximate flow slenderness. Large values often make filling pressure more sensitive."),
+    "process_total_time_s": ("Total process time", "derived", "Injection time plus packing time."),
+}
+
+
+def _feature_category(feature: str) -> Literal["geometry", "process", "gate", "derived", "other"]:
+    if feature.startswith("gate_type__"):
+        return "gate"
+    return FEATURE_EXPLANATIONS.get(feature, (feature, "other", ""))[1]
+
+
+def _feature_label(feature: str) -> str:
+    if feature.startswith("gate_type__"):
+        return f"Gate type: {feature.split('__', 1)[1]}"
+    return FEATURE_EXPLANATIONS.get(feature, (feature.replace("_", " "), "other", ""))[0]
+
+
+def _feature_explanation(feature: str) -> str:
+    if feature.startswith("gate_type__"):
+        return "One-hot gate type indicator used by the surrogate to distinguish inlet boundary conditions."
+    return FEATURE_EXPLANATIONS.get(
+        feature,
+        (
+            feature.replace("_", " "),
+            "other",
+            "Internal model feature used by the trained injection surrogate.",
+        ),
+    )[2]
+
+
+def _xai_feature(
+    feature: str,
+    importance: float,
+    *,
+    local_sensitivity: float | None = None,
+    local_value: float | None = None,
+    perturbation: str | None = None,
+) -> InjectionXAIFeature:
+    return InjectionXAIFeature(
+        name=feature,
+        label=_feature_label(feature),
+        importance=round(float(importance), 6),
+        category=_feature_category(feature),
+        explanation=_feature_explanation(feature),
+        local_sensitivity=None if local_sensitivity is None else round(float(local_sensitivity), 6),
+        local_value=None if local_value is None else round(float(local_value), 6),
+        perturbation=perturbation,
+    )
+
+
+def _normalize_scores(scores: dict[str, float]) -> dict[str, float]:
+    clean = {key: max(float(value), 0.0) for key, value in scores.items() if math.isfinite(float(value))}
+    total = sum(clean.values())
+    if total <= 0:
+        count = max(len(clean), 1)
+        return dict.fromkeys(clean, 1.0 / count)
+    return {key: value / total for key, value in clean.items()}
+
+
+def _safe_output_delta(base: Any, variant: Any) -> float:
+    base_arr = np.asarray(base, dtype=float).ravel()
+    variant_arr = np.asarray(variant, dtype=float).ravel()
+    if base_arr.shape != variant_arr.shape:
+        return 0.0
+    scale = np.maximum(np.abs(base_arr), 1.0)
+    delta = (variant_arr - base_arr) / scale
+    return float(np.linalg.norm(delta))
+
+
+@lru_cache(maxsize=8)
+def _cached_joblib_model(path: str) -> Any:
+    import joblib
+
+    return joblib.load(path)
+
+
+@lru_cache(maxsize=8)
+def _cached_torch_checkpoint(path: str) -> dict[str, Any]:
+    import torch
+
+    return torch.load(path, map_location="cpu", weights_only=False)
+
+
+@lru_cache(maxsize=4)
+def _cached_sprue_goint_artifacts(path: str) -> tuple[dict[str, Any], Any]:
+    from src.ml.simple_injection.model import SimpleInjectionGointSurrogate
+
+    checkpoint = _cached_torch_checkpoint(path)
+    cfg = checkpoint["model_config"]
+    model = SimpleInjectionGointSurrogate(
+        input_dim=cfg["input_dim"],
+        seq_len=cfg["seq_len"],
+        hidden_dim=cfg["hidden_dim"],
+        num_branches=cfg["num_branches"],
+        dropout=cfg["dropout"],
+    )
+    model.load_state_dict(checkpoint["model_state_dict"])
+    model.eval()
+    return checkpoint, model
+
+
+@lru_cache(maxsize=4)
+def _cached_sprue_deeponet_artifacts(path: str) -> tuple[dict[str, Any], Any]:
+    from src.ml.simple_injection.model import SimpleInjectionDeepONetSurrogate
+
+    checkpoint = _cached_torch_checkpoint(path)
+    cfg = checkpoint["model_config"]
+    model = SimpleInjectionDeepONetSurrogate(
+        input_dim=cfg["input_dim"],
+        latent_dim=cfg["latent_dim"],
+        branch_hidden_dim=cfg["branch_hidden_dim"],
+        trunk_hidden_dim=cfg["trunk_hidden_dim"],
+        dropout=cfg["dropout"],
+        fourier_features=cfg["fourier_features"],
+    )
+    model.load_state_dict(checkpoint["model_state_dict"])
+    model.eval()
+    return checkpoint, model
+
+
+@lru_cache(maxsize=4)
+def _cached_filling_goint_artifacts(path: str) -> tuple[dict[str, Any], Any]:
+    from src.ml.simple_injection.model import SimpleInjectionGointRegressor
+
+    checkpoint = _cached_torch_checkpoint(path)
+    cfg = checkpoint["model_config"]
+    model = SimpleInjectionGointRegressor(
+        input_dim=cfg["input_dim"],
+        output_dim=cfg["output_dim"],
+        hidden_dim=cfg["hidden_dim"],
+        num_branches=cfg["num_branches"],
+        dropout=cfg["dropout"],
+    )
+    model.load_state_dict(checkpoint["model_state_dict"])
+    model.eval()
+    return checkpoint, model
+
+
+@lru_cache(maxsize=4)
+def _cached_filling_deeponet_artifacts(path: str) -> tuple[dict[str, Any], Any]:
+    from src.ml.simple_injection.model import SimpleInjectionHistogramDeepONetRegressor
+
+    checkpoint = _cached_torch_checkpoint(path)
+    cfg = checkpoint["model_config"]
+    model = SimpleInjectionHistogramDeepONetRegressor(
+        input_dim=cfg["input_dim"],
+        bins=cfg["bins"],
+        latent_dim=cfg["latent_dim"],
+        branch_hidden_dim=cfg["branch_hidden_dim"],
+        trunk_hidden_dim=cfg["trunk_hidden_dim"],
+        dropout=cfg["dropout"],
+        fourier_features=cfg["fourier_features"],
+    )
+    model.load_state_dict(checkpoint["model_state_dict"])
+    model.eval()
+    return checkpoint, model
+
+
+def _sprue_output_vector(model_key: str, model_path: Path, x: np.ndarray) -> np.ndarray:
+    if model_key == "sprue_classical":
+        bundle = _cached_joblib_model(str(model_path))
+        scalars = np.log1p(np.clip(np.asarray(bundle["scalar_model"].predict(x)[0], dtype=float), 0.0, None))
+        curve_scores = np.asarray(bundle["curve_model"].predict(x)[0], dtype=float)
+        return np.concatenate([scalars, curve_scores])
+
+    import torch
+
+    if model_key == "sprue_goint":
+        checkpoint, model = _cached_sprue_goint_artifacts(str(model_path))
+        feature_mean = np.asarray(checkpoint["feature_mean"], dtype=float)
+        feature_std = np.maximum(np.asarray(checkpoint["feature_std"], dtype=float), 1e-9)
+        x_norm = (x - feature_mean) / feature_std
+        with torch.inference_mode():
+            scalars_norm, curve_norm = model(torch.tensor(x_norm, dtype=torch.float32))
+        return np.concatenate([scalars_norm.cpu().numpy()[0], curve_norm.cpu().numpy()[0]])
+
+    checkpoint, model = _cached_sprue_deeponet_artifacts(str(model_path))
+    feature_mean = np.asarray(checkpoint["feature_mean"], dtype=float)
+    feature_std = np.maximum(np.asarray(checkpoint["feature_std"], dtype=float), 1e-9)
+    x_norm = (x - feature_mean) / feature_std
+    grid = torch.tensor(np.asarray(checkpoint["grid"], dtype=float), dtype=torch.float32)
+    with torch.inference_mode():
+        scalars_norm, curve_norm = model(torch.tensor(x_norm, dtype=torch.float32), grid)
+    return np.concatenate([scalars_norm.cpu().numpy()[0], curve_norm.cpu().numpy()[0]])
+
+
+def _filling_output_vector(model_key: str, model_path: Path, x: np.ndarray) -> np.ndarray:
+    if model_key == "filling_classical":
+        bundle = _cached_joblib_model(str(model_path))
+        return np.asarray(bundle["model"].predict(x)[0], dtype=float)
+
+    import torch
+
+    if model_key == "filling_goint":
+        checkpoint, model = _cached_filling_goint_artifacts(str(model_path))
+        feature_mean = np.asarray(checkpoint["feature_mean"], dtype=float)
+        feature_std = np.maximum(np.asarray(checkpoint["feature_std"], dtype=float), 1e-9)
+        x_norm = (x - feature_mean) / feature_std
+        with torch.inference_mode():
+            pred_norm = model(torch.tensor(x_norm, dtype=torch.float32)).cpu().numpy()[0]
+        return pred_norm
+
+    checkpoint, model = _cached_filling_deeponet_artifacts(str(model_path))
+    feature_mean = np.asarray(checkpoint["feature_mean"], dtype=float)
+    feature_std = np.maximum(np.asarray(checkpoint["feature_std"], dtype=float), 1e-9)
+    x_norm = (x - feature_mean) / feature_std
+    bin_grid = torch.linspace(0.0, 1.0, int(checkpoint["model_config"]["bins"]), dtype=torch.float32)
+    with torch.inference_mode():
+        pred_norm = model(torch.tensor(x_norm, dtype=torch.float32), bin_grid).cpu().numpy()[0]
+    return pred_norm
+
+
+def _combined_injection_output_vector(
+    sprue_model_key: str,
+    sprue_model_path: Path,
+    filling_model_key: str,
+    filling_model_path: Path,
+    x: np.ndarray,
+) -> np.ndarray:
+    return np.concatenate(
+        [
+            _sprue_output_vector(sprue_model_key, sprue_model_path, x),
+            _filling_output_vector(filling_model_key, filling_model_path, x),
+        ]
+    )
+
+
+def _perturbed_feature_value(original: float, feature: str) -> tuple[float, str]:
+    if feature.startswith("gate_type__"):
+        value = 0.0 if original >= 0.5 else 1.0
+        return value, f"toggled to {value:.0f}"
+    if abs(original) <= 1e-12:
+        return 1.0, "raised from 0 to 1"
+    value = original * 1.05
+    return value, "increased by 5%"
+
+
+def _load_local_xai_for_prediction(
+    sprue_model_key: str,
+    sprue_model_path: Path,
+    filling_model_key: str,
+    filling_model_path: Path,
+    geometry: dict[str, float | str | None],
+    process: dict[str, float | str | None],
+) -> InjectionXAIExplanation | None:
+    try:
+        sprue_bundle_or_checkpoint = (
+            _cached_joblib_model(str(sprue_model_path))
+            if sprue_model_key == "sprue_classical"
+            else _cached_torch_checkpoint(str(sprue_model_path))
+        )
+        gate_types = list(sprue_bundle_or_checkpoint.get("gate_types") or [])
+        x, feature_columns = build_record_from_inputs(geometry, process, gate_types=gate_types)
+        base_output = _combined_injection_output_vector(
+            sprue_model_key,
+            sprue_model_path,
+            filling_model_key,
+            filling_model_path,
+            x,
+        )
+        raw_scores: dict[str, float] = {}
+        values: dict[str, float] = {}
+        perturbations: dict[str, str] = {}
+        for index, feature in enumerate(feature_columns):
+            variant = np.asarray(x, dtype=float).copy()
+            original = float(variant[0, index])
+            variant[0, index], perturbations[feature] = _perturbed_feature_value(original, feature)
+            delta = _safe_output_delta(
+                base_output,
+                _combined_injection_output_vector(
+                    sprue_model_key,
+                    sprue_model_path,
+                    filling_model_key,
+                    filling_model_path,
+                    variant,
+                ),
+            )
+            raw_scores[feature] = max(delta, 0.0) * (1.0 + 0.03 * math.log1p(abs(original)))
+            values[feature] = original
+
+        normalized = _normalize_scores(raw_scores)
+        top_features = [
+            _xai_feature(
+                feature,
+                importance,
+                local_sensitivity=raw_scores.get(feature),
+                local_value=values.get(feature),
+                perturbation=perturbations.get(feature),
+            )
+            for feature, importance in sorted(normalized.items(), key=lambda item: item[1], reverse=True)
+        ]
+        return InjectionXAIExplanation(
+            title="Why this prediction?",
+            summary=(
+                "This explanation is computed for the selected Injection input by perturbing each geometry, process, gate, "
+                "and derived flow feature and measuring how much the sprue-pressure curve and filling-pressure distribution move."
+            ),
+            method="Local occlusion/perturbation sensitivity on the selected Sprue and Filling surrogate models",
+            feature_set="geometry + process + gate + derived flow descriptors",
+            top_features=top_features,
+            notes=[
+                "Importance is local to this single DOE/input condition, so it can change when geometry, process values, or model choices change.",
+                "Derived features are internal surrogate descriptors; use them as engineering guidance, then validate promising settings with Moldex3D.",
+            ],
+        )
+    except Exception:
+        return None
 
 
 def _csv_rows_from_upload(content: bytes) -> list[list[str]]:
@@ -620,6 +973,14 @@ async def predict_sprue_pressure(
         validation_warnings=validation_warnings,
         filling_pressure=_filling_pressure_summary(geometry, process),
         predicted_filling_pressure=_predict_filling_pressure_summary(payload.filling_model, filling_model_path, geometry, process),
+        xai=_load_local_xai_for_prediction(
+            payload.model,
+            model_path,
+            payload.filling_model,
+            filling_model_path,
+            geometry,
+            process,
+        ),
     )
 
 

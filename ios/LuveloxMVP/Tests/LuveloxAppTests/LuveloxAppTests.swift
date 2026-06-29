@@ -2,6 +2,9 @@ import XCTest
 @testable import LuveloxApp
 
 final class LuveloxAppTests: XCTestCase {
+    private let sessionKey = "luvelox.auth.session.v1"
+    private let sessionSavedAtKey = "luvelox.auth.saved_at.v1"
+
     func testModuleContractDecodesServerShape() throws {
         let json = """
         {
@@ -69,6 +72,40 @@ final class LuveloxAppTests: XCTestCase {
         XCTAssertEqual(session.entitlements.count, 2)
     }
 
+    @MainActor
+    func testExpiredStoredSessionIsClearedOnStartup() throws {
+        let defaults = try makeIsolatedUserDefaults()
+        try defaults.set(JSONEncoder().encode(LuveloxAuthSession.demo), forKey: sessionKey)
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        defaults.set(now.addingTimeInterval(-25 * 60 * 60), forKey: sessionSavedAtKey)
+
+        let viewModel = LuveloxHomeViewModel(
+            userDefaults: defaults,
+            sessionLifetime: 24 * 60 * 60,
+            now: { now }
+        )
+
+        XCTAssertNil(viewModel.authSession)
+        XCTAssertNil(defaults.data(forKey: sessionKey))
+        XCTAssertNil(defaults.object(forKey: sessionSavedAtKey))
+    }
+
+    @MainActor
+    func testLegacyStoredSessionGetsTimestampOnStartup() throws {
+        let defaults = try makeIsolatedUserDefaults()
+        try defaults.set(JSONEncoder().encode(LuveloxAuthSession.demo), forKey: sessionKey)
+        let now = Date(timeIntervalSince1970: 1_000_000)
+
+        let viewModel = LuveloxHomeViewModel(
+            userDefaults: defaults,
+            sessionLifetime: 24 * 60 * 60,
+            now: { now }
+        )
+
+        XCTAssertNotNil(viewModel.authSession)
+        XCTAssertEqual(defaults.object(forKey: sessionSavedAtKey) as? Date, now)
+    }
+
     func testAccessRequestResponseDecodesServerShape() throws {
         let json = """
         {
@@ -98,5 +135,12 @@ final class LuveloxAppTests: XCTestCase {
         )
 
         XCTAssertEqual(url.absoluteString, "https://laminate.luvelox.com/api/v1/modules/me")
+    }
+
+    private func makeIsolatedUserDefaults() throws -> UserDefaults {
+        let suiteName = "LuveloxAppTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defaults.removePersistentDomain(forName: suiteName)
+        return defaults
     }
 }

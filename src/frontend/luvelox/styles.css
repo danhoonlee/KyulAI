@@ -179,9 +179,58 @@ input {
   outline: none;
 }
 
+.password-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 56px;
+  padding: 6px 6px 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-strong);
+}
+
+.password-control input {
+  min-height: 42px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.password-control input:focus {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.password-toggle {
+  flex: 0 0 auto;
+  min-width: 70px;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.password-toggle:hover {
+  border-color: var(--blue);
+}
+
 .login-card input:focus {
   border-color: var(--blue);
   box-shadow: 0 0 0 4px rgba(33, 103, 255, 0.13);
+}
+
+.password-control:focus-within {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 4px rgba(33, 103, 255, 0.13);
+}
+
+.password-control input:focus {
+  box-shadow: none;
 }
 
 .field-note {
@@ -474,6 +523,7 @@ button:disabled {
 }
 
 .admin-token-card,
+.admin-control-card,
 .admin-table-card {
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -520,6 +570,41 @@ button:disabled {
 
 .request-status.is-error {
   color: var(--danger);
+}
+
+.admin-control-card {
+  overflow: hidden;
+}
+
+.admin-create-form {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+
+.admin-field-label {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.admin-create-entitlements {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.admin-inline-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 12px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-strong);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .admin-table-card {
@@ -616,6 +701,12 @@ button:disabled {
 .admin-action-button:hover {
   background: rgba(0, 168, 143, 0.16);
   transform: none;
+}
+
+.admin-actions-cell {
+  display: grid;
+  gap: 8px;
+  min-width: 128px;
 }
 
 .optimization-shell {
@@ -866,6 +957,28 @@ button:disabled {
   flex: 0 0 auto;
   background: #fff;
   color: var(--ink);
+}
+
+.refresh-cluster {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.refresh-cluster span {
+  min-height: 28px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #aab6c8;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.refresh-cluster button[disabled] {
+  cursor: wait;
+  opacity: 0.72;
 }
 
 .module-grid {
@@ -1162,6 +1275,10 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
+  .admin-create-entitlements {
+    grid-template-columns: 1fr;
+  }
+
   .optimization-workspace {
     grid-template-columns: 1fr;
   }
@@ -1223,6 +1340,15 @@ button:disabled {
   .modal-card {
     padding: 16px;
     box-shadow: 0 10px 32px rgba(14, 17, 22, 0.08);
+  }
+
+  .admin-create-form,
+  .admin-table-head {
+    padding: 16px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
   }
 
   .login-copy {

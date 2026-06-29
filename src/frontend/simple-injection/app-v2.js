@@ -8,6 +8,7 @@ const API_BASE = URL_PARAMS.get("apiBase") || (
       ? `http://${API_HOST}:8010/api/v1/simple-injection`
       : `${window.location.origin}/api/v1/simple-injection`
 );
+const RAG_BASE = API_BASE.replace(/\/simple-injection$/, "/rag");
 const IS_KO = document.documentElement.lang.toLowerCase().startsWith("ko");
 
 const TEXT = {
@@ -30,6 +31,20 @@ const TEXT = {
   noCurve: IS_KO ? "Sprue Pressure 곡선이 없습니다." : "No sprue pressure curve.",
   timeAxis: IS_KO ? "시간 (s)" : "Time (s)",
   pressureAxis: IS_KO ? "Sprue pressure (MPa)" : "Sprue pressure (MPa)",
+  xaiUnavailable: IS_KO ? "XAI 결과가 없습니다." : "No XAI explanation is available.",
+  currentValue: IS_KO ? "현재값" : "Current",
+  sensitivity: IS_KO ? "민감도" : "Sensitivity",
+  ragAsking: IS_KO ? "답변 생성 중..." : "Answering...",
+  ragAnswerTitle: IS_KO ? "Injection AI 답변" : "Injection AI answer",
+  ragCitations: IS_KO ? "근거 자료" : "Citations",
+  ragShowCitations: IS_KO ? "근거 보기" : "Show citations",
+  ragHideCitations: IS_KO ? "근거 숨기기" : "Hide citations",
+  ragFailed: IS_KO ? "Injection AI 답변을 불러오지 못했습니다." : "Could not load the Injection AI answer.",
+  ragSummary: IS_KO ? "요약" : "Summary",
+  ragReasoning: IS_KO ? "해석" : "Reasoning",
+  historyLatest: IS_KO ? "최신" : "Latest",
+  historyEmpty: IS_KO ? "예측을 실행하면 최근 Injection 기록이 여기에 표시됩니다." : "Run an Injection forecast and recent runs will appear here.",
+  historyClear: IS_KO ? "기록 삭제" : "Clear history",
 };
 
 const CUSTOM_GEOMETRY_ID = "manual";
@@ -50,6 +65,54 @@ const PROCESS_RANGES = {
   packing_pressure_MPa: [10, 130, "MPa"],
   injection_time_s: [0.2, 4.0, "s"],
   packing_time_s: [0.2, 8.0, "s"],
+};
+
+const GEOMETRY_RANGES = {
+  L_mm: [20, 140, "mm", 1],
+  W_mm: [20, 120, "mm", 1],
+  t_mm: [0.5, 5, "mm", 2],
+  D_mm: [0, 80, "mm", 1],
+  R_mm: [0, 40, "mm", 1],
+  gate_size_width_mm: [0, 30, "mm", 1],
+  gate_size_height_mm: [0, 5, "mm", 2],
+};
+
+const XAI_KO_FEATURES = {
+  L_mm: ["길이", "전체 제품 길이입니다. 유동 거리가 길어지면 필요한 압력이 커지고 압력 곡선의 시간 위치가 달라질 수 있습니다."],
+  W_mm: ["폭", "전체 제품 폭입니다. 투영 면적과 유동 가능한 영역을 바꿉니다."],
+  t_mm: ["두께", "제품 두께입니다. 두꺼운 캐비티는 대체로 유동 저항을 낮추고, 얇은 구간은 압력 민감도를 키울 수 있습니다."],
+  D_mm: ["홀 직경", "중앙 홀의 직경입니다. 순 유동 면적을 줄이고 홀 주변의 충전 경로를 바꿉니다."],
+  R_mm: ["홀 반경", "중앙 홀의 반경입니다. 홀 직경과 함께 사용되며 유효 단면에 영향을 줍니다."],
+  gate_size_width_mm: ["게이트 폭", "게이트 개구부의 폭입니다. 게이트 면적이 커지면 입구 부근의 국부 압력 손실이 줄어들 수 있습니다."],
+  gate_size_height_mm: ["게이트 높이", "게이트 개구부의 높이입니다. 게이트 면적과 제한 정도를 직접 바꿉니다."],
+  melt_temp_C: ["수지 온도", "수지 온도입니다. 온도가 높아지면 일반적으로 점도가 낮아져 필요한 압력이 줄어들 수 있습니다."],
+  mold_temp_C: ["금형 온도", "금형 온도입니다. 냉각 속도, 점도 증가, 벽면 근처 유동 저항에 영향을 줍니다."],
+  injection_time_s: ["사출 시간", "충전 시간 조건입니다. 빠른 사출은 peak pressure를 높일 수 있고, 느린 사출은 압력 곡선 형태를 바꿉니다."],
+  packing_pressure_MPa: ["보압", "보압 설정값입니다. 충전 후반부 압력 수준과 peak pressure 응답에 영향을 줄 수 있습니다."],
+  packing_time_s: ["보압 시간", "보압 유지 시간입니다. 주로 충전 이후 후반 압력 거동에 영향을 줍니다."],
+  area_mm2: ["제품 면적", "길이와 폭으로 계산한 제품 면적입니다."],
+  hole_area_mm2: ["홀 면적", "중앙 홀 때문에 제거되는 면적입니다."],
+  net_area_mm2: ["순 면적", "전체 면적에서 홀 면적을 뺀 유효 면적입니다."],
+  volume_mm3: ["제품 부피", "순 면적과 두께로 계산한 캐비티 부피입니다."],
+  aspect_ratio: ["형상비", "길이와 폭의 비율입니다. 유동 영역이 얼마나 길쭉한지 나타냅니다."],
+  hole_diameter_ratio: ["홀 직경 비율", "홀 직경을 제품의 짧은 변 기준으로 정규화한 값입니다."],
+  gate_area_mm2: ["게이트 면적", "게이트 폭과 높이로 계산한 게이트 단면적입니다."],
+  gate_to_thickness_ratio: ["게이트/두께 비율", "제품 두께 대비 게이트 높이의 비율입니다."],
+  flow_length_to_thickness: ["유동 길이/두께 비율", "유동 경로가 두께에 비해 얼마나 긴지 나타내는 지표입니다. 값이 커지면 충전 압력 민감도가 커지는 경우가 많습니다."],
+  process_total_time_s: ["총 공정 시간", "사출 시간과 보압 시간을 더한 값입니다."],
+};
+
+const XAI_KO_COPY = {
+  summary: "현재 선택한 Injection 입력에서 형상, 공정, 게이트, 파생 유동 feature를 하나씩 변화시켜 Sprue Pressure 곡선과 Filling Pressure 분포가 얼마나 변하는지 계산한 설명입니다.",
+  method: "형상 + 공정 + 게이트 + 파생 유동 descriptor",
+  perturbations: {
+    "increased by 5%": "5% 증가",
+    "raised from 0 to 1": "0에서 1로 변경",
+  },
+  notes: [
+    "중요도는 현재 DOE/입력 조건에 대한 local 값이므로, 형상, 공정값, 모델 선택이 바뀌면 결과도 달라질 수 있습니다.",
+    "파생 feature는 surrogate 모델 내부에서 사용하는 설명 변수입니다. 설계 방향을 잡는 참고값으로 보고, 중요한 후보는 Moldex3D로 검증하는 것이 좋습니다.",
+  ],
 };
 
 const apiStatus = document.querySelector("#api-status");
@@ -81,9 +144,17 @@ const curvePoints = document.querySelector("#curve-points");
 const fillingMax = document.querySelector("#filling-max");
 const pressureCanvas = document.querySelector("#pressure-canvas");
 const fillingHistogram = document.querySelector("#filling-histogram");
+const xaiCard = document.querySelector("#xai-card");
+const xaiMethod = document.querySelector("#xai-method");
+const xaiSummary = document.querySelector("#xai-summary");
+const xaiFeatureList = document.querySelector("#xai-feature-list");
+const xaiNotes = document.querySelector("#xai-notes");
 const sprueModelLabel = document.querySelector("#sprue-model-label");
 const fillingModelLabel = document.querySelector("#filling-model-label");
 const notes = document.querySelector("#notes");
+const historyCard = document.querySelector("#prediction-history");
+const historyList = document.querySelector("#prediction-history-list");
+const historyClear = document.querySelector("#prediction-history-clear");
 const errorPanel = document.querySelector("#error");
 const comparisonStatus = document.querySelector("#comparison-status");
 const comparisonSampleId = document.querySelector("#comparison-sample-id");
@@ -91,6 +162,9 @@ const comparisonSprueFile = document.querySelector("#comparison-sprue-file");
 const comparisonFillingFile = document.querySelector("#comparison-filling-file");
 const comparisonSubmit = document.querySelector("#comparison-submit");
 const comparisonOutput = document.querySelector("#comparison-output");
+const ragForm = document.querySelector("#rag-form");
+const ragAnswer = document.querySelector("#rag-answer");
+const ragQueryInput = ragForm?.querySelector('textarea[name="query"]');
 
 let geometries = [];
 let processes = [];
@@ -103,6 +177,8 @@ let shapeAnimationFrame = 0;
 let activePredictionFlowData = null;
 let applyingDoeValues = false;
 const PREDICTION_FLOW_DURATION_MS = 5200;
+const SHAPE_DEFAULT_ROTATION = { x: -0.82, z: -0.58 };
+const INJECTION_HISTORY_KEY = "c2es.injection.recentRuns.v1";
 
 function formatMetric(value, digits = 2) {
   const numeric = Number(value);
@@ -252,6 +328,11 @@ function processPercent(name, value) {
   return Math.max(0, Math.min(100, ((Number(value) - min) / (max - min)) * 100));
 }
 
+function geometryPercent(name, value) {
+  const [min, max] = GEOMETRY_RANGES[name] || [0, 1];
+  return Math.max(0, Math.min(100, ((Number(value) - min) / (max - min)) * 100));
+}
+
 function updateProcessReadouts() {
   Object.entries(PROCESS_RANGES).forEach(([name, range]) => {
     const input = form.elements[name];
@@ -268,6 +349,30 @@ function updateProcessReadouts() {
       bar.style.setProperty("--value", `${processPercent(name, input.value)}%`);
     }
   });
+}
+
+function updateGeometryReadouts() {
+  Object.entries(GEOMETRY_RANGES).forEach(([name, range]) => {
+    const input = form.elements[name];
+    if (!input) {
+      return;
+    }
+    const readout = document.querySelector(`[data-geometry-readout="${name}"]`);
+    const bar = document.querySelector(`[data-geometry-bar="${name}"]`);
+    const unit = range[2];
+    const digits = range[3] ?? 1;
+    if (readout) {
+      readout.textContent = `${formatMetric(input.value, digits)} ${unit}`;
+    }
+    if (bar) {
+      bar.style.setProperty("--value", `${geometryPercent(name, input.value)}%`);
+    }
+  });
+
+  const gateReadout = document.querySelector('[data-geometry-readout="gate_type"]');
+  if (gateReadout) {
+    gateReadout.textContent = form.elements.gate_type?.value || "-";
+  }
 }
 
 function validationIssues(payload) {
@@ -345,7 +450,7 @@ function setShapeCamera(span) {
     return;
   }
   shapePreviewState.span = span;
-  shapePreviewState.camera.position.set(span * 0.58, -span * 0.82, span * 0.58);
+  shapePreviewState.camera.position.set(span * 0.58, -span * 0.78, span * 0.55);
   shapePreviewState.camera.lookAt(0, 0, 0);
   resizeShapePreview();
 }
@@ -354,7 +459,8 @@ function resetShapeView() {
   if (!shapePreviewState) {
     return;
   }
-  shapePreviewState.group.rotation.set(0, 0, -0.08);
+  shapePreviewState.group.rotation.x = SHAPE_DEFAULT_ROTATION.x;
+  shapePreviewState.group.rotation.z = SHAPE_DEFAULT_ROTATION.z;
   shapePreviewState.zoomFactor = 1;
   setShapeCamera(shapePreviewState.span);
 }
@@ -382,23 +488,31 @@ function initShapeEngine() {
   }
   shapeVisual.innerHTML = "";
   const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xf8fbfd);
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 5000);
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setClearColor(0x000000, 0);
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  renderer.setClearColor(0xf8fbfd, 1);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   shapeVisual.appendChild(renderer.domElement);
 
   const group = new THREE.Group();
-  group.rotation.z = -0.08;
+  group.rotation.x = SHAPE_DEFAULT_ROTATION.x;
+  group.rotation.z = SHAPE_DEFAULT_ROTATION.z;
   scene.add(group);
-  scene.add(new THREE.AmbientLight(0xffffff, 0.58));
-  const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
-  keyLight.position.set(320, -420, 560);
+
+  const ambient = new THREE.HemisphereLight(0xffffff, 0xc8d4df, 2.2);
+  scene.add(ambient);
+  const keyLight = new THREE.DirectionalLight(0xffffff, 2.6);
+  keyLight.position.set(80, -120, 150);
   scene.add(keyLight);
-  const rimLight = new THREE.DirectionalLight(0xffd2a7, 0.58);
-  rimLight.position.set(-280, 260, 380);
+  const rimLight = new THREE.DirectionalLight(0xbfefff, 1.1);
+  rimLight.position.set(-120, 80, 90);
   scene.add(rimLight);
+  const grid = new THREE.GridHelper(220, 12, 0xc5d6e5, 0xe2ebf2);
+  grid.rotation.x = Math.PI / 2;
+  grid.position.z = -0.9;
+  scene.add(grid);
 
   shapePreviewState = {
     scene,
@@ -463,7 +577,9 @@ function ensureShapeEngine() {
       setShapePreviewStatus("", false);
     })
     .catch(() => {
-      setShapePreviewStatus(IS_KO ? "SVG parametric fallback" : "SVG parametric fallback", true);
+      shapePreviewState = null;
+      shapeVisual.innerHTML = shapeSvg(payloadFromForm(), activePredictionFlowData);
+      setShapePreviewStatus("", false);
     });
   return shapeEnginePromise;
 }
@@ -481,6 +597,21 @@ function makePlateShape(length, width, holeRadius) {
     shape.holes.push(hole);
   }
   return shape;
+}
+
+function makePlateGeometry(length, width, thickness, holeRadius) {
+  const shape = makePlateShape(length, width, holeRadius);
+  const geometry = new THREE.ExtrudeGeometry(shape, {
+    depth: thickness,
+    bevelEnabled: true,
+    bevelThickness: Math.min(thickness * 0.12, 0.18),
+    bevelSize: Math.min(Math.min(length, width) * 0.004, 0.2),
+    bevelSegments: 1,
+    curveSegments: 64,
+  });
+  geometry.translate(0, 0, -thickness / 2);
+  geometry.computeVertexNormals();
+  return geometry;
 }
 
 function addEdges(object, color = 0xe7f2ff) {
@@ -552,6 +683,36 @@ function fillingColorStops() {
     [0.84, new THREE.Color(0xff8a00)],
     [1.0, new THREE.Color(0xd40000)],
   ];
+}
+
+function fillingVisualFlowFraction(x, y, length, width) {
+  const xFlow = (x + length / 2) / Math.max(length, 1e-9);
+  const ySpread = Math.abs(y) / Math.max(width / 2, 1e-9);
+  const gateHotspot = Math.exp(-((xFlow / 0.14) ** 2 + (ySpread / 0.42) ** 2));
+  const stream = Math.max(0, Math.min(1, xFlow + Math.max(0, ySpread - 0.12) * 0.12));
+  return Math.max(0, Math.min(1, stream ** 1.55 - gateHotspot * 0.08));
+}
+
+function applyFillingVertexColors(geometry, length, width, summary) {
+  if (!summary?.bins?.length) {
+    return false;
+  }
+  const stats = summary.stats || {};
+  const minPressure = Number(stats.min_MPa) || 0;
+  const maxPressure = Math.max(Number(stats.max_MPa) || 0, minPressure + 1e-9);
+  const colorStops = fillingColorStops();
+  const positions = geometry.getAttribute("position");
+  const colors = [];
+  for (let index = 0; index < positions.count; index += 1) {
+    const x = positions.getX(index);
+    const y = positions.getY(index);
+    const pressure = pressureFromDistribution(summary, fillingVisualFlowFraction(x, y, length, width));
+    const normalized = pressure === null ? 0 : (pressure - minPressure) / Math.max(maxPressure - minPressure, 1e-9);
+    const color = interpolateColor(colorStops, normalized);
+    colors.push(color.r, color.g, color.b);
+  }
+  geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+  return true;
 }
 
 function predictionFillingSummary(predictionData) {
@@ -814,75 +975,75 @@ function renderParametricShape(payload, predictionData = null) {
     return;
   }
   clearShapeObjects();
-  const length = Math.max(20, payload.L_mm);
-  const width = Math.max(20, payload.W_mm);
-  const thickness = Math.max(0.8, payload.t_mm);
-  const holeRadius = Math.max(3, Math.min(payload.D_mm / 2, Math.min(length, width) * 0.42));
-  const gateWidth = Math.max(3, Math.min(payload.gate_size_width_mm, width * 0.86));
-  const gateHeight = Math.max(0.3, Math.min(payload.gate_size_height_mm || thickness, thickness));
-  const gateDepth = Math.max(8, Math.min(26, length * 0.08));
-  const bodyShape = makePlateShape(length, width, holeRadius);
-  const bodyGeometry = new THREE.ExtrudeGeometry(bodyShape, {
-    depth: thickness,
-    bevelEnabled: false,
-    curveSegments: 96,
-  });
-  bodyGeometry.translate(0, 0, -thickness / 2);
+  const rawLength = Number(payload.L_mm);
+  const rawWidth = Number(payload.W_mm);
+  const rawThickness = Number(payload.t_mm);
+  const rawDiameter = Number(payload.D_mm);
+  const rawGateWidth = Number(payload.gate_size_width_mm);
+  const rawGateHeight = Number(payload.gate_size_height_mm);
+  if (![rawLength, rawWidth, rawThickness, rawDiameter, rawGateWidth, rawGateHeight].every((value) => Number.isFinite(value) && value > 0)) {
+    setShapePreviewStatus(IS_KO ? "형상 치수를 입력하면 3D preview가 표시됩니다." : "Enter shape dimensions to show the 3D preview.");
+    return;
+  }
+
+  const length = Math.max(rawLength, 1);
+  const width = Math.max(rawWidth, 1);
+  const thickness = Math.max(rawThickness, 0.2);
+  const maxHoleRadius = Math.max(Math.min(length, width) * 0.47, 0.1);
+  const holeRadius = Math.min(Math.max(rawDiameter / 2, 0.1), maxHoleRadius);
+  const gateWidth = Math.min(Math.max(rawGateWidth, 0.2), Math.min(length, width) * 0.92);
+  const gateHeight = Math.min(Math.max(rawGateHeight, 0.15), thickness);
+  const gateDepth = 5;
+  const gateOverlap = 0.35;
+  const fillingSummary = predictionFillingSummary(predictionData);
+
+  const bodyGeometry = makePlateGeometry(length, width, thickness, holeRadius);
+  const hasContour = applyFillingVertexColors(bodyGeometry, length, width, fillingSummary);
   const plate = new THREE.Mesh(
     bodyGeometry,
-    new THREE.MeshStandardMaterial({
-      color: 0xb9d0e2,
-      roughness: 0.46,
-      metalness: 0.08,
-      side: THREE.DoubleSide,
-    })
+    hasContour
+      ? new THREE.MeshBasicMaterial({
+          color: 0xffffff,
+          vertexColors: true,
+          side: THREE.DoubleSide,
+        })
+      : new THREE.MeshStandardMaterial({
+          color: 0x86c3df,
+          roughness: 0.62,
+          metalness: 0.04,
+        })
   );
   shapePreviewState.group.add(plate);
   shapePreviewState.objects.push(plate);
-  addEdges(plate);
+  addEdges(plate, 0x34556d);
 
   const gate = new THREE.Mesh(
-    new THREE.BoxGeometry(gateDepth, gateWidth, gateHeight),
+    new THREE.BoxGeometry(gateWidth, gateDepth, gateHeight),
     new THREE.MeshStandardMaterial({
-      color: 0xff7a1a,
-      roughness: 0.38,
-      metalness: 0.04,
-      emissive: 0x5d1700,
-      emissiveIntensity: 0.18,
+      color: 0xd40000,
+      roughness: 0.5,
+      metalness: 0.02,
     })
   );
-  gate.position.set(-length / 2 - gateDepth / 2, 0, -thickness / 2 + gateHeight / 2);
+  gate.rotation.z = Math.PI / 2;
+  gate.position.set(-length / 2 - gateDepth / 2 + gateOverlap, 0, thickness / 2 - gateHeight / 2);
   shapePreviewState.group.add(gate);
   shapePreviewState.objects.push(gate);
-  addEdges(gate, 0xffe0c6);
+  addEdges(gate, 0x7a0000);
 
-  const zTop = thickness / 2 + Math.max(0.5, thickness * 0.1);
-  addFlowTube([
-    new THREE.Vector3(-length / 2 - gateDepth * 0.35, 0, zTop),
-    new THREE.Vector3(-length * 0.36, -width * 0.16, zTop + 0.24),
-    new THREE.Vector3(-length * 0.22, -width * 0.24, zTop + 0.18),
-  ], 0xff8f35, Math.max(0.55, Math.min(1.8, width * 0.006)), 0.42);
-  addFlowTube([
-    new THREE.Vector3(-length / 2 - gateDepth * 0.1, 0, zTop + 0.5),
-    new THREE.Vector3(-length * 0.34, width * 0.16, zTop + 0.62),
-    new THREE.Vector3(-length * 0.2, width * 0.24, zTop + 0.46),
-  ], 0xffb15f, Math.max(0.45, Math.min(1.45, width * 0.005)), 0.34);
-  addFlowTube([
-    new THREE.Vector3(-length / 2 - gateDepth * 0.06, 0, zTop + 0.2),
-    new THREE.Vector3(-length * 0.34, 0, zTop + 0.42),
-    new THREE.Vector3(-length * 0.16, 0, zTop + 0.34),
-  ], 0xffd28f, Math.max(0.42, Math.min(1.25, width * 0.0045)), 0.28);
-  addPredictionFlowLayer(payload, predictionData, {
-    length,
-    width,
-    thickness,
-    holeRadius,
-    gateDepth,
-    zTop,
-  });
+  const span = Math.max(length + gateDepth * 3, width, thickness * 8);
+  shapePreviewState.group.rotation.x = SHAPE_DEFAULT_ROTATION.x;
+  shapePreviewState.group.rotation.z = SHAPE_DEFAULT_ROTATION.z;
+  shapePreviewState.zoomFactor = 1;
+  setShapeCamera(span);
 
-  resetShapeView();
-  setShapeCamera(Math.max(length, width, 80));
+  const clamped = holeRadius !== rawDiameter / 2 || gateWidth !== rawGateWidth || gateHeight !== rawGateHeight;
+  setShapePreviewStatus(
+    clamped
+      ? (IS_KO ? "Preview는 표시를 위해 불가능한 치수를 일부 제한했습니다." : "Preview clamps impossible dimensions for display.")
+      : "",
+    clamped
+  );
 }
 
 function shapeSvg(payload, predictionData = null) {
@@ -1001,13 +1162,14 @@ function updateShapePreview(options = {}) {
   activeRun.textContent = `${geometrySelect.value || "-"} / ${processSelect.value || "-"}`;
   previewTitle.textContent = IS_KO ? "Parametric DOE 미리보기" : "Parametric DOE preview";
   previewCopy.textContent = IS_KO
-    ? `L/W/t, Hole D ${formatMetric(payload.D_mm, 1)} mm, Gate ${formatMetric(payload.gate_size_width_mm, 1)} mm 치수로 생성합니다.`
-    : `Generated from L/W/t, hole D ${formatMetric(payload.D_mm, 1)} mm, and gate ${formatMetric(payload.gate_size_width_mm, 1)} mm.`;
+    ? `DOE 치수 기반 parametric preview: ${geometrySelect.value || "-"}`
+    : `Parametric preview from DOE dimensions: ${geometrySelect.value || "-"}`;
   metricL.textContent = `${formatMetric(payload.L_mm, 1)} mm`;
   metricW.textContent = `${formatMetric(payload.W_mm, 1)} mm`;
   metricT.textContent = `${formatMetric(payload.t_mm, 2)} mm`;
   metricD.textContent = `${formatMetric(payload.D_mm, 1)} mm`;
   updateProcessReadouts();
+  updateGeometryReadouts();
   updatePreventionCheck();
 }
 
@@ -1164,8 +1326,218 @@ function renderNotes(data) {
   notes.innerHTML = "";
   [...(data.validation_warnings || []), ...(data.notes || []).map((message) => ({ message }))].forEach((item) => {
     const li = document.createElement("li");
-    li.textContent = item.message || String(item);
+    li.textContent = localizeRuntimeNote(item.message || String(item));
     notes.appendChild(li);
+  });
+}
+
+function localizeRuntimeNote(message) {
+  if (!IS_KO) {
+    return message;
+  }
+  const translations = {
+    "Current model is trained on 360 Moldex3D cases covering G01-G42.": "현재 모델은 G01-G42 범위의 360개 Moldex3D DOE 케이스로 학습되었습니다.",
+    "Use the classical surrogate as the practical default for this Simple Injection DOE set.": "이 Simple Injection DOE 세트에서는 Machine Learning surrogate를 기본 모델로 사용하는 것이 가장 실용적입니다.",
+    "The GointMLP-style model is a deep-learning baseline and is less stable than the classical surrogate on this DOE set.": "GointMLP-style 모델은 딥러닝 baseline이며, 이 DOE 세트에서는 Machine Learning surrogate보다 안정성이 낮을 수 있습니다.",
+    "The DeepONet model is an operator-learning research model for smoother curve behavior on user-edited DOE conditions.": "DeepONet 모델은 사용자가 수정한 DOE 조건에서 더 부드러운 곡선 거동을 보기 위한 operator-learning 연구 모델입니다.",
+  };
+  return translations[message] || message;
+}
+
+function loadPredictionHistory() {
+  try {
+    const raw = localStorage.getItem(INJECTION_HISTORY_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.slice(0, 5) : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePredictionHistory(runs) {
+  try {
+    localStorage.setItem(INJECTION_HISTORY_KEY, JSON.stringify(runs.slice(0, 5)));
+  } catch {
+    // Ignore storage failures; prediction still works.
+  }
+}
+
+function predictionHistorySignature(run) {
+  return [
+    run.geometryId,
+    run.processId,
+    run.modelKey,
+    run.fillingModelKey,
+    run.meltTempC,
+    run.injectionTimeS,
+    run.packingPressureMPa,
+  ].join("|");
+}
+
+function makePredictionHistoryRun(data) {
+  const inputs = data.inputs || {};
+  return {
+    geometryId: inputs.geometry_id || geometrySelect.value || "-",
+    processId: inputs.process_id || processSelect.value || "-",
+    modelKey: data.model_key || modelSelect.value || "",
+    fillingModelKey: data.filling_model_key || fillingModelSelect.value || "",
+    modelLabel: MODEL_LABELS[data.model_key] || data.model_label || "-",
+    fillingModelLabel: MODEL_LABELS[data.filling_model_key] || data.filling_model_label || "-",
+    meltTempC: inputs.melt_temp_C ?? form.elements.melt_temp_C?.value ?? "-",
+    injectionTimeS: inputs.injection_time_s ?? form.elements.injection_time_s?.value ?? "-",
+    packingPressureMPa: inputs.packing_pressure_MPa ?? form.elements.packing_pressure_MPa?.value ?? "-",
+    pressureMPa: data.predicted_max_pressure_MPa ?? null,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+function addPredictionHistory(data) {
+  const run = makePredictionHistoryRun(data);
+  const signature = predictionHistorySignature(run);
+  const runs = [run, ...loadPredictionHistory().filter((item) => predictionHistorySignature(item) !== signature)];
+  savePredictionHistory(runs);
+  renderPredictionHistory();
+}
+
+function applyPredictionHistoryRun(run) {
+  if (run.geometryId) {
+    geometrySelect.value = run.geometryId;
+    applyGeometry(run.geometryId);
+  }
+  if (run.processId) {
+    processSelect.value = run.processId;
+    applyProcess(run.processId);
+  }
+  if (run.modelKey) {
+    modelSelect.value = run.modelKey;
+  }
+  if (run.fillingModelKey) {
+    fillingModelSelect.value = run.fillingModelKey;
+  }
+  updateShapePreview();
+  updatePreventionCheck();
+}
+
+function renderPredictionHistory() {
+  if (!historyCard || !historyList) {
+    return;
+  }
+  const runs = loadPredictionHistory();
+  historyList.innerHTML = "";
+  if (!runs.length) {
+    const empty = document.createElement("p");
+    empty.className = "history-empty";
+    empty.textContent = TEXT.historyEmpty;
+    historyList.appendChild(empty);
+  } else {
+    runs.forEach((run, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = `history-run${index === 0 ? " latest" : ""}`;
+      button.innerHTML = `
+        <span>${index === 0 ? TEXT.historyLatest : `#${index + 1}`}</span>
+        <strong>${run.geometryId} / ${run.processId}</strong>
+        <small>${formatMetric(run.meltTempC, 1)} C · ${formatMetric(run.injectionTimeS, 3)} s · ${formatMetric(run.packingPressureMPa, 1)} MPa</small>
+        <em>${run.modelLabel} · ${run.fillingModelLabel}${run.pressureMPa == null ? "" : ` · ${formatMetric(run.pressureMPa, 2)} MPa`}</em>
+      `;
+      button.addEventListener("click", () => applyPredictionHistoryRun(run));
+      historyList.appendChild(button);
+    });
+  }
+  historyCard.classList.remove("hidden");
+  if (historyClear) {
+    historyClear.disabled = runs.length === 0;
+  }
+}
+
+function xaiCategoryLabel(category) {
+  const labels = {
+    geometry: IS_KO ? "형상" : "Geometry",
+    process: IS_KO ? "공정" : "Process",
+    gate: IS_KO ? "게이트" : "Gate",
+    derived: IS_KO ? "파생" : "Derived",
+    other: IS_KO ? "기타" : "Other",
+  };
+  return labels[category] || labels.other;
+}
+
+function translatedXaiLabel(feature) {
+  if (!IS_KO) {
+    return feature.label || feature.name;
+  }
+  if (feature.name?.startsWith("gate_type__")) {
+    return `게이트 타입: ${feature.name.split("__", 2)[1] || ""}`;
+  }
+  return XAI_KO_FEATURES[feature.name]?.[0] || feature.label || feature.name;
+}
+
+function translatedXaiExplanation(feature) {
+  if (!IS_KO) {
+    return feature.explanation || "";
+  }
+  if (feature.name?.startsWith("gate_type__")) {
+    return "게이트 타입을 구분하기 위한 one-hot feature입니다. 입구 경계 조건 차이를 모델이 구분하는 데 사용됩니다.";
+  }
+  return XAI_KO_FEATURES[feature.name]?.[1] || feature.explanation || "";
+}
+
+function translatedPerturbation(perturbation) {
+  if (!IS_KO || !perturbation) {
+    return perturbation;
+  }
+  if (perturbation.startsWith("toggled to ")) {
+    return `${perturbation.replace("toggled to ", "")}(으)로 전환`;
+  }
+  return XAI_KO_COPY.perturbations[perturbation] || perturbation;
+}
+
+function renderXaiFeature(feature, totalImportance) {
+  const importance = Number(feature.importance) || 0;
+  const percent = totalImportance > 0 ? (importance / totalImportance) * 100 : 0;
+  const item = document.createElement("article");
+  item.className = `xai-feature xai-feature-${feature.category || "other"}`;
+  const meta = [
+    `${TEXT.currentValue}: ${formatMetric(feature.local_value, 3)}`,
+    `${TEXT.sensitivity}: ${formatMetric(feature.local_sensitivity, 5)}`,
+    translatedPerturbation(feature.perturbation),
+  ].filter(Boolean);
+  item.innerHTML = `
+    <div class="xai-feature-top">
+      <div>
+        <strong>${translatedXaiLabel(feature)}</strong>
+        <span>${xaiCategoryLabel(feature.category)}</span>
+      </div>
+      <b>${formatMetric(percent, 1)}%</b>
+    </div>
+    <i style="--bar: ${Math.max(2, Math.min(100, percent))}%"></i>
+    <p>${translatedXaiExplanation(feature)}</p>
+    <small>${meta.join(" · ")}</small>
+  `;
+  return item;
+}
+
+function renderXai(xai) {
+  if (!xaiCard || !xaiFeatureList) {
+    return;
+  }
+  xaiFeatureList.innerHTML = "";
+  xaiNotes.innerHTML = "";
+  if (!xai || !Array.isArray(xai.top_features) || !xai.top_features.length) {
+    xaiCard.classList.add("hidden");
+    return;
+  }
+  xaiCard.classList.remove("hidden");
+  xaiMethod.textContent = IS_KO ? XAI_KO_COPY.method : (xai.feature_set || xai.method || "Local sensitivity");
+  xaiSummary.textContent = IS_KO ? XAI_KO_COPY.summary : (xai.summary || TEXT.xaiUnavailable);
+  const topFeatures = xai.top_features.slice(0, 10);
+  const totalImportance = topFeatures.reduce((sum, feature) => sum + Math.max(Number(feature.importance) || 0, 0), 0);
+  topFeatures.forEach((feature) => {
+    xaiFeatureList.appendChild(renderXaiFeature(feature, totalImportance));
+  });
+  (IS_KO ? XAI_KO_COPY.notes : (xai.notes || [])).forEach((note) => {
+    const li = document.createElement("li");
+    li.textContent = note;
+    xaiNotes.appendChild(li);
   });
 }
 
@@ -1181,6 +1553,7 @@ function renderResult(data) {
   const filling = data.predicted_filling_pressure || data.filling_pressure;
   renderFillingPressure(filling);
   drawPressureCurve(data.curve || []);
+  renderXai(data.xai);
   renderNotes(data);
   renderPredictionFlowPreview(data);
   const geometryId = data.inputs?.geometry_id;
@@ -1212,6 +1585,7 @@ async function submitPrediction(event) {
       throw new Error(typeof data.detail === "string" ? data.detail : data.detail?.message || `HTTP ${response.status}`);
     }
     renderResult(data);
+    addPredictionHistory(data);
   } catch (error) {
     setError(error.message || "Prediction failed.");
   } finally {
@@ -1285,6 +1659,148 @@ async function submitComparison() {
   }
 }
 
+async function postRagJson(path, payload) {
+  const response = await fetch(`${RAG_BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.detail || `HTTP ${response.status}`);
+  }
+  return data;
+}
+
+function buildAssistantPredictionContext(data) {
+  if (!data) {
+    return null;
+  }
+  const filling = data.predicted_filling_pressure || data.filling_pressure || null;
+  const topFeatures = Array.isArray(data.xai?.top_features)
+    ? data.xai.top_features.map((feature) => ({
+      name: feature.name,
+      label: IS_KO ? translatedXaiLabel(feature) : feature.label,
+      category: feature.category,
+      importance: feature.importance,
+      local_sensitivity: feature.local_sensitivity,
+      local_value: feature.local_value,
+      perturbation: IS_KO ? translatedPerturbation(feature.perturbation) : feature.perturbation,
+      explanation: IS_KO ? translatedXaiExplanation(feature) : feature.explanation,
+    }))
+    : [];
+  return {
+    mode: "Injection Forecast",
+    inputs: data.inputs || {},
+    model_key: data.model_key || "",
+    model_label: data.model_label || "",
+    filling_model_key: data.filling_model_key || "",
+    filling_model_label: data.filling_model_label || "",
+    predicted_max_pressure_MPa: data.predicted_max_pressure_MPa ?? null,
+    predicted_max_time_s: data.predicted_max_time_s ?? null,
+    curve_points: data.curve?.length || null,
+    predicted_filling_max_MPa: filling?.stats?.max_MPa ?? null,
+    xai: data.xai ? {
+      title: data.xai.title,
+      summary: IS_KO ? XAI_KO_COPY.summary : data.xai.summary,
+      method: data.xai.method,
+      feature_set: IS_KO ? XAI_KO_COPY.method : data.xai.feature_set,
+      top_features: topFeatures,
+    } : null,
+  };
+}
+
+function renderRagAnswer(data) {
+  if (!ragAnswer) {
+    return;
+  }
+  ragAnswer.classList.remove("hidden");
+  ragAnswer.textContent = "";
+
+  const head = document.createElement("div");
+  head.className = "rag-answer-head";
+  const title = document.createElement("strong");
+  title.textContent = TEXT.ragAnswerTitle;
+  const actions = document.createElement("div");
+  actions.className = "rag-answer-actions";
+  const provider = document.createElement("span");
+  provider.className = "rag-provider";
+  provider.textContent = `${data.provider || "rag"} · ${data.model || "local"}`;
+  const citations = Array.isArray(data.citations) ? data.citations : [];
+  let citationToggle = null;
+  actions.append(provider);
+  if (citations.length) {
+    citationToggle = document.createElement("button");
+    citationToggle.className = "rag-citation-toggle";
+    citationToggle.type = "button";
+    citationToggle.textContent = TEXT.ragShowCitations;
+    citationToggle.setAttribute("aria-expanded", "false");
+    actions.append(citationToggle);
+  }
+  head.append(title, actions);
+
+  const answerText = document.createElement("div");
+  answerText.className = "rag-answer-text";
+  const answerParagraphs = String(data.answer || "")
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+  (answerParagraphs.length ? answerParagraphs : [""]).forEach((paragraph, index) => {
+    const paragraphNode = document.createElement("article");
+    paragraphNode.className = `rag-answer-paragraph${index === 0 ? " lead" : ""}`;
+    const badge = document.createElement("span");
+    badge.textContent = index === 0 ? TEXT.ragSummary : `${TEXT.ragReasoning} ${index}`;
+    const body = document.createElement("p");
+    body.textContent = paragraph;
+    paragraphNode.append(badge, body);
+    answerText.append(paragraphNode);
+  });
+
+  const citationBlock = document.createElement("div");
+  citationBlock.className = "rag-citations hidden";
+  const citationTitle = document.createElement("strong");
+  citationTitle.textContent = TEXT.ragCitations;
+  citationBlock.append(citationTitle);
+
+  citations.forEach((citation) => {
+    const item = document.createElement("div");
+    item.className = "rag-citation";
+    const itemTitle = document.createElement("strong");
+    itemTitle.textContent = `[${citation.index}] ${citation.title}`;
+    const source = citation.source && /^https?:\/\//.test(citation.source)
+      ? document.createElement("a")
+      : document.createElement("span");
+    source.textContent = citation.source || citation.source_id || "";
+    if (source.tagName === "A") {
+      source.href = citation.source;
+      source.target = "_blank";
+      source.rel = "noreferrer";
+    }
+    const excerpt = document.createElement("p");
+    excerpt.textContent = citation.excerpt || "";
+    item.append(itemTitle, source, excerpt);
+    citationBlock.append(item);
+  });
+
+  citationToggle?.addEventListener("click", () => {
+    const isHidden = citationBlock.classList.toggle("hidden");
+    citationToggle.textContent = isHidden ? TEXT.ragShowCitations : TEXT.ragHideCitations;
+    citationToggle.setAttribute("aria-expanded", String(!isHidden));
+  });
+
+  ragAnswer.append(head, answerText, citationBlock);
+}
+
+function clearDefaultRagQuestion() {
+  if (!ragQueryInput) {
+    return;
+  }
+  const defaultQuery = ragQueryInput.dataset.defaultQuery || "";
+  if (ragQueryInput.value.trim() === defaultQuery.trim()) {
+    ragQueryInput.value = "";
+  }
+}
+
 async function loadBootstrapData() {
   apiStatus.textContent = TEXT.checking;
   try {
@@ -1301,8 +1817,8 @@ async function loadBootstrapData() {
     processes = doe.processes || [];
     fillModelSelect(modelSelect, models.sprue_pressure_models || []);
     fillModelSelect(fillingModelSelect, models.filling_pressure_models || []);
-    fillDoeSelect(geometrySelect, geometries, "G18");
-    fillDoeSelect(processSelect, processes, "P07");
+    fillDoeSelect(geometrySelect, geometries, "G01");
+    fillDoeSelect(processSelect, processes, "P01");
     applyGeometry(geometrySelect.value);
     applyProcess(processSelect.value);
     updateShapePreview();
@@ -1363,6 +1879,47 @@ comparisonSubmit.addEventListener("click", submitComparison);
 shapeZoomIn?.addEventListener("click", () => zoomShape(1.12));
 shapeZoomOut?.addEventListener("click", () => zoomShape(0.88));
 shapeViewReset?.addEventListener("click", resetShapeView);
+historyClear?.addEventListener("click", () => {
+  savePredictionHistory([]);
+  renderPredictionHistory();
+});
+
+if (ragQueryInput) {
+  ragQueryInput.addEventListener("focus", clearDefaultRagQuestion, { once: true });
+  ragQueryInput.addEventListener("beforeinput", clearDefaultRagQuestion, { once: true });
+}
+
+if (ragForm) {
+  ragForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    clearError();
+    setLoading(ragForm, true);
+    const submitButton = ragForm.querySelector('button[type="submit"]');
+    const originalText = submitButton?.textContent || "";
+    if (submitButton) {
+      submitButton.textContent = TEXT.ragAsking;
+    }
+    try {
+      const formData = new FormData(ragForm);
+      const data = await postRagJson("/answer", {
+        query: String(formData.get("query") || ""),
+        top_k: 5,
+        use_llm: formData.get("use_llm") === "on",
+        language: IS_KO ? "ko" : "en",
+        prediction_context: buildAssistantPredictionContext(latestPredictionData),
+      });
+      renderRagAnswer(data);
+    } catch (error) {
+      setError(`${TEXT.ragFailed} ${error.message || error}`);
+    } finally {
+      if (submitButton) {
+        submitButton.textContent = originalText;
+      }
+      setLoading(ragForm, false);
+    }
+  });
+}
 
 drawEmptyCurve();
+renderPredictionHistory();
 loadBootstrapData();

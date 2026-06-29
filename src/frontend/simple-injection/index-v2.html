@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>C2ES Injection Forecast v2</title>
-    <link rel="stylesheet" href="./styles-v2.css?v=20260619-injection-v2-17" />
+    <link rel="stylesheet" href="./styles-v2.css?v=20260626-injection-rag-2" />
   </head>
   <body>
     <main class="shell">
@@ -20,11 +20,39 @@
           <div class="top-actions">
             <div class="status-pill" id="api-status">Checking</div>
             <a class="language-link" href="https://ai.luvelox.com/index.html">Modules</a>
-            <a class="language-link" href="./injection-v2-flow.html">Flow</a>
-            <a class="language-link" href="./index.html">Classic</a>
             <a class="language-link" href="./index-v2.ko.html">한국어</a>
           </div>
         </header>
+
+        <section class="rag-assistant" aria-labelledby="rag-title">
+          <div class="rag-assistant-copy">
+            <p class="eyebrow">Injection AI Assistant</p>
+            <h2 id="rag-title">Ask the injection knowledge base</h2>
+            <p>
+              Ask about Moldex3D surrogate behavior, pressure curves, filling distributions, and the current XAI result.
+              Answers stay grounded with citations and the active prediction when available.
+            </p>
+          </div>
+          <form class="rag-form" id="rag-form">
+            <label>
+              Question
+              <textarea
+                name="query"
+                rows="3"
+                data-default-query="Why does melt temperature affect the predicted sprue pressure?"
+                required
+              >Why does melt temperature affect the predicted sprue pressure?</textarea>
+            </label>
+            <div class="rag-actions">
+              <label class="rag-toggle">
+                <input name="use_llm" type="checkbox" checked />
+                <span>Use LLM when API key exists</span>
+              </label>
+              <button class="secondary" type="submit">Ask Injection AI</button>
+            </div>
+          </form>
+          <div class="rag-answer hidden" id="rag-answer" aria-live="polite"></div>
+        </section>
 
         <section class="summary-strip" aria-label="Workflow summary">
           <div>
@@ -102,71 +130,117 @@
                 <div class="setup-block-head">
                   <span>03</span>
                   <div>
-                    <strong>Process controls</strong>
+                    <strong>Controls</strong>
                     <p>Editable values are kept compact for quick DOE checks.</p>
                   </div>
                 </div>
-                <div class="process-panel" aria-label="Process controls">
-                  <label class="process-control">
-                    <span>Melt temp</span>
-                    <b data-process-readout="melt_temp_C">-</b>
-                    <input name="melt_temp_C" type="number" step="0.1" required />
-                    <i data-process-bar="melt_temp_C"></i>
-                  </label>
-                  <label class="process-control">
-                    <span>Mold temp</span>
-                    <b data-process-readout="mold_temp_C">-</b>
-                    <input name="mold_temp_C" type="number" step="0.1" required />
-                    <i data-process-bar="mold_temp_C"></i>
-                  </label>
-                  <label class="process-control">
-                    <span>Packing pressure</span>
-                    <b data-process-readout="packing_pressure_MPa">-</b>
-                    <input name="packing_pressure_MPa" type="number" step="0.1" required />
-                    <i data-process-bar="packing_pressure_MPa"></i>
-                  </label>
-                  <label class="process-control">
-                    <span>Injection time</span>
-                    <b data-process-readout="injection_time_s">-</b>
-                    <input name="injection_time_s" type="number" step="0.001" required />
-                    <i data-process-bar="injection_time_s"></i>
-                  </label>
-                  <label class="process-control compact">
-                    <span>Packing time</span>
-                    <b data-process-readout="packing_time_s">-</b>
-                    <input name="packing_time_s" type="number" step="0.001" required />
-                  </label>
-                </div>
+                <section class="advanced-fields detail-card">
+                  <div class="advanced-fields-title">Process details</div>
+                  <div class="process-panel" aria-label="Process details">
+                    <label class="process-control">
+                      <span>Melt temp</span>
+                      <b data-process-readout="melt_temp_C">-</b>
+                      <input name="melt_temp_C" type="number" step="0.1" required />
+                      <i data-process-bar="melt_temp_C"></i>
+                    </label>
+                    <label class="process-control">
+                      <span>Mold temp</span>
+                      <b data-process-readout="mold_temp_C">-</b>
+                      <input name="mold_temp_C" type="number" step="0.1" required />
+                      <i data-process-bar="mold_temp_C"></i>
+                    </label>
+                    <label class="process-control">
+                      <span>Packing pressure</span>
+                      <b data-process-readout="packing_pressure_MPa">-</b>
+                      <input name="packing_pressure_MPa" type="number" step="0.1" required />
+                      <i data-process-bar="packing_pressure_MPa"></i>
+                    </label>
+                    <label class="process-control">
+                      <span>Injection time</span>
+                      <b data-process-readout="injection_time_s">-</b>
+                      <input name="injection_time_s" type="number" step="0.001" required />
+                      <i data-process-bar="injection_time_s"></i>
+                    </label>
+                    <label class="process-control compact">
+                      <span>Packing time</span>
+                      <b data-process-readout="packing_time_s">-</b>
+                      <input name="packing_time_s" type="number" step="0.001" required />
+                    </label>
+                  </div>
+                </section>
               </div>
 
-              <details class="advanced-fields">
-                <summary>Geometry details</summary>
-                <div class="field-grid">
-                  <label>L (mm)<input name="L_mm" type="number" step="0.001" required /></label>
-                  <label>W (mm)<input name="W_mm" type="number" step="0.001" required /></label>
-                  <label>Thickness (mm)<input name="t_mm" type="number" step="0.001" required /></label>
-                  <label>Hole D (mm)<input name="D_mm" type="number" step="0.001" required /></label>
-                  <label>Hole R (mm)<input name="R_mm" type="number" step="0.001" required /></label>
-                  <label>Gate type<input name="gate_type" type="text" value="edge_gate" required /></label>
-                  <label>Gate width (mm)<input name="gate_size_width_mm" type="number" step="0.001" required /></label>
-                  <label>Gate height (mm)<input name="gate_size_height_mm" type="number" step="0.001" required /></label>
+              <section class="advanced-fields detail-card">
+                <div class="advanced-fields-title">Geometry details</div>
+                <div class="detail-control-grid">
+                  <label class="process-control detail-control">
+                    <span>L</span>
+                    <b data-geometry-readout="L_mm">-</b>
+                    <input name="L_mm" type="number" step="0.001" required />
+                    <i data-geometry-bar="L_mm"></i>
+                  </label>
+                  <label class="process-control detail-control">
+                    <span>W</span>
+                    <b data-geometry-readout="W_mm">-</b>
+                    <input name="W_mm" type="number" step="0.001" required />
+                    <i data-geometry-bar="W_mm"></i>
+                  </label>
+                  <label class="process-control detail-control">
+                    <span>Thickness</span>
+                    <b data-geometry-readout="t_mm">-</b>
+                    <input name="t_mm" type="number" step="0.001" required />
+                    <i data-geometry-bar="t_mm"></i>
+                  </label>
+                  <label class="process-control detail-control">
+                    <span>Hole D</span>
+                    <b data-geometry-readout="D_mm">-</b>
+                    <input name="D_mm" type="number" step="0.001" required />
+                    <i data-geometry-bar="D_mm"></i>
+                  </label>
+                  <label class="process-control detail-control">
+                    <span>Hole R</span>
+                    <b data-geometry-readout="R_mm">-</b>
+                    <input name="R_mm" type="number" step="0.001" required />
+                    <i data-geometry-bar="R_mm"></i>
+                  </label>
+                  <label class="process-control detail-control text-control">
+                    <span>Gate type</span>
+                    <b data-geometry-readout="gate_type">-</b>
+                    <input name="gate_type" type="text" value="edge_gate" required />
+                  </label>
+                  <label class="process-control detail-control">
+                    <span>Gate width</span>
+                    <b data-geometry-readout="gate_size_width_mm">-</b>
+                    <input name="gate_size_width_mm" type="number" step="0.001" required />
+                    <i data-geometry-bar="gate_size_width_mm"></i>
+                  </label>
+                  <label class="process-control detail-control">
+                    <span>Gate height</span>
+                    <b data-geometry-readout="gate_size_height_mm">-</b>
+                    <input name="gate_size_height_mm" type="number" step="0.001" required />
+                    <i data-geometry-bar="gate_size_height_mm"></i>
+                  </label>
                 </div>
-              </details>
+              </section>
 
               <button class="primary" type="submit">Predict Sprue & Filling</button>
             </form>
           </section>
 
-          <section class="panel visual-panel" aria-label="Live injection preview">
+          <section class="panel visual-panel" aria-label="Shape preview">
             <div class="preview-head">
               <div>
-                <p class="eyebrow">Parametric Preview</p>
-                <h2>Mold geometry and gate</h2>
+                <p class="eyebrow">Shape Preview</p>
+                <h2>DOE-driven 3D preview</h2>
               </div>
-              <span class="run-pill" id="active-run">-</span>
+              <span class="run-pill preview-run-pill" id="active-run">-</span>
             </div>
 
-            <div class="viewer-card">
+            <div class="shape-mode-control" aria-label="3D preview mode">
+              <button type="button" class="active" data-shape-mode="parametric">Parametric</button>
+            </div>
+
+            <div class="shape-preview">
               <div class="viewer-plate" id="shape-visual" aria-label="Parametric DOE preview"></div>
               <div class="shape-preview-status" id="shape-preview-status">Preparing Parametric preview</div>
               <div class="shape-view-controls" aria-label="Parametric view controls">
@@ -176,16 +250,16 @@
               </div>
             </div>
 
+            <div class="preview-caption">
+              <strong id="preview-title">Parametric DOE preview</strong>
+              <span id="preview-copy">Parametric preview from DOE dimensions.</span>
+            </div>
+
             <div class="shape-stats" aria-label="Shape dimension summary">
               <div><span>L</span><strong id="metric-l">-</strong></div>
               <div><span>W</span><strong id="metric-w">-</strong></div>
               <div><span>t</span><strong id="metric-t">-</strong></div>
               <div><span>D</span><strong id="metric-d">-</strong></div>
-            </div>
-
-            <div class="preview-caption">
-              <strong id="preview-title">Parametric DOE preview</strong>
-              <span id="preview-copy">The visible plate is generated from L/W/t, hole, and gate dimensions.</span>
             </div>
           </section>
 
@@ -238,6 +312,22 @@
                 <div class="filling-histogram" id="filling-histogram"></div>
               </section>
 
+              <section class="xai-card hidden" id="xai-card" aria-label="Prediction driver explanation">
+                <div class="section-head">
+                  <div>
+                    <p class="eyebrow">XAI</p>
+                    <h3>Prediction Drivers</h3>
+                  </div>
+                  <span id="xai-method">Local sensitivity</span>
+                </div>
+                <p class="xai-summary" id="xai-summary"></p>
+                <div class="xai-feature-list" id="xai-feature-list"></div>
+                <details class="xai-notes">
+                  <summary>Method notes</summary>
+                  <ul id="xai-notes"></ul>
+                </details>
+              </section>
+
               <section class="compare-card" aria-label="Moldex3D validation comparison">
                 <div class="section-head">
                   <div>
@@ -247,7 +337,7 @@
                   <span id="comparison-status">Optional</span>
                 </div>
                 <div class="compare-grid">
-                  <label>Sample ID<input id="comparison-sample-id" type="text" placeholder="G18_P07" /></label>
+                  <label>Sample ID<input id="comparison-sample-id" type="text" placeholder="G01_P01" /></label>
                   <label>Sprue CSV<input id="comparison-sprue-file" type="file" accept=".csv,text/csv" /></label>
                   <label>Filling CSV<input id="comparison-filling-file" type="file" accept=".csv,text/csv" /></label>
                   <button class="secondary" type="button" id="comparison-submit">Compare</button>
@@ -256,6 +346,17 @@
               </section>
 
               <ul class="notes" id="notes"></ul>
+
+              <section class="history-card" id="prediction-history" aria-label="Prediction history">
+                <div class="section-head">
+                  <div>
+                    <p class="eyebrow">History</p>
+                    <h3>Prediction history</h3>
+                  </div>
+                  <button class="secondary compact-action" type="button" id="prediction-history-clear">Clear</button>
+                </div>
+                <div class="history-list" id="prediction-history-list"></div>
+              </section>
             </div>
           </section>
         </div>
@@ -264,6 +365,6 @@
       </section>
     </main>
 
-    <script src="./app-v2.js?v=20260619-injection-v2-17"></script>
+    <script src="./app-v2.js?v=20260626-injection-rag-2"></script>
   </body>
 </html>

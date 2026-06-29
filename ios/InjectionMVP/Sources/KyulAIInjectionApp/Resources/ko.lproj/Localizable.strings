@@ -1,4 +1,5 @@
 "api.settings" = "API 설정";
+"language.toggle" = "언어 전환";
 "done" = "완료";
 "ok" = "확인";
 "prediction.error" = "예측 오류";
@@ -12,6 +13,8 @@
 "injection.inputs" = "사출 입력";
 "geometry" = "형상";
 "process" = "공정";
+"geometry.details" = "형상 세부값";
+"process.details" = "공정 세부값";
 "sprue.model" = "스프루 모델";
 "filling.model" = "충전 모델";
 "model.loading" = "모델 목록은 API에서 자동으로 불러옵니다.";
@@ -57,3 +60,4 @@
 "axis.pressure.bin" = "압력 구간 (MPa)";
 "axis.volume" = "부피 (%)";
 "filling.animation" = "충전 애니메이션";
+"show.filling.preview" = "충전 미리보기 보기";

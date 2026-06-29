@@ -28,6 +28,9 @@ public protocol DDLaminateAPIClientProtocol: Sendable {
     func models(baseURL: URL) async throws -> DDLaminateModelsResponse
     func predictResponse(baseURL: URL, request: ResponsePredictionRequest) async throws -> ResponsePredictionResult
     func predictU3Forecast(baseURL: URL, request: U3ForecastPredictionRequest) async throws -> U3PtPredictionResult
+    func designSpace(baseURL: URL, request: DesignSpaceRequest) async throws -> DesignSpaceResponse
+    func localXAI(baseURL: URL, request: LocalXAIRequest) async throws -> XAIExplanation
+    func answerRag(baseURL: URL, request: RagAnswerRequest) async throws -> RagAnswerResponse
     func predictU3Pt(
         baseURL: URL,
         case laminateCase: DDLaminateCase,
@@ -74,6 +77,36 @@ public struct DDLaminateAPIClient: DDLaminateAPIClientProtocol {
         request: U3ForecastPredictionRequest
     ) async throws -> U3PtPredictionResult {
         var urlRequest = URLRequest(url: Self.endpoint(baseURL: baseURL, path: "/api/v1/dd-laminate/predict/u3-forecast"))
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.httpBody = try encoder.encode(request)
+        return try await send(urlRequest)
+    }
+
+    public func designSpace(
+        baseURL: URL,
+        request: DesignSpaceRequest
+    ) async throws -> DesignSpaceResponse {
+        var urlRequest = URLRequest(url: Self.endpoint(baseURL: baseURL, path: "/api/v1/dd-laminate/design-space"))
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.httpBody = try encoder.encode(request)
+        return try await send(urlRequest)
+    }
+
+    public func localXAI(
+        baseURL: URL,
+        request: LocalXAIRequest
+    ) async throws -> XAIExplanation {
+        var urlRequest = URLRequest(url: Self.endpoint(baseURL: baseURL, path: "/api/v1/dd-laminate/xai/local"))
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.httpBody = try encoder.encode(request)
+        return try await send(urlRequest)
+    }
+
+    public func answerRag(baseURL: URL, request: RagAnswerRequest) async throws -> RagAnswerResponse {
+        var urlRequest = URLRequest(url: Self.endpoint(baseURL: baseURL, path: "/api/v1/rag/answer"))
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         urlRequest.httpBody = try encoder.encode(request)

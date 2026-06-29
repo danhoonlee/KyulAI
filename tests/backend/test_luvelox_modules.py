@@ -99,9 +99,13 @@ def test_luvelox_signup_pages_are_served() -> None:
     assert "비밀번호 찾기" in forgot_ko.text
     assert "이 이메일이 로그인 ID입니다." in forgot_ko.text
     assert "Luvelox Admin" in admin.text
+    assert "Create account" in admin.text
     assert "계정" in admin_ko.text
+    assert "계정 생성" in admin_ko.text
     assert "Reset password" in admin_js.text
+    assert "Edit profile" in admin_js.text
     assert "비밀번호 재설정" in admin_js.text
+    assert "정보 수정" in admin_js.text
     assert "Design Search" in optimization.text
     assert "설계 탐색" in optimization_ko.text
     assert "/api/v1/optimization/search" in optimization_js.text
@@ -354,6 +358,97 @@ def test_luvelox_admin_users_lists_registered_accounts_without_password_fields(m
         "module.laminate",
         "module.optimization",
     }
+
+
+def test_luvelox_admin_can_create_account_with_selected_entitlements(monkeypatch) -> None:
+    client = TestClient(app)
+
+    monkeypatch.setenv("LUVELOX_ADMIN_TOKEN", "secret-admin-token")
+    response = client.post(
+        "/api/v1/modules/admin/users",
+        headers={"X-Luvelox-Admin-Token": "secret-admin-token"},
+        json={
+            "email": "admin.created@luvelox.com",
+            "password": "created-pass-123",
+            "name": "Admin Created",
+            "company": "C2ES",
+            "location": "Daejeon",
+            "mobile": "+82-10-3333-4444",
+            "entitlements": ["module.optimization"],
+        },
+    )
+
+    assert response.status_code == 201
+    created = response.json()
+    assert created["status"] == "created"
+    assert created["user"]["email"] == "admin.created@luvelox.com"
+    assert created["user"]["company"] == "C2ES"
+    assert created["entitlements"] == ["module.optimization"]
+
+    login_response = client.post(
+        "/api/v1/modules/auth/login",
+        json={"email": "admin.created@luvelox.com", "password": "created-pass-123"},
+    )
+    assert login_response.status_code == 200
+    token = login_response.json()["access_token"]
+
+    modules_response = client.get("/api/v1/modules/me", headers={"Authorization": f"Bearer {token}"})
+    modules = {module["id"]: module for module in modules_response.json()["modules"]}
+    assert modules["laminate"]["access"] == "locked"
+    assert modules["injection"]["access"] == "locked"
+    assert modules["optimization"]["access"] == "granted"
+
+    admin_response = client.get(
+        "/api/v1/modules/admin/users",
+        headers={"X-Luvelox-Admin-Token": "secret-admin-token"},
+    )
+    users = {user["email"]: user for user in admin_response.json()["users"]}
+    assert users["admin.created@luvelox.com"]["mobile"] == "+82-10-3333-4444"
+    assert users["admin.created@luvelox.com"]["entitlements"] == ["module.optimization"]
+
+
+def test_luvelox_admin_can_update_account_profile(monkeypatch) -> None:
+    client = TestClient(app)
+
+    monkeypatch.setenv("LUVELOX_ADMIN_TOKEN", "secret-admin-token")
+    signup = client.post(
+        "/api/v1/modules/auth/signup",
+        json={
+            "email": "admin.profile@luvelox.com",
+            "password": "profile-pass-123",
+            "name": "Old Profile",
+            "company": "Old Company",
+            "location": "Old City",
+            "mobile": "+82-10-0000-0000",
+        },
+    )
+    user_id = signup.json()["user"]["id"]
+
+    response = client.put(
+        f"/api/v1/modules/admin/users/{user_id}/profile",
+        headers={"X-Luvelox-Admin-Token": "secret-admin-token"},
+        json={
+            "name": "Updated Profile",
+            "company": "C2ES Korea",
+            "location": "Seoul",
+            "mobile": "+82-10-5555-6666",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "updated"
+    assert response.json()["user"]["name"] == "Updated Profile"
+    assert response.json()["user"]["company"] == "C2ES Korea"
+
+    admin_response = client.get(
+        "/api/v1/modules/admin/users",
+        headers={"X-Luvelox-Admin-Token": "secret-admin-token"},
+    )
+    users = {user["email"]: user for user in admin_response.json()["users"]}
+    listed = users["admin.profile@luvelox.com"]
+    assert listed["name"] == "Updated Profile"
+    assert listed["location"] == "Seoul"
+    assert listed["mobile"] == "+82-10-5555-6666"
 
 
 def test_luvelox_admin_can_reset_user_password_and_revoke_sessions(monkeypatch) -> None:

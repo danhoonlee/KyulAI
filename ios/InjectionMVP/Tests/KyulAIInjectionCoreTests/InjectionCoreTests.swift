@@ -135,8 +135,8 @@ final class InjectionCoreTests: XCTestCase {
         let result = try JSONDecoder().decode(SpruePressurePredictionResult.self, from: Data(json.utf8))
 
         XCTAssertEqual(result.predictedMaxPressureMPa, 69.0)
-        XCTAssertEqual(result.displayModelLabel, "ExtraTrees + PCA")
-        XCTAssertEqual(result.displayFillingModelLabel, "ExtraTrees histogram")
+        XCTAssertEqual(result.displayModelLabel, "Machine Learning")
+        XCTAssertEqual(result.displayFillingModelLabel, "Machine Learning")
         XCTAssertEqual(result.bestFillingPressure?.stats["max_MPa"], 35.98)
         XCTAssertEqual(result.inputs["geometry_id"]?.stringValue, "G01")
         if case .array(let foldScores)? = result.metrics["fold_scores"] {
@@ -161,6 +161,20 @@ final class InjectionCoreTests: XCTestCase {
             path: "fixture",
             available: true
         )
+        let deepLearning = ModelInfo(
+            key: "sprue_goint",
+            label: "Sprue Pressure - GointMLP-style NN",
+            description: "fixture",
+            path: "fixture",
+            available: true
+        )
+        let operatorLearning = ModelInfo(
+            key: "filling_deeponet",
+            label: "Filling Pressure - DeepONet histogram NN",
+            description: "fixture",
+            path: "fixture",
+            available: true
+        )
         let alreadyClean = ModelInfo(
             key: "sprue_clean",
             label: "DeepONet",
@@ -169,8 +183,10 @@ final class InjectionCoreTests: XCTestCase {
             available: true
         )
 
-        XCTAssertEqual(sprue.displayLabel, "ExtraTrees + PCA")
-        XCTAssertEqual(filling.displayLabel, "GOInt")
+        XCTAssertEqual(sprue.displayLabel, "Machine Learning")
+        XCTAssertEqual(filling.displayLabel, "Machine Learning")
+        XCTAssertEqual(deepLearning.displayLabel, "Deep Learning")
+        XCTAssertEqual(operatorLearning.displayLabel, "Operator Learning")
         XCTAssertEqual(alreadyClean.displayLabel, "DeepONet")
     }
 
@@ -238,7 +254,8 @@ final class InjectionCoreTests: XCTestCase {
             notes: [],
             validationWarnings: [],
             fillingPressure: nil,
-            predictedFillingPressure: nil
+            predictedFillingPressure: nil,
+            xai: nil
         )
         let model = ModelInfo(
             key: InjectionDefaults.sprueModelKey,
@@ -333,7 +350,8 @@ private struct MockAPIClient: InjectionAPIClientProtocol {
         notes: [],
         validationWarnings: [],
         fillingPressure: nil,
-        predictedFillingPressure: nil
+        predictedFillingPressure: nil,
+        xai: nil
     )
 
     func health(baseURL: URL) async throws -> HealthResponse {
@@ -350,6 +368,18 @@ private struct MockAPIClient: InjectionAPIClientProtocol {
 
     func predictSpruePressure(baseURL: URL, request: SpruePressurePredictionRequest) async throws -> SpruePressurePredictionResult {
         predictionResult
+    }
+
+    func answerRag(baseURL: URL, request: RagAnswerRequest) async throws -> RagAnswerResponse {
+        RagAnswerResponse(
+            query: request.query,
+            answer: "Fixture assistant answer",
+            provider: "extractive",
+            model: "local-test",
+            retrievalCount: 0,
+            usedLLM: false,
+            error: ""
+        )
     }
 }
 
@@ -375,7 +405,8 @@ private final class RecordingAPIClient: InjectionAPIClientProtocol, @unchecked S
             notes: [],
             validationWarnings: [],
             fillingPressure: nil,
-            predictedFillingPressure: nil
+            predictedFillingPressure: nil,
+            xai: nil
         )
     ) {
         self.modelsResponse = modelsResponse
@@ -398,5 +429,17 @@ private final class RecordingAPIClient: InjectionAPIClientProtocol, @unchecked S
     func predictSpruePressure(baseURL: URL, request: SpruePressurePredictionRequest) async throws -> SpruePressurePredictionResult {
         lastRequest = request
         return predictionResult
+    }
+
+    func answerRag(baseURL: URL, request: RagAnswerRequest) async throws -> RagAnswerResponse {
+        RagAnswerResponse(
+            query: request.query,
+            answer: "Fixture assistant answer",
+            provider: "extractive",
+            model: "local-test",
+            retrievalCount: 0,
+            usedLLM: false,
+            error: ""
+        )
     }
 }

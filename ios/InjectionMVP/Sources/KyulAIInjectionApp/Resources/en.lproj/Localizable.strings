@@ -1,4 +1,5 @@
 "api.settings" = "API Settings";
+"language.toggle" = "Switch language";
 "done" = "Done";
 "ok" = "OK";
 "prediction.error" = "Prediction error";
@@ -12,6 +13,8 @@
 "injection.inputs" = "Injection Inputs";
 "geometry" = "Geometry";
 "process" = "Process";
+"geometry.details" = "Geometry details";
+"process.details" = "Process details";
 "sprue.model" = "Sprue Model";
 "filling.model" = "Filling Model";
 "model.loading" = "Model list loads automatically from the API.";
@@ -57,3 +60,4 @@
 "axis.pressure.bin" = "Pressure bin (MPa)";
 "axis.volume" = "Volume (%)";
 "filling.animation" = "Filling Animation";
+"show.filling.preview" = "Show Filling Preview";

@@ -255,6 +255,62 @@ def create_account(
     return login(email=normalized_email, password=password)
 
 
+def create_account_by_admin(
+    *,
+    email: str,
+    password: str,
+    name: str,
+    company: str | None = None,
+    location: str | None = None,
+    mobile: str | None = None,
+    entitlements: tuple[str, ...] = DEFAULT_ENTITLEMENTS,
+) -> AuthUser:
+    normalized_email = email.strip().lower()
+    normalized_name = name.strip() or normalized_email.partition("@")[0]
+    if len(password) < 8:
+        raise WeakPasswordError("Password must be at least 8 characters.")
+    ensure_auth_db()
+    with _LOCK, _connect() as connection:
+        existing = connection.execute("SELECT id FROM users WHERE email = ?", (normalized_email,)).fetchone()
+        if existing is not None:
+            raise DuplicateAccountError("An account with this email already exists.")
+        user_id = str(uuid.uuid4())
+        salt, password_hash = _hash_password(password)
+        connection.execute(
+            """
+            INSERT INTO users (
+                id, email, name, company, location, mobile, password_salt, password_hash, created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                user_id,
+                normalized_email,
+                normalized_name,
+                company,
+                location,
+                mobile,
+                salt,
+                password_hash,
+                _now(),
+            ),
+        )
+        normalized_entitlements = tuple(sorted({item.strip() for item in entitlements if item.strip()}))
+        connection.executemany(
+            "INSERT INTO user_entitlements (user_id, entitlement_key) VALUES (?, ?)",
+            ((user_id, entitlement) for entitlement in normalized_entitlements),
+        )
+        connection.commit()
+        return AuthUser(
+            id=user_id,
+            email=normalized_email,
+            name=normalized_name,
+            company=company,
+            location=location,
+            mobile=mobile,
+        )
+
+
 def reset_password_by_identity(*, email: str, name: str, password: str) -> AuthSession:
     normalized_email = email.strip().lower()
     normalized_name = " ".join(name.strip().split()).casefold()
@@ -322,6 +378,42 @@ def set_user_entitlements(*, user_id: str, entitlements: tuple[str, ...]) -> tup
         )
         connection.commit()
     return normalized_entitlements
+
+
+def update_user_profile(
+    *,
+    user_id: str,
+    name: str,
+    company: str | None = None,
+    location: str | None = None,
+    mobile: str | None = None,
+) -> AuthUser:
+    normalized_name = name.strip()
+    if not normalized_name:
+        raise InvalidCredentialsError("Name is required.")
+    ensure_auth_db()
+    with _LOCK, _connect() as connection:
+        row = connection.execute("SELECT id FROM users WHERE id = ?", (user_id,)).fetchone()
+        if row is None:
+            raise InvalidCredentialsError("No account matches this user.")
+        connection.execute(
+            """
+            UPDATE users
+            SET name = ?, company = ?, location = ?, mobile = ?
+            WHERE id = ?
+            """,
+            (normalized_name, company, location, mobile, user_id),
+        )
+        connection.commit()
+        updated = connection.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+        return AuthUser(
+            id=updated["id"],
+            email=updated["email"],
+            name=updated["name"],
+            company=updated["company"],
+            location=updated["location"],
+            mobile=updated["mobile"],
+        )
 
 
 def login(*, email: str, password: str) -> AuthSession:

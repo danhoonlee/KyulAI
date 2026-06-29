@@ -134,14 +134,13 @@ def test_u3_design_space_endpoint_returns_curve_family_context(client: TestClien
     assert all(point["source"] == "curated_u3" for point in data["nearest_points"])
 
 
-def test_public_root_serves_legacy_ui_for_cafedecafe(client: TestClient) -> None:
+def test_public_root_serves_forecast_entry_for_cafedecafe(client: TestClient) -> None:
     for host in ("laminate.cafedecafe.co.kr", "cafedecafe.co.kr"):
         response = client.get("/", headers={"host": host})
 
         assert response.status_code == 200
-        assert "Double-Double Laminate Forecast" in response.text
-        assert "./app.js" in response.text
-        assert "Composite Laminate AI" not in response.text
+        assert "Open Laminate Forecast" in response.text
+        assert "./index-v2.html" in response.text
 
 
 def test_public_root_serves_v2_ui_for_luvelox(client: TestClient) -> None:
@@ -165,8 +164,8 @@ def test_laminate_pages_link_back_to_luvelox_user_page(client: TestClient) -> No
     assert korean_classic.status_code == 200
     assert 'href="https://ai.luvelox.com/index.html">Modules</a>' in english_v2.text
     assert 'href="https://ai.luvelox.com/index.ko.html">모듈 선택</a>' in korean_v2.text
-    assert 'href="https://ai.luvelox.com/index.html">Modules</a>' in english_classic.text
-    assert 'href="https://ai.luvelox.com/index.ko.html">모듈 선택</a>' in korean_classic.text
+    assert "./index-v2.html" in english_classic.text
+    assert "./index-v2.ko.html" in korean_classic.text
 
 
 def test_ai_luvelox_root_serves_c2es_login_entry_from_public_app(client: TestClient) -> None:
@@ -187,7 +186,7 @@ def test_ai_luvelox_workspace_static_files_are_host_routed(client: TestClient) -
     assert ko_index_response.status_code == 200
     assert "C2ES AI Workspace" in index_response.text
     assert "C2ES 예측 워크스페이스" in ko_index_response.text
-    assert "Luvelox Demo" in app_response.text
+    assert "Demo Account" in app_response.text
     assert ".login-view" in styles_response.text
 
 
@@ -239,12 +238,12 @@ def test_ai_luvelox_optimization_static_files_are_served_from_public_app(client:
     assert "/api/v1/optimization/search" in script_response.text
 
 
-def test_local_root_keeps_legacy_default(client: TestClient) -> None:
+def test_local_root_serves_forecast_entry_default(client: TestClient) -> None:
     response = client.get("/")
 
     assert response.status_code == 200
-    assert "Double-Double Laminate Forecast" in response.text
-    assert "Composite Laminate AI" not in response.text
+    assert "Open Laminate Forecast" in response.text
+    assert "./index-v2.html" in response.text
 
 
 def test_v2_korean_page_serves_translated_current_ui(client: TestClient) -> None:

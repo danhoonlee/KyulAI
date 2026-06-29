@@ -15,11 +15,24 @@ const TEXT = {
   resetError: IS_KO ? "비밀번호를 재설정하지 못했습니다." : "Could not reset password.",
   entitlementDone: IS_KO ? "모듈 권한을 저장했습니다." : "Module access updated.",
   entitlementError: IS_KO ? "모듈 권한을 저장하지 못했습니다." : "Could not update module access.",
+  createDone: IS_KO ? "계정을 생성했습니다." : "Account created.",
+  createError: IS_KO ? "계정을 생성하지 못했습니다." : "Could not create account.",
+  createLoadFirst: IS_KO ? "가입자 목록을 먼저 불러오면 권한을 선택할 수 있습니다." : "Load users first to choose module access.",
+  editButton: IS_KO ? "정보 수정" : "Edit profile",
+  editName: IS_KO ? "이름" : "Name",
+  editCompany: IS_KO ? "회사" : "Company",
+  editLocation: IS_KO ? "지역" : "Location",
+  editMobile: IS_KO ? "휴대폰" : "Mobile",
+  editDone: IS_KO ? "계정 정보를 저장했습니다." : "Account profile updated.",
+  editError: IS_KO ? "계정 정보를 저장하지 못했습니다." : "Could not update account profile.",
 };
 
 const tokenInput = document.querySelector("#admin-token");
 const loadButton = document.querySelector("#load-users");
 const clearButton = document.querySelector("#clear-token");
+const createForm = document.querySelector("#admin-create-form");
+const createButton = document.querySelector("#create-user");
+const createEntitlements = document.querySelector("#create-entitlements");
 const statusText = document.querySelector("#admin-status");
 const userCount = document.querySelector("#user-count");
 const sessionCount = document.querySelector("#session-count");
@@ -56,6 +69,49 @@ function cell(text) {
   return element;
 }
 
+function inputValue(selector) {
+  return document.querySelector(selector).value.trim();
+}
+
+function optionalInputValue(selector) {
+  const value = inputValue(selector);
+  return value || null;
+}
+
+function tokenHeaders(extra = {}) {
+  return { ...extra, "X-Luvelox-Admin-Token": tokenInput.value.trim() };
+}
+
+function selectedCreateEntitlements() {
+  return Array.from(createEntitlements.querySelectorAll("input[type='checkbox']:checked")).map((input) => input.value);
+}
+
+function renderCreateEntitlements() {
+  createEntitlements.replaceChildren();
+  if (!adminModules.length) {
+    const note = document.createElement("p");
+    note.className = "admin-inline-note";
+    note.textContent = TEXT.createLoadFirst;
+    createEntitlements.append(note);
+    return;
+  }
+  const defaultEnabled = new Set(["module.laminate", "module.injection"]);
+  for (const module of adminModules) {
+    const label = document.createElement("label");
+    label.className = "admin-module-toggle";
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.value = module.entitlement_key;
+    checkbox.checked = defaultEnabled.has(module.entitlement_key);
+    const name = document.createElement("span");
+    name.textContent = module.short_name || module.name;
+    const status = document.createElement("small");
+    status.textContent = module.status;
+    label.append(checkbox, name, status);
+    createEntitlements.append(label);
+  }
+}
+
 function moduleAccessCell(user) {
   const element = document.createElement("td");
   element.className = "admin-module-cell";
@@ -79,12 +135,18 @@ function moduleAccessCell(user) {
 
 function actionCell(user) {
   const element = document.createElement("td");
-  const button = document.createElement("button");
-  button.className = "admin-action-button";
-  button.type = "button";
-  button.textContent = TEXT.resetButton;
-  button.addEventListener("click", () => resetPassword(user, button));
-  element.append(button);
+  element.className = "admin-actions-cell";
+  const editButton = document.createElement("button");
+  editButton.className = "admin-action-button";
+  editButton.type = "button";
+  editButton.textContent = TEXT.editButton;
+  editButton.addEventListener("click", () => editProfile(user, editButton));
+  const resetButton = document.createElement("button");
+  resetButton.className = "admin-action-button";
+  resetButton.type = "button";
+  resetButton.textContent = TEXT.resetButton;
+  resetButton.addEventListener("click", () => resetPassword(user, resetButton));
+  element.append(editButton, resetButton);
   return element;
 }
 
@@ -141,6 +203,7 @@ async function loadUsers() {
     window.localStorage.setItem(TOKEN_KEY, token);
     adminModules = data.modules || [];
     currentUsers = data.users || [];
+    renderCreateEntitlements();
     renderSummary(currentUsers);
     renderUsers(currentUsers);
     setStatus(TEXT.loaded);
@@ -171,8 +234,7 @@ async function updateEntitlements(user, cellElement, changedInput) {
     const response = await fetch(`/api/v1/modules/admin/users/${encodeURIComponent(user.id)}/entitlements`, {
       method: "PUT",
       headers: {
-        "Content-Type": "application/json",
-        "X-Luvelox-Admin-Token": token,
+        ...tokenHeaders({ "Content-Type": "application/json" }),
       },
       body: JSON.stringify({ entitlements }),
     });
@@ -188,6 +250,81 @@ async function updateEntitlements(user, cellElement, changedInput) {
     inputs.forEach((input) => {
       input.disabled = false;
     });
+  }
+}
+
+async function createUser(event) {
+  event.preventDefault();
+  const token = tokenInput.value.trim();
+  if (!token) {
+    setStatus(TEXT.missing, true);
+    return;
+  }
+  createButton.disabled = true;
+  setStatus("");
+  try {
+    const response = await fetch("/api/v1/modules/admin/users", {
+      method: "POST",
+      headers: tokenHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        name: inputValue("#create-name"),
+        email: inputValue("#create-email"),
+        password: inputValue("#create-password"),
+        company: optionalInputValue("#create-company"),
+        location: optionalInputValue("#create-location"),
+        mobile: optionalInputValue("#create-mobile"),
+        entitlements: selectedCreateEntitlements(),
+      }),
+    });
+    if (!response.ok) throw new Error(`Admin account create failed: ${response.status}`);
+    createForm.reset();
+    renderCreateEntitlements();
+    window.localStorage.setItem(TOKEN_KEY, token);
+    setStatus(TEXT.createDone);
+    await loadUsers();
+  } catch {
+    setStatus(TEXT.createError, true);
+  } finally {
+    createButton.disabled = false;
+  }
+}
+
+async function editProfile(user, button) {
+  const token = tokenInput.value.trim();
+  if (!token) {
+    setStatus(TEXT.missing, true);
+    return;
+  }
+  const name = window.prompt(`${TEXT.editName}\n\n${user.email}`, user.name || "");
+  if (name === null) return;
+  const company = window.prompt(TEXT.editCompany, user.company || "");
+  if (company === null) return;
+  const location = window.prompt(TEXT.editLocation, user.location || "");
+  if (location === null) return;
+  const mobile = window.prompt(TEXT.editMobile, user.mobile || "");
+  if (mobile === null) return;
+  button.disabled = true;
+  setStatus("");
+  try {
+    const response = await fetch(`/api/v1/modules/admin/users/${encodeURIComponent(user.id)}/profile`, {
+      method: "PUT",
+      headers: tokenHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        name,
+        company: company || null,
+        location: location || null,
+        mobile: mobile || null,
+      }),
+    });
+    if (!response.ok) throw new Error(`Admin profile update failed: ${response.status}`);
+    const data = await response.json();
+    Object.assign(user, data.user || {});
+    renderUsers(currentUsers);
+    setStatus(`${TEXT.editDone} ${user.email}`);
+  } catch {
+    setStatus(TEXT.editError, true);
+  } finally {
+    button.disabled = false;
   }
 }
 
@@ -209,8 +346,7 @@ async function resetPassword(user, button) {
     const response = await fetch(`/api/v1/modules/admin/users/${encodeURIComponent(user.id)}/password`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "X-Luvelox-Admin-Token": token,
+        ...tokenHeaders({ "Content-Type": "application/json" }),
       },
       body: JSON.stringify({ password }),
     });
@@ -225,6 +361,9 @@ async function resetPassword(user, button) {
   }
 }
 
+renderCreateEntitlements();
+
+createForm.addEventListener("submit", createUser);
 loadButton.addEventListener("click", loadUsers);
 tokenInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") loadUsers();
@@ -233,6 +372,8 @@ clearButton.addEventListener("click", () => {
   window.localStorage.removeItem(TOKEN_KEY);
   tokenInput.value = "";
   currentUsers = [];
+  adminModules = [];
+  renderCreateEntitlements();
   renderSummary([]);
   renderUsers([]);
   setStatus("");

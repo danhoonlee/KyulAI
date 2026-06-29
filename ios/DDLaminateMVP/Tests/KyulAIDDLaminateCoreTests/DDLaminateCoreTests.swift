@@ -213,6 +213,7 @@ final class DDLaminateCoreTests: XCTestCase {
             predictedMaxDisplacement: 0.15,
             predictedMaxForce: 25000,
             curve: fixture.response.curve,
+            curveFit: nil,
             modelKey: DDLaminateDefaults.u3PtModelKey,
             modelLabel: "u3 Forecast - Machine Learning",
             inputMode: "u3_pt",
@@ -295,17 +296,29 @@ private struct MockAPIClient: DDLaminateAPIClientProtocol {
     let modelsResponse: DDLaminateModelsResponse
     let predictionResponse: ResponsePredictionResult
     let u3PtPredictionResponse: U3PtPredictionResult?
+    let designSpaceResponse: DesignSpaceResponse
+    let xaiResponse: XAIExplanation?
 
     init(
         healthResponse: HealthResponse,
         modelsResponse: DDLaminateModelsResponse,
         predictionResponse: ResponsePredictionResult,
-        u3PtPredictionResponse: U3PtPredictionResult? = nil
+        u3PtPredictionResponse: U3PtPredictionResult? = nil,
+        xaiResponse: XAIExplanation? = nil,
+        designSpaceResponse: DesignSpaceResponse = DesignSpaceResponse(
+            scope: .response,
+            inputs: [:],
+            caseInsights: [],
+            recommendations: [],
+            notes: []
+        )
     ) {
         self.healthResponse = healthResponse
         self.modelsResponse = modelsResponse
         self.predictionResponse = predictionResponse
         self.u3PtPredictionResponse = u3PtPredictionResponse
+        self.designSpaceResponse = designSpaceResponse
+        self.xaiResponse = xaiResponse
     }
 
     func health(baseURL: URL) async throws -> HealthResponse {
@@ -331,6 +344,35 @@ private struct MockAPIClient: DDLaminateAPIClientProtocol {
             return u3PtPredictionResponse
         }
         throw DDLaminateAPIError.fileRead("No u3 Forecast fixture configured.")
+    }
+
+    func designSpace(
+        baseURL: URL,
+        request: DesignSpaceRequest
+    ) async throws -> DesignSpaceResponse {
+        designSpaceResponse
+    }
+
+    func localXAI(
+        baseURL: URL,
+        request: LocalXAIRequest
+    ) async throws -> XAIExplanation {
+        if let xaiResponse {
+            return xaiResponse
+        }
+        throw DDLaminateAPIError.fileRead("No XAI fixture configured.")
+    }
+
+    func answerRag(baseURL: URL, request: RagAnswerRequest) async throws -> RagAnswerResponse {
+        RagAnswerResponse(
+            query: request.query,
+            answer: "Mock RAG answer",
+            provider: "mock",
+            model: "mock",
+            retrievalCount: 0,
+            usedLLM: false,
+            error: ""
+        )
     }
 
     func predictU3Pt(

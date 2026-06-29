@@ -1,18 +1,22 @@
 package com.luvelox.app
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
+import android.os.Build
 import android.os.Bundle
 import android.text.Editable
 import android.text.InputType
+import android.text.Layout
 import android.text.TextWatcher
 import android.view.Gravity
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.LinearLayout
@@ -20,6 +24,7 @@ import android.widget.ScrollView
 import android.widget.SeekBar
 import android.widget.Spinner
 import android.widget.TextView
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -31,10 +36,28 @@ import kotlin.math.roundToInt
 private const val LAMINATE_BASE_URL = "https://laminate.luvelox.com"
 private const val DEFAULT_RESPONSE_MODEL = "response_surrogate_physics_v2"
 private const val DEEP_RESPONSE_MODEL = "response_goint_physics_nn_v2"
+private const val DEFAULT_U3_MODEL = "u3_forecast_physics_v2"
+private const val DEEP_U3_MODEL = "u3_forecast_goint_physics_v2"
+private const val LAMINATE_HISTORY_PREFS = "laminate_prediction_history"
+private const val LAMINATE_HISTORY_KEY = "recent_runs_v1"
+private const val LAMINATE_HISTORY_LIMIT = 5
 const val EXTRA_LAMINATE_RESULT = "com.luvelox.app.EXTRA_LAMINATE_RESULT"
+const val EXTRA_LAMINATE_DESIGN_SPACE = "com.luvelox.app.EXTRA_LAMINATE_DESIGN_SPACE"
+const val EXTRA_LAMINATE_DESIGN_SPACE_ERROR = "com.luvelox.app.EXTRA_LAMINATE_DESIGN_SPACE_ERROR"
+const val EXTRA_LAMINATE_MODE = "com.luvelox.app.EXTRA_LAMINATE_MODE"
 const val EXTRA_LAMINATE_CASE = "com.luvelox.app.EXTRA_LAMINATE_CASE"
 const val EXTRA_LAMINATE_THETA1 = "com.luvelox.app.EXTRA_LAMINATE_THETA1"
 const val EXTRA_LAMINATE_THETA2 = "com.luvelox.app.EXTRA_LAMINATE_THETA2"
+
+private enum class LaminateForecastMode(
+    val key: String,
+    val title: String,
+    val actionTitle: String,
+    val historyTitle: String,
+) {
+    RESPONSE("response", "Response Forecast", "Predict response", "Recent response forecasts"),
+    U3("u3", "u3 Forecast", "Predict u3 Pt", "Recent u3 forecasts"),
+}
 
 class LaminateActivity : Activity() {
     private lateinit var theta1Input: EditText
@@ -44,19 +67,34 @@ class LaminateActivity : Activity() {
     private lateinit var theta1SeekBar: SeekBar
     private lateinit var theta2SeekBar: SeekBar
     private lateinit var caseSpinner: Spinner
+    private lateinit var caseFormulaReadout: TextView
     private lateinit var modelSpinner: Spinner
     private lateinit var statusText: TextView
+    private lateinit var forecastTitleText: TextView
+    private lateinit var responseModeButton: Button
+    private lateinit var u3ModeButton: Button
+    private lateinit var predictButton: Button
     private lateinit var resultContainer: LinearLayout
     private lateinit var plyPreview: PlyStackPreviewView
     private lateinit var plyCountText: TextView
     private lateinit var stackFormulaText: TextView
+    private var responseModels: List<LaminateModelInfo> = emptyList()
+    private var u3Models: List<LaminateModelInfo> = emptyList()
     private var models: List<LaminateModelInfo> = emptyList()
+    private var selectedMode: LaminateForecastMode = LaminateForecastMode.RESPONSE
     private var isSyncingTheta = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         render()
         loadModels()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::resultContainer.isInitialized) {
+            renderRecentHistory()
+        }
     }
 
     private fun render() {
@@ -69,11 +107,14 @@ class LaminateActivity : Activity() {
         setContentView(scroll)
 
         root.addView(label("COMPOSITE LAMINATE AI", LaminateV2.blue, 12f, Typeface.BOLD))
-        root.addView(label("C2ES\nLaminate Forecast", LaminateV2.ink, 34f, Typeface.BOLD).apply {
+        root.addView(label("C2ES Laminate Forecast", LaminateV2.ink, 28f, Typeface.BOLD).apply {
             includeFontPadding = false
+            maxLines = 1
         }, margin(top = 8))
         root.addView(paragraph("Forecast laminate Type, Pt, and response curve from case and theta inputs."), margin(top = 8, bottom = 14))
+        root.addView(researchBriefCard(), margin(bottom = 14))
         root.addView(forecastStrip(), margin(bottom = 14))
+        root.addView(modePicker(), margin(bottom = 14))
 
         val inputCard = card()
         val header = LinearLayout(this).apply {
@@ -83,7 +124,8 @@ class LaminateActivity : Activity() {
         header.addView(LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             addView(label("FORECAST SETUP", LaminateV2.blue, 11f, Typeface.BOLD))
-            addView(label("Response Forecast", LaminateV2.ink, 20f, Typeface.BOLD))
+            forecastTitleText = label(selectedMode.title, LaminateV2.ink, 20f, Typeface.BOLD)
+            addView(forecastTitleText)
         }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         statusText = label("Checking", LaminateV2.blue, 12f, Typeface.BOLD).apply {
             setPadding(dp(10), dp(6), dp(10), dp(6))
@@ -94,15 +136,35 @@ class LaminateActivity : Activity() {
 
         caseSpinner = Spinner(this).apply {
             adapter = ArrayAdapter(this@LaminateActivity, android.R.layout.simple_spinner_dropdown_item, listOf("Case2", "Case3", "Case4"))
+            background = fieldBackground()
+            minimumHeight = dp(48)
+            setPadding(dp(10), 0, dp(10), 0)
             onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                    if (::caseFormulaReadout.isInitialized) {
+                        caseFormulaReadout.text = caseFormula(selectedItem.toString())
+                    }
                     updatePlyPreview()
                 }
 
                 override fun onNothingSelected(parent: AdapterView<*>?) = Unit
             }
         }
-        inputCard.addView(caseSpinner, margin(top = 14))
+        caseFormulaReadout = label(caseFormula("Case2"), LaminateV2.ink, 11f, Typeface.BOLD).apply {
+            setPadding(dp(10), dp(8), dp(10), dp(8))
+            background = fieldBackground()
+        }
+        inputCard.addView(setupSection(
+            step = "01",
+            title = "Case",
+            subtitle = "Choose the Double-Double stack family",
+            accent = LaminateV2.blue,
+            content = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                addView(caseSpinner)
+                addView(caseFormulaReadout, margin(top = 8))
+            },
+        ), margin(top = 16))
 
         theta1Input = numberInput("30")
         theta2Input = numberInput("-30")
@@ -110,20 +172,39 @@ class LaminateActivity : Activity() {
         theta2Readout = angleReadout(-30)
         theta1SeekBar = angleSeekBar(30)
         theta2SeekBar = angleSeekBar(-30)
-        inputCard.addView(angleControl("Theta 1", theta1Input, theta1Readout, theta1SeekBar), margin(top = 14))
-        inputCard.addView(angleControl("Theta 2", theta2Input, theta2Readout, theta2SeekBar), margin(top = 10))
+        inputCard.addView(setupSection(
+            step = "02",
+            title = "Angles",
+            subtitle = "Set θ₁ and θ₂ from -90° to +90°",
+            accent = LaminateV2.cyan,
+            content = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                addView(angleControl("θ₁", theta1Input, theta1Readout, theta1SeekBar))
+                addView(angleControl("θ₂", theta2Input, theta2Readout, theta2SeekBar), margin(top = 10))
+            },
+        ), margin(top = 12))
 
         modelSpinner = Spinner(this)
-        inputCard.addView(inputBlock("Model", modelSpinner), margin(top = 14))
+        modelSpinner.background = fieldBackground()
+        modelSpinner.minimumHeight = dp(48)
+        modelSpinner.setPadding(dp(10), 0, dp(10), 0)
+        inputCard.addView(setupSection(
+            step = "03",
+            title = "Model",
+            subtitle = "Select Machine Learning or Deep Learning predictor",
+            accent = LaminateV2.green,
+            content = modelSpinner,
+        ), margin(top = 12))
         inputCard.addView(plyPreviewCard(), margin(top = 14))
 
-        inputCard.addView(Button(this).apply {
-            text = "Predict response"
+        predictButton = Button(this).apply {
+            text = selectedMode.actionTitle
             setTextColor(Color.WHITE)
             useAppFont(Typeface.BOLD)
             background = commandButtonBackground()
             setOnClickListener { predict() }
-        }, margin(top = 16))
+        }
+        inputCard.addView(predictButton, margin(top = 16))
 
         root.addView(inputCard)
         bindThetaControls()
@@ -131,31 +212,54 @@ class LaminateActivity : Activity() {
 
         resultContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         root.addView(resultContainer, margin(top = 16))
+        renderRecentHistory()
     }
 
     private fun loadModels() {
         Thread {
             val loaded = runCatching {
-                LaminateApi().models().filter { it.available }
-            }.getOrElse { emptyList() }
+                LaminateApi().models()
+            }.getOrElse { LaminateModelCatalog(emptyList(), emptyList()) }
             runOnUiThread {
-                models = optimalModels(loaded).ifEmpty {
+                responseModels = optimalResponseModels(loaded.responseModels.filter { it.available }).ifEmpty {
                     listOf(LaminateModelInfo(DEFAULT_RESPONSE_MODEL, "Laminate Forecast - Machine Learning", "", false))
                 }
-                modelSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, models.map { it.displayLabel })
-                statusText.text = if (loaded.isEmpty()) "Offline" else "API ready"
-                statusText.setTextColor(if (loaded.isEmpty()) LaminateV2.red else LaminateV2.blue)
+                u3Models = optimalU3Models(loaded.u3Models.filter { it.available }).ifEmpty {
+                    listOf(LaminateModelInfo(DEFAULT_U3_MODEL, "u3 Forecast - Machine Learning", "", false))
+                }
+                updateActiveModels()
+                val offline = loaded.responseModels.isEmpty() && loaded.u3Models.isEmpty()
+                statusText.text = if (offline) "Offline" else "API ready"
+                statusText.setTextColor(if (offline) LaminateV2.red else LaminateV2.blue)
             }
         }.start()
     }
 
-    private fun optimalModels(allModels: List<LaminateModelInfo>): List<LaminateModelInfo> {
+    private fun optimalResponseModels(allModels: List<LaminateModelInfo>): List<LaminateModelInfo> {
         val byKey = allModels.associateBy { it.key }
         val selected = listOfNotNull(
             listOf(DEFAULT_RESPONSE_MODEL, "response_surrogate_physics").firstNotNullOfOrNull { byKey[it] },
             listOf(DEEP_RESPONSE_MODEL, "response_goint_physics").firstNotNullOfOrNull { byKey[it] },
         )
         return selected.ifEmpty { allModels.take(2) }
+    }
+
+    private fun optimalU3Models(allModels: List<LaminateModelInfo>): List<LaminateModelInfo> {
+        val byKey = allModels.associateBy { it.key }
+        val selected = listOfNotNull(
+            listOf(DEFAULT_U3_MODEL, "u3_forecast_physics").firstNotNullOfOrNull { byKey[it] },
+            listOf(DEEP_U3_MODEL, "u3_forecast_goint_physics").firstNotNullOfOrNull { byKey[it] },
+        )
+        return selected.ifEmpty { allModels.take(2) }
+    }
+
+    private fun updateActiveModels() {
+        if (!::modelSpinner.isInitialized) return
+        models = when (selectedMode) {
+            LaminateForecastMode.RESPONSE -> responseModels
+            LaminateForecastMode.U3 -> u3Models
+        }
+        modelSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, models.map { it.displayLabel })
     }
 
     private fun predict() {
@@ -168,22 +272,38 @@ class LaminateActivity : Activity() {
         theta1Input.setText(theta1.toString())
         theta2Input.setText(theta2.toString())
         updatePlyPreview()
-        val model = models.getOrNull(modelSpinner.selectedItemPosition)?.key ?: DEFAULT_RESPONSE_MODEL
+        val mode = selectedMode
+        val model = models.getOrNull(modelSpinner.selectedItemPosition)?.key ?: when (mode) {
+            LaminateForecastMode.RESPONSE -> DEFAULT_RESPONSE_MODEL
+            LaminateForecastMode.U3 -> DEFAULT_U3_MODEL
+        }
         statusText.text = "Predicting"
         Thread {
+            val api = LaminateApi()
             val result = runCatching {
-                LaminateApi().predict(
-                    caseName = caseSpinner.selectedItem.toString(),
-                    theta1 = theta1.toDouble(),
-                    theta2 = theta2.toDouble(),
-                    modelKey = model,
-                )
+                when (mode) {
+                    LaminateForecastMode.RESPONSE -> api.predictResponse(
+                        caseName = caseSpinner.selectedItem.toString(),
+                        theta1 = theta1.toDouble(),
+                        theta2 = theta2.toDouble(),
+                        modelKey = model,
+                    )
+                    LaminateForecastMode.U3 -> api.predictU3Forecast(
+                        caseName = caseSpinner.selectedItem.toString(),
+                        theta1 = theta1.toDouble(),
+                        theta2 = theta2.toDouble(),
+                        modelKey = model,
+                    )
+                }
             }
             runOnUiThread {
                 result.onSuccess {
                     statusText.text = "API ready"
+                    saveRecentRun(it, mode, caseSpinner.selectedItem.toString(), theta1, theta2, model)
+                    renderRecentHistory()
                     startActivity(Intent(this@LaminateActivity, LaminateResultActivity::class.java).apply {
                         putExtra(EXTRA_LAMINATE_RESULT, it)
+                        putExtra(EXTRA_LAMINATE_MODE, mode.key)
                         putExtra(EXTRA_LAMINATE_CASE, caseSpinner.selectedItem.toString())
                         putExtra(EXTRA_LAMINATE_THETA1, theta1)
                         putExtra(EXTRA_LAMINATE_THETA2, theta2)
@@ -268,6 +388,275 @@ class LaminateActivity : Activity() {
             }
         }
         resultContainer.addView(card)
+    }
+
+    private fun renderRecentHistory() {
+        if (!::resultContainer.isInitialized) return
+        resultContainer.removeAllViews()
+        val runs = loadRecentRuns()
+        val card = card()
+        card.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(LinearLayout(this@LaminateActivity).apply {
+                orientation = LinearLayout.VERTICAL
+                addView(label("PREDICTION HISTORY", LaminateV2.blue, 11f, Typeface.BOLD))
+                addView(label(selectedMode.historyTitle, LaminateV2.ink, 20f, Typeface.BOLD))
+                addView(label("Tap a card to reuse its setup.", LaminateV2.muted, 12f, Typeface.BOLD), margin(top = 3))
+            }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            addView(LinearLayout(this@LaminateActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                addView(label(runs.size.toString(), LaminateV2.blue, 12f, Typeface.BOLD).apply {
+                    setPadding(dp(10), dp(6), dp(10), dp(6))
+                    background = blueSoftBackground()
+                })
+                if (runs.isNotEmpty()) {
+                    addView(Button(this@LaminateActivity).apply {
+                        text = "Manage"
+                        textSize = 12f
+                        setTextColor(LaminateV2.red)
+                        useAppFont(Typeface.BOLD)
+                        background = redSoftBackground()
+                        setOnClickListener { showHistoryManager() }
+                    }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, dp(38)).apply {
+                        marginStart = dp(8)
+                    })
+                }
+            })
+        })
+        if (runs.isEmpty()) {
+            card.addView(paragraph("Run a forecast and recent prediction cards will appear here."), margin(top = 12))
+        } else {
+            runs.forEachIndexed { index, run ->
+                card.addView(recentRunCard(run, index), margin(top = 10))
+            }
+        }
+        resultContainer.addView(card)
+    }
+
+    private fun recentRunCard(run: LaminateRecentRun, index: Int): LinearLayout = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        setPadding(dp(12), dp(12), dp(12), dp(12))
+        background = strokedRounded(Color.WHITE, if (index == 0) LaminateV2.greenLine else LaminateV2.line, dp(8))
+        isClickable = true
+        setOnClickListener { applyRecentRun(run) }
+        addView(LinearLayout(this@LaminateActivity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(label(if (index == 0) "Latest" else "#${index + 1}", if (index == 0) LaminateV2.green else LaminateV2.blue, 11f, Typeface.BOLD).apply {
+                setPadding(dp(8), dp(4), dp(8), dp(4))
+                background = if (index == 0) greenSoftBackground() else blueSoftBackground()
+            })
+            addView(label(run.caseName, LaminateV2.ink, 16f, Typeface.BOLD), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginStart = dp(8)
+            })
+        })
+        addView(label(run.modelLabel, LaminateV2.blue, 12f, Typeface.BOLD).apply {
+            maxLines = 1
+        }, margin(top = 7))
+        addView(wrapRow(
+            listOf(
+                "θ₁ ${run.theta1.thetaReadout()}",
+                "θ₂ ${run.theta2.thetaReadout()}",
+                run.predictedType?.let { "Type $it" } ?: "Type -",
+                run.confidence.percentText(),
+                "Pt ${run.predictedPt.metricText(2)}",
+            )
+        ), margin(top = 8))
+    }
+
+    private fun showHistoryManager() {
+        val runs = loadRecentRuns()
+        if (runs.isEmpty()) return
+
+        val selected = BooleanArray(runs.size)
+        val rowChecks = mutableListOf<CheckBox>()
+        var deleteButton: Button? = null
+        val selectedCountText = label("0 selected", LaminateV2.muted, 12f, Typeface.BOLD)
+
+        fun selectedSignatures(): Set<String> = runs
+            .filterIndexed { index, _ -> selected[index] }
+            .map { it.signature }
+            .toSet()
+
+        fun refreshSelection() {
+            val selectedCount = selected.count { it }
+            selectedCountText.text = "$selectedCount selected"
+            rowChecks.forEachIndexed { index, checkBox ->
+                checkBox.isChecked = selected[index]
+            }
+            deleteButton?.isEnabled = selectedCount > 0
+            deleteButton?.alpha = if (selectedCount > 0) 1f else 0.45f
+        }
+
+        val rows = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            runs.forEachIndexed { index, run ->
+                val checkBox = CheckBox(this@LaminateActivity).apply {
+                    text = "${if (index == 0) "Latest" else "#${index + 1}"}  ${run.caseName}  ·  θ₁ ${run.theta1.thetaReadout()}  ·  θ₂ ${run.theta2.thetaReadout()}  ·  Pt ${run.predictedPt.metricText(2)}"
+                    textSize = 12f
+                    setTextColor(LaminateV2.ink)
+                    useAppFont(Typeface.BOLD)
+                    setPadding(0, dp(10), 0, dp(10))
+                    setOnClickListener {
+                        selected[index] = isChecked
+                        refreshSelection()
+                    }
+                }
+                rowChecks.add(checkBox)
+                addView(checkBox)
+            }
+        }
+
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(4), dp(8), dp(4), 0)
+            addView(paragraph("Select prediction records to remove. Models and datasets are not affected."))
+            addView(LinearLayout(this@LaminateActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                addView(Button(this@LaminateActivity).apply {
+                    text = "Select all"
+                    textSize = 12f
+                    setTextColor(LaminateV2.blue)
+                    useAppFont(Typeface.BOLD)
+                    background = blueSoftBackground()
+                    setOnClickListener {
+                        selected.fill(true)
+                        refreshSelection()
+                    }
+                }, LinearLayout.LayoutParams(0, dp(40), 1f))
+                addView(Button(this@LaminateActivity).apply {
+                    text = "Clear"
+                    textSize = 12f
+                    setTextColor(LaminateV2.muted)
+                    useAppFont(Typeface.BOLD)
+                    background = fieldBackground()
+                    setOnClickListener {
+                        selected.fill(false)
+                        refreshSelection()
+                    }
+                }, LinearLayout.LayoutParams(0, dp(40), 1f).apply {
+                    marginStart = dp(8)
+                })
+            }, margin(top = 12))
+            addView(selectedCountText, margin(top = 10))
+            addView(ScrollView(this@LaminateActivity).apply {
+                addView(rows)
+            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(260)).apply {
+                topMargin = dp(6)
+            })
+        }
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("Manage history")
+            .setView(content)
+            .setNegativeButton("Cancel", null)
+            .setPositiveButton("Delete selected", null)
+            .create()
+        dialog.setOnShowListener {
+            deleteButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+            deleteButton?.setTextColor(LaminateV2.red)
+            deleteButton?.setOnClickListener {
+                val signatures = selectedSignatures()
+                if (signatures.isNotEmpty()) {
+                    deleteRecentRuns(signatures)
+                    dialog.dismiss()
+                }
+            }
+            refreshSelection()
+        }
+        dialog.show()
+    }
+
+    private fun wrapRow(items: List<String>): LinearLayout = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        items.chunked(3).forEach { rowItems ->
+            addView(LinearLayout(this@LaminateActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                rowItems.forEachIndexed { index, text ->
+                    addView(label(text, LaminateV2.ink, 11f, Typeface.BOLD).apply {
+                        setPadding(dp(8), dp(5), dp(8), dp(5))
+                        background = fieldBackground()
+                    }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                        if (index > 0) marginStart = dp(6)
+                    })
+                }
+            }, margin(top = 4))
+        }
+    }
+
+    private fun applyRecentRun(run: LaminateRecentRun) {
+        val runMode = forecastModeFromKey(run.kind)
+        if (selectedMode != runMode) {
+            selectedMode = runMode
+            refreshModeButtons()
+            forecastTitleText.text = selectedMode.title
+            predictButton.text = selectedMode.actionTitle
+            updateActiveModels()
+        }
+        val caseIndex = listOf("Case2", "Case3", "Case4").indexOf(run.caseName).takeIf { it >= 0 } ?: 0
+        caseSpinner.setSelection(caseIndex)
+        theta1Input.setText(run.theta1.toString())
+        theta2Input.setText(run.theta2.toString())
+        theta1SeekBar.progress = run.theta1.coerceIn(-90, 90) + 90
+        theta2SeekBar.progress = run.theta2.coerceIn(-90, 90) + 90
+        theta1Readout.text = run.theta1.thetaReadout()
+        theta2Readout.text = run.theta2.thetaReadout()
+        val modelIndex = models.indexOfFirst { it.key == run.modelKey }
+        if (modelIndex >= 0) {
+            modelSpinner.setSelection(modelIndex)
+        }
+        updatePlyPreview()
+    }
+
+    private fun deleteRecentRuns(signatures: Set<String>) {
+        if (signatures.isEmpty()) return
+        writeRecentRuns(loadAllRecentRuns().filterNot { it.signature in signatures })
+        renderRecentHistory()
+    }
+
+    private fun saveRecentRun(result: LaminateResult, mode: LaminateForecastMode, caseName: String, theta1: Int, theta2: Int, modelKey: String) {
+        val run = LaminateRecentRun(
+            kind = mode.key,
+            caseName = caseName,
+            theta1 = theta1,
+            theta2 = theta2,
+            modelKey = modelKey,
+            modelLabel = result.displayModelLabel,
+            predictedType = result.predictedType,
+            confidence = result.confidence,
+            predictedPt = result.predictedPt,
+        )
+        val allRuns = loadAllRecentRuns()
+        val nextRuns = listOf(run) + allRuns.filter { it.signature != run.signature }
+        val trimmedByKind = LaminateForecastMode.values().flatMap { itemMode ->
+            nextRuns.filter { it.kind == itemMode.key }.take(LAMINATE_HISTORY_LIMIT)
+        }
+        writeRecentRuns(trimmedByKind)
+    }
+
+    private fun writeRecentRuns(runs: List<LaminateRecentRun>) {
+        val array = JSONArray()
+        runs.take(LAMINATE_HISTORY_LIMIT * LaminateForecastMode.values().size).forEach { array.put(it.toJson()) }
+        getSharedPreferences(LAMINATE_HISTORY_PREFS, MODE_PRIVATE)
+            .edit()
+            .putString(LAMINATE_HISTORY_KEY, array.toString())
+            .apply()
+    }
+
+    private fun loadRecentRuns(): List<LaminateRecentRun> {
+        return loadAllRecentRuns().filter { it.kind == selectedMode.key }.take(LAMINATE_HISTORY_LIMIT)
+    }
+
+    private fun loadAllRecentRuns(): List<LaminateRecentRun> {
+        val raw = getSharedPreferences(LAMINATE_HISTORY_PREFS, MODE_PRIVATE)
+            .getString(LAMINATE_HISTORY_KEY, "[]")
+        val array = runCatching { JSONArray(raw ?: "[]") }.getOrElse { JSONArray() }
+        return List(array.length()) { index ->
+            LaminateRecentRun.fromJson(array.optJSONObject(index))
+        }.filterNotNull().take(LAMINATE_HISTORY_LIMIT * LaminateForecastMode.values().size)
     }
 
     private fun showError(message: String) {
@@ -386,8 +775,8 @@ class LaminateActivity : Activity() {
 
     private fun legendRow(): LinearLayout = LinearLayout(this).apply {
         orientation = LinearLayout.HORIZONTAL
-        addView(legendBadge("theta1", color(0x657AD4)))
-        addView(legendBadge("theta2", color(0xBC8F70)), LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+        addView(legendBadge("θ₁", color(0x657AD4)))
+        addView(legendBadge("θ₂", color(0xBC8F70)), LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
             marginStart = dp(6)
         })
         addView(legendBadge("+", LaminateV2.green), LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
@@ -415,9 +804,62 @@ class LaminateActivity : Activity() {
 
     private fun caseFormula(caseName: String): String {
         return when (caseName) {
-            "Case3" -> "[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]] x 2"
-            "Case4" -> "([+/-theta1]/[+/-theta2]) x 2 + ([-/+theta1]/[-/+theta2]) x 2"
-            else -> "[[+/-theta1]/[+/-theta2]] x 4"
+            "Case3" -> "[[±θ₁]/[±θ₂]/[∓θ₁]/[∓θ₂]] × 2"
+            "Case4" -> "([±θ₁]/[±θ₂]) × 2 + ([∓θ₁]/[∓θ₂]) × 2"
+            else -> "[[±θ₁]/[±θ₂]] × 4"
+        }
+    }
+
+    private fun modePicker(): LinearLayout {
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(dp(4), dp(4), dp(4), dp(4))
+            background = strokedRounded(LaminateV2.field, LaminateV2.line, dp(8))
+            responseModeButton = modeButton(LaminateForecastMode.RESPONSE)
+            u3ModeButton = modeButton(LaminateForecastMode.U3)
+            addView(responseModeButton, LinearLayout.LayoutParams(0, dp(48), 1f))
+            addView(u3ModeButton, LinearLayout.LayoutParams(0, dp(48), 1f).apply {
+                marginStart = dp(6)
+            })
+            refreshModeButtons()
+        }
+    }
+
+    private fun modeButton(mode: LaminateForecastMode): Button = Button(this).apply {
+        text = mode.title
+        isAllCaps = false
+        textSize = 13f
+        useAppFont(Typeface.BOLD)
+        setOnClickListener { selectMode(mode) }
+    }
+
+    private fun selectMode(mode: LaminateForecastMode) {
+        if (selectedMode == mode) return
+        selectedMode = mode
+        refreshModeButtons()
+        if (::forecastTitleText.isInitialized) {
+            forecastTitleText.text = selectedMode.title
+        }
+        if (::predictButton.isInitialized) {
+            predictButton.text = selectedMode.actionTitle
+        }
+        updateActiveModels()
+        renderRecentHistory()
+    }
+
+    private fun forecastModeFromKey(key: String?): LaminateForecastMode {
+        return LaminateForecastMode.values().firstOrNull { it.key == key } ?: LaminateForecastMode.RESPONSE
+    }
+
+    private fun refreshModeButtons() {
+        if (!::responseModeButton.isInitialized || !::u3ModeButton.isInitialized) return
+        listOf(
+            responseModeButton to LaminateForecastMode.RESPONSE,
+            u3ModeButton to LaminateForecastMode.U3,
+        ).forEach { (button, mode) ->
+            val selected = selectedMode == mode
+            button.setTextColor(if (selected) Color.WHITE else LaminateV2.ink)
+            button.background = if (selected) rounded(LaminateV2.blue, dp(8)) else rounded(Color.TRANSPARENT, dp(8))
         }
     }
 
@@ -436,6 +878,44 @@ class LaminateActivity : Activity() {
         }
     }
 
+    private fun researchBriefCard(): LinearLayout = card().apply {
+        addView(label("RESEARCH PURPOSE", LaminateV2.blue, 11f, Typeface.BOLD))
+        addView(label("Why Double-Double laminate forecasting?", LaminateV2.ink, 20f, Typeface.BOLD), margin(top = 3))
+        addView(paragraph(
+            "Double-Double laminates are being explored as lightweight, angle-driven alternatives to quasi-isotropic layups for impact and post-impact compression performance. This screen helps screen Case and θ candidates before deeper analysis."
+        ), margin(top = 8))
+        addView(researchPoint(
+            title = "Problem",
+            body = "0/±45/90 stacks can add weight and limit design freedom.",
+            accent = LaminateV2.blue,
+        ), margin(top = 12))
+        addView(researchPoint(
+            title = "Target",
+            body = "Find the transition knee where force and u3 curves reveal stability loss.",
+            accent = LaminateV2.cyan,
+        ), margin(top = 8))
+        addView(researchPoint(
+            title = "Signal",
+            body = "Current best DD candidates improved Pt by 28.93% and u3 metric by 31.31% vs. quasi-isotropic baselines.",
+            accent = LaminateV2.green,
+        ), margin(top = 8))
+        addView(label(
+            "Type 1 has a clear bilinear knee. Type 2 and Type 3 curve more after the knee, so u3 displacement behavior supports Pt estimation.",
+            LaminateV2.muted,
+            12f,
+            Typeface.BOLD,
+        ), margin(top = 10))
+    }
+
+    private fun researchPoint(title: String, body: String, accent: Int): LinearLayout = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.TOP
+        setPadding(dp(10), dp(9), dp(10), dp(9))
+        background = fieldBackground()
+        addView(label(title.uppercase(), accent, 10f, Typeface.BOLD), LinearLayout.LayoutParams(dp(68), LinearLayout.LayoutParams.WRAP_CONTENT))
+        addView(label(body, LaminateV2.ink, 12f, Typeface.BOLD), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+    }
+
     private fun stepRow(number: String, title: String, subtitle: String): LinearLayout {
         return LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -452,6 +932,34 @@ class LaminateActivity : Activity() {
                 marginStart = dp(10)
             })
         }
+    }
+
+    private fun setupSection(
+        step: String,
+        title: String,
+        subtitle: String,
+        accent: Int,
+        content: android.view.View,
+    ): LinearLayout = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        setPadding(dp(12), dp(12), dp(12), dp(12))
+        background = strokedRounded(LaminateV2.field, LaminateV2.line, dp(8))
+        addView(LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(label(step, Color.WHITE, 11f, Typeface.BOLD).apply {
+                gravity = Gravity.CENTER
+                background = rounded(accent, dp(999))
+            }, LinearLayout.LayoutParams(dp(32), dp(32)))
+            addView(LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                addView(label(title, LaminateV2.ink, 15f, Typeface.BOLD))
+                addView(label(subtitle, LaminateV2.muted, 11f, Typeface.NORMAL))
+            }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginStart = dp(10)
+            })
+        })
+        addView(content, margin(top = 10))
     }
 
     private fun inputBlock(title: String, child: android.view.View): LinearLayout = LinearLayout(this).apply {
@@ -520,6 +1028,7 @@ class LaminateActivity : Activity() {
         orientation = LinearLayout.VERTICAL
         setPadding(dp(18), dp(18), dp(18), dp(18))
         background = strokedRounded(Color.WHITE, LaminateV2.line, dp(8))
+        elevation = dp(1).toFloat()
     }
 
     private fun paragraph(text: String): TextView = label(text, LaminateV2.muted, 15f, Typeface.NORMAL).apply {
@@ -531,6 +1040,10 @@ class LaminateActivity : Activity() {
         textSize = size
         setTextColor(textColor)
         useAppFont(style)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            breakStrategy = Layout.BREAK_STRATEGY_HIGH_QUALITY
+            hyphenationFrequency = Layout.HYPHENATION_FREQUENCY_NONE
+        }
     }
 
     private fun margin(top: Int = 0, bottom: Int = 0): LinearLayout.LayoutParams =
@@ -551,7 +1064,8 @@ class LaminateActivity : Activity() {
     }
 
     private fun commandButtonBackground() = android.graphics.drawable.GradientDrawable().apply {
-        setColor(LaminateV2.ink)
+        orientation = android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT
+        colors = intArrayOf(LaminateV2.ink, LaminateV2.blue)
         cornerRadius = dp(8).toFloat()
     }
 
@@ -567,6 +1081,12 @@ class LaminateActivity : Activity() {
         setStroke(dp(1), LaminateV2.greenLine)
     }
 
+    private fun redSoftBackground() = android.graphics.drawable.GradientDrawable().apply {
+        setColor(Color.rgb(255, 241, 243))
+        cornerRadius = dp(999).toFloat()
+        setStroke(dp(1), Color.rgb(254, 205, 211))
+    }
+
     private fun strokedRounded(fill: Int, stroke: Int, radius: Int) = android.graphics.drawable.GradientDrawable().apply {
         setColor(fill)
         setStroke(dp(1), stroke)
@@ -579,22 +1099,24 @@ class LaminateActivity : Activity() {
 }
 
 object LaminateV2 {
-    val background: Int = Color.rgb(246, 249, 252)
-    val field: Int = Color.rgb(239, 246, 255)
-    val previewField: Int = Color.rgb(236, 243, 246)
-    val line: Int = Color.rgb(208, 220, 236)
-    val blue: Int = Color.rgb(37, 99, 235)
-    val blueSoft: Int = Color.rgb(219, 234, 254)
-    val blueLine: Int = Color.rgb(147, 197, 253)
-    val green: Int = Color.rgb(5, 150, 105)
-    val greenSoft: Int = Color.rgb(220, 252, 231)
-    val greenLine: Int = Color.rgb(134, 239, 172)
-    val red: Int = Color.rgb(180, 35, 24)
-    val ink: Int = Color.rgb(12, 19, 28)
-    val muted: Int = Color.rgb(91, 107, 128)
+    val background: Int = Color.rgb(249, 250, 252)
+    val field: Int = Color.rgb(246, 249, 251)
+    val previewField: Int = Color.rgb(241, 246, 249)
+    val line: Int = Color.rgb(218, 227, 236)
+    val blue: Int = Color.rgb(22, 99, 255)
+    val blueSoft: Int = Color.rgb(233, 240, 255)
+    val blueLine: Int = Color.rgb(188, 211, 255)
+    val cyan: Int = Color.rgb(11, 167, 201)
+    val green: Int = Color.rgb(10, 159, 105)
+    val greenSoft: Int = Color.rgb(226, 248, 240)
+    val greenLine: Int = Color.rgb(162, 224, 199)
+    val amber: Int = Color.rgb(183, 121, 31)
+    val red: Int = Color.rgb(217, 45, 32)
+    val ink: Int = Color.rgb(16, 18, 21)
+    val muted: Int = Color.rgb(99, 113, 128)
 }
 
-private data class LaminateModelInfo(
+data class LaminateModelInfo(
     val key: String,
     val label: String,
     val description: String,
@@ -603,7 +1125,69 @@ private data class LaminateModelInfo(
     val displayLabel: String get() = label.cleanModelLabel()
 }
 
+data class LaminateModelCatalog(
+    val responseModels: List<LaminateModelInfo>,
+    val u3Models: List<LaminateModelInfo>,
+)
+
+data class LaminateRecentRun(
+    val kind: String,
+    val caseName: String,
+    val theta1: Int,
+    val theta2: Int,
+    val modelKey: String,
+    val modelLabel: String,
+    val predictedType: Int?,
+    val confidence: Double?,
+    val predictedPt: Double?,
+) {
+    val signature: String get() = "$kind|$caseName|$theta1|$theta2|$modelKey"
+
+    fun toJson(): JSONObject = JSONObject()
+        .put("kind", kind)
+        .put("case", caseName)
+        .put("theta1", theta1)
+        .put("theta2", theta2)
+        .put("model_key", modelKey)
+        .put("model_label", modelLabel)
+        .put("predicted_type", predictedType)
+        .put("confidence", confidence)
+        .put("predicted_pt", predictedPt)
+
+    companion object {
+        fun fromJson(json: JSONObject?): LaminateRecentRun? {
+            if (json == null) return null
+            return LaminateRecentRun(
+                kind = json.optString("kind", LaminateForecastMode.RESPONSE.key),
+                caseName = json.optString("case", "Case2"),
+                theta1 = json.optInt("theta1", 0).coerceIn(-90, 90),
+                theta2 = json.optInt("theta2", 0).coerceIn(-90, 90),
+                modelKey = json.optString("model_key", DEFAULT_RESPONSE_MODEL),
+                modelLabel = json.optString("model_label", "Laminate Forecast - Machine Learning").cleanModelLabel(),
+                predictedType = json.optionalInt("predicted_type"),
+                confidence = json.optionalDouble("confidence"),
+                predictedPt = json.optionalDouble("predicted_pt"),
+            )
+        }
+    }
+}
+
 data class LaminateCurvePoint(val displacement: Double, val force: Double) : Serializable
+
+data class LaminateCurveLine(val slope: Double, val intercept: Double) : Serializable
+
+data class LaminateCurveCoordinate(val displacement: Double, val force: Double) : Serializable
+
+data class LaminateCurveFit(
+    val firstLine: LaminateCurveLine?,
+    val secondLine: LaminateCurveLine?,
+    val kink: LaminateCurveCoordinate?,
+    val detectedKink: LaminateCurveCoordinate?,
+    val firstStartX: Double?,
+    val firstEndX: Double?,
+    val secondStartX: Double?,
+    val secondEndX: Double?,
+) : Serializable
 
 data class LaminateResult(
     val predictedType: Int,
@@ -614,6 +1198,7 @@ data class LaminateResult(
     val probabilities: Map<String, Double>,
     val curve: List<LaminateCurvePoint>,
     val xai: LaminateXai?,
+    val curveFit: LaminateCurveFit?,
 ) : Serializable {
     val displayModelLabel: String get() = modelLabel.cleanModelLabel()
     val predictedPtDisplacement: Double? get() = curve.displacementAtForce(predictedPt)
@@ -634,22 +1219,67 @@ data class LaminateXaiFeature(
     val explanation: String,
 ) : Serializable
 
-private class LaminateApi {
-    fun models(): List<LaminateModelInfo> {
+data class LaminateDesignSpaceInsight(
+    val recommendations: List<LaminateDesignSpaceRecommendation>,
+    val caseInsights: List<LaminateDesignSpaceCaseInsight>,
+    val mapPoints: List<LaminateDesignSpacePoint>,
+    val notes: List<String>,
+) : Serializable
+
+data class LaminateDesignSpacePoint(
+    val theta1: Double,
+    val theta2: Double,
+    val caseName: String,
+    val testId: String,
+    val pt: Double,
+    val observedType: Int?,
+    val distance: Double,
+    val source: String,
+) : Serializable
+
+data class LaminateDesignSpaceRecommendation(
+    val theta1: Double,
+    val theta2: Double,
+    val caseName: String,
+    val expectedPt: Double,
+    val observedType: Int?,
+    val score: Double,
+    val scoreComponents: LaminateDesignSpaceScore,
+    val rationale: String,
+) : Serializable
+
+data class LaminateDesignSpaceScore(
+    val pt: Double,
+    val type: Double,
+    val proximity: Double,
+) : Serializable
+
+data class LaminateDesignSpaceCaseInsight(
+    val caseName: String,
+    val focusKind: String,
+    val focusCount: Int,
+    val count: Int,
+    val focusRate: Double,
+    val theta1Min: Double?,
+    val theta1Max: Double?,
+    val theta2Min: Double?,
+    val theta2Max: Double?,
+    val bestTheta1: Double?,
+    val bestTheta2: Double?,
+    val bestPt: Double?,
+    val bestType: Int?,
+) : Serializable
+
+class LaminateApi {
+    fun models(): LaminateModelCatalog {
         val json = JSONObject(request("GET", endpoint("/api/v1/dd-laminate/models")))
-        val array = json.getJSONArray("response_models")
-        return List(array.length()) { index ->
-            val item = array.getJSONObject(index)
-            LaminateModelInfo(
-                key = item.getString("key"),
-                label = item.getString("label"),
-                description = item.optString("description"),
-                available = item.optBoolean("available"),
-            )
-        }
+        return LaminateModelCatalog(
+            responseModels = json.optJSONArray("response_models").toModelInfoList(),
+            u3Models = json.optJSONArray("u3_pt_models").toModelInfoList(),
+        )
     }
 
-    fun predict(caseName: String, theta1: Double, theta2: Double, modelKey: String): LaminateResult {
+    fun predictResponse(caseName: String, theta1: Double, theta2: Double, modelKey: String): LaminateResult {
         val body = JSONObject()
             .put("case", caseName)
             .put("theta1", theta1)
@@ -657,16 +1287,43 @@ private class LaminateApi {
             .put("model", modelKey)
             .toString()
         val json = JSONObject(request("POST", endpoint("/api/v1/dd-laminate/predict/response"), body))
-        return LaminateResult(
-            predictedType = json.optInt("predicted_type"),
-            confidence = json.optionalDouble("confidence"),
-            predictedPt = json.optionalDouble("predicted_pt"),
-            predictedMaxForce = json.optionalDouble("predicted_max_force"),
-            modelLabel = json.optString("model_label"),
-            probabilities = json.optJSONObject("probabilities").toDoubleMap(),
-            curve = json.optJSONArray("curve").toCurvePoints(),
-            xai = json.optJSONObject("xai").toLaminateXai(),
-        )
+        return json.toLaminateResult()
+    }
+
+    fun predictU3Forecast(caseName: String, theta1: Double, theta2: Double, modelKey: String): LaminateResult {
+        val body = JSONObject()
+            .put("case", caseName)
+            .put("theta1", theta1)
+            .put("theta2", theta2)
+            .put("test_id", "Forecast")
+            .put("model", modelKey)
+            .toString()
+        val json = JSONObject(request("POST", endpoint("/api/v1/dd-laminate/predict/u3-forecast"), body))
+        return json.toLaminateResult()
+    }
+
+    fun designSpace(caseName: String, theta1: Double, theta2: Double, scope: String = "response"): LaminateDesignSpaceInsight {
+        val body = JSONObject()
+            .put("case", caseName)
+            .put("theta1", theta1)
+            .put("theta2", theta2)
+            .put("scope", scope)
+            .toString()
+        val json = JSONObject(request("POST", endpoint("/api/v1/dd-laminate/design-space"), body))
+        return json.toLaminateDesignSpaceInsight()
+    }
+
+    private fun org.json.JSONArray?.toModelInfoList(): List<LaminateModelInfo> {
+        if (this == null) return emptyList()
+        return List(length()) { index ->
+            val item = getJSONObject(index)
+            LaminateModelInfo(
+                key = item.getString("key"),
+                label = item.getString("label"),
+                description = item.optString("description"),
+                available = item.optBoolean("available"),
+            )
+        }
     }
 
     private fun request(method: String, url: URL, body: String? = null): String {
@@ -696,6 +1353,20 @@ private fun JSONObject?.toDoubleMap(): Map<String, Double> {
     return keys().asSequence().associateWith { key -> optDouble(key) }
 }
 
+private fun JSONObject.toLaminateResult(): LaminateResult {
+    return LaminateResult(
+        predictedType = optInt("predicted_type"),
+        confidence = optionalDouble("confidence"),
+        predictedPt = optionalDouble("predicted_pt"),
+        predictedMaxForce = optionalDouble("predicted_max_force"),
+        modelLabel = optString("model_label"),
+        probabilities = optJSONObject("probabilities").toDoubleMap(),
+        curve = optJSONArray("curve").toCurvePoints(),
+        xai = optJSONObject("xai").toLaminateXai(),
+        curveFit = optJSONObject("curve_fit").toLaminateCurveFit(),
+    )
+}
+
 private fun org.json.JSONArray?.toCurvePoints(): List<LaminateCurvePoint> {
     if (this == null) return emptyList()
     return List(length()) { index ->
@@ -705,6 +1376,36 @@ private fun org.json.JSONArray?.toCurvePoints(): List<LaminateCurvePoint> {
 }
 
 private fun JSONObject.optionalDouble(key: String): Double? = if (has(key) && !isNull(key)) optDouble(key) else null
+
+private fun JSONObject?.toLaminateCurveFit(): LaminateCurveFit? {
+    if (this == null) return null
+    return LaminateCurveFit(
+        firstLine = optJSONObject("first_line").toLaminateCurveLine(),
+        secondLine = optJSONObject("second_line").toLaminateCurveLine(),
+        kink = optJSONObject("kink").toLaminateCurveCoordinate(),
+        detectedKink = optJSONObject("detected_kink").toLaminateCurveCoordinate(),
+        firstStartX = optionalDouble("first_start_x"),
+        firstEndX = optionalDouble("first_end_x"),
+        secondStartX = optionalDouble("second_start_x"),
+        secondEndX = optionalDouble("second_end_x"),
+    )
+}
+
+private fun JSONObject?.toLaminateCurveLine(): LaminateCurveLine? {
+    if (this == null) return null
+    return LaminateCurveLine(
+        slope = optDouble("slope"),
+        intercept = optDouble("intercept"),
+    )
+}
+
+private fun JSONObject?.toLaminateCurveCoordinate(): LaminateCurveCoordinate? {
+    if (this == null) return null
+    return LaminateCurveCoordinate(
+        displacement = optDouble("displacement"),
+        force = optDouble("force"),
+    )
+}
 
 private fun JSONObject?.toLaminateXai(): LaminateXai? {
     if (this == null) return null
@@ -731,10 +1432,97 @@ private fun JSONObject?.toLaminateXai(): LaminateXai? {
     )
 }
 
+private fun JSONObject.toLaminateDesignSpaceInsight(): LaminateDesignSpaceInsight {
+    val recommendationArray = optJSONArray("recommendations")
+    val recommendations = if (recommendationArray == null) {
+        emptyList()
+    } else {
+        List(recommendationArray.length()) { index ->
+            val item = recommendationArray.getJSONObject(index)
+            val components = item.optJSONObject("score_components")
+            LaminateDesignSpaceRecommendation(
+                theta1 = item.optDouble("theta1"),
+                theta2 = item.optDouble("theta2"),
+                caseName = item.optString("case"),
+                expectedPt = item.optDouble("expected_pt"),
+                observedType = item.optionalInt("observed_type"),
+                score = item.optDouble("score"),
+                scoreComponents = LaminateDesignSpaceScore(
+                    pt = components?.optDouble("pt") ?: 0.0,
+                    type = components?.optDouble("type") ?: 0.0,
+                    proximity = components?.optDouble("proximity") ?: 0.0,
+                ),
+                rationale = item.optString("rationale"),
+            )
+        }
+    }
+
+    val insightArray = optJSONArray("case_insights")
+    val caseInsights = if (insightArray == null) {
+        emptyList()
+    } else {
+        List(insightArray.length()) { index ->
+            val item = insightArray.getJSONObject(index)
+            LaminateDesignSpaceCaseInsight(
+                caseName = item.optString("case"),
+                focusKind = item.optString("focus_kind"),
+                focusCount = item.optInt("focus_count"),
+                count = item.optInt("count"),
+                focusRate = item.optDouble("focus_rate"),
+                theta1Min = item.optionalDouble("theta1_min"),
+                theta1Max = item.optionalDouble("theta1_max"),
+                theta2Min = item.optionalDouble("theta2_min"),
+                theta2Max = item.optionalDouble("theta2_max"),
+                bestTheta1 = item.optionalDouble("best_theta1"),
+                bestTheta2 = item.optionalDouble("best_theta2"),
+                bestPt = item.optionalDouble("best_pt"),
+                bestType = item.optionalInt("best_type"),
+            )
+        }
+    }
+
+    val pointArray = optJSONArray("map_points")
+    val mapPoints = if (pointArray == null) {
+        emptyList()
+    } else {
+        List(pointArray.length()) { index ->
+            val item = pointArray.getJSONObject(index)
+            LaminateDesignSpacePoint(
+                theta1 = item.optDouble("theta1"),
+                theta2 = item.optDouble("theta2"),
+                caseName = item.optString("case"),
+                testId = item.optString("test_id"),
+                pt = item.optDouble("pt"),
+                observedType = item.optionalInt("type"),
+                distance = item.optDouble("distance"),
+                source = item.optString("source"),
+            )
+        }
+    }
+
+    return LaminateDesignSpaceInsight(
+        recommendations = recommendations,
+        caseInsights = caseInsights,
+        mapPoints = mapPoints,
+        notes = optJSONArray("notes").toStringList(),
+    )
+}
+
+private fun org.json.JSONArray?.toStringList(): List<String> {
+    if (this == null) return emptyList()
+    return List(length()) { index -> optString(index) }
+}
+
+private fun JSONObject.optionalInt(key: String): Int? = if (has(key) && !isNull(key)) optInt(key) else null
+
 private fun String.cleanModelLabel(): String {
     val cleaned = trim()
     val lower = cleaned.lowercase()
     return when {
+        lower == "u3_forecast_physics_v2" || lower == "u3_forecast_physics" -> "u3 Forecast - Machine Learning"
+        lower == "u3_forecast_goint_physics_v2" || lower == "u3_forecast_goint_physics" -> "u3 Forecast - Deep Learning"
+        lower == "u3 forecast - physics xai" || lower == "u3 forecast - machine learning" -> "u3 Forecast - Machine Learning"
+        lower == "u3 forecast - gointmlp nn" || lower == "u3 forecast - deep learning" -> "u3 Forecast - Deep Learning"
         lower == "response_surrogate_physics" || lower == "response_surrogate_physics_v2" -> "Laminate Forecast - Machine Learning"
         lower == "response_goint_physics" || lower == "response_goint_physics_nn_v2" -> "Laminate Forecast - Deep Learning"
         lower.contains("machine learning") -> "Laminate Forecast - Machine Learning"
@@ -747,8 +1535,6 @@ private fun String.cleanModelLabel(): String {
             "laminate forecast - tree (theta)" -> "Laminate Forecast - Tree (Theta)"
             "laminate forecast - gointmlp (theta)" -> "Laminate Forecast - GointMLP (Theta)"
             "u3 forecast - extratrees + pca" -> "u3 Forecast - Tree (Theta)"
-            "u3 forecast - physics xai" -> "u3 Forecast - Machine Learning"
-            "u3 forecast - gointmlp nn" -> "u3 Forecast - Deep Learning"
             else -> cleaned
         }
     }

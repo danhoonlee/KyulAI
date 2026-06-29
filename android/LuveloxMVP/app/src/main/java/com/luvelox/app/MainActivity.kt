@@ -7,7 +7,9 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
+import android.text.InputType
 import android.text.TextUtils
+import android.text.method.PasswordTransformationMethod
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
@@ -25,6 +27,8 @@ private const val SIGNUP_URL = "https://laminate.luvelox.com/api/v1/modules/auth
 private const val DEMO_LOGIN_URL = "https://laminate.luvelox.com/api/v1/modules/auth/demo-login"
 private const val REQUEST_ACCESS_URL = "https://laminate.luvelox.com/api/v1/modules/request-access"
 private const val SESSION_PREFS = "luvelox_auth"
+private const val SESSION_SAVED_AT_KEY = "saved_at_ms"
+private const val SESSION_LIFETIME_MS = 24L * 60L * 60L * 1000L
 
 data class ModuleRoute(
     val webUrl: String,
@@ -59,16 +63,23 @@ data class AccountSession(
 class MainActivity : Activity() {
     private lateinit var root: LinearLayout
     private lateinit var statusText: TextView
+    private lateinit var refreshButton: Button
     private lateinit var moduleList: LinearLayout
     private var modules: List<LuveloxModule> = fallbackModules()
     private var session: AccountSession? = null
     private var signupMode = false
+    private var authNotice: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         session = loadSession()
         render()
         if (session != null) loadModules()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        expireSessionIfNeeded()
     }
 
     private fun render() {
@@ -128,10 +139,37 @@ class MainActivity : Activity() {
         }
         val passwordField = input("Password").apply {
             setSingleLine(true)
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+            transformationMethod = PasswordTransformationMethod.getInstance()
+            useAppFont(Typeface.NORMAL)
+        }
+        val passwordToggle = Button(this).apply {
+            text = "Show"
+            setTextColor(V2.blue)
+            useAppFont(Typeface.BOLD)
+            background = softBackground(V2.blueSoft, V2.blueLine, dp(8))
+            minHeight = dp(54)
+            minWidth = dp(78)
+        }
+        var passwordVisible = false
+        passwordToggle.setOnClickListener {
+            passwordVisible = !passwordVisible
+            val cursor = passwordField.selectionStart.coerceAtLeast(0)
+            passwordField.transformationMethod = if (passwordVisible) null else PasswordTransformationMethod.getInstance()
+            passwordToggle.text = if (passwordVisible) "Hide" else "Show"
+            passwordField.setSelection(cursor.coerceAtMost(passwordField.text.length))
         }
         card.addView(emailField, margin(top = 12))
-        card.addView(passwordField, margin(top = 10))
+        card.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(passwordField, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            addView(passwordToggle, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                marginStart = dp(8)
+            })
+        }, margin(top = 10))
         val errorLabel = label("", Color.RED, 12f, Typeface.BOLD)
+        errorLabel.text = authNotice.orEmpty()
         card.addView(errorLabel, margin(top = 8))
         card.addView(Button(this).apply {
             text = if (signupMode) "Create account" else "Sign in"
@@ -182,10 +220,9 @@ class MainActivity : Activity() {
     }
 
     private fun renderHome() {
-        statusText = label("Account workspace", V2.blue, 13f, Typeface.BOLD).apply {
+        statusText = label("Ready", V2.blue, 13f, Typeface.BOLD).apply {
             setPadding(dp(12), dp(8), dp(12), dp(8))
             background = blueSoftBackground()
-            visibility = View.GONE
         }
         root.addView(workspaceHero(), margin(bottom = 12))
         root.addView(workflowStrip(), margin(bottom = 12))
@@ -209,13 +246,15 @@ class MainActivity : Activity() {
                 label("Open prediction modules from one account.", V2.darkMuted, 15f, Typeface.BOLD),
                 margin(top = 6)
             )
-            addView(Button(context).apply {
+            addView(statusText, margin(top = 12))
+            refreshButton = Button(context).apply {
                 text = "Refresh"
                 setTextColor(V2.ink)
                 useAppFont(Typeface.BOLD)
                 background = rounded(Color.WHITE, dp(8))
                 setOnClickListener { loadModules() }
-            }, margin(top = 14))
+            }
+            addView(refreshButton, margin(top = 14))
         }
     }
 
@@ -225,7 +264,7 @@ class MainActivity : Activity() {
             background = strokedRounded(V2.surfaceStrong, V2.line, dp(8))
             addView(modulePreviewItem("L", "Laminate", "Type, Pt, curve", V2.blue, V2.blueSoft), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
             addView(modulePreviewItem("I", "Injection", "Sprue, filling", V2.teal, V2.tealSoft), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-            addView(modulePreviewItem("O", "Optimization", "Coming soon", V2.amber, V2.amberSoft), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            addView(modulePreviewItem("O", "Optimization", "Design search", V2.amber, V2.amberSoft), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         }
     }
 
@@ -388,10 +427,11 @@ class MainActivity : Activity() {
     }
 
     private fun openModule(module: LuveloxModule) {
+        if (expireSessionIfNeeded()) return
         when (module.id) {
             "laminate" -> startActivity(Intent(this@MainActivity, LaminateActivity::class.java))
             "injection" -> startActivity(Intent(this@MainActivity, InjectionActivity::class.java))
-            "admin" -> {
+            "admin", "optimization" -> {
                 val url = Uri.parse(module.route.webUrl)
                     .buildUpon()
                     .appendQueryParameter("session_token", session?.token.orEmpty())
@@ -467,12 +507,23 @@ class MainActivity : Activity() {
 
     private fun loadModules() {
         val activeSession = session ?: return
-        statusText.text = "Loading modules"
+        if (::statusText.isInitialized) {
+            statusText.text = "Refreshing modules..."
+        }
+        if (::refreshButton.isInitialized) {
+            refreshButton.isEnabled = false
+            refreshButton.text = "Refreshing..."
+        }
         Thread {
-            val loaded = runCatching { fetchModules(activeSession) }.getOrElse { fallbackModules() }
+            val fetched = runCatching { fetchModules(activeSession) }
+            val loaded = fetched.getOrElse { fallbackModules() }
             runOnUiThread {
                 modules = loaded
-                statusText.text = if (loaded == fallbackModules()) "Offline account" else "Account workspace"
+                statusText.text = if (fetched.isFailure) "Offline fallback shown" else "Modules refreshed"
+                if (::refreshButton.isInitialized) {
+                    refreshButton.isEnabled = true
+                    refreshButton.text = "Refresh"
+                }
                 renderModules()
             }
         }.start()
@@ -514,6 +565,7 @@ class MainActivity : Activity() {
 
     private fun signIn(email: String, password: String, errorLabel: TextView) {
         errorLabel.text = ""
+        authNotice = null
         Thread {
             val account = runCatching { login(email, password) }.getOrNull()
             runOnUiThread {
@@ -537,6 +589,7 @@ class MainActivity : Activity() {
         errorLabel: TextView,
     ) {
         errorLabel.text = ""
+        authNotice = null
         if (email.isBlank() || name.isBlank() || password.length < 8) {
             errorLabel.text = "Enter a name and a password with at least 8 characters."
             return
@@ -559,6 +612,7 @@ class MainActivity : Activity() {
 
     private fun demoLogin(errorLabel: TextView) {
         errorLabel.text = ""
+        authNotice = null
         Thread {
             val account = runCatching { login("demo@luvelox.com", "") }.getOrNull()
                 ?: runCatching { demoLoginRequest("demo@luvelox.com") }.getOrNull()
@@ -671,16 +725,45 @@ class MainActivity : Activity() {
             .putString("email", account.email)
             .putString("name", account.name)
             .putString("entitlements", account.entitlements.joinToString(","))
+            .putLong(SESSION_SAVED_AT_KEY, System.currentTimeMillis())
             .apply()
     }
 
     private fun loadSession(): AccountSession? {
         val prefs = getSharedPreferences(SESSION_PREFS, MODE_PRIVATE)
         val token = prefs.getString("token", null) ?: return null
+        val savedAtMs = prefs.getLong(SESSION_SAVED_AT_KEY, 0L)
+        if (savedAtMs == 0L) {
+            prefs.edit().putLong(SESSION_SAVED_AT_KEY, System.currentTimeMillis()).apply()
+        } else if (isSessionExpired(savedAtMs)) {
+            prefs.edit().clear().apply()
+            authNotice = "Session expired. Please sign in again."
+            return null
+        }
         val email = prefs.getString("email", "") ?: ""
         val name = cleanAccountName(prefs.getString("name", "Luvelox Account") ?: "Luvelox Account")
         val entitlements = prefs.getString("entitlements", "")?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
         return AccountSession(token, email, name, entitlements)
+    }
+
+    private fun expireSessionIfNeeded(): Boolean {
+        if (session == null) return false
+        val prefs = getSharedPreferences(SESSION_PREFS, MODE_PRIVATE)
+        val savedAtMs = prefs.getLong(SESSION_SAVED_AT_KEY, 0L)
+        if (savedAtMs == 0L) {
+            prefs.edit().putLong(SESSION_SAVED_AT_KEY, System.currentTimeMillis()).apply()
+            return false
+        }
+        if (!isSessionExpired(savedAtMs)) return false
+        prefs.edit().clear().apply()
+        session = null
+        authNotice = "Session expired. Please sign in again."
+        render()
+        return true
+    }
+
+    private fun isSessionExpired(savedAtMs: Long): Boolean {
+        return System.currentTimeMillis() - savedAtMs >= SESSION_LIFETIME_MS
     }
 
     private fun cleanAccountName(name: String): String {
@@ -694,6 +777,7 @@ class MainActivity : Activity() {
     private fun signOut() {
         getSharedPreferences(SESSION_PREFS, MODE_PRIVATE).edit().clear().apply()
         session = null
+        authNotice = null
         render()
     }
 
@@ -735,13 +819,13 @@ class MainActivity : Activity() {
             category = "Design",
             summary = "Rank promising design candidates.",
             icon = "sparkles",
-            status = "planned",
+            status = "active",
             entitlementKey = "module.optimization",
             access = "locked",
-            accessReason = "Planned module; not available in this workspace yet.",
+            accessReason = "Requires Optimization module access.",
             tags = listOf("DOE", "Ranking", "Design space"),
             capabilities = listOf("candidate_ranking", "batch_prediction"),
-            route = ModuleRoute("https://ai.luvelox.com", "/api/v1/optimization"),
+            route = ModuleRoute("https://ai.luvelox.com/optimization.html", "/api/v1/optimization"),
         ),
     )
 
@@ -768,9 +852,9 @@ class MainActivity : Activity() {
                 shortName = "Optimize",
                 category = "Design",
                 summary = "Rank promising design candidates.",
-                accessReason = "Planned module; not available in this workspace yet.",
+                accessReason = if (module.isGranted) "Available in the C2ES workspace." else "Requires Optimization module access.",
                 tags = listOf("DOE", "Ranking", "Design space"),
-                route = module.route.copy(webUrl = "https://ai.luvelox.com"),
+                route = module.route.copy(webUrl = "https://ai.luvelox.com/optimization.html"),
             )
             "admin" -> module.copy(
                 name = "Admin",
@@ -791,15 +875,15 @@ class MainActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(20), dp(10), dp(20), dp(4))
             addView(title(account.name, 24f))
-            addView(label(account.email, color(0x647084), 14f, Typeface.BOLD), margin(top = 4, bottom = 14))
-            addView(label("Licensed modules", color(0x17202A), 17f, Typeface.BOLD), margin(bottom = 8))
+            addView(label(account.email, V2.muted, 14f, Typeface.BOLD), margin(top = 4, bottom = 14))
+            addView(label("Licensed modules", V2.ink, 17f, Typeface.BOLD), margin(bottom = 8))
             modules.forEach { module ->
                 val row = LinearLayout(context).apply {
                     orientation = LinearLayout.VERTICAL
                     setPadding(dp(12), dp(10), dp(12), dp(10))
-                    background = strokedRounded(color(0xF7F8FB), color(0xD9E0EA), dp(8))
-                    addView(label("${if (module.isGranted) "On" else "Locked"} - ${module.name}", if (module.isGranted) color(0x127C82) else color(0x647084), 14f, Typeface.BOLD))
-                    addView(label(module.accessReason.ifBlank { module.entitlementKey }, color(0x647084), 12f, Typeface.NORMAL), margin(top = 2))
+                    background = strokedRounded(V2.field, V2.line, dp(8))
+                    addView(label("${if (module.isGranted) "On" else "Locked"} - ${module.name}", if (module.isGranted) V2.green else V2.muted, 14f, Typeface.BOLD))
+                    addView(label(module.accessReason.ifBlank { module.entitlementKey }, V2.muted, 12f, Typeface.NORMAL), margin(top = 2))
                 }
                 addView(row, margin(bottom = 8))
             }
@@ -817,15 +901,15 @@ class MainActivity : Activity() {
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(20), dp(10), dp(20), dp(4))
-            addView(label(module.category.uppercase(), color(0x127C82), 12f, Typeface.BOLD))
+            addView(label(module.category.uppercase(), accentFor(module), 12f, Typeface.BOLD))
             addView(title(module.name, 28f), margin(top = 4))
             addView(paragraph(module.summary), margin(top = 8, bottom = 14))
-            addView(label("Access", color(0x17202A), 17f, Typeface.BOLD))
+            addView(label("Access", V2.ink, 17f, Typeface.BOLD))
             addView(paragraph(module.accessReason.ifBlank { "This module requires a Luvelox license." }), margin(top = 6))
-            addView(label("Entitlement: ${module.entitlementKey}", color(0x647084), 12f, Typeface.BOLD), margin(top = 8, bottom = 14))
-            addView(label("Included capabilities", color(0x17202A), 17f, Typeface.BOLD), margin(bottom = 8))
+            addView(label("Entitlement: ${module.entitlementKey}", V2.muted, 12f, Typeface.BOLD), margin(top = 8, bottom = 14))
+            addView(label("Included capabilities", V2.ink, 17f, Typeface.BOLD), margin(bottom = 8))
             module.capabilities.forEach { capability ->
-                addView(label("- ${capability.replace("_", " ")}", color(0x647084), 14f, Typeface.BOLD), margin(bottom = 4))
+                addView(label("- ${capability.replace("_", " ")}", V2.muted, 14f, Typeface.BOLD), margin(bottom = 4))
             }
         }
         AlertDialog.Builder(this)
@@ -929,9 +1013,9 @@ class MainActivity : Activity() {
             textSize = 16f
             setTextColor(V2.ink)
             setHintTextColor(V2.muted)
-            setPadding(dp(12), 0, dp(12), 0)
+            setPadding(dp(14), dp(8), dp(14), dp(8))
             background = strokedRounded(V2.field, V2.line, dp(8))
-            minHeight = dp(46)
+            minHeight = dp(54)
         }
     }
 
@@ -953,7 +1037,8 @@ class MainActivity : Activity() {
     }
 
     private fun commandButtonBackground() = android.graphics.drawable.GradientDrawable().apply {
-        setColor(V2.ink)
+        orientation = android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT
+        colors = intArrayOf(V2.ink, V2.blue)
         cornerRadius = dp(8).toFloat()
     }
 
@@ -1013,22 +1098,22 @@ class MainActivity : Activity() {
 }
 
 private object V2 {
-    val background: Int = Color.rgb(246, 249, 252)
-    val field: Int = Color.rgb(239, 246, 255)
-    val surfaceStrong: Int = Color.rgb(249, 251, 255)
-    val line: Int = Color.rgb(208, 220, 236)
-    val blue: Int = Color.rgb(37, 99, 235)
-    val blueSoft: Int = Color.rgb(219, 234, 254)
-    val blueLine: Int = Color.rgb(147, 197, 253)
-    val teal: Int = Color.rgb(10, 145, 150)
-    val tealSoft: Int = Color.rgb(224, 246, 246)
-    val tealLight: Int = Color.rgb(130, 243, 207)
-    val amber: Int = Color.rgb(194, 121, 23)
-    val amberSoft: Int = Color.rgb(255, 245, 222)
-    val green: Int = Color.rgb(0, 168, 119)
-    val greenSoft: Int = Color.rgb(220, 248, 239)
-    val ink: Int = Color.rgb(12, 19, 28)
-    val muted: Int = Color.rgb(91, 107, 128)
-    val darkMuted: Int = Color.rgb(171, 181, 198)
-    val mutedDark: Int = Color.rgb(57, 64, 75)
+    val background: Int = Color.rgb(249, 250, 252)
+    val field: Int = Color.rgb(246, 249, 251)
+    val surfaceStrong: Int = Color.rgb(251, 252, 254)
+    val line: Int = Color.rgb(218, 227, 236)
+    val blue: Int = Color.rgb(22, 99, 255)
+    val blueSoft: Int = Color.rgb(233, 240, 255)
+    val blueLine: Int = Color.rgb(188, 211, 255)
+    val teal: Int = Color.rgb(11, 167, 201)
+    val tealSoft: Int = Color.rgb(226, 247, 251)
+    val tealLight: Int = Color.rgb(174, 229, 239)
+    val amber: Int = Color.rgb(183, 121, 31)
+    val amberSoft: Int = Color.rgb(255, 244, 222)
+    val green: Int = Color.rgb(10, 159, 105)
+    val greenSoft: Int = Color.rgb(226, 248, 240)
+    val ink: Int = Color.rgb(16, 18, 21)
+    val muted: Int = Color.rgb(99, 113, 128)
+    val darkMuted: Int = Color.rgb(159, 173, 190)
+    val mutedDark: Int = Color.rgb(67, 77, 90)
 }

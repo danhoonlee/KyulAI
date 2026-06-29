@@ -1,27 +1,116 @@
 import KyulAIDDLaminateCore
 import SwiftUI
+#if os(iOS)
+import UIKit
+#endif
+
+#if os(iOS)
+private func dismissKeyboard() {
+    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+}
+#else
+private func dismissKeyboard() {}
+#endif
+
+private extension View {
+    @ViewBuilder
+    func laminateScrollKeyboardDismissal() -> some View {
+        #if os(iOS)
+        self.scrollDismissesKeyboard(.interactively)
+        #else
+        self
+        #endif
+    }
+}
+
+private enum ResultDetailTheme {
+    static let background = LinearGradient(
+        colors: [
+            Color(red: 0.976, green: 0.982, blue: 0.988),
+            Color(red: 0.925, green: 0.945, blue: 0.961)
+        ],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+    static let card = Color.white
+    static let field = Color(red: 0.965, green: 0.975, blue: 0.984)
+    static let ink = Color(red: 0.063, green: 0.071, blue: 0.082)
+    static let muted = Color(red: 0.388, green: 0.443, blue: 0.502)
+    static let line = Color(red: 0.855, green: 0.890, blue: 0.925)
+    static let primary = Color(red: 0.086, green: 0.388, blue: 1.0)
+    static let accent = Color(red: 0.043, green: 0.654, blue: 0.788)
+    static let success = Color(red: 0.039, green: 0.624, blue: 0.412)
+    static let warning = Color(red: 0.718, green: 0.475, blue: 0.122)
+    static let danger = Color(red: 0.851, green: 0.176, blue: 0.125)
+    static let blueSoft = Color(red: 0.914, green: 0.941, blue: 1.0)
+}
+
+private struct ResultDetailCard<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        content
+            .padding(16)
+            .background(ResultDetailTheme.card, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(ResultDetailTheme.line, lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.045), radius: 14, x: 0, y: 8)
+    }
+}
+
+private struct ResultDetailSecondaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.headline.weight(.black))
+            .foregroundStyle(ResultDetailTheme.primary)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 13)
+            .background(
+                ResultDetailTheme.primary.opacity(configuration.isPressed ? 0.16 : 0.10),
+                in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+            )
+    }
+}
 
 struct ResultDetailView: View {
     let result: ResponsePredictionResult
+    let designSpace: DesignSpaceResponse?
+    @EnvironmentObject private var settings: AppSettings
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 16) {
                 heroCard
                 metricsGrid
-                interpretationCard
                 curveCard
+                interpretationCard
                 probabilityCard
                 if let xai = result.xai {
                     XAIExplanationCard(xai: xai)
                 }
+                if let designSpace {
+                    ResearchInsightCard(insight: designSpace)
+                }
+                LaminateAssistantCard(
+                    title: localText(en: "Laminate AI Assistant", ko: "적층 AI Assistant"),
+                    defaultQuestion: localText(
+                        en: "Explain this prediction using the XAI result.",
+                        ko: "XAI 결과를 바탕으로 이번 예측을 설명해줘."
+                    ),
+                    baseURL: settings.parsedBaseURL,
+                    languageCode: settings.languageCode,
+                    predictionContext: result.assistantContext(mode: "Laminate Response")
+                )
                 if !result.notes.isEmpty {
                     notesCard
                 }
             }
             .padding(20)
         }
-        .background(AppTheme.background.ignoresSafeArea())
+        .laminateScrollKeyboardDismissal()
+        .background(ResultDetailTheme.background.ignoresSafeArea())
         .navigationTitle(L10n.t("result"))
         .appInlineNavigationTitle()
         .toolbar {
@@ -40,38 +129,73 @@ struct ResultDetailView: View {
     }
 
     private var heroCard: some View {
-        AppCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(L10n.t("predicted.type"))
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(AppTheme.muted)
-                        Text(L10n.f("type.format", result.predictedType))
-                            .font(.system(size: 48, weight: .black, design: .rounded))
-                            .foregroundStyle(AppTheme.ink)
-                    }
-                    Spacer()
-                    VStack(alignment: .trailing, spacing: 4) {
-                        Text(result.confidence.percentText)
-                            .font(.title2.monospacedDigit().weight(.bold))
-                            .foregroundStyle(AppTheme.primary)
-                        Text(L10n.t("confidence"))
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(AppTheme.muted)
-                    }
-                }
-                Divider()
-                VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top, spacing: 14) {
+                VStack(alignment: .leading, spacing: 7) {
+                    Text(localText(en: "Forecast result", ko: "예측 결과"))
+                        .font(.caption.weight(.black))
+                        .foregroundStyle(Color(red: 0.64, green: 0.75, blue: 1.0))
+                        .textCase(.uppercase)
+                    Text(L10n.f("type.format", result.predictedType))
+                        .font(.system(size: 48, weight: .black, design: .rounded))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
                     Text(result.displayModelLabel)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.ink)
-                    Text(result.inputMode.uppercased())
-                        .font(.caption2.monospaced().weight(.bold))
-                        .foregroundStyle(AppTheme.primary)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.74))
+                        .lineLimit(2)
+                }
+                Spacer(minLength: 8)
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text(localText(en: "Predicted Pt", ko: "예측 Pt"))
+                        .font(.caption2.weight(.black))
+                        .foregroundStyle(.white.opacity(0.62))
+                    Text(result.predictedPt.metricText(digits: 2))
+                        .font(.title2.monospacedDigit().weight(.black))
+                        .foregroundStyle(Color(red: 0.54, green: 1.0, blue: 0.79))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.58)
                 }
             }
+
+            HStack(spacing: 8) {
+                heroBadge(title: L10n.t("confidence"), value: result.confidence.percentText)
+                heroBadge(title: localText(en: "Mode", ko: "모드"), value: result.inputMode.uppercased())
+                heroBadge(title: localText(en: "Points", ko: "포인트"), value: "\(result.curve.count)")
+            }
         }
+        .padding(18)
+        .background(
+            LinearGradient(
+                colors: [
+                    ResultDetailTheme.ink,
+                    ResultDetailTheme.primary.opacity(0.92)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+        )
+        .shadow(color: .black.opacity(0.10), radius: 18, x: 0, y: 10)
+    }
+
+    private func heroBadge(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title)
+                .font(.caption2.weight(.black))
+                .foregroundStyle(.white.opacity(0.58))
+                .lineLimit(1)
+            Text(value)
+                .font(.caption.monospacedDigit().weight(.black))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.68)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     private var metricsGrid: some View {
@@ -86,23 +210,23 @@ struct ResultDetailView: View {
     private func metricCard(_ title: String, _ value: String, _ unit: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(AppTheme.muted)
+                .font(.caption.weight(.black))
+                .foregroundStyle(ResultDetailTheme.muted)
             Text(value)
                 .font(.title3.monospacedDigit().weight(.bold))
-                .foregroundStyle(AppTheme.ink)
+                .foregroundStyle(ResultDetailTheme.ink)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(unit)
                 .font(.caption2.weight(.semibold))
-                .foregroundStyle(AppTheme.muted)
+                .foregroundStyle(ResultDetailTheme.muted)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .background(AppTheme.card, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(ResultDetailTheme.field, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(AppTheme.primary.opacity(0.10), lineWidth: 1)
+                .stroke(ResultDetailTheme.line, lineWidth: 1)
         )
     }
 
@@ -113,39 +237,44 @@ struct ResultDetailView: View {
     }
 
     private var curveCard: some View {
-        AppCard {
+        ResultDetailCard {
             VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Label(L10n.t("response.curve"), systemImage: "chart.xyaxis.line")
-                        .font(.headline)
-                        .foregroundStyle(AppTheme.ink)
-                    Spacer()
-                    Text(L10n.t("pt.marker"))
-                        .font(.caption2.bold())
-                        .foregroundStyle(AppTheme.danger)
-                }
-                CurveChartView(points: result.curve, predictedPt: result.predictedPt)
-                    .frame(height: 280)
+                sectionHeader(
+                    title: L10n.t("response.curve"),
+                    subtitle: localText(en: "Predicted curve with Pt marker", ko: "Pt 위치가 표시된 예측 곡선"),
+                    icon: "chart.xyaxis.line"
+                )
+                CurveChartView(points: result.curve, predictedPt: result.predictedPt, curveFit: result.curveFit)
+                    .frame(height: 390)
             }
         }
     }
 
     private var interpretationCard: some View {
-        AppCard {
-            InterpretationSummaryView(result: result)
+        ResultDetailCard {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionHeader(
+                    title: L10n.t("interpretation"),
+                    subtitle: localText(en: "Quick reading from predicted values", ko: "예측값 기반 빠른 해석"),
+                    icon: "text.magnifyingglass"
+                )
+                InterpretationSummaryView(result: result, showsHeader: false)
+            }
         }
     }
 
     private var probabilityCard: some View {
-        AppCard {
+        ResultDetailCard {
             VStack(alignment: .leading, spacing: 14) {
-                Label(L10n.t("class.probabilities"), systemImage: "chart.bar.fill")
-                    .font(.headline)
-                    .foregroundStyle(AppTheme.ink)
+                sectionHeader(
+                    title: L10n.t("class.probabilities"),
+                    subtitle: localText(en: "Model confidence by Type", ko: "Type별 모델 신뢰도"),
+                    icon: "chart.bar.fill"
+                )
                 if result.sortedProbabilities.isEmpty {
                     Text(L10n.t("no.probabilities"))
                         .font(.callout)
-                        .foregroundStyle(AppTheme.muted)
+                        .foregroundStyle(ResultDetailTheme.muted)
                 } else {
                     ForEach(result.sortedProbabilities, id: \.label) { probability in
                         probabilityRow(label: probability.label, value: probability.value)
@@ -160,18 +289,18 @@ struct ResultDetailView: View {
             HStack {
                 Text(label.capitalized)
                     .font(.subheadline.weight(.bold))
-                    .foregroundStyle(AppTheme.ink)
+                    .foregroundStyle(ResultDetailTheme.ink)
                 Spacer()
                 Text(Optional(value).percentText)
                     .font(.subheadline.monospacedDigit().weight(.bold))
-                    .foregroundStyle(AppTheme.muted)
+                    .foregroundStyle(ResultDetailTheme.muted)
             }
             GeometryReader { proxy in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(AppTheme.field)
+                        .fill(ResultDetailTheme.field)
                     Capsule()
-                        .fill(label == "type\(result.predictedType)" ? AppTheme.primary : AppTheme.accent.opacity(0.28))
+                        .fill(label == "type\(result.predictedType)" ? ResultDetailTheme.primary : ResultDetailTheme.accent.opacity(0.28))
                         .frame(width: max(6, proxy.size.width * min(max(value, 0), 1)))
                 }
             }
@@ -179,16 +308,35 @@ struct ResultDetailView: View {
         }
     }
 
+    private func sectionHeader(title: String, subtitle: String, icon: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: icon)
+                .font(.subheadline.weight(.black))
+                .foregroundStyle(ResultDetailTheme.primary)
+                .frame(width: 34, height: 34)
+                .background(ResultDetailTheme.blueSoft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.headline.weight(.black))
+                    .foregroundStyle(ResultDetailTheme.ink)
+                Text(subtitle)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(ResultDetailTheme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
     private var notesCard: some View {
-        AppCard {
+        ResultDetailCard {
             VStack(alignment: .leading, spacing: 12) {
                 Label(L10n.t("notes"), systemImage: "exclamationmark.triangle.fill")
                     .font(.headline)
-                    .foregroundStyle(AppTheme.warning)
+                    .foregroundStyle(ResultDetailTheme.warning)
                 ForEach(result.notes, id: \.self) { note in
                     Text(note)
                         .font(.callout)
-                        .foregroundStyle(AppTheme.ink)
+                        .foregroundStyle(ResultDetailTheme.ink)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -198,70 +346,110 @@ struct ResultDetailView: View {
 
 struct U3PtResultDetailView: View {
     let result: U3PtPredictionResult
+    let designSpace: DesignSpaceResponse?
+    @EnvironmentObject private var settings: AppSettings
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 16) {
                 heroCard
                 metricsGrid
                 curveCard
                 if let xai = result.xai {
                     XAIExplanationCard(xai: xai)
                 }
+                if let designSpace {
+                    ResearchInsightCard(insight: designSpace)
+                }
+                LaminateAssistantCard(
+                    title: localText(en: "u3 AI Assistant", ko: "u3 AI Assistant"),
+                    defaultQuestion: localText(
+                        en: "Explain why this u3 Pt forecast was predicted.",
+                        ko: "이번 u3 Pt 예측이 왜 이렇게 나왔는지 설명해줘."
+                    ),
+                    baseURL: settings.parsedBaseURL,
+                    languageCode: settings.languageCode,
+                    predictionContext: result.assistantContext(mode: "u3 Forecast")
+                )
                 if !result.notes.isEmpty {
                     notesCard
                 }
             }
             .padding(20)
         }
-        .background(AppTheme.background.ignoresSafeArea())
+        .laminateScrollKeyboardDismissal()
+        .background(ResultDetailTheme.background.ignoresSafeArea())
         .navigationTitle(L10n.t("u3.result"))
         .appInlineNavigationTitle()
     }
 
     private var heroCard: some View {
-        AppCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(L10n.t("predicted.pt"))
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(AppTheme.muted)
-                        Text(result.predictedPt.metricText(digits: 2))
-                            .font(.system(size: 44, weight: .black, design: .rounded))
-                            .foregroundStyle(AppTheme.ink)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.72)
-                    }
-                    Spacer()
-                    VStack(alignment: .trailing, spacing: 6) {
-                        if let predictedType = result.predictedType {
-                            Text("Type \(predictedType)")
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(AppTheme.danger)
-                                .padding(.horizontal, 9)
-                                .padding(.vertical, 5)
-                                .background(AppTheme.danger.opacity(0.1), in: Capsule())
-                        }
-                        Text(result.displayModelLabel)
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(AppTheme.primary)
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 5)
-                            .background(AppTheme.primary.opacity(0.1), in: Capsule())
-                    }
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top, spacing: 14) {
+                VStack(alignment: .leading, spacing: 7) {
+                    Text(localText(en: "u3 Forecast result", ko: "u3 예측 결과"))
+                        .font(.caption.weight(.black))
+                        .foregroundStyle(Color(red: 0.64, green: 0.75, blue: 1.0))
+                        .textCase(.uppercase)
+                    Text(result.predictedPt.metricText(digits: 2))
+                        .font(.system(size: 44, weight: .black, design: .rounded))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.64)
+                    Text(result.displayModelLabel)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.74))
+                        .lineLimit(2)
                 }
-                Divider()
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(L10n.t("u3.forecast"))
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.ink)
-                    Text(result.inputMode.uppercased())
-                        .font(.caption2.monospaced().weight(.bold))
-                        .foregroundStyle(AppTheme.primary)
+                Spacer(minLength: 8)
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text(localText(en: "Predicted Type", ko: "예측 Type"))
+                        .font(.caption2.weight(.black))
+                        .foregroundStyle(.white.opacity(0.62))
+                    Text(result.predictedType.map { "Type \($0)" } ?? "Type -")
+                        .font(.title3.weight(.black))
+                        .foregroundStyle(Color(red: 0.54, green: 1.0, blue: 0.79))
+                        .lineLimit(1)
                 }
             }
+
+            HStack(spacing: 8) {
+                heroBadge(title: localText(en: "Confidence", ko: "신뢰도"), value: result.confidence.percentText)
+                heroBadge(title: localText(en: "Mode", ko: "모드"), value: result.inputMode.uppercased())
+                heroBadge(title: localText(en: "Points", ko: "포인트"), value: "\(result.curve.count)")
+            }
         }
+        .padding(18)
+        .background(
+            LinearGradient(
+                colors: [
+                    ResultDetailTheme.ink,
+                    ResultDetailTheme.primary.opacity(0.92)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+        )
+        .shadow(color: .black.opacity(0.10), radius: 18, x: 0, y: 10)
+    }
+
+    private func heroBadge(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title)
+                .font(.caption2.weight(.black))
+                .foregroundStyle(.white.opacity(0.58))
+                .lineLimit(1)
+            Text(value)
+                .font(.caption.monospacedDigit().weight(.black))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.68)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     private var metricsGrid: some View {
@@ -277,23 +465,23 @@ struct U3PtResultDetailView: View {
     private func metricCard(_ title: String, _ value: String, _ unit: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(AppTheme.muted)
+                .font(.caption.weight(.black))
+                .foregroundStyle(ResultDetailTheme.muted)
             Text(value)
                 .font(.title3.monospacedDigit().weight(.bold))
-                .foregroundStyle(AppTheme.ink)
+                .foregroundStyle(ResultDetailTheme.ink)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(unit)
                 .font(.caption2.weight(.semibold))
-                .foregroundStyle(AppTheme.muted)
+                .foregroundStyle(ResultDetailTheme.muted)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .background(AppTheme.card, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(ResultDetailTheme.field, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(AppTheme.primary.opacity(0.10), lineWidth: 1)
+                .stroke(ResultDetailTheme.line, lineWidth: 1)
         )
     }
 
@@ -304,39 +492,970 @@ struct U3PtResultDetailView: View {
     }
 
     private var curveCard: some View {
-        AppCard {
+        ResultDetailCard {
             VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Label(L10n.t("u3.response.curve"), systemImage: "chart.xyaxis.line")
-                        .font(.headline)
-                        .foregroundStyle(AppTheme.ink)
-                    Spacer()
-                    Text(L10n.t("pt.marker"))
-                        .font(.caption2.bold())
-                        .foregroundStyle(AppTheme.danger)
-                }
-                CurveChartView(points: result.curve, predictedPt: result.predictedPt, fitMode: .u3)
-                    .frame(height: 280)
+                sectionHeader(
+                    title: L10n.t("u3.response.curve"),
+                    subtitle: localText(en: "Approximate u3 response with Pt marker", ko: "Pt 위치가 표시된 u3 예측 곡선"),
+                    icon: "chart.xyaxis.line"
+                )
+                CurveChartView(points: result.curve, predictedPt: result.predictedPt, fitMode: .u3, curveFit: result.curveFit)
+                    .frame(height: 390)
             }
         }
     }
 
     private var notesCard: some View {
-        AppCard {
+        ResultDetailCard {
             VStack(alignment: .leading, spacing: 12) {
                 Label(L10n.t("notes"), systemImage: "exclamationmark.triangle.fill")
                     .font(.headline)
-                    .foregroundStyle(AppTheme.warning)
+                    .foregroundStyle(ResultDetailTheme.warning)
                 ForEach(result.notes, id: \.self) { note in
                     Text(note)
                         .font(.callout)
-                        .foregroundStyle(AppTheme.ink)
+                        .foregroundStyle(ResultDetailTheme.ink)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
     }
 
+    private func sectionHeader(title: String, subtitle: String, icon: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: icon)
+                .font(.subheadline.weight(.black))
+                .foregroundStyle(ResultDetailTheme.primary)
+                .frame(width: 34, height: 34)
+                .background(ResultDetailTheme.blueSoft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.headline.weight(.black))
+                    .foregroundStyle(ResultDetailTheme.ink)
+                Text(subtitle)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(ResultDetailTheme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+}
+
+private struct LaminateAssistantCard: View {
+    let title: String
+    let defaultQuestion: String
+    let baseURL: URL?
+    let languageCode: String
+    let predictionContext: [String: String]
+
+    @State private var question = ""
+    @State private var answer = ""
+    @State private var isAsking = false
+    @State private var errorMessage: String?
+    @FocusState private var isQuestionFocused: Bool
+
+    private var displayedQuestion: Binding<String> {
+        Binding(
+            get: { question },
+            set: { question = $0 }
+        )
+    }
+
+    var body: some View {
+        ResultDetailCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Label(title, systemImage: "sparkles")
+                    .font(.headline.weight(.black))
+                    .foregroundStyle(ResultDetailTheme.ink)
+                Text(localText(en: "Ask a research question about this prediction, XAI, or the laminate response.", ko: "이번 예측, XAI, 적층 응답에 대해 질문할 수 있습니다."))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(ResultDetailTheme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                TextField(defaultQuestion, text: displayedQuestion, axis: .vertical)
+                    .lineLimit(3...6)
+                    .focused($isQuestionFocused)
+                    .submitLabel(.done)
+                    .onSubmit {
+                        isQuestionFocused = false
+                        dismissKeyboard()
+                    }
+                    .font(.callout)
+                    .padding(12)
+                    .background(ResultDetailTheme.field, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .stroke(ResultDetailTheme.line, lineWidth: 1)
+                    )
+
+                Button {
+                    isQuestionFocused = false
+                    dismissKeyboard()
+                    Task { await ask() }
+                } label: {
+                    HStack {
+                        if isAsking {
+                            ProgressView()
+                        } else {
+                            Image(systemName: "paperplane.fill")
+                        }
+                        Text(isAsking ? localText(en: "Asking...", ko: "질문 중...") : localText(en: "Ask Assistant", ko: "Assistant에게 질문"))
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(ResultDetailSecondaryButtonStyle())
+                .disabled(isAsking)
+
+                if let errorMessage {
+                    Text(errorMessage)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(ResultDetailTheme.danger)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .onTapGesture {
+                            isQuestionFocused = false
+                            dismissKeyboard()
+                        }
+                }
+                if !answer.isEmpty {
+                    Text(answer)
+                        .font(.callout)
+                        .foregroundStyle(ResultDetailTheme.ink)
+                        .lineSpacing(3)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(12)
+                        .background(Color.white.opacity(0.76), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .onTapGesture {
+                            isQuestionFocused = false
+                            dismissKeyboard()
+                        }
+                }
+            }
+            .background(
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        isQuestionFocused = false
+                        dismissKeyboard()
+                    }
+            )
+        }
+    }
+
+    private func ask() async {
+        guard let baseURL else {
+            errorMessage = localText(en: "Set a valid API URL first.", ko: "먼저 올바른 API URL을 설정해 주세요.")
+            return
+        }
+        let resolvedQuestion = question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? defaultQuestion
+            : question.trimmingCharacters(in: .whitespacesAndNewlines)
+        isAsking = true
+        errorMessage = nil
+        defer { isAsking = false }
+        do {
+            let response = try await DDLaminateAPIClient().answerRag(
+                baseURL: baseURL,
+                request: RagAnswerRequest(
+                    query: resolvedQuestion,
+                    topK: 3,
+                    useLLM: true,
+                    language: languageCode,
+                    predictionContext: predictionContext
+                )
+            )
+            answer = response.answer
+        } catch {
+            errorMessage = localText(en: "Assistant failed: \(error.localizedDescription)", ko: "Assistant 호출 실패: \(error.localizedDescription)")
+        }
+    }
+
+    private func localText(en: String, ko: String) -> String {
+        languageCode == "ko" ? ko : en
+    }
+}
+
+private extension ResponsePredictionResult {
+    func assistantContext(mode: String) -> [String: String] {
+        var context = sharedAssistantContext(
+            mode: mode,
+            predictedType: "Type \(predictedType)",
+            predictedPt: predictedPt,
+            predictedMaxDisplacement: predictedMaxDisplacement,
+            predictedMaxForce: predictedMaxForce,
+            modelKey: modelKey,
+            modelLabel: displayModelLabel,
+            inputMode: inputMode,
+            inputs: inputs,
+            xai: xai
+        )
+        context["probabilities"] = sortedProbabilities
+            .map { "\($0.label)=\($0.value.formatted(.percent.precision(.fractionLength(1))))" }
+            .joined(separator: ", ")
+        return context
+    }
+}
+
+private extension U3PtPredictionResult {
+    func assistantContext(mode: String) -> [String: String] {
+        sharedAssistantContext(
+            mode: mode,
+            predictedType: predictedType.map { "Type \($0)" } ?? "Type -",
+            predictedPt: predictedPt,
+            predictedMaxDisplacement: predictedMaxDisplacement,
+            predictedMaxForce: predictedMaxForce,
+            modelKey: modelKey,
+            modelLabel: displayModelLabel,
+            inputMode: inputMode,
+            inputs: inputs,
+            xai: xai
+        )
+    }
+}
+
+private func sharedAssistantContext(
+    mode: String,
+    predictedType: String,
+    predictedPt: Double,
+    predictedMaxDisplacement: Double,
+    predictedMaxForce: Double,
+    modelKey: String,
+    modelLabel: String,
+    inputMode: String,
+    inputs: [String: JSONValue],
+    xai: XAIExplanation?
+) -> [String: String] {
+    let topFeatures = xai?.topFeatures.prefix(8).map { feature in
+        "\(feature.label): importance \(feature.importance.formatted(.percent.precision(.fractionLength(1)))), category \(feature.category), explanation \(feature.explanation)"
+    }.joined(separator: " | ") ?? ""
+    var context: [String: String] = [
+        "mode": mode,
+        "model_key": modelKey,
+        "model_label": modelLabel,
+        "input_mode": inputMode,
+        "predicted_type": predictedType,
+        "predicted_pt": predictedPt.metricText(digits: 2),
+        "predicted_max_displacement": predictedMaxDisplacement.metricText(digits: 5),
+        "predicted_max_force": predictedMaxForce.metricText(digits: 2),
+        "inputs": inputs
+            .sorted { $0.key < $1.key }
+            .map { "\($0.key)=\($0.value.assistantText)" }
+            .joined(separator: ", "),
+    ]
+    if let xai {
+        context["xai_title"] = xai.title
+        context["xai_summary"] = xai.summary
+        context["xai_method"] = xai.method
+        context["xai_feature_set"] = xai.featureSet
+        context["xai_top_features"] = topFeatures
+    }
+    return context
+}
+
+private extension JSONValue {
+    var assistantText: String {
+        switch self {
+        case .string(let string):
+            return string
+        case .double(let double):
+            return double.metricText(digits: 5)
+        case .bool(let bool):
+            return bool ? "true" : "false"
+        case .null:
+            return "null"
+        }
+    }
+}
+
+struct ResearchInsightCard: View {
+    let insight: DesignSpaceResponse
+
+    private var topCandidate: DesignSpaceRecommendation? {
+        insight.recommendations.first
+    }
+
+    var body: some View {
+        ResultDetailCard {
+            VStack(alignment: .leading, spacing: 14) {
+                Label(localText(en: "Research insight", ko: "연구 인사이트"), systemImage: "point.3.connected.trianglepath.dotted")
+                    .font(.headline)
+                    .foregroundStyle(ResultDetailTheme.ink)
+
+                if let topCandidate {
+                    VStack(alignment: .leading, spacing: 10) {
+                        comparisonRows(topCandidate)
+                        scoreBreakdown(topCandidate)
+                        if !insight.mapPoints.isEmpty {
+                            DesignSpaceMapView(insight: insight, topCandidate: topCandidate)
+                        }
+                    }
+                } else {
+                    Text(localText(en: "No candidate recommendation is available for this point.", ko: "이 입력점에 대한 추천 후보가 없습니다."))
+                        .font(.callout)
+                        .foregroundStyle(ResultDetailTheme.muted)
+                }
+
+                if !insight.caseInsights.isEmpty {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(localText(en: "Case behavior zones", ko: "Case별 유리 영역"))
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(ResultDetailTheme.ink)
+                        ForEach(insight.caseInsights.prefix(3)) { item in
+                            caseInsightRow(item)
+                        }
+                    }
+                }
+
+                ForEach(insight.notes.prefix(2), id: \.self) { note in
+                    Text(note)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(ResultDetailTheme.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+
+    private func comparisonRows(_ candidate: DesignSpaceRecommendation) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(localText(en: "Current input vs top candidate", ko: "현재 입력 vs 추천 후보"))
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(ResultDetailTheme.ink)
+            insightRow(
+                title: localText(en: "Current input", ko: "현재 입력"),
+                subtitle: inputSummary,
+                metric: localText(en: "Design-space point", ko: "Design-space 위치"),
+                tint: ResultDetailTheme.muted
+            )
+            insightRow(
+                title: localText(en: "Top candidate", ko: "추천 후보"),
+                subtitle: "\(caseLabel(candidate.case)) · θ₁ \(angleText(candidate.theta1)) · θ₂ \(angleText(candidate.theta2))",
+                metric: "\(localText(en: "Expected Pt", ko: "예상 Pt")) \(candidate.expectedPt.metricText(digits: 2)) · \(typeText(candidate.observedType))",
+                tint: ResultDetailTheme.primary
+            )
+        }
+    }
+
+    private func insightRow(title: String, subtitle: String, metric: String, tint: Color) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(tint)
+                Text(subtitle)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(ResultDetailTheme.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 8)
+            Text(metric)
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(ResultDetailTheme.muted)
+                .multilineTextAlignment(.trailing)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(10)
+        .background(ResultDetailTheme.field, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private func scoreBreakdown(_ candidate: DesignSpaceRecommendation) -> some View {
+        let items: [(String, Double)] = [
+            (localText(en: "Pt", ko: "Pt"), candidate.scoreComponents.pt),
+            (localText(en: "Type", ko: "Type"), candidate.scoreComponents.type),
+            (localText(en: "Distance", ko: "거리"), candidate.scoreComponents.proximity),
+            (localText(en: "Total", ko: "총점"), candidate.score),
+        ]
+        return VStack(alignment: .leading, spacing: 8) {
+            Text(localText(en: "Recommendation score", ko: "추천 점수"))
+                .font(.caption.weight(.bold))
+                .foregroundStyle(ResultDetailTheme.muted)
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                ForEach(items, id: \.0) { item in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(item.0)
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(ResultDetailTheme.muted)
+                        Text(item.1.formatted(.percent.precision(.fractionLength(1))))
+                            .font(.caption.monospacedDigit().weight(.black))
+                            .foregroundStyle(ResultDetailTheme.primary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(9)
+                    .background(ResultDetailTheme.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                }
+            }
+        }
+    }
+
+    private func caseInsightRow(_ item: DesignSpaceCaseInsight) -> some View {
+        let tint = caseAccent(item.case)
+        return VStack(alignment: .leading, spacing: 11) {
+            HStack(alignment: .center, spacing: 8) {
+                Text(caseLabel(item.case))
+                    .font(.caption.weight(.black))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 5)
+                    .background(tint, in: Capsule())
+                Text(focusKindLabel(item.focusKind))
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(tint)
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                Text(item.focusRate.formatted(.percent.precision(.fractionLength(1))))
+                    .font(.caption.monospacedDigit().weight(.black))
+                    .foregroundStyle(tint)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(localText(en: "Theta range", ko: "Theta 범위"))
+                    .font(.caption2.weight(.black))
+                    .foregroundStyle(ResultDetailTheme.muted)
+                HStack(spacing: 8) {
+                    thetaRangeChip(label: "θ₁", lower: item.theta1Min, upper: item.theta1Max, tint: tint)
+                    thetaRangeChip(label: "θ₂", lower: item.theta2Min, upper: item.theta2Max, tint: tint)
+                }
+            }
+
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(localText(en: "Best Pt", ko: "최고 Pt"))
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(ResultDetailTheme.muted)
+                    Text(item.bestPt?.metricText(digits: 2) ?? "-")
+                        .font(.caption.monospacedDigit().weight(.black))
+                        .foregroundStyle(ResultDetailTheme.ink)
+                }
+                Spacer(minLength: 8)
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(typeText(item.bestType))
+                        .font(.caption.weight(.black))
+                        .foregroundStyle(tint)
+                    Text("\(item.focusCount)/\(item.count)")
+                        .font(.caption2.monospacedDigit().weight(.bold))
+                        .foregroundStyle(ResultDetailTheme.muted)
+                }
+            }
+        }
+        .padding(12)
+        .background(
+            LinearGradient(
+                colors: [
+                    tint.opacity(0.16),
+                    tint.opacity(0.07)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(tint.opacity(0.34), lineWidth: 1)
+        )
+    }
+
+    private func thetaRangeChip(label: String, lower: Double?, upper: Double?, tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label)
+                .font(.caption2.weight(.black))
+                .foregroundStyle(tint)
+            Text(rangeText(lower, upper))
+                .font(.caption.monospacedDigit().weight(.black))
+                .foregroundStyle(ResultDetailTheme.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(Color.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(tint.opacity(0.22), lineWidth: 1)
+        )
+    }
+
+    private func caseAccent(_ laminateCase: DDLaminateCase) -> Color {
+        switch laminateCase {
+        case .case2:
+            return ResultDetailTheme.primary
+        case .case3:
+            return ResultDetailTheme.accent
+        case .case4:
+            return ResultDetailTheme.warning
+        }
+    }
+
+    private var inputSummary: String {
+        let theta1 = inputDouble("theta1").map(angleText) ?? "-"
+        let theta2 = inputDouble("theta2").map(angleText) ?? "-"
+        let caseName = inputString("case").map(caseDisplayLabel) ?? "-"
+        return "\(caseName) · θ₁ \(theta1) · θ₂ \(theta2)"
+    }
+
+    private func inputDouble(_ key: String) -> Double? {
+        guard let value = insight.inputs[key] else { return nil }
+        switch value {
+        case .double(let double):
+            return double
+        case .string(let string):
+            return Double(string)
+        case .bool, .null:
+            return nil
+        }
+    }
+
+    private func inputString(_ key: String) -> String? {
+        guard let value = insight.inputs[key] else { return nil }
+        switch value {
+        case .string(let string):
+            return string
+        case .double(let double):
+            return double.metricText(digits: 0)
+        case .bool(let bool):
+            return bool ? "true" : "false"
+        case .null:
+            return nil
+        }
+    }
+
+    private func rangeText(_ lower: Double?, _ upper: Double?) -> String {
+        guard let lower, let upper else { return "-" }
+        return "\(angleText(lower)) ~ \(angleText(upper))"
+    }
+
+    private func typeText(_ value: Int?) -> String {
+        guard let value else { return "Type -" }
+        return "Type \(value)"
+    }
+
+    private func angleText(_ value: Double) -> String {
+        value.formatted(.number.sign(strategy: .always()).precision(.fractionLength(0))) + "°"
+    }
+
+    private func caseLabel(_ laminateCase: DDLaminateCase) -> String {
+        caseDisplayLabel(laminateCase.rawValue)
+    }
+
+    private func caseDisplayLabel(_ rawValue: String) -> String {
+        switch rawValue {
+        case "Case2":
+            return "Case 2"
+        case "Case3":
+            return "Case 3"
+        case "Case4":
+            return "Case 4"
+        default:
+            return rawValue
+        }
+    }
+
+    private func focusKindLabel(_ rawValue: String) -> String {
+        switch rawValue {
+        case "type1":
+            return localText(en: "Type 1 zone", ko: "Type 1 영역")
+        case "high_pt":
+            return localText(en: "High Pt zone", ko: "높은 Pt 영역")
+        default:
+            return rawValue
+        }
+    }
+
+    private func localText(en: String, ko: String) -> String {
+        let languageCode = UserDefaults.standard.string(forKey: "kyulai.ddLaminate.languageCode")
+            ?? (Locale.current.language.languageCode?.identifier == "ko" ? "ko" : "en")
+        return languageCode == "ko" ? ko : en
+    }
+}
+
+private struct DesignSpaceMapView: View {
+    let insight: DesignSpaceResponse
+    let topCandidate: DesignSpaceRecommendation?
+
+    @State private var selectedPoint: DesignSpacePoint?
+
+    private let mapSize = CGSize(width: 540, height: 230)
+
+    private var currentTheta1: Double? {
+        inputDouble("theta1")
+    }
+
+    private var currentTheta2: Double? {
+        inputDouble("theta2")
+    }
+
+    private var currentCase: DDLaminateCase? {
+        inputString("case").flatMap(DDLaminateCase.init(rawValue:))
+    }
+
+    private var maxPt: Double {
+        max(insight.mapPoints.map(\.pt).max() ?? 1, 1)
+    }
+
+    private var nearbyPoints: [DesignSpacePoint] {
+        Array(insight.mapPoints.sorted { $0.distance < $1.distance }.prefix(6))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(localText(en: "Design-space map", ko: "Design-space 맵"))
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(ResultDetailTheme.muted)
+                Spacer()
+                Text(localText(en: "Tap dots or rows · scroll map", ko: "점을 누르거나 목록 선택 · 맵 스크롤"))
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(ResultDetailTheme.primary)
+            }
+
+            ScrollView(.horizontal, showsIndicators: true) {
+                Canvas { context, size in
+                    drawMap(context: &context, size: size)
+                }
+                .frame(width: mapSize.width, height: mapSize.height)
+                .contentShape(Rectangle())
+                .highPriorityGesture(
+                    SpatialTapGesture()
+                        .onEnded { value in
+                            selectedPoint = nearestPoint(to: value.location, size: mapSize)
+                        }
+                )
+                .padding(8)
+                .background(ResultDetailTheme.field, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
+            .frame(maxWidth: .infinity)
+
+            selectedPointPanel
+            nearestPointRows
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 86), spacing: 8)], alignment: .leading, spacing: 6) {
+                legendItem(label: "Type 1", color: ResultDetailTheme.success)
+                legendItem(label: "Type 2", color: ResultDetailTheme.primary)
+                legendItem(label: "Type 3", color: ResultDetailTheme.danger)
+                legendItem(label: localText(en: "Current", ko: "현재 입력"), color: Color.purple)
+                legendItem(label: localText(en: "Candidate", ko: "추천 후보"), color: ResultDetailTheme.accent)
+            }
+        }
+        .onAppear {
+            if selectedPoint == nil {
+                selectedPoint = nearbyPoints.first
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var selectedPointPanel: some View {
+        if let selectedPoint {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("\(caseLabel(selectedPoint.case)) · \(selectedPoint.testId)")
+                    .font(.caption.weight(.black))
+                    .foregroundStyle(ResultDetailTheme.ink)
+                Text("θ₁ \(angleText(selectedPoint.theta1)) · θ₂ \(angleText(selectedPoint.theta2)) · Pt \(selectedPoint.pt.metricText(digits: 2)) · \(typeText(selectedPoint.type))")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(ResultDetailTheme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("\(localText(en: "Distance", ko: "거리")) \(selectedPoint.distance.metricText(digits: 2))")
+                    .font(.caption2.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(ResultDetailTheme.muted)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(10)
+            .background(ResultDetailTheme.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(typeColor(selectedPoint.type).opacity(0.32), lineWidth: 1)
+            )
+        } else {
+            Text(localText(
+                en: "Tap a dot to inspect Case, θ values, Pt, Type, and Test ID.",
+                ko: "점을 누르면 Case, θ 값, Pt, Type, Test ID를 확인할 수 있습니다."
+            ))
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(ResultDetailTheme.muted)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(10)
+            .background(ResultDetailTheme.field, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
+    }
+
+    @ViewBuilder
+    private var nearestPointRows: some View {
+        if !nearbyPoints.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(localText(en: "Nearest experiment points", ko: "가까운 실험 포인트"))
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(ResultDetailTheme.muted)
+                ForEach(Array(nearbyPoints.enumerated()), id: \.offset) { _, point in
+                    Button {
+                        selectedPoint = point
+                    } label: {
+                        HStack(spacing: 8) {
+                            Circle()
+                                .fill(typeColor(point.type))
+                                .frame(width: 8, height: 8)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("\(caseLabel(point.case)) · \(point.testId)")
+                                    .font(.caption2.weight(.black))
+                                    .foregroundStyle(ResultDetailTheme.ink)
+                                Text("θ₁ \(angleText(point.theta1)) · θ₂ \(angleText(point.theta2)) · Pt \(point.pt.metricText(digits: 2))")
+                                    .font(.caption2.monospacedDigit().weight(.semibold))
+                                    .foregroundStyle(ResultDetailTheme.muted)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.78)
+                            }
+                            Spacer(minLength: 8)
+                            Text(typeText(point.type))
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(typeColor(point.type))
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 8)
+                        .background(
+                            pointKey(point) == selectedPoint.map { pointKey($0) }
+                                ? ResultDetailTheme.primary.opacity(0.12)
+                                : ResultDetailTheme.field,
+                            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private func drawMap(context: inout GraphicsContext, size: CGSize) {
+        let padding = EdgeInsets(top: 16, leading: 34, bottom: 30, trailing: 14)
+        let plot = CGRect(
+            x: padding.leading,
+            y: padding.top,
+            width: max(1, size.width - padding.leading - padding.trailing),
+            height: max(1, size.height - padding.top - padding.bottom)
+        )
+
+        var plotBackground = Path()
+        plotBackground.addRect(plot)
+        context.fill(plotBackground, with: .color(Color.white.opacity(0.74)))
+
+        for tick in stride(from: -90, through: 90, by: 45) {
+            var grid = Path()
+            grid.move(to: CGPoint(x: x(Double(tick), in: plot), y: plot.minY))
+            grid.addLine(to: CGPoint(x: x(Double(tick), in: plot), y: plot.maxY))
+            grid.move(to: CGPoint(x: plot.minX, y: y(Double(tick), in: plot)))
+            grid.addLine(to: CGPoint(x: plot.maxX, y: y(Double(tick), in: plot)))
+            context.stroke(grid, with: .color(ResultDetailTheme.muted.opacity(0.16)), lineWidth: 1)
+
+            context.draw(
+                Text("\(tick)")
+                    .font(.caption2)
+                    .foregroundStyle(ResultDetailTheme.muted),
+                at: CGPoint(x: x(Double(tick), in: plot), y: plot.maxY + 13),
+                anchor: .center
+            )
+            context.draw(
+                Text("\(tick)")
+                    .font(.caption2)
+                    .foregroundStyle(ResultDetailTheme.muted),
+                at: CGPoint(x: plot.minX - 9, y: y(Double(tick), in: plot)),
+                anchor: .trailing
+            )
+        }
+
+        var border = Path()
+        border.addRect(plot)
+        context.stroke(border, with: .color(ResultDetailTheme.muted.opacity(0.35)), lineWidth: 1)
+
+        for point in insight.mapPoints {
+            let pointCenter = pointCenter(point, plot: plot)
+            let sameCase = currentCase.map { $0 == point.case } ?? true
+            let radius = 2.3 + 3.2 * clamp(point.pt / maxPt)
+            var dot = Path()
+            dot.addEllipse(in: CGRect(
+                x: pointCenter.x - radius,
+                y: pointCenter.y - radius,
+                width: radius * 2,
+                height: radius * 2
+            ))
+            context.fill(
+                dot,
+                with: .color(typeColor(point.type).opacity(sameCase ? 0.72 : 0.22))
+            )
+        }
+
+        if let selectedPoint {
+            let center = pointCenter(selectedPoint, plot: plot)
+            var selection = Path()
+            selection.addEllipse(in: CGRect(x: center.x - 12, y: center.y - 12, width: 24, height: 24))
+            context.stroke(selection, with: .color(ResultDetailTheme.ink.opacity(0.62)), lineWidth: 2.2)
+        }
+
+        if let topCandidate {
+            drawCandidate(
+                context: &context,
+                center: CGPoint(x: x(topCandidate.theta1, in: plot), y: y(topCandidate.theta2, in: plot))
+            )
+        }
+
+        if let currentTheta1, let currentTheta2 {
+            drawCurrentInput(
+                context: &context,
+                center: CGPoint(x: x(currentTheta1, in: plot), y: y(currentTheta2, in: plot))
+            )
+        }
+
+        context.draw(
+            Text("θ₁")
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(ResultDetailTheme.muted),
+            at: CGPoint(x: plot.midX, y: size.height - 5),
+            anchor: .center
+        )
+        context.draw(
+            Text("θ₂")
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(ResultDetailTheme.muted),
+            at: CGPoint(x: 10, y: plot.midY),
+            anchor: .center
+        )
+    }
+
+    private func nearestPoint(to location: CGPoint, size: CGSize) -> DesignSpacePoint? {
+        let padding = EdgeInsets(top: 16, leading: 34, bottom: 30, trailing: 14)
+        let plot = CGRect(
+            x: padding.leading,
+            y: padding.top,
+            width: max(1, size.width - padding.leading - padding.trailing),
+            height: max(1, size.height - padding.top - padding.bottom)
+        )
+        let nearest = insight.mapPoints
+            .map { point in
+                let center = pointCenter(point, plot: plot)
+                return (point, hypot(center.x - location.x, center.y - location.y))
+            }
+            .min { $0.1 < $1.1 }
+        guard let nearest, nearest.1 <= 48 else { return nil }
+        return nearest.0
+    }
+
+    private func pointKey(_ point: DesignSpacePoint) -> String {
+        "\(point.case.rawValue)-\(point.testId)-\(point.theta1)-\(point.theta2)"
+    }
+
+    private func pointCenter(_ point: DesignSpacePoint, plot: CGRect) -> CGPoint {
+        CGPoint(x: x(point.theta1, in: plot), y: y(point.theta2, in: plot))
+    }
+
+    private func x(_ value: Double, in plot: CGRect) -> CGFloat {
+        plot.minX + CGFloat(clamp((value + 90) / 180)) * plot.width
+    }
+
+    private func y(_ value: Double, in plot: CGRect) -> CGFloat {
+        plot.maxY - CGFloat(clamp((value + 90) / 180)) * plot.height
+    }
+
+    private func drawCurrentInput(context: inout GraphicsContext, center: CGPoint) {
+        var halo = Path()
+        halo.addEllipse(in: CGRect(x: center.x - 9, y: center.y - 9, width: 18, height: 18))
+        context.fill(halo, with: .color(Color.white.opacity(0.92)))
+        context.stroke(halo, with: .color(Color.purple.opacity(0.35)), lineWidth: 5)
+
+        var marker = Path()
+        marker.addEllipse(in: CGRect(x: center.x - 5, y: center.y - 5, width: 10, height: 10))
+        context.fill(marker, with: .color(Color.purple))
+    }
+
+    private func drawCandidate(context: inout GraphicsContext, center: CGPoint) {
+        let radius: CGFloat = 8
+        var diamond = Path()
+        diamond.move(to: CGPoint(x: center.x, y: center.y - radius))
+        diamond.addLine(to: CGPoint(x: center.x + radius, y: center.y))
+        diamond.addLine(to: CGPoint(x: center.x, y: center.y + radius))
+        diamond.addLine(to: CGPoint(x: center.x - radius, y: center.y))
+        diamond.closeSubpath()
+        context.fill(diamond, with: .color(Color.white.opacity(0.90)))
+        context.stroke(diamond, with: .color(ResultDetailTheme.accent), lineWidth: 2.4)
+    }
+
+    private func legendItem(label: String, color: Color) -> some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
+            Text(label)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(ResultDetailTheme.muted)
+                .lineLimit(1)
+        }
+    }
+
+    private func typeColor(_ type: Int?) -> Color {
+        switch type {
+        case 1:
+            return ResultDetailTheme.success
+        case 2:
+            return ResultDetailTheme.primary
+        case 3:
+            return ResultDetailTheme.danger
+        default:
+            return ResultDetailTheme.muted
+        }
+    }
+
+    private func typeText(_ value: Int?) -> String {
+        guard let value else { return "Type -" }
+        return "Type \(value)"
+    }
+
+    private func angleText(_ value: Double) -> String {
+        value.formatted(.number.sign(strategy: .always()).precision(.fractionLength(0))) + "°"
+    }
+
+    private func caseLabel(_ laminateCase: DDLaminateCase) -> String {
+        switch laminateCase {
+        case .case2:
+            return "Case 2"
+        case .case3:
+            return "Case 3"
+        case .case4:
+            return "Case 4"
+        }
+    }
+
+    private func clamp(_ value: Double) -> Double {
+        min(max(value, 0), 1)
+    }
+
+    private func inputDouble(_ key: String) -> Double? {
+        guard let value = insight.inputs[key] else { return nil }
+        switch value {
+        case .double(let double):
+            return double
+        case .string(let string):
+            return Double(string)
+        case .bool, .null:
+            return nil
+        }
+    }
+
+    private func inputString(_ key: String) -> String? {
+        guard let value = insight.inputs[key] else { return nil }
+        switch value {
+        case .string(let string):
+            return string
+        case .double(let double):
+            return double.metricText(digits: 0)
+        case .bool(let bool):
+            return bool ? "true" : "false"
+        case .null:
+            return nil
+        }
+    }
+
+    private func localText(en: String, ko: String) -> String {
+        let languageCode = UserDefaults.standard.string(forKey: "kyulai.ddLaminate.languageCode")
+            ?? (Locale.current.language.languageCode?.identifier == "ko" ? "ko" : "en")
+        return languageCode == "ko" ? ko : en
+    }
 }
 
 struct XAIExplanationCard: View {
@@ -354,18 +1473,18 @@ struct XAIExplanationCard: View {
     }
 
     var body: some View {
-        AppCard {
+        ResultDetailCard {
             VStack(alignment: .leading, spacing: 14) {
                 Label(localText(en: "Why this prediction?", ko: "왜 이런 예측이 나왔나요?"), systemImage: "sparkle.magnifyingglass")
                     .font(.headline)
-                    .foregroundStyle(AppTheme.ink)
+                    .foregroundStyle(ResultDetailTheme.ink)
                 Text(localizedXAI(xai.summary))
                     .font(.callout)
-                    .foregroundStyle(AppTheme.muted)
+                    .foregroundStyle(ResultDetailTheme.muted)
                     .fixedSize(horizontal: false, vertical: true)
                 Text("\(localText(en: "Method", ko: "방법")): \(localizedXAI(xai.method)) · \(localText(en: "Feature set", ko: "특징 세트")): \(localizedXAIFeatureSet(xai.featureSet))")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(AppTheme.primary)
+                    .foregroundStyle(ResultDetailTheme.primary)
                 VStack(spacing: 0) {
                     ForEach(Array(visibleFeatures.enumerated()), id: \.element.id) { index, feature in
                         featureImpactRow(feature)
@@ -374,7 +1493,7 @@ struct XAIExplanationCard: View {
                         }
                     }
                 }
-                .background(AppTheme.field, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .background(ResultDetailTheme.field, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
 
                 if hiddenFeatureCount > 0 {
                     Button {
@@ -389,7 +1508,7 @@ struct XAIExplanationCard: View {
                         .font(.caption.weight(.bold))
                         .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(SecondaryButtonStyle())
+                    .buttonStyle(ResultDetailSecondaryButtonStyle())
                 }
             }
         }
@@ -408,28 +1527,28 @@ struct XAIExplanationCard: View {
                 HStack(spacing: 6) {
                     Text(localizedXAI(feature.label))
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(AppTheme.ink)
+                        .foregroundStyle(ResultDetailTheme.ink)
                         .lineLimit(1)
                     Text(localizedXAICategory(feature.category))
                         .font(.caption2.weight(.black))
-                        .foregroundStyle(AppTheme.primary)
+                        .foregroundStyle(ResultDetailTheme.primary)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(AppTheme.primary.opacity(0.10), in: Capsule())
+                        .background(ResultDetailTheme.primary.opacity(0.10), in: Capsule())
                 }
                 Text(localizedXAI(feature.explanation))
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(AppTheme.muted)
+                    .foregroundStyle(ResultDetailTheme.muted)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 6)
             VStack(alignment: .trailing, spacing: 4) {
                 Text(Optional(feature.importance).percentText)
                     .font(.caption2.weight(.black))
-                    .foregroundStyle(AppTheme.primary)
+                    .foregroundStyle(ResultDetailTheme.primary)
                     .monospacedDigit()
                 ProgressView(value: min(max(feature.importance, 0), 1))
-                    .tint(AppTheme.primary)
+                    .tint(ResultDetailTheme.primary)
                     .frame(width: 82)
             }
         }
@@ -681,31 +1800,35 @@ struct XAIExplanationCard: View {
 struct InterpretationSummaryView: View {
     let result: ResponsePredictionResult
     var maxLines: Int?
+    var showsHeader: Bool
 
-    init(result: ResponsePredictionResult, maxLines: Int? = nil) {
+    init(result: ResponsePredictionResult, maxLines: Int? = nil, showsHeader: Bool = true) {
         self.result = result
         self.maxLines = maxLines
+        self.showsHeader = showsHeader
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label(L10n.t("interpretation"), systemImage: "text.magnifyingglass")
-                .font(.headline)
-                .foregroundStyle(AppTheme.ink)
+            if showsHeader {
+                Label(L10n.t("interpretation"), systemImage: "text.magnifyingglass")
+                    .font(.headline)
+                    .foregroundStyle(ResultDetailTheme.ink)
+            }
             ForEach(Array(result.interpretationLines.prefix(maxLines ?? Int.max)), id: \.self) { line in
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Circle()
-                        .fill(AppTheme.primary)
+                        .fill(ResultDetailTheme.primary)
                         .frame(width: 5, height: 5)
                     Text(line)
                         .font(.callout)
-                        .foregroundStyle(AppTheme.ink)
+                        .foregroundStyle(ResultDetailTheme.ink)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
             Text(L10n.t("interpretation.disclaimer"))
                 .font(.caption2)
-                .foregroundStyle(AppTheme.muted)
+                .foregroundStyle(ResultDetailTheme.muted)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

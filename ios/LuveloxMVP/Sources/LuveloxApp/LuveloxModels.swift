@@ -201,21 +201,21 @@ public enum LuveloxFallbackCatalog {
             category: "Design",
             summary: "Rank promising design candidates.",
             icon: "sparkles",
-            status: "planned",
+            status: "active",
             entitlementKey: "module.optimization",
             defaultEnabled: false,
             tags: ["DOE", "Ranking", "Design space"],
             capabilities: ["candidate_ranking", "batch_prediction"],
             route: LuveloxModuleRoute(
-                baseURL: URL(string: "https://api.luvelox.com")!,
-                webURL: URL(string: "https://ai.luvelox.com")!,
+                baseURL: URL(string: "https://ai.luvelox.com")!,
+                webURL: URL(string: "https://ai.luvelox.com/optimization.html")!,
                 apiPrefix: "/api/v1/optimization",
                 healthPath: "/health",
                 modelsPath: "/api/v1/optimization/models",
                 primaryPredictPath: "/api/v1/optimization/search"
             ),
             access: "locked",
-            accessReason: "Planned module; not available in this workspace yet."
+            accessReason: "Requires Optimization module access."
         ),
     ]
 }

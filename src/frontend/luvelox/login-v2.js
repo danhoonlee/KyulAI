@@ -13,6 +13,8 @@ const TEXT = {
     signUpHint: "New accounts include Laminate and Injection access.",
     signUpError: "Enter a name and a password with at least 8 characters.",
     passwordHint: "Use at least 8 characters to create an account.",
+    showPassword: "Show",
+    hidePassword: "Hide",
     workspaceUrl: "https://ai.luvelox.com/index.html",
   },
   ko: {
@@ -26,6 +28,8 @@ const TEXT = {
     signUpHint: "새 계정에는 Laminate와 Injection 접근 권한이 포함됩니다.",
     signUpError: "이름과 8자 이상의 비밀번호를 입력하세요.",
     passwordHint: "계정을 만들려면 비밀번호 8자 이상을 입력하세요.",
+    showPassword: "보기",
+    hidePassword: "숨기기",
     workspaceUrl: "https://ai.luvelox.com/index.ko.html",
   },
 };
@@ -37,7 +41,7 @@ const LOCAL_SESSIONS = {
     user: {
       id: "demo-user",
       email: "demo@luvelox.com",
-      name: "Luvelox Demo",
+      name: "Demo Account",
       company: "Luvelox MVP",
     },
     entitlements: ["module.injection", "module.laminate"],
@@ -58,6 +62,7 @@ const LOCAL_SESSIONS = {
 const form = document.querySelector("#login-v2-form");
 const emailInput = document.querySelector("#login-v2-email");
 const passwordInput = document.querySelector("#login-v2-password");
+const passwordToggle = document.querySelector("#login-v2-password-toggle");
 const message = document.querySelector("#login-v2-message");
 const demoButton = document.querySelector("#login-v2-demo");
 const submitButton = form.querySelector(".primary-button");
@@ -160,12 +165,21 @@ form.addEventListener("submit", (event) => {
 });
 
 demoButton.addEventListener("click", () => {
-  emailInput.value = "demo@luvelox.com";
+  emailInput.value = "";
   passwordInput.value = "";
   previewAccount();
   demoLogin();
 });
 
 emailInput.addEventListener("input", previewAccount);
+
+passwordToggle.addEventListener("click", () => {
+  const isVisible = passwordInput.type === "text";
+  passwordInput.type = isVisible ? "password" : "text";
+  passwordToggle.textContent = isVisible ? TEXT[LOCALE].showPassword : TEXT[LOCALE].hidePassword;
+  passwordToggle.setAttribute("aria-label", passwordToggle.textContent);
+  passwordToggle.setAttribute("aria-pressed", String(!isVisible));
+  passwordInput.focus();
+});
 
 previewAccount();

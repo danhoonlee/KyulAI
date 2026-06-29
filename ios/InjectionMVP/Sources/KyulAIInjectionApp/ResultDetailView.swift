@@ -1,8 +1,37 @@
 import KyulAIInjectionCore
 import SwiftUI
+#if os(iOS)
+import UIKit
+#endif
+
+#if os(iOS)
+private func dismissInjectionKeyboard() {
+    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+}
+#else
+private func dismissInjectionKeyboard() {}
+#endif
+
+private extension View {
+    @ViewBuilder
+    func injectionScrollKeyboardDismissal() -> some View {
+        #if os(iOS)
+        self.scrollDismissesKeyboard(.interactively)
+        #else
+        self
+        #endif
+    }
+}
 
 struct ResultDetailView: View {
     let result: SpruePressurePredictionResult
+    @EnvironmentObject private var settings: AppSettings
+    @State private var showsFillingPreview = false
+    @State private var assistantQuestion = "Why is the top XAI feature important in this prediction?"
+    @State private var assistantAnswer: RagAnswerResponse?
+    @State private var assistantErrorMessage: String?
+    @State private var isAskingAssistant = false
+    @FocusState private var isAssistantQuestionFocused: Bool
 
     var body: some View {
         ScrollView {
@@ -10,16 +39,27 @@ struct ResultDetailView: View {
                 heroCard
                 metricsGrid
                 curveCard
+                if let xai = result.xai {
+                    xaiCard(xai)
+                }
                 fillingCard
+                assistantCard
                 if !result.notes.isEmpty {
                     notesCard
                 }
             }
             .padding(20)
         }
+        .injectionScrollKeyboardDismissal()
         .background(AppTheme.background.ignoresSafeArea())
         .navigationTitle(L10n.t("result"))
         .appInlineNavigationTitle()
+        .onAppear {
+            syncAssistantQuestionForLanguage()
+        }
+        .onChange(of: settings.languageCode) {
+            syncAssistantQuestionForLanguage()
+        }
         .toolbar {
             ShareLink(item: result.shareSummaryText) {
                 Image(systemName: "square.and.arrow.up")
@@ -139,9 +179,7 @@ struct ResultDetailView: View {
                     if !filling.bins.isEmpty {
                         FillingHistogramView(bins: filling.bins)
                             .frame(height: 220)
-                        FillingAnimationView(summary: filling, inputs: result.inputs)
-                            .frame(maxWidth: .infinity)
-                            .aspectRatio(760.0 / 360.0, contentMode: .fit)
+                        fillingPreviewToggle(filling)
                     }
                     Text(filling.note)
                         .font(.caption)
@@ -153,6 +191,185 @@ struct ResultDetailView: View {
                         .foregroundStyle(AppTheme.muted)
                 }
             }
+        }
+    }
+
+    private var assistantCard: some View {
+        AppCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Injection AI Assistant")
+                            .font(.caption.weight(.black))
+                            .foregroundStyle(AppTheme.primary)
+                        Text(localText(en: "Ask about this prediction", ko: "현재 예측에 대해 질문하기"))
+                            .font(.headline.weight(.black))
+                            .foregroundStyle(AppTheme.ink)
+                    }
+                    Spacer()
+                    if isAskingAssistant {
+                        ProgressView()
+                    }
+                }
+
+                TextEditor(text: $assistantQuestion)
+                    .font(.callout)
+                    .foregroundStyle(AppTheme.ink)
+                    .frame(minHeight: 82)
+                    .focused($isAssistantQuestionFocused)
+                    .padding(8)
+                    .scrollContentBackground(.hidden)
+                    .background(AppTheme.field, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .stroke(AppTheme.primary.opacity(0.12), lineWidth: 1)
+                    )
+
+                Button {
+                    isAssistantQuestionFocused = false
+                    dismissInjectionKeyboard()
+                    Task { await askAssistant() }
+                } label: {
+                    Label(
+                        isAskingAssistant
+                            ? localText(en: "Asking", ko: "질문 중")
+                            : localText(en: "Ask Injection AI", ko: "Injection AI에 질문"),
+                        systemImage: "sparkles"
+                    )
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(SecondaryButtonStyle())
+                .disabled(isAskingAssistant)
+
+                if let assistantAnswer {
+                    InjectionAssistantAnswerBlock(answer: assistantAnswer, isKorean: settings.languageCode == "ko")
+                        .onTapGesture {
+                            isAssistantQuestionFocused = false
+                            dismissInjectionKeyboard()
+                        }
+                }
+
+                if let assistantErrorMessage {
+                    Text(assistantErrorMessage)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.danger)
+                        .onTapGesture {
+                            isAssistantQuestionFocused = false
+                            dismissInjectionKeyboard()
+                        }
+                }
+            }
+            .background(
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        isAssistantQuestionFocused = false
+                        dismissInjectionKeyboard()
+                    }
+            )
+        }
+    }
+
+    private func xaiCard(_ xai: InjectionXAIExplanation) -> some View {
+        AppCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Injection XAI")
+                            .font(.caption.weight(.black))
+                            .foregroundStyle(AppTheme.primary)
+                        Text(injectionXaiTitle(xai, isKorean: settings.languageCode == "ko"))
+                            .font(.headline.weight(.black))
+                            .foregroundStyle(AppTheme.ink)
+                    }
+                    Spacer()
+                    Text(injectionXaiMethod(xai, isKorean: settings.languageCode == "ko"))
+                        .font(.caption2.weight(.black))
+                        .foregroundStyle(AppTheme.muted)
+                        .lineLimit(1)
+                }
+
+                if !xai.summary.isEmpty {
+                    Text(injectionXaiSummary(xai, isKorean: settings.languageCode == "ko"))
+                        .font(.callout.weight(.semibold))
+                        .foregroundStyle(AppTheme.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                VStack(spacing: 10) {
+                    ForEach(Array(xai.topFeatures.prefix(8))) { feature in
+                        xaiFeatureRow(feature)
+                    }
+                }
+            }
+        }
+    }
+
+    private func xaiFeatureRow(_ feature: InjectionXAIFeature) -> some View {
+        let percent = min(1, max(0, feature.importance))
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(injectionXaiFeatureLabel(feature, isKorean: settings.languageCode == "ko"))
+                        .font(.subheadline.weight(.black))
+                        .foregroundStyle(AppTheme.ink)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.76)
+                    Text(feature.category)
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(AppTheme.muted)
+                }
+                Spacer()
+                Text(feature.importance.formatted(.percent.precision(.fractionLength(1))))
+                    .font(.subheadline.monospacedDigit().weight(.black))
+                    .foregroundStyle(AppTheme.primary)
+            }
+
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(AppTheme.primary.opacity(0.08))
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [AppTheme.primary, AppTheme.accent],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: proxy.size.width * percent)
+                }
+            }
+            .frame(height: 7)
+
+            if !feature.explanation.isEmpty {
+                Text(injectionXaiFeatureExplanation(feature, isKorean: settings.languageCode == "ko"))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(AppTheme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(12)
+        .background(AppTheme.field, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(AppTheme.primary.opacity(0.10), lineWidth: 1)
+        )
+    }
+
+    @ViewBuilder
+    private func fillingPreviewToggle(_ filling: FillingPressureSummary) -> some View {
+        if showsFillingPreview {
+            FillingAnimationView(summary: filling, inputs: result.inputs)
+                .frame(maxWidth: .infinity)
+                .aspectRatio(760.0 / 360.0, contentMode: .fit)
+        } else {
+            Button {
+                showsFillingPreview = true
+            } label: {
+                Label(L10n.t("show.filling.preview"), systemImage: "play.rectangle")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(SecondaryButtonStyle())
         }
     }
 
@@ -175,12 +392,94 @@ struct ResultDetailView: View {
                     .font(.headline)
                     .foregroundStyle(AppTheme.warning)
                 ForEach(result.notes, id: \.self) { note in
-                    Text(note)
+                    Text(localizedInjectionNote(note, isKorean: settings.languageCode == "ko"))
                         .font(.callout)
                         .foregroundStyle(AppTheme.ink)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
+        }
+    }
+
+    private func askAssistant() async {
+        let query = assistantQuestion.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard query.count >= 2 else {
+            assistantErrorMessage = localText(en: "Enter a question.", ko: "질문을 입력해 주세요.")
+            return
+        }
+        isAskingAssistant = true
+        assistantErrorMessage = nil
+        defer { isAskingAssistant = false }
+        do {
+            let baseURL = try BaseURLValidator.parse(settings.apiBaseURL)
+            assistantAnswer = try await InjectionAPIClient().answerRag(
+                baseURL: baseURL,
+                request: RagAnswerRequest(
+                    query: query,
+                    topK: 3,
+                    useLLM: true,
+                    language: settings.languageCode,
+                    predictionContext: assistantPredictionContext
+                )
+            )
+        } catch {
+            assistantErrorMessage = localText(
+                en: "Assistant failed: \(error.localizedDescription)",
+                ko: "Assistant 응답에 실패했습니다: \(error.localizedDescription)"
+            )
+        }
+    }
+
+    private var assistantPredictionContext: JSONValue {
+        var payload: [String: JSONValue] = [
+            "mode": .string("Injection Forecast"),
+            "inputs": .object(result.inputs),
+            "model_key": .string(result.modelKey),
+            "model_label": .string(result.displayModelLabel),
+            "filling_model_key": .string(result.fillingModelKey),
+            "filling_model_label": .string(result.displayFillingModelLabel),
+            "predicted_max_pressure_MPa": .double(result.predictedMaxPressureMPa),
+            "predicted_max_time_s": .double(result.predictedMaxTimeS),
+            "curve_points": .double(Double(result.curve.count)),
+        ]
+        if let fillingMax = result.bestFillingPressure?.stats["max_MPa"] {
+            payload["predicted_filling_max_MPa"] = .double(fillingMax)
+        }
+        if let xai = result.xai {
+            payload["xai"] = .object([
+                "title": .string(xai.title),
+                "summary": .string(xai.summary),
+                "method": .string(xai.method),
+                "feature_set": .string(xai.featureSet),
+                "top_features": .array(xai.topFeatures.map { feature in
+                    .object([
+                        "name": .string(feature.name),
+                        "label": .string(injectionXaiFeatureLabel(feature, isKorean: settings.languageCode == "ko")),
+                        "category": .string(feature.category),
+                        "importance": .double(feature.importance),
+                        "local_sensitivity": .double(feature.localSensitivity),
+                        "local_value": feature.localValue.map(JSONValue.double) ?? .null,
+                        "perturbation": .string(feature.perturbation),
+                        "explanation": .string(injectionXaiFeatureExplanation(feature, isKorean: settings.languageCode == "ko")),
+                    ])
+                }),
+            ])
+        }
+        return .object(payload)
+    }
+
+    private func localText(en: String, ko: String) -> String {
+        settings.languageCode == "ko" ? ko : en
+    }
+
+    private func syncAssistantQuestionForLanguage() {
+        let englishDefault = "Why is the top XAI feature important in this prediction?"
+        let koreanDefault = "가장 큰 XAI 영향 인자가 왜 중요한지 설명해줘."
+        let current = assistantQuestion.trimmingCharacters(in: .whitespacesAndNewlines)
+        if settings.languageCode == "ko", current.isEmpty || current == englishDefault {
+            assistantQuestion = koreanDefault
+        } else if settings.languageCode != "ko", current.isEmpty || current == koreanDefault {
+            assistantQuestion = englishDefault
         }
     }
 }

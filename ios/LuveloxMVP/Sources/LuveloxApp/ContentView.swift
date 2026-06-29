@@ -34,19 +34,34 @@ final class LuveloxHomeViewModel: ObservableObject {
 
     private let client: ModuleCatalogClient
     private let sessionKey = "luvelox.auth.session.v1"
+    private let sessionSavedAtKey = "luvelox.auth.saved_at.v1"
+    private let sessionLifetime: TimeInterval
+    private let now: () -> Date
     private let userDefaults: UserDefaults
+    private static let defaultSessionLifetime: TimeInterval = 24 * 60 * 60
 
     init(
         client: ModuleCatalogClient = ModuleCatalogClient(),
-        userDefaults: UserDefaults = .standard
+        userDefaults: UserDefaults = .standard,
+        sessionLifetime: TimeInterval = LuveloxHomeViewModel.defaultSessionLifetime,
+        now: @escaping () -> Date = Date.init
     ) {
         self.client = client
         self.userDefaults = userDefaults
-        self.authSession = Self.loadSession(from: userDefaults, key: sessionKey)
+        self.sessionLifetime = sessionLifetime
+        self.now = now
+        self.authSession = Self.loadSession(
+            from: userDefaults,
+            key: sessionKey,
+            savedAtKey: sessionSavedAtKey,
+            sessionLifetime: sessionLifetime,
+            now: now()
+        )
         self.statusText = authSession == nil ? "Signed out" : "Loading workspace"
     }
 
     func refresh() async {
+        guard !expireSessionIfNeeded() else { return }
         guard let authSession else {
             modules = LuveloxFallbackCatalog.modules.map { module in
                 LuveloxModule(
@@ -85,7 +100,8 @@ final class LuveloxHomeViewModel: ObservableObject {
         isLoading = true
         loginError = nil
         defer { isLoading = false }
-        let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let normalizedEmail = trimmedEmail.isEmpty ? "demo@luvelox.com" : trimmedEmail
         do {
             let session = try await client.demoLogin(email: normalizedEmail, password: password)
             setSession(session)
@@ -130,8 +146,10 @@ final class LuveloxHomeViewModel: ObservableObject {
 
     func signOut() {
         authSession = nil
+        loginError = nil
         accessRequestMessage = nil
         userDefaults.removeObject(forKey: sessionKey)
+        userDefaults.removeObject(forKey: sessionSavedAtKey)
         modules = LuveloxFallbackCatalog.modules.map { module in
             LuveloxModule(
                 id: module.id,
@@ -154,6 +172,7 @@ final class LuveloxHomeViewModel: ObservableObject {
     }
 
     func requestAccess(to module: LuveloxModule) async {
+        guard !expireSessionIfNeeded() else { return }
         isLoading = true
         accessRequestMessage = nil
         defer { isLoading = false }
@@ -174,7 +193,23 @@ final class LuveloxHomeViewModel: ObservableObject {
         authSession = normalizedSession
         if let data = try? JSONEncoder().encode(normalizedSession) {
             userDefaults.set(data, forKey: sessionKey)
+            userDefaults.set(now(), forKey: sessionSavedAtKey)
         }
+    }
+
+    @discardableResult
+    func expireSessionIfNeeded() -> Bool {
+        guard authSession != nil else { return false }
+        guard let savedAt = userDefaults.object(forKey: sessionSavedAtKey) as? Date else {
+            userDefaults.set(now(), forKey: sessionSavedAtKey)
+            return false
+        }
+        guard Self.isSessionExpired(savedAt: savedAt, now: now(), sessionLifetime: sessionLifetime) else {
+            return false
+        }
+        signOut()
+        loginError = "Session expired. Please sign in again."
+        return true
     }
 
     private static func normalizedModuleCopy(_ module: LuveloxModule) -> LuveloxModule {
@@ -209,11 +244,11 @@ final class LuveloxHomeViewModel: ObservableObject {
                 "Design",
                 "Rank promising design candidates.",
                 ["DOE", "Ranking", "Design space"],
-                "Planned module; not available in this workspace yet."
+                module.isGranted ? "Available in the C2ES workspace." : "Requires Optimization module access."
             )
             route = LuveloxModuleRoute(
                 baseURL: module.route.baseURL,
-                webURL: URL(string: "https://ai.luvelox.com")!,
+                webURL: URL(string: "https://ai.luvelox.com/optimization.html")!,
                 apiPrefix: module.route.apiPrefix,
                 healthPath: module.route.healthPath,
                 modelsPath: module.route.modelsPath,
@@ -258,10 +293,29 @@ final class LuveloxHomeViewModel: ObservableObject {
         )
     }
 
-    private static func loadSession(from userDefaults: UserDefaults, key: String) -> LuveloxAuthSession? {
+    private static func loadSession(
+        from userDefaults: UserDefaults,
+        key: String,
+        savedAtKey: String,
+        sessionLifetime: TimeInterval,
+        now: Date
+    ) -> LuveloxAuthSession? {
         guard let data = userDefaults.data(forKey: key) else { return nil }
         guard let session = try? JSONDecoder().decode(LuveloxAuthSession.self, from: data) else { return nil }
+        if let savedAt = userDefaults.object(forKey: savedAtKey) as? Date {
+            if isSessionExpired(savedAt: savedAt, now: now, sessionLifetime: sessionLifetime) {
+                userDefaults.removeObject(forKey: key)
+                userDefaults.removeObject(forKey: savedAtKey)
+                return nil
+            }
+        } else {
+            userDefaults.set(now, forKey: savedAtKey)
+        }
         return normalizedSession(session)
+    }
+
+    private static func isSessionExpired(savedAt: Date, now: Date, sessionLifetime: TimeInterval) -> Bool {
+        now.timeIntervalSince(savedAt) >= sessionLifetime
     }
 
     private static func normalizedSession(_ session: LuveloxAuthSession) -> LuveloxAuthSession {
@@ -295,9 +349,11 @@ final class LuveloxHomeViewModel: ObservableObject {
 }
 
 struct ContentView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var viewModel = LuveloxHomeViewModel()
-    @State private var email = "demo@luvelox.com"
+    @State private var email = ""
     @State private var password = ""
+    @State private var isPasswordVisible = false
     @State private var signupName = ""
     @State private var signupCompany = ""
     @State private var authMode = AuthMode.login
@@ -328,6 +384,11 @@ struct ContentView: View {
             .background(LuveloxStyle.background)
             .task {
                 await viewModel.refresh()
+            }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active {
+                    viewModel.expireSessionIfNeeded()
+                }
             }
             .sheet(isPresented: $isAccountSheetPresented) {
                 AccountDetailsSheet(
@@ -395,15 +456,18 @@ struct ContentView: View {
                             .textContentType(.organizationName)
                             .fieldStyle()
                     }
-                    TextField("Email", text: $email)
+                    TextField("demo@luvelox.com", text: $email)
                         #if os(iOS)
                         .textInputAutocapitalization(.never)
                         .keyboardType(.emailAddress)
                         #endif
                         .autocorrectionDisabled()
                         .fieldStyle()
-                    SecureField("Password", text: $password)
-                        .fieldStyle()
+                    PasswordEntryField(
+                        placeholder: "Password",
+                        text: $password,
+                        isVisible: $isPasswordVisible
+                    )
                     if let loginError = viewModel.loginError {
                         Text(loginError)
                             .font(.caption.weight(.semibold))
@@ -450,7 +514,7 @@ struct ContentView: View {
                     .disabled(viewModel.isLoading)
 
                     Button {
-                        email = "demo@luvelox.com"
+                        email = ""
                         password = ""
                         Task { await viewModel.signIn(email: email, password: password) }
                     } label: {
@@ -556,14 +620,29 @@ struct ContentView: View {
                     .lineLimit(2)
             }
             Spacer(minLength: 8)
-            Button {
-                Task { await viewModel.refresh() }
-            } label: {
-                Image(systemName: "arrow.clockwise")
-                    .font(.headline.weight(.bold))
+            VStack(alignment: .trailing, spacing: 6) {
+                Button {
+                    Task { await viewModel.refresh() }
+                } label: {
+                    HStack(spacing: 8) {
+                        if viewModel.isLoading {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                        Text(viewModel.isLoading ? "Refreshing" : "Refresh")
+                    }
+                    .font(.subheadline.weight(.heavy))
                     .foregroundStyle(LuveloxStyle.ink)
-                    .frame(width: 44, height: 40)
+                    .padding(.horizontal, 12)
+                    .frame(height: 40)
                     .background(.white, in: RoundedRectangle(cornerRadius: 8))
+                }
+                Text(viewModel.statusText)
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(Color(red: 0.67, green: 0.71, blue: 0.78))
+                    .lineLimit(1)
             }
             .disabled(viewModel.isLoading)
         }
@@ -584,11 +663,50 @@ struct ContentView: View {
     }
 }
 
+private struct PasswordEntryField: View {
+    let placeholder: String
+    @Binding var text: String
+    @Binding var isVisible: Bool
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Group {
+                if isVisible {
+                    TextField(placeholder, text: $text)
+                } else {
+                    SecureField(placeholder, text: $text)
+                }
+            }
+            .textContentType(.password)
+            #if os(iOS)
+            .textInputAutocapitalization(.never)
+            #endif
+            .autocorrectionDisabled()
+
+            Button {
+                isVisible.toggle()
+            } label: {
+                Image(systemName: isVisible ? "eye.slash" : "eye")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(LuveloxStyle.blue)
+                    .frame(width: 34, height: 34)
+                    .background(LuveloxStyle.blueSoft, in: RoundedRectangle(cornerRadius: 8))
+            }
+            .accessibilityLabel(isVisible ? "Hide password" : "Show password")
+        }
+        .font(.body.weight(.semibold))
+        .padding(.leading, 12)
+        .padding(.trailing, 8)
+        .frame(height: 50)
+        .background(Color(red: 0.96, green: 0.98, blue: 0.99), in: RoundedRectangle(cornerRadius: 8))
+    }
+}
+
 private struct LoginModulePreviewStrip: View {
     private let items: [(letter: String, title: String, subtitle: String, color: Color, background: Color)] = [
         ("L", "Laminate", "Type, Pt, curve", LuveloxStyle.blue, LuveloxStyle.blueSoft),
         ("I", "Injection", "Sprue, filling", LuveloxStyle.teal, LuveloxStyle.tealSoft),
-        ("O", "Optimization", "Coming soon", LuveloxStyle.amber, LuveloxStyle.amberSoft),
+        ("O", "Optimization", "Design search", LuveloxStyle.amber, LuveloxStyle.amberSoft),
     ]
 
     var body: some View {
@@ -661,7 +779,30 @@ struct ModuleCard: View {
     let session: LuveloxAuthSession?
     let onRequestAccess: () -> Void
 
+    @ViewBuilder
     var body: some View {
+        if module.id == "laminate", module.isGranted {
+            NavigationLink {
+                DDLaminateModuleView()
+            } label: {
+                cardContent
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("Open Laminate")
+        } else if module.id == "injection", module.isGranted {
+            NavigationLink {
+                InjectionModuleView(embedInNavigationStack: false)
+            } label: {
+                cardContent
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("Open Injection")
+        } else {
+            cardContent
+        }
+    }
+
+    private var cardContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .center, spacing: 12) {
                 icon
@@ -704,25 +845,17 @@ struct ModuleCard: View {
     @ViewBuilder
     private var moduleAction: some View {
         if module.id == "laminate", module.isGranted {
-            NavigationLink {
-                DDLaminateModuleView()
-            } label: {
-                actionLabel(title: "Open Laminate", systemImage: "arrow.right", enabled: true)
-            }
+            actionLabel(title: "Open Laminate", systemImage: "arrow.right", enabled: true)
         } else if module.id == "injection", module.isGranted {
-            NavigationLink {
-                InjectionModuleView()
-            } label: {
-                actionLabel(title: "Open Injection", systemImage: "arrow.right", enabled: true)
-            }
-        } else if module.id == "admin", module.isGranted, let url = adminURL {
+            actionLabel(title: "Open Injection", systemImage: "arrow.right", enabled: true)
+        } else if ["admin", "optimization"].contains(module.id), module.isGranted, let url = authenticatedWebURL {
             #if os(iOS)
             NavigationLink {
                 AdminWebView(url: url)
-                    .navigationTitle("Admin")
+                    .navigationTitle(module.name)
                     .navigationBarTitleDisplayMode(.inline)
             } label: {
-                actionLabel(title: "Open Admin", systemImage: "arrow.right", enabled: true)
+                actionLabel(title: "Open \(module.shortName)", systemImage: "arrow.right", enabled: true)
             }
             #else
             EmptyView()
@@ -837,7 +970,7 @@ struct ModuleCard: View {
         .background(enabled ? LuveloxStyle.ink : Color.gray, in: RoundedRectangle(cornerRadius: 8))
     }
 
-    private var adminURL: URL? {
+    private var authenticatedWebURL: URL? {
         guard let session else { return nil }
         var components = URLComponents(url: module.route.webURL, resolvingAgainstBaseURL: false)
         components?.queryItems = [URLQueryItem(name: "session_token", value: session.accessToken)]
@@ -1105,7 +1238,7 @@ private extension View {
         self
             .font(.body.weight(.semibold))
             .padding(.horizontal, 12)
-            .frame(height: 46)
+            .frame(height: 50)
             .background(Color(red: 0.96, green: 0.98, blue: 0.99), in: RoundedRectangle(cornerRadius: 8))
     }
 }

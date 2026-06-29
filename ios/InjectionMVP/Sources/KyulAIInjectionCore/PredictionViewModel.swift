@@ -40,6 +40,10 @@ public final class PredictionViewModel: ObservableObject {
     @Published public var result: SpruePressurePredictionResult?
     @Published public var errorMessage: String?
     @Published public var isPredicting = false
+    @Published public var assistantQuestion = "Why is melt temperature influential in this prediction?"
+    @Published public private(set) var assistantAnswer: RagAnswerResponse?
+    @Published public private(set) var assistantErrorMessage: String?
+    @Published public private(set) var isAskingAssistant = false
     @Published public private(set) var recentRuns: [InjectionRecentRun] = []
 
     public init(
@@ -63,6 +67,8 @@ public final class PredictionViewModel: ObservableObject {
         fillingModel = nil
         result = nil
         errorMessage = nil
+        assistantAnswer = nil
+        assistantErrorMessage = nil
     }
 
     public func checkConnection(baseURL: URL) async {
@@ -97,6 +103,8 @@ public final class PredictionViewModel: ObservableObject {
         selectedSprueModelKey = key
         sprueModel = sprueModels.first { $0.key == key }
         result = nil
+        assistantAnswer = nil
+        assistantErrorMessage = nil
         updateReadyStateIfNeeded()
     }
 
@@ -104,6 +112,8 @@ public final class PredictionViewModel: ObservableObject {
         selectedFillingModelKey = key
         fillingModel = fillingModels.first { $0.key == key }
         result = nil
+        assistantAnswer = nil
+        assistantErrorMessage = nil
         updateReadyStateIfNeeded()
     }
 
@@ -173,9 +183,41 @@ public final class PredictionViewModel: ObservableObject {
 
         do {
             result = try await apiClient.predictSpruePressure(baseURL: baseURL, request: request)
+            assistantAnswer = nil
+            assistantErrorMessage = nil
             saveRecentRun(from: request)
         } catch {
             errorMessage = "Prediction failed: \(error.localizedDescription)"
+        }
+    }
+
+    public func askAssistant(baseURL: URL, language: String, question explicitQuestion: String? = nil) async {
+        guard let result else {
+            assistantErrorMessage = "Run a prediction before asking the assistant."
+            return
+        }
+        let query = (explicitQuestion ?? assistantQuestion).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard query.count >= 2 else {
+            assistantErrorMessage = "Enter a question."
+            return
+        }
+        assistantQuestion = query
+        isAskingAssistant = true
+        assistantErrorMessage = nil
+        defer { isAskingAssistant = false }
+        do {
+            assistantAnswer = try await apiClient.answerRag(
+                baseURL: baseURL,
+                request: RagAnswerRequest(
+                    query: query,
+                    topK: 3,
+                    useLLM: true,
+                    language: language,
+                    predictionContext: assistantPredictionContext(for: result)
+                )
+            )
+        } catch {
+            assistantErrorMessage = "Assistant failed: \(error.localizedDescription)"
         }
     }
 
@@ -280,6 +322,44 @@ public final class PredictionViewModel: ObservableObject {
         if let data = try? JSONEncoder().encode(recentRuns) {
             userDefaults.set(data, forKey: recentRunsKey)
         }
+    }
+
+    private func assistantPredictionContext(for result: SpruePressurePredictionResult) -> JSONValue {
+        var payload: [String: JSONValue] = [
+            "mode": .string("Injection Forecast"),
+            "inputs": .object(result.inputs),
+            "model_key": .string(result.modelKey),
+            "model_label": .string(result.displayModelLabel),
+            "filling_model_key": .string(result.fillingModelKey),
+            "filling_model_label": .string(result.displayFillingModelLabel),
+            "predicted_max_pressure_MPa": .double(result.predictedMaxPressureMPa),
+            "predicted_max_time_s": .double(result.predictedMaxTimeS),
+            "curve_points": .double(Double(result.curve.count)),
+        ]
+        if let fillingMax = result.bestFillingPressure?.stats["max_MPa"] {
+            payload["predicted_filling_max_MPa"] = .double(fillingMax)
+        }
+        if let xai = result.xai {
+            payload["xai"] = .object([
+                "title": .string(xai.title),
+                "summary": .string(xai.summary),
+                "method": .string(xai.method),
+                "feature_set": .string(xai.featureSet),
+                "top_features": .array(xai.topFeatures.map { feature in
+                    .object([
+                        "name": .string(feature.name),
+                        "label": .string(feature.label),
+                        "category": .string(feature.category),
+                        "importance": .double(feature.importance),
+                        "local_sensitivity": .double(feature.localSensitivity),
+                        "local_value": feature.localValue.map(JSONValue.double) ?? .null,
+                        "perturbation": .string(feature.perturbation),
+                        "explanation": .string(feature.explanation),
+                    ])
+                }),
+            ])
+        }
+        return .object(payload)
     }
 
     private static func loadRecentRuns(from userDefaults: UserDefaults, key: String) -> [InjectionRecentRun] {

@@ -2,7 +2,7 @@
 
 ## Source of truth
 - Status: Active
-- Last refreshed: 2026-06-19
+- Last refreshed: 2026-06-26
 - Primary product surfaces: iOS and Android MVP apps for Laminate and Injection prediction; Luvelox unified web workspace; DD Laminate web v2 and iOS Laminate v2 experiments; Injection v2 web app and flow prototype.
 - Evidence reviewed: `ios/InjectionMVP`, `ios/DDLaminateMVP`, `android/InjectionMVP`, `android/DDLaminateMVP`, `src/frontend/luvelox`, `src/frontend/dd-laminate`, `src/frontend/simple-injection`, `design/Wanted Design System (Community).fig`, extracted `.fig` thumbnail and image package metadata.
 
@@ -24,7 +24,7 @@
 ## Information architecture
 - Primary navigation: login-gated unified workspace for Luvelox; module-specific forecast screens inside each native app. The native unified app entry should mirror `ai.luvelox.com/index.html` for login, account status, workspace summary, and module card hierarchy.
 - Core routes/screens: web login, web login Korean, module workspace, module workspace Korean, account/access dialogs, Laminate v2 forecast, Injection v2 forecast, forecast inputs, latest result, full result.
-- Content hierarchy: account status, module access, model/input controls, primary prediction button, result headline, chart, secondary metrics.
+- Content hierarchy: account status, module access, compact research purpose when a module needs outside-audience context, model/input controls, primary prediction button, result headline, chart, secondary metrics.
 
 ## Design principles
 - Principle 1: results should read before decoration.
@@ -44,7 +44,7 @@
 
 ## Components
 - Existing components to reuse: `AppTheme`, `AppCard`, primary/secondary buttons, native picker/menu fields, chart views, Luvelox web module cards.
-- New/changed components: color tokens, result emphasis, chart tinting, Android card/button styling, Android live laminate preview, web login/account/access panels, Luvelox web-matched native login/workspace shell, Luvelox `login-v2` prototype and C2ES module workspace shell, DD Laminate web v2 shell, Injection v2 compact setup blocks, Injection v2 Three.js parametric mold preview with predicted filling-pressure/fill-front map, Injection v2 six-screen flow prototype, and iOS `ContentViewV2`.
+- New/changed components: color tokens, result emphasis, chart tinting, Android card/button styling, Android live laminate preview, web login/account/access panels, Luvelox web-matched native login/workspace shell, Luvelox `login-v2` prototype and C2ES module workspace shell, DD Laminate web v2 shell, DD Laminate research-purpose brief, Injection v2 compact setup blocks, Injection v2 Three.js parametric mold preview with predicted filling-pressure/fill-front map, Injection v2 six-screen flow prototype, and iOS `ContentViewV2`.
 - Variants and states: ready/success green, warning amber, error red, primary action by app family.
 - Token/component ownership: app-local native files for now.
 
@@ -93,7 +93,7 @@
 ## Content voice
 - Tone: concise engineering UI copy.
 - Terminology: keep `Laminate`, `Injection`, `Pt`, `Sprue`, `Filling`, `Forecast`.
-- Microcopy rules: avoid explaining UI mechanics inside the main app surface; workspace titles should describe the product role (`Forecast Workspace`) rather than generic app wording.
+- Microcopy rules: avoid explaining UI mechanics inside the main app surface; workspace titles should describe the product role (`Forecast Workspace`) rather than generic app wording. Research purpose copy may appear near the top of Laminate screens when it explains why the AI model exists, not how to operate controls.
 
 ## Implementation constraints
 - Framework/styling system: SwiftUI for iOS, native Android Kotlin Views for Android, plain HTML/CSS/JavaScript for the Luvelox web workspace and DD Laminate web app.

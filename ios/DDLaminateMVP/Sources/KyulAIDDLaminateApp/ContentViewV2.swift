@@ -24,14 +24,14 @@ struct ContentViewV2: View {
     }
 
     private enum DetailRoute: Hashable, Identifiable {
-        case response(ResponsePredictionResult)
-        case u3(U3PtPredictionResult)
+        case response(ResponsePredictionResult, DesignSpaceResponse?)
+        case u3(U3PtPredictionResult, DesignSpaceResponse?)
 
         var id: String {
             switch self {
-            case .response(let result):
+            case .response(let result, _):
                 "response-\(result.modelKey)-\(result.predictedPt)-\(result.curve.count)"
-            case .u3(let result):
+            case .u3(let result, _):
                 "u3-\(result.modelKey)-\(result.predictedPt)-\(result.curve.count)"
             }
         }
@@ -50,6 +50,7 @@ struct ContentViewV2: View {
     @State private var selectedDetail: DetailRoute?
     @State private var isShowingSettings = false
     @State private var isShowingModelSheet = false
+    @State private var isShowingHistoryManager = false
 
     private var selectedModel: ModelInfo? {
         switch selectedMode {
@@ -64,6 +65,15 @@ struct ContentViewV2: View {
         switch selectedMode {
         case .response: viewModel.responseModels
         case .u3: viewModel.u3PtModels
+        }
+    }
+
+    private var currentRecentRuns: [DDLaminateRecentRun] {
+        switch selectedMode {
+        case .response:
+            viewModel.responseForecastRecentRuns
+        case .u3:
+            viewModel.u3ForecastRecentRuns
         }
     }
 
@@ -85,7 +95,7 @@ struct ContentViewV2: View {
     }
 
     private var appHeadlineTitle: String {
-        localText(en: "C2ES\nLaminate Forecast", ko: "C2ES\n적층 예측")
+        localText(en: "C2ES Laminate Forecast", ko: "C2ES 적층 예측")
     }
 
     private func localModelLabel(_ label: String) -> String {
@@ -108,6 +118,7 @@ struct ContentViewV2: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 header
+                researchBrief
                 workflowStrip
                 modePicker
                 VStack(spacing: 14) {
@@ -122,7 +133,7 @@ struct ContentViewV2: View {
         #endif
         .simultaneousGesture(TapGesture().onEnded { focusedField = nil })
         .background(WantedV2Theme.background.ignoresSafeArea())
-        .navigationTitle(localText(en: "Laminate v2", ko: "적층 v2"))
+        .navigationTitle(localText(en: "Laminate", ko: "적층"))
         .appInlineNavigationTitle()
         .toolbar {
             ToolbarItemGroup(placement: toolbarTrailingPlacement) {
@@ -172,6 +183,26 @@ struct ContentViewV2: View {
                     }
             }
         }
+        .sheet(isPresented: $isShowingHistoryManager) {
+            NavigationStack {
+                PredictionHistoryManagerView(
+                    runs: currentRecentRuns,
+                    isKorean: isKorean
+                ) { selectedIDs in
+                    viewModel.deleteRecentRuns(ids: selectedIDs)
+                    isShowingHistoryManager = false
+                }
+                .navigationTitle(localText(en: "Manage History", ko: "기록 관리"))
+                .appInlineNavigationTitle()
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(localText(en: "Done", ko: "완료")) {
+                            isShowingHistoryManager = false
+                        }
+                    }
+                }
+            }
+        }
         .alert(L10n.t("prediction.error"), isPresented: errorBinding) {
             Button(L10n.t("ok"), role: .cancel) { viewModel.errorMessage = nil }
         } message: {
@@ -179,10 +210,12 @@ struct ContentViewV2: View {
         }
         .navigationDestination(item: $selectedDetail) { route in
             switch route {
-            case .response(let result):
-                ResultDetailView(result: result)
-            case .u3(let result):
-                U3PtResultDetailView(result: result)
+            case .response(let result, let designSpace):
+                ResultDetailView(result: result, designSpace: designSpace)
+                    .environmentObject(settings)
+            case .u3(let result, let designSpace):
+                U3PtResultDetailView(result: result, designSpace: designSpace)
+                    .environmentObject(settings)
             }
         }
         .task {
@@ -207,8 +240,9 @@ struct ContentViewV2: View {
             Text(appHeadlineTitle)
                 .font(.system(size: 32, weight: .black, design: .rounded))
                 .foregroundStyle(WantedV2Theme.ink)
-                .lineLimit(2)
-                .minimumScaleFactor(0.78)
+                .lineLimit(1)
+                .minimumScaleFactor(0.58)
+                .allowsTightening(true)
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
             Text(localText(
@@ -227,6 +261,88 @@ struct ContentViewV2: View {
                 .stroke(WantedV2Theme.line, lineWidth: 1)
         )
         .shadow(color: .black.opacity(0.06), radius: 18, x: 0, y: 10)
+    }
+
+    private var researchBrief: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            panelHeader(
+                eyebrow: localText(en: "Research purpose", ko: "연구 목적"),
+                title: localText(
+                    en: "Why Double-Double laminate forecasting?",
+                    ko: "왜 Double-Double 적층 예측을 하나요?"
+                ),
+                subtitle: localText(
+                    en: "Double-Double laminates are being explored as lightweight, angle-driven alternatives to quasi-isotropic layups for impact and post-impact compression performance. This screen turns the simulation study into a fast way to screen Case and θ candidates before deeper analysis.",
+                    ko: "Double-Double 적층은 impact 및 post-impact compression 성능을 높이면서 quasi-isotropic 적층의 중량 부담과 각도 설계 한계를 줄이기 위한 후보입니다. 이 화면은 Case와 θ 후보를 더 깊은 해석 전에 빠르게 선별하도록 돕습니다."
+                )
+            )
+
+            VStack(spacing: 8) {
+                researchBriefPoint(
+                    title: localText(en: "Problem", ko: "문제"),
+                    body: localText(
+                        en: "0/±45/90 stacks can add weight and limit design freedom.",
+                        ko: "0/±45/90 계열 적층은 중량 부담과 설계 자유도 한계가 있습니다."
+                    ),
+                    tint: WantedV2Theme.blue
+                )
+                researchBriefPoint(
+                    title: localText(en: "Target", ko: "목표"),
+                    body: localText(
+                        en: "Find the transition knee where force and u3 curves reveal stability loss.",
+                        ko: "Force와 u3 곡선에서 안정성 변화가 시작되는 transition knee를 찾습니다."
+                    ),
+                    tint: WantedV2Theme.cyan
+                )
+                researchBriefPoint(
+                    title: localText(en: "Signal", ko: "신호"),
+                    body: localText(
+                        en: "Current best DD candidates improved Pt by 28.93% and u3 metric by 31.31% vs. quasi-isotropic baselines.",
+                        ko: "현재 연구 데이터 기준 최적 DD 후보는 quasi-isotropic 기준 대비 Pt 28.93%, u3 metric 31.31% 개선 신호를 보였습니다."
+                    ),
+                    tint: WantedV2Theme.green
+                )
+            }
+
+            DisclosureGroup {
+                Text(localText(
+                    en: "Type 1 has a clear bilinear knee from force-displacement fits. Type 2 and Type 3 become more curved after the knee, so u3 displacement behavior supports transition-load estimation.",
+                    ko: "Type 1은 force-displacement 피팅에서 bilinear knee가 비교적 명확합니다. Type 2와 Type 3은 knee 이후 곡률이 커지므로 u3 displacement 거동을 함께 사용해 전이하중 추정을 보완합니다."
+                ))
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(WantedV2Theme.muted)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 4)
+            } label: {
+                Text(localText(en: "How Type and u3 are used", ko: "Type과 u3를 쓰는 방식"))
+                    .font(.caption.weight(.black))
+                    .foregroundStyle(WantedV2Theme.ink)
+            }
+            .tint(WantedV2Theme.blue)
+        }
+        .padding(18)
+        .background(WantedV2Theme.surface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(WantedV2Theme.line, lineWidth: 1)
+        )
+    }
+
+    private func researchBriefPoint(title: String, body: String, tint: Color) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Text(title)
+                .font(.caption2.weight(.black))
+                .foregroundStyle(tint)
+                .textCase(.uppercase)
+                .frame(width: 64, alignment: .leading)
+            Text(body)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(WantedV2Theme.ink)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(WantedV2Theme.field, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     private var workflowStrip: some View {
@@ -339,20 +455,7 @@ struct ContentViewV2: View {
 
     private var resultPanel: some View {
         VStack(alignment: .leading, spacing: 16) {
-            switch selectedMode {
-            case .response:
-                if let result = viewModel.result {
-                    responseResultPanel(result)
-                } else {
-                    emptyResultPanel
-                }
-            case .u3:
-                if let result = viewModel.u3PtResult {
-                    u3ResultPanel(result)
-                } else {
-                    emptyResultPanel
-                }
-            }
+            emptyResultPanel
         }
         .padding(18)
         .background(WantedV2Theme.surface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
@@ -503,6 +606,23 @@ struct ContentViewV2: View {
     }
 
     private var emptyResultPanel: some View {
+        Group {
+            if currentRecentRuns.isEmpty {
+                readyForInputPanel
+            } else {
+                predictionHistoryPanel
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 230, alignment: .leading)
+        .padding(18)
+        .background(WantedV2Theme.field, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(WantedV2Theme.line, style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
+        )
+    }
+
+    private var readyForInputPanel: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(localText(en: "No run yet", ko: "아직 실행 전"))
                 .font(.caption.weight(.black))
@@ -519,13 +639,113 @@ struct ContentViewV2: View {
                 .foregroundStyle(WantedV2Theme.muted)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(maxWidth: .infinity, minHeight: 230, alignment: .leading)
-        .padding(18)
-        .background(WantedV2Theme.field, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(WantedV2Theme.line, style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
-        )
+    }
+
+    private var predictionHistoryPanel: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(localText(en: "Prediction history", ko: "예측 기록"))
+                        .font(.title3.weight(.black))
+                        .foregroundStyle(WantedV2Theme.ink)
+                    Text(localText(en: "Tap a card to reuse its setup.", ko: "카드를 누르면 해당 입력 조건을 다시 불러옵니다."))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(WantedV2Theme.muted)
+                }
+                Spacer(minLength: 8)
+                HStack(spacing: 8) {
+                    Text("\(currentRecentRuns.count)")
+                        .font(.caption.monospacedDigit().weight(.black))
+                        .foregroundStyle(WantedV2Theme.blue)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 5)
+                        .background(WantedV2Theme.blueSoft, in: Capsule())
+                    Button {
+                        isShowingHistoryManager = true
+                    } label: {
+                        Label(localText(en: "Manage", ko: "관리"), systemImage: "trash")
+                            .font(.caption.weight(.black))
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(WantedV2Theme.red)
+                    .controlSize(.small)
+                }
+            }
+
+            VStack(spacing: 10) {
+                ForEach(Array(currentRecentRuns.enumerated()), id: \.element.id) { index, run in
+                    historyCard(run, index: index)
+                }
+            }
+        }
+    }
+
+    private func historyCard(_ run: DDLaminateRecentRun, index: Int) -> some View {
+        Button {
+            viewModel.applyRecentRun(run)
+        } label: {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    Text(index == 0 ? localText(en: "Latest", ko: "최근") : "#\(index + 1)")
+                        .font(.caption2.weight(.black))
+                        .foregroundStyle(index == 0 ? WantedV2Theme.green : WantedV2Theme.blue)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background((index == 0 ? WantedV2Theme.green : WantedV2Theme.blue).opacity(0.12), in: Capsule())
+                    Text(run.selectedCase.rawValue)
+                        .font(.headline.weight(.black))
+                        .foregroundStyle(WantedV2Theme.ink)
+                    Spacer(minLength: 8)
+                    Image(systemName: "arrow.uturn.forward")
+                        .font(.caption.weight(.black))
+                        .foregroundStyle(WantedV2Theme.blue)
+                }
+
+                Text(localModelLabel(run.displayModelLabel))
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(WantedV2Theme.blue)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        historyChip("θ₁ \(signedAngle(run.theta1Display))")
+                        historyChip("θ₂ \(signedAngle(run.theta2Display))")
+                        historyChip(run.predictedType.map { "Type \($0)" } ?? localText(en: "Type -", ko: "Type -"))
+                        historyChip(run.confidence.percentText)
+                        historyChip("Pt \(run.predictedPt?.metricText(digits: 2) ?? "-")")
+                    }
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(WantedV2Theme.surface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(index == 0 ? WantedV2Theme.green.opacity(0.35) : WantedV2Theme.line, lineWidth: 1)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func historyChip(_ text: String) -> some View {
+        Text(text)
+            .font(.caption2.monospacedDigit().weight(.black))
+            .foregroundStyle(WantedV2Theme.ink)
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(WantedV2Theme.field, in: Capsule())
+    }
+
+    private func signedAngle(_ text: String) -> String {
+        guard let value = Double(text.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+            return "\(text)°"
+        }
+        let intValue = Int(value.rounded())
+        return "\(intValue > 0 ? "+" : "")\(intValue)°"
     }
 
     private func responseResultPanel(_ result: ResponsePredictionResult) -> some View {
@@ -542,13 +762,16 @@ struct ContentViewV2: View {
                 (localText(en: "Max force", ko: "최대 하중"), result.predictedMaxForce.metricText(digits: 2)),
                 (localText(en: "Points", ko: "포인트"), "\(result.curve.count)"),
             ])
-            CurveChartView(points: result.curve, predictedPt: result.predictedPt)
-                .frame(height: 230)
+            CurveChartView(points: result.curve, predictedPt: result.predictedPt, curveFit: result.curveFit)
+                .frame(height: 300)
             probabilityRows(result.sortedProbabilities, selectedType: result.predictedType)
             if let xai = result.xai {
                 xaiPreview(xai)
             }
-            detailButton(.response(result))
+            if let insight = viewModel.responseDesignSpace {
+                ResearchInsightCard(insight: insight)
+            }
+            detailButton(.response(result, viewModel.responseDesignSpace))
         }
     }
 
@@ -566,15 +789,18 @@ struct ContentViewV2: View {
                 (localText(en: "Max force", ko: "최대 하중"), result.predictedMaxForce.metricText(digits: 2)),
                 (localText(en: "Points", ko: "포인트"), "\(result.curve.count)"),
             ])
-            CurveChartView(points: result.curve, predictedPt: result.predictedPt, fitMode: .u3)
-                .frame(height: 230)
+            CurveChartView(points: result.curve, predictedPt: result.predictedPt, fitMode: .u3, curveFit: result.curveFit)
+                .frame(height: 300)
             if let probabilities = result.probabilities {
                 probabilityRows(probabilities.sorted { $0.key < $1.key }.map { ($0.key, $0.value) }, selectedType: result.predictedType)
             }
             if let xai = result.xai {
                 xaiPreview(xai)
             }
-            detailButton(.u3(result))
+            if let insight = viewModel.u3DesignSpace {
+                ResearchInsightCard(insight: insight)
+            }
+            detailButton(.u3(result, viewModel.u3DesignSpace))
         }
     }
 
@@ -916,7 +1142,7 @@ struct ContentViewV2: View {
             let url = try BaseURLValidator.parse(settings.apiBaseURL)
             await viewModel.predict(baseURL: url)
             if let result = viewModel.result, viewModel.errorMessage == nil {
-                selectedDetail = .response(result)
+                selectedDetail = .response(result, viewModel.responseDesignSpace)
             }
         } catch {
             viewModel.errorMessage = error.localizedDescription
@@ -928,7 +1154,7 @@ struct ContentViewV2: View {
             let url = try BaseURLValidator.parse(settings.apiBaseURL)
             await viewModel.predictU3Forecast(baseURL: url)
             if let result = viewModel.u3PtResult, viewModel.errorMessage == nil {
-                selectedDetail = .u3(result)
+                selectedDetail = .u3(result, viewModel.u3DesignSpace)
             }
         } catch {
             viewModel.errorMessage = error.localizedDescription
@@ -1004,6 +1230,142 @@ struct ContentViewV2: View {
             return L10n.t("friendly.server")
         }
         return L10n.t("friendly.prediction")
+    }
+}
+
+private struct PredictionHistoryManagerView: View {
+    let runs: [DDLaminateRecentRun]
+    let isKorean: Bool
+    let onDelete: (Set<String>) -> Void
+
+    @State private var selectedIDs: Set<String> = []
+
+    private func localText(en: String, ko: String) -> String {
+        isKorean ? ko : en
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text(localText(
+                        en: "Select the prediction records you want to remove. Deleted history does not affect saved models or datasets.",
+                        ko: "삭제할 예측 기록을 선택하세요. 기록을 지워도 저장된 모델이나 데이터셋에는 영향을 주지 않습니다."
+                    ))
+                    .font(.callout.weight(.semibold))
+                    .foregroundStyle(WantedV2Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                    HStack(spacing: 10) {
+                        Button {
+                            selectedIDs = Set(runs.map(\.id))
+                        } label: {
+                            Label(localText(en: "Select all", ko: "전체 선택"), systemImage: "checkmark.circle")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(WantedSecondaryButtonStyle())
+                        .disabled(runs.isEmpty || selectedIDs.count == runs.count)
+
+                        Button {
+                            selectedIDs.removeAll()
+                        } label: {
+                            Label(localText(en: "Clear", ko: "선택 해제"), systemImage: "circle")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(WantedSecondaryButtonStyle())
+                        .disabled(selectedIDs.isEmpty)
+                    }
+
+                    VStack(spacing: 0) {
+                        ForEach(Array(runs.enumerated()), id: \.element.id) { index, run in
+                            Button {
+                                toggle(run)
+                            } label: {
+                                HStack(alignment: .top, spacing: 12) {
+                                    Image(systemName: selectedIDs.contains(run.id) ? "checkmark.circle.fill" : "circle")
+                                        .font(.title3.weight(.black))
+                                        .foregroundStyle(selectedIDs.contains(run.id) ? WantedV2Theme.red : WantedV2Theme.muted)
+                                    VStack(alignment: .leading, spacing: 5) {
+                                        HStack(spacing: 8) {
+                                            Text(index == 0 ? localText(en: "Latest", ko: "최근") : "#\(index + 1)")
+                                                .font(.caption2.weight(.black))
+                                                .foregroundStyle(index == 0 ? WantedV2Theme.green : WantedV2Theme.blue)
+                                                .padding(.horizontal, 7)
+                                                .padding(.vertical, 4)
+                                                .background((index == 0 ? WantedV2Theme.green : WantedV2Theme.blue).opacity(0.12), in: Capsule())
+                                            Text(run.selectedCase.rawValue)
+                                                .font(.subheadline.weight(.black))
+                                                .foregroundStyle(WantedV2Theme.ink)
+                                            Spacer(minLength: 4)
+                                        }
+                                        Text(run.displayModelLabel)
+                                            .font(.caption.weight(.bold))
+                                            .foregroundStyle(WantedV2Theme.blue)
+                                            .lineLimit(1)
+                                            .minimumScaleFactor(0.75)
+                                        Text("\(thetaLabel("θ₁", run.theta1Display))  ·  \(thetaLabel("θ₂", run.theta2Display))  ·  \(run.predictedType.map { "Type \($0)" } ?? "Type -")  ·  Pt \(run.predictedPt?.metricText(digits: 2) ?? "-")")
+                                            .font(.caption2.monospacedDigit().weight(.bold))
+                                            .foregroundStyle(WantedV2Theme.muted)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
+                                }
+                                .padding(12)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            if index < runs.count - 1 {
+                                Divider()
+                                    .padding(.leading, 44)
+                            }
+                        }
+                    }
+                    .background(WantedV2Theme.surface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .stroke(WantedV2Theme.line, lineWidth: 1)
+                    )
+                }
+                .padding(20)
+            }
+
+            VStack(spacing: 10) {
+                Text(localText(
+                    en: "\(selectedIDs.count) selected",
+                    ko: "\(selectedIDs.count)개 선택됨"
+                ))
+                .font(.caption.monospacedDigit().weight(.black))
+                .foregroundStyle(WantedV2Theme.muted)
+
+                Button(role: .destructive) {
+                    onDelete(selectedIDs)
+                } label: {
+                    Text(localText(en: "Delete Selected", ko: "선택 삭제"))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(WantedPrimaryButtonStyle())
+                .disabled(selectedIDs.isEmpty)
+                .opacity(selectedIDs.isEmpty ? 0.45 : 1)
+            }
+            .padding(20)
+            .background(WantedV2Theme.surface)
+        }
+        .background(WantedV2Theme.background.ignoresSafeArea())
+    }
+
+    private func toggle(_ run: DDLaminateRecentRun) {
+        if selectedIDs.contains(run.id) {
+            selectedIDs.remove(run.id)
+        } else {
+            selectedIDs.insert(run.id)
+        }
+    }
+
+    private func thetaLabel(_ label: String, _ text: String) -> String {
+        guard let value = Double(text.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+            return "\(label) \(text)°"
+        }
+        let intValue = Int(value.rounded())
+        return "\(label) \(intValue > 0 ? "+" : "")\(intValue)°"
     }
 }
 

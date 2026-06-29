@@ -120,11 +120,95 @@ public struct U3ForecastPredictionRequest: Codable, Equatable, Hashable, Sendabl
     }
 }
 
+public enum DesignSpaceScope: String, Codable, Equatable, Hashable, Sendable {
+    case response
+    case u3
+}
+
+public struct DesignSpaceRequest: Codable, Equatable, Hashable, Sendable {
+    public let theta1: Double
+    public let theta2: Double
+    public let `case`: DDLaminateCase
+    public let scope: DesignSpaceScope
+
+    public init(
+        theta1: Double,
+        theta2: Double,
+        case laminateCase: DDLaminateCase,
+        scope: DesignSpaceScope = .response
+    ) {
+        self.theta1 = theta1
+        self.theta2 = theta2
+        self.case = laminateCase
+        self.scope = scope
+    }
+}
+
+public struct LocalXAIRequest: Codable, Equatable, Hashable, Sendable {
+    public let theta1: Double
+    public let theta2: Double
+    public let `case`: DDLaminateCase
+    public let model: String
+
+    public init(
+        theta1: Double,
+        theta2: Double,
+        case laminateCase: DDLaminateCase,
+        model: String
+    ) {
+        self.theta1 = theta1
+        self.theta2 = theta2
+        self.case = laminateCase
+        self.model = model
+    }
+}
+
 public struct ResponseCurvePoint: Codable, Equatable, Hashable, Identifiable, Sendable {
     public let displacement: Double
     public let force: Double
 
     public var id: String { "\(displacement)-\(force)" }
+}
+
+public struct ResponseCurveFitLine: Codable, Equatable, Hashable, Sendable {
+    public let slope: Double
+    public let intercept: Double
+}
+
+public struct ResponseCurveFitPoint: Codable, Equatable, Hashable, Sendable {
+    public let displacement: Double
+    public let force: Double
+}
+
+public struct ResponseCurveFitWindow: Codable, Equatable, Hashable, Sendable {
+    public let start: Int
+    public let end: Int
+}
+
+public struct ResponseCurveFit: Codable, Equatable, Hashable, Sendable {
+    public let kink: ResponseCurveFitPoint?
+    public let detectedKink: ResponseCurveFitPoint?
+    public let firstLine: ResponseCurveFitLine?
+    public let secondLine: ResponseCurveFitLine?
+    public let firstStartX: Double?
+    public let firstEndX: Double?
+    public let secondStartX: Double?
+    public let secondEndX: Double?
+    public let firstWindow: ResponseCurveFitWindow?
+    public let secondWindow: ResponseCurveFitWindow?
+
+    enum CodingKeys: String, CodingKey {
+        case kink
+        case detectedKink = "detected_kink"
+        case firstLine = "first_line"
+        case secondLine = "second_line"
+        case firstStartX = "first_start_x"
+        case firstEndX = "first_end_x"
+        case secondStartX = "second_start_x"
+        case secondEndX = "second_end_x"
+        case firstWindow = "first_window"
+        case secondWindow = "second_window"
+    }
 }
 
 public struct XAIFeature: Codable, Equatable, Hashable, Identifiable, Sendable {
@@ -155,6 +239,178 @@ public struct XAIExplanation: Codable, Equatable, Hashable, Sendable {
     }
 }
 
+public struct DesignSpaceScoreBreakdown: Codable, Equatable, Hashable, Sendable {
+    public let pt: Double
+    public let type: Double
+    public let proximity: Double
+
+    enum CodingKeys: String, CodingKey {
+        case pt
+        case type
+        case proximity
+    }
+}
+
+public struct DesignSpacePoint: Codable, Equatable, Hashable, Identifiable, Sendable {
+    public let theta1: Double
+    public let theta2: Double
+    public let `case`: DDLaminateCase
+    public let testId: String
+    public let pt: Double
+    public let type: Int?
+    public let distance: Double
+    public let source: String
+
+    public var id: String {
+        "\(`case`.rawValue)-\(testId)-\(theta1)-\(theta2)-\(pt)"
+    }
+
+    public init(
+        theta1: Double,
+        theta2: Double,
+        case laminateCase: DDLaminateCase,
+        testId: String,
+        pt: Double,
+        type: Int?,
+        distance: Double,
+        source: String
+    ) {
+        self.theta1 = theta1
+        self.theta2 = theta2
+        self.case = laminateCase
+        self.testId = testId
+        self.pt = pt
+        self.type = type
+        self.distance = distance
+        self.source = source
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case theta1
+        case theta2
+        case `case`
+        case testId = "test_id"
+        case pt
+        case type
+        case distance
+        case source
+    }
+}
+
+public struct DesignSpaceRecommendation: Codable, Equatable, Hashable, Identifiable, Sendable {
+    public let theta1: Double
+    public let theta2: Double
+    public let `case`: DDLaminateCase
+    public let expectedPt: Double
+    public let observedType: Int?
+    public let score: Double
+    public let scoreComponents: DesignSpaceScoreBreakdown
+    public let rationale: String
+
+    public var id: String {
+        "\(`case`.rawValue)-\(theta1)-\(theta2)-\(expectedPt)"
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case theta1
+        case theta2
+        case `case`
+        case expectedPt = "expected_pt"
+        case observedType = "observed_type"
+        case score
+        case scoreComponents = "score_components"
+        case rationale
+    }
+}
+
+public struct DesignSpaceCaseInsight: Codable, Equatable, Hashable, Identifiable, Sendable {
+    public let `case`: DDLaminateCase
+    public let count: Int
+    public let focusKind: String
+    public let focusCount: Int
+    public let focusRate: Double
+    public let theta1Min: Double?
+    public let theta1Max: Double?
+    public let theta2Min: Double?
+    public let theta2Max: Double?
+    public let bestTheta1: Double?
+    public let bestTheta2: Double?
+    public let bestPt: Double?
+    public let bestType: Int?
+
+    public var id: String { `case`.rawValue }
+
+    enum CodingKeys: String, CodingKey {
+        case `case`
+        case count
+        case focusKind = "focus_kind"
+        case focusCount = "focus_count"
+        case focusRate = "focus_rate"
+        case theta1Min = "theta1_min"
+        case theta1Max = "theta1_max"
+        case theta2Min = "theta2_min"
+        case theta2Max = "theta2_max"
+        case bestTheta1 = "best_theta1"
+        case bestTheta2 = "best_theta2"
+        case bestPt = "best_pt"
+        case bestType = "best_type"
+    }
+}
+
+public struct DesignSpaceResponse: Codable, Equatable, Hashable, Sendable {
+    public let scope: DesignSpaceScope
+    public let inputs: [String: JSONValue]
+    public let mapPoints: [DesignSpacePoint]
+    public let caseInsights: [DesignSpaceCaseInsight]
+    public let recommendations: [DesignSpaceRecommendation]
+    public let notes: [String]
+
+    public init(
+        scope: DesignSpaceScope,
+        inputs: [String: JSONValue],
+        mapPoints: [DesignSpacePoint] = [],
+        caseInsights: [DesignSpaceCaseInsight],
+        recommendations: [DesignSpaceRecommendation],
+        notes: [String]
+    ) {
+        self.scope = scope
+        self.inputs = inputs
+        self.mapPoints = mapPoints
+        self.caseInsights = caseInsights
+        self.recommendations = recommendations
+        self.notes = notes
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case scope
+        case inputs
+        case mapPoints = "map_points"
+        case caseInsights = "case_insights"
+        case recommendations
+        case notes
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        scope = try container.decode(DesignSpaceScope.self, forKey: .scope)
+        inputs = try container.decode([String: JSONValue].self, forKey: .inputs)
+        mapPoints = try container.decodeIfPresent([DesignSpacePoint].self, forKey: .mapPoints) ?? []
+        caseInsights = try container.decode([DesignSpaceCaseInsight].self, forKey: .caseInsights)
+        recommendations = try container.decode([DesignSpaceRecommendation].self, forKey: .recommendations)
+        notes = try container.decode([String].self, forKey: .notes)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(scope, forKey: .scope)
+        try container.encode(inputs, forKey: .inputs)
+        try container.encode(mapPoints, forKey: .mapPoints)
+        try container.encode(caseInsights, forKey: .caseInsights)
+        try container.encode(recommendations, forKey: .recommendations)
+        try container.encode(notes, forKey: .notes)
+    }
+}
+
 public struct ResponsePredictionResult: Codable, Equatable, Hashable, Sendable {
     public let predictedType: Int
     public let confidence: Double?
@@ -169,8 +425,9 @@ public struct ResponsePredictionResult: Codable, Equatable, Hashable, Sendable {
     public let predictedMaxDisplacement: Double
     public let predictedMaxForce: Double
     public let curve: [ResponseCurvePoint]
+    public let curveFit: ResponseCurveFit?
     public let metrics: [String: JSONValue]
-    public let xai: XAIExplanation?
+    public var xai: XAIExplanation?
 
     public var sortedProbabilities: [(label: String, value: Double)] {
         (probabilities ?? [:]).sorted { $0.key < $1.key }.map { ($0.key, $0.value) }
@@ -192,6 +449,7 @@ public struct ResponsePredictionResult: Codable, Equatable, Hashable, Sendable {
         case predictedMaxDisplacement = "predicted_max_displacement"
         case predictedMaxForce = "predicted_max_force"
         case curve
+        case curveFit = "curve_fit"
         case metrics
         case xai
     }
@@ -205,13 +463,14 @@ public struct U3PtPredictionResult: Codable, Equatable, Hashable, Sendable {
     public let predictedMaxDisplacement: Double
     public let predictedMaxForce: Double
     public let curve: [ResponseCurvePoint]
+    public let curveFit: ResponseCurveFit?
     public let modelKey: String
     public let modelLabel: String
     public let inputMode: String
     public let inputs: [String: JSONValue]
     public let notes: [String]
     public let metrics: [String: JSONValue]
-    public let xai: XAIExplanation?
+    public var xai: XAIExplanation?
 
     public var displayModelLabel: String { DDLaminateModelDisplayLabel.clean(modelLabel) }
 
@@ -223,6 +482,7 @@ public struct U3PtPredictionResult: Codable, Equatable, Hashable, Sendable {
         case predictedMaxDisplacement = "predicted_max_displacement"
         case predictedMaxForce = "predicted_max_force"
         case curve
+        case curveFit = "curve_fit"
         case modelKey = "model_key"
         case modelLabel = "model_label"
         case inputMode = "input_mode"
@@ -230,6 +490,56 @@ public struct U3PtPredictionResult: Codable, Equatable, Hashable, Sendable {
         case notes
         case metrics
         case xai
+    }
+}
+
+public struct RagAnswerRequest: Codable, Equatable, Sendable {
+    public let query: String
+    public let topK: Int
+    public let useLLM: Bool
+    public let language: String
+    public let predictionContext: [String: String]?
+
+    public init(
+        query: String,
+        topK: Int = 3,
+        useLLM: Bool = true,
+        language: String = "auto",
+        predictionContext: [String: String]? = nil
+    ) {
+        self.query = query
+        self.topK = topK
+        self.useLLM = useLLM
+        self.language = language
+        self.predictionContext = predictionContext
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case query
+        case topK = "top_k"
+        case useLLM = "use_llm"
+        case language
+        case predictionContext = "prediction_context"
+    }
+}
+
+public struct RagAnswerResponse: Codable, Equatable, Sendable {
+    public let query: String
+    public let answer: String
+    public let provider: String
+    public let model: String
+    public let retrievalCount: Int
+    public let usedLLM: Bool
+    public let error: String
+
+    enum CodingKeys: String, CodingKey {
+        case query
+        case answer
+        case provider
+        case model
+        case retrievalCount = "retrieval_count"
+        case usedLLM = "used_llm"
+        case error
     }
 }
 

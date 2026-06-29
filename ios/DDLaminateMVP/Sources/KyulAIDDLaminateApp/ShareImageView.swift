@@ -99,8 +99,8 @@ struct LaminateShareImageReportView: View {
                 Text("FORCE-DISPLACEMENT CURVE")
                     .font(.system(size: 18, weight: .black))
                     .foregroundStyle(AppTheme.muted)
-                CurveChartView(points: result.curve, predictedPt: result.predictedPt)
-                    .frame(height: 330)
+                CurveChartView(points: result.curve, predictedPt: result.predictedPt, curveFit: result.curveFit, isInteractive: false)
+                    .frame(height: 360)
             }
             .padding(20)
             .background(AppTheme.field, in: RoundedRectangle(cornerRadius: 8, style: .continuous))

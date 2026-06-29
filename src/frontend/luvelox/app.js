@@ -21,6 +21,13 @@ const TEXT = {
     requestMessage: "Requested from Luvelox web app.",
     requestSuccess: "Access request received.",
     requiresLicense: "This module requires a Luvelox license.",
+    refresh: "Refresh",
+    refreshLoading: "Refreshing...",
+    refreshOffline: "Offline fallback shown",
+    refreshReady: "Ready",
+    refreshUpdated: "Updated",
+    showPassword: "Show",
+    hidePassword: "Hide",
     signIn: "Sign in",
     signupError: "Enter a name and a password with at least 8 characters.",
     signupMode: "Create account",
@@ -44,6 +51,13 @@ const TEXT = {
     requestMessage: "Luvelox 웹 앱에서 접근 권한을 요청했습니다.",
     requestSuccess: "접근 권한 요청이 접수되었습니다.",
     requiresLicense: "이 모듈은 Luvelox 라이선스가 필요합니다.",
+    refresh: "새로고침",
+    refreshLoading: "업데이트 중...",
+    refreshOffline: "오프라인 목록 표시 중",
+    refreshReady: "준비됨",
+    refreshUpdated: "업데이트됨",
+    showPassword: "보기",
+    hidePassword: "숨기기",
     signIn: "로그인",
     signupError: "이름과 8자 이상의 비밀번호를 입력하세요.",
     signupMode: "계정 만들기",
@@ -175,7 +189,7 @@ const LOCAL_SESSIONS = {
     user: {
       id: "demo-user",
       email: "demo@luvelox.com",
-      name: "Luvelox Demo",
+      name: "Demo Account",
       company: "Luvelox MVP",
     },
     entitlements: ["module.injection", "module.laminate"],
@@ -242,12 +256,14 @@ const authTitle = document.querySelector("#auth-title");
 const authHint = document.querySelector("#auth-hint");
 const emailInput = document.querySelector("#email-input");
 const passwordInput = document.querySelector("#password-input");
+const passwordToggle = document.querySelector("#password-toggle");
 const loginError = document.querySelector("#login-error");
 const signinButton = document.querySelector("#signin-button");
 const demoButton = document.querySelector("#demo-button");
 const grid = document.querySelector("#module-grid");
 const template = document.querySelector("#module-card-template");
 const refreshButton = document.querySelector("#refresh-button");
+const refreshStatus = document.querySelector("#refresh-status");
 const signoutButton = document.querySelector("#signout-button");
 const accountButton = document.querySelector("#account-button");
 const accountLabel = document.querySelector("#account-label");
@@ -309,6 +325,20 @@ function setBusy(isBusy) {
   demoButton.disabled = isBusy;
   refreshButton.disabled = isBusy;
   requestAccessButton.disabled = isBusy;
+}
+
+function setRefreshState(stateName) {
+  const text = TEXT[LOCALE];
+  if (stateName === "loading") {
+    refreshButton.textContent = text.refreshLoading;
+    refreshStatus.textContent = text.refreshLoading;
+    return;
+  }
+  refreshButton.textContent = text.refresh;
+  refreshStatus.textContent =
+    stateName === "offline" ? text.refreshOffline :
+    stateName === "updated" ? text.refreshUpdated :
+    text.refreshReady;
 }
 
 function renderShell() {
@@ -427,6 +457,8 @@ async function demoLogin() {
 async function loadModules() {
   if (!state.session) return;
   setBusy(true);
+  setRefreshState("loading");
+  let usedFallback = false;
   try {
     const response = await fetch("/api/v1/modules/me", {
       headers: { Accept: "application/json", ...authHeaders() },
@@ -439,6 +471,7 @@ async function loadModules() {
       window.localStorage.setItem(SESSION_KEY, JSON.stringify(state.session));
     }
   } catch {
+    usedFallback = true;
     state.modules = FALLBACK_MODULES.map((module) => ({
       ...module,
       access: isEntitled(module) ? "granted" : module.access,
@@ -450,6 +483,7 @@ async function loadModules() {
     } catch (error) {
       console.error("Could not render Luvelox modules", error);
     } finally {
+      setRefreshState(usedFallback ? "offline" : "updated");
       setBusy(false);
     }
   }
@@ -542,9 +576,18 @@ loginForm.addEventListener("submit", (event) => {
 });
 
 demoButton.addEventListener("click", () => {
-  emailInput.value = "demo@luvelox.com";
+  emailInput.value = "";
   passwordInput.value = "";
   demoLogin();
+});
+
+passwordToggle.addEventListener("click", () => {
+  const isVisible = passwordInput.type === "text";
+  passwordInput.type = isVisible ? "password" : "text";
+  passwordToggle.textContent = isVisible ? TEXT[LOCALE].showPassword : TEXT[LOCALE].hidePassword;
+  passwordToggle.setAttribute("aria-label", passwordToggle.textContent);
+  passwordToggle.setAttribute("aria-pressed", String(!isVisible));
+  passwordInput.focus();
 });
 
 refreshButton.addEventListener("click", loadModules);

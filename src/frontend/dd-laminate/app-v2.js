@@ -3,6 +3,7 @@ const isLocalStaticHost = ["localhost", "127.0.0.1"].includes(window.location.ho
 const API_BASE = isLocalStaticHost
   ? `http://${window.location.hostname || "localhost"}:8000/api/v1/dd-laminate`
   : `${window.location.origin}/api/v1/dd-laminate`;
+const RAG_BASE = API_BASE.replace(/\/dd-laminate$/, "/rag");
 const IS_KO = document.documentElement.lang.toLowerCase().startsWith("ko");
 const TEXT = {
   predicting: IS_KO ? "예측 중..." : "Predicting...",
@@ -50,6 +51,9 @@ const TEXT = {
     ? "XAI 설명을 불러오지 못했습니다. 예측 결과는 정상적으로 사용할 수 있습니다."
     : "Could not load the XAI explanation. The prediction result is still usable.",
   xaiMore: (count) => IS_KO ? `나머지 ${count}개 feature 더보기` : `Show ${count} more features`,
+  xaiLocalValue: IS_KO ? "현재값" : "Current",
+  xaiLocalSensitivity: IS_KO ? "민감도" : "Sensitivity",
+  xaiPerturbation: IS_KO ? "가상 제거" : "Virtual removal",
   researchLoadingTitle: IS_KO ? "설계 공간 분석 중" : "Loading design-space insight",
   researchLoadingSummary: IS_KO
     ? "현재 θ/Case 입력이 학습 데이터 공간 어디에 있는지 계산하고 있습니다."
@@ -72,11 +76,25 @@ const TEXT = {
   whyCandidate: IS_KO ? "왜 이 후보인가요?" : "Why this candidate?",
   selectedCasePoint: IS_KO ? "선택한 Case 데이터" : "Selected Case data",
   otherCasePoint: IS_KO ? "다른 Case 데이터" : "Other Case data",
+  currentInputPoint: IS_KO ? "현재 입력" : "Current input",
+  predictionHistory: IS_KO ? "예측 기록" : "Prediction history",
+  predictionHistoryHint: IS_KO ? "카드를 누르면 해당 입력 조건을 다시 불러옵니다." : "Tap a card to reuse its setup.",
+  manageHistory: IS_KO ? "관리" : "Manage",
+  historyDeleteHint: IS_KO ? "삭제할 기록을 선택하세요." : "Select records to delete.",
+  selectAllHistory: IS_KO ? "전체 선택" : "Select all",
+  clearHistorySelection: IS_KO ? "선택 해제" : "Clear",
+  deleteSelectedHistory: IS_KO ? "선택 삭제" : "Delete selected",
+  cancelHistoryManage: IS_KO ? "취소" : "Cancel",
+  selectedHistoryCount: (count) => IS_KO ? `${count}개 선택됨` : `${count} selected`,
+  latest: IS_KO ? "최근" : "Latest",
   caseBehaviorZones: IS_KO ? "Case별 유리 영역" : "Case behavior zones",
   type1Zone: IS_KO ? "상위 Pt Type 1 영역" : "High-Pt Type 1 zone",
   highPtZone: IS_KO ? "상위 Pt 영역" : "High-Pt zone",
-  thetaWindow: IS_KO ? "θ 범위" : "Theta window",
+  thetaWindow: IS_KO ? "Theta 범위" : "Theta range",
   bestObserved: IS_KO ? "최고 관측값" : "Best observed",
+  bestPt: IS_KO ? "최고 Pt" : "Best Pt",
+  bestTheta: IS_KO ? "최고 θ" : "Best θ",
+  bestType: IS_KO ? "최고 Type" : "Best Type",
   coverage: IS_KO ? "영역 샘플" : "Zone samples",
   scoringBasis: IS_KO ? "추천 점수 구성" : "Recommendation score",
   ptContribution: IS_KO ? "Pt 기여" : "Pt",
@@ -91,6 +109,12 @@ const TEXT = {
   riskHigh: IS_KO ? "높음" : "High",
   observedType: IS_KO ? "관측 Type" : "Observed Type",
   score: IS_KO ? "점수" : "Score",
+  ragAsking: IS_KO ? "답변 생성 중..." : "Answering...",
+  ragAnswerTitle: IS_KO ? "Composite AI 답변" : "Composite AI answer",
+  ragCitations: IS_KO ? "근거 자료" : "Citations",
+  ragShowCitations: IS_KO ? "근거 보기" : "Show citations",
+  ragHideCitations: IS_KO ? "근거 숨기기" : "Hide citations",
+  ragFailed: IS_KO ? "Composite AI 답변을 불러오지 못했습니다." : "Could not load the Composite AI answer.",
 };
 const MODEL_LABELS_KO = {
   "Theta + case - ExtraTrees": "θ + Case - ExtraTrees",
@@ -157,6 +181,7 @@ const NOTE_LABELS_KO = {
 
 const apiStatus = document.querySelector("#api-status");
 const workspaceGrid = document.querySelector("#workspace-grid");
+const summaryStrip = document.querySelector(".summary-strip");
 const inputPanel = document.querySelector(".input-panel");
 const visualPanel = document.querySelector(".visual-panel");
 const dynamicStackVisuals = Array.from(
@@ -173,6 +198,8 @@ const curveModel = document.querySelector("#curve-model");
 const responseModel = document.querySelector("#response-model");
 const u3PtModel = document.querySelector("#u3-pt-model");
 const emptyState = document.querySelector("#empty-state");
+const readyCopy = document.querySelector("#ready-copy");
+const predictionHistory = document.querySelector("#prediction-history");
 const resultPanel = document.querySelector("#result");
 const errorPanel = document.querySelector("#error");
 const predictedType = document.querySelector("#predicted-type");
@@ -216,6 +243,9 @@ const researchRecommendations = document.querySelector("#research-recommendation
 const researchNotes = document.querySelector("#research-notes");
 const exportReportPng = document.querySelector("#export-report-png");
 const exportReportPdf = document.querySelector("#export-report-pdf");
+const ragForm = document.querySelector("#rag-form");
+const ragAnswer = document.querySelector("#rag-answer");
+const ragQueryInput = ragForm?.querySelector('textarea[name="query"]');
 let latestPredictionData = null;
 let xaiRequestSerial = 0;
 let researchRequestSerial = 0;
@@ -225,11 +255,15 @@ const PRIMARY_RESPONSE_MODEL_KEYS = [
   "response_surrogate_physics_v2",
   "response_goint_physics_nn_v2",
 ];
+const PREDICTION_HISTORY_KEY = "ddLaminate.predictionHistory.v1";
+const PREDICTION_HISTORY_LIMIT = 5;
+const selectedHistorySignatures = new Set();
+let historyDeleteMode = false;
 const XAI_VISIBLE_LIMIT = 5;
 const STACK_FORMULAS = {
-  Case2: "[[+/-θ1]/[+/-θ2]] x 4",
-  Case3: "[[+/-θ1]/[+/-θ2]/[-/+θ1]/[-/+θ2]] x 2",
-  Case4: "([+/-θ1]/[+/-θ2]) x 2 + ([-/+θ1]/[-/+θ2]) x 2",
+  Case2: "[[±θ₁]/[±θ₂]]₄",
+  Case3: "[[±θ₁]/[±θ₂]/[∓θ₁]/[∓θ₂]]₂",
+  Case4: "[([±θ₁]/[±θ₂])₂ / ([∓θ₁]/[∓θ₂])₂]",
 };
 const STACK_COLORS = {
   theta1: {
@@ -264,6 +298,19 @@ function formatMetric(value, digits = 3) {
     return "-";
   }
   return Number(value).toLocaleString(undefined, { maximumFractionDigits: digits });
+}
+
+function formatCompactNumber(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return "-";
+  }
+  const absolute = Math.abs(numeric);
+  if (absolute > 0 && absolute < 0.001) {
+    return numeric.toExponential(2);
+  }
+  const digits = absolute >= 100 ? 1 : absolute >= 1 ? 3 : 5;
+  return numeric.toLocaleString(undefined, { maximumFractionDigits: digits });
 }
 
 function formatAxisTick(value, smallValueDigits = 4) {
@@ -325,6 +372,257 @@ function clampStackAngle(value) {
 function formatThetaReadout(value) {
   const rounded = clampStackAngle(value);
   return `${rounded > 0 ? "+" : ""}${rounded}°`;
+}
+
+function activePredictionMode() {
+  return document.querySelector(".mode-button.active")?.dataset.mode || "response";
+}
+
+function historyKindForMode(mode = activePredictionMode()) {
+  return mode === "u3" ? "u3" : mode === "response" ? "response" : null;
+}
+
+function loadPredictionHistory() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(PREDICTION_HISTORY_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed.filter((run) => run && (run.kind === "response" || run.kind === "u3")) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writePredictionHistory(runs) {
+  try {
+    localStorage.setItem(PREDICTION_HISTORY_KEY, JSON.stringify(runs.slice(0, PREDICTION_HISTORY_LIMIT * 2)));
+  } catch {
+    // History is a convenience feature; prediction should keep working if storage is blocked.
+  }
+}
+
+function historySignature(run) {
+  return [run.kind, run.caseName, run.theta1, run.theta2, run.modelKey].join("|");
+}
+
+function currentPredictionHistoryRuns() {
+  const kind = historyKindForMode();
+  return kind
+    ? loadPredictionHistory().filter((run) => run.kind === kind).slice(0, PREDICTION_HISTORY_LIMIT)
+    : [];
+}
+
+function resetHistoryDeleteState() {
+  historyDeleteMode = false;
+  selectedHistorySignatures.clear();
+}
+
+function pruneHistorySelection(runs) {
+  const visibleSignatures = new Set(runs.map((run) => historySignature(run)));
+  Array.from(selectedHistorySignatures).forEach((signature) => {
+    if (!visibleSignatures.has(signature)) {
+      selectedHistorySignatures.delete(signature);
+    }
+  });
+}
+
+function deleteSelectedPredictionHistory() {
+  if (!selectedHistorySignatures.size) {
+    return;
+  }
+  const nextRuns = loadPredictionHistory().filter((run) => !selectedHistorySignatures.has(historySignature(run)));
+  writePredictionHistory(nextRuns);
+  resetHistoryDeleteState();
+  renderPredictionHistory();
+}
+
+function savePredictionHistory(kind, data) {
+  if (!kind || !data) {
+    return;
+  }
+  const inputs = data.inputs || {};
+  const run = {
+    kind,
+    caseName: inputs.case || "Case2",
+    theta1: clampStackAngle(inputs.theta1),
+    theta2: clampStackAngle(inputs.theta2),
+    modelKey: data.model_key || historyFormForKind(kind)?.querySelector('select[name="model"]')?.value || "",
+    modelLabel: displayModelLabel(data.model_label || ""),
+    predictedType: data.predicted_type ?? null,
+    confidence: data.confidence ?? null,
+    predictedPt: data.predicted_pt ?? null,
+    createdAt: new Date().toISOString(),
+  };
+  const allRuns = loadPredictionHistory();
+  const nextRuns = [run, ...allRuns.filter((item) => historySignature(item) !== historySignature(run))];
+  const trimmedByKind = ["response", "u3"].flatMap((itemKind) =>
+    nextRuns.filter((item) => item.kind === itemKind).slice(0, PREDICTION_HISTORY_LIMIT)
+  );
+  writePredictionHistory(trimmedByKind);
+  renderPredictionHistory();
+}
+
+function signedTheta(value) {
+  const rounded = clampStackAngle(value);
+  return `${rounded > 0 ? "+" : ""}${rounded}°`;
+}
+
+function historyFormForKind(kind) {
+  return kind === "u3" ? u3PtForm : responseForm;
+}
+
+function applyPredictionHistoryRun(run) {
+  const form = historyFormForKind(run.kind);
+  if (!form) {
+    return;
+  }
+  const modeButton = document.querySelector(`.mode-button[data-mode="${run.kind === "u3" ? "u3" : "response"}"]`);
+  if (modeButton && !modeButton.classList.contains("active")) {
+    modeButton.click();
+  }
+  const theta1Input = form.querySelector('input[name="theta1"]');
+  const theta2Input = form.querySelector('input[name="theta2"]');
+  const caseSelect = form.querySelector('select[name="case"]');
+  const modelSelect = form.querySelector('select[name="model"]');
+  if (theta1Input) theta1Input.value = String(clampStackAngle(run.theta1));
+  if (theta2Input) theta2Input.value = String(clampStackAngle(run.theta2));
+  if (caseSelect) caseSelect.value = run.caseName || "Case2";
+  if (modelSelect && run.modelKey && Array.from(modelSelect.options).some((option) => option.value === run.modelKey)) {
+    modelSelect.value = run.modelKey;
+  }
+  form.querySelectorAll('input[name="theta1"], input[name="theta2"]').forEach((input) => {
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  updateDynamicStackPreview();
+  inputPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function renderPredictionHistory() {
+  if (!predictionHistory || !readyCopy || !emptyState) {
+    return;
+  }
+  const kind = historyKindForMode();
+  const runs = currentPredictionHistoryRuns();
+  pruneHistorySelection(runs);
+  document.body.classList.toggle("has-history", runs.length > 0 && !document.body.classList.contains("has-result"));
+
+  if (!runs.length) {
+    resetHistoryDeleteState();
+    readyCopy.classList.remove("hidden");
+    predictionHistory.classList.add("hidden");
+    predictionHistory.innerHTML = "";
+    return;
+  }
+
+  readyCopy.classList.add("hidden");
+  predictionHistory.classList.remove("hidden");
+  predictionHistory.innerHTML = "";
+
+  const head = document.createElement("div");
+  head.className = "prediction-history-head";
+  head.innerHTML = `
+    <div>
+      <p class="eyebrow">${kind === "u3" ? TEXT.u3PtTitle : (IS_KO ? "적층 예측" : "Laminate Forecast")}</p>
+      <h2>${TEXT.predictionHistory}</h2>
+      <p>${historyDeleteMode ? TEXT.historyDeleteHint : TEXT.predictionHistoryHint}</p>
+    </div>
+    <div class="prediction-history-actions"></div>
+  `;
+  const actions = head.querySelector(".prediction-history-actions");
+  const countBadge = document.createElement("span");
+  countBadge.className = "prediction-history-count";
+  countBadge.textContent = historyDeleteMode ? TEXT.selectedHistoryCount(selectedHistorySignatures.size) : String(runs.length);
+  actions.appendChild(countBadge);
+
+  if (historyDeleteMode) {
+    const selectAllButton = document.createElement("button");
+    selectAllButton.type = "button";
+    selectAllButton.className = "history-action-button";
+    selectAllButton.textContent = TEXT.selectAllHistory;
+    selectAllButton.disabled = selectedHistorySignatures.size === runs.length;
+    selectAllButton.addEventListener("click", () => {
+      runs.forEach((run) => selectedHistorySignatures.add(historySignature(run)));
+      renderPredictionHistory();
+    });
+
+    const clearButton = document.createElement("button");
+    clearButton.type = "button";
+    clearButton.className = "history-action-button";
+    clearButton.textContent = TEXT.clearHistorySelection;
+    clearButton.disabled = selectedHistorySignatures.size === 0;
+    clearButton.addEventListener("click", () => {
+      selectedHistorySignatures.clear();
+      renderPredictionHistory();
+    });
+
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.className = "history-action-button danger";
+    deleteButton.textContent = TEXT.deleteSelectedHistory;
+    deleteButton.disabled = selectedHistorySignatures.size === 0;
+    deleteButton.addEventListener("click", deleteSelectedPredictionHistory);
+
+    const cancelButton = document.createElement("button");
+    cancelButton.type = "button";
+    cancelButton.className = "history-action-button";
+    cancelButton.textContent = TEXT.cancelHistoryManage;
+    cancelButton.addEventListener("click", () => {
+      resetHistoryDeleteState();
+      renderPredictionHistory();
+    });
+
+    actions.append(selectAllButton, clearButton, deleteButton, cancelButton);
+  } else {
+    const manageButton = document.createElement("button");
+    manageButton.type = "button";
+    manageButton.className = "history-action-button danger";
+    manageButton.textContent = TEXT.manageHistory;
+    manageButton.addEventListener("click", () => {
+      historyDeleteMode = true;
+      selectedHistorySignatures.clear();
+      renderPredictionHistory();
+    });
+    actions.appendChild(manageButton);
+  }
+
+  const list = document.createElement("div");
+  list.className = "prediction-history-list";
+  runs.forEach((run, index) => {
+    const signature = historySignature(run);
+    const isSelected = selectedHistorySignatures.has(signature);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `prediction-history-card${historyDeleteMode ? " delete-mode" : ""}${isSelected ? " selected" : ""}`;
+    button.setAttribute("aria-pressed", historyDeleteMode ? String(isSelected) : "false");
+    button.innerHTML = `
+      <div class="prediction-history-main">
+        ${historyDeleteMode ? `<span class="prediction-history-check">${isSelected ? "✓" : ""}</span>` : ""}
+        <span class="prediction-history-index">${index === 0 ? TEXT.latest : `#${index + 1}`}</span>
+        <strong class="prediction-history-case">${run.caseName || "Case2"}</strong>
+      </div>
+      <div class="prediction-history-model">${run.modelLabel || "-"}</div>
+      <div class="prediction-history-chips">
+        <span>θ₁ ${signedTheta(run.theta1)}</span>
+        <span>θ₂ ${signedTheta(run.theta2)}</span>
+        <span>${run.predictedType ? `Type ${run.predictedType}` : "Type -"}</span>
+        <span>${percent(run.confidence)}</span>
+        <span>Pt ${formatMetric(run.predictedPt, 2)}</span>
+      </div>
+    `;
+    button.addEventListener("click", () => {
+      if (!historyDeleteMode) {
+        applyPredictionHistoryRun(run);
+        return;
+      }
+      if (selectedHistorySignatures.has(signature)) {
+        selectedHistorySignatures.delete(signature);
+      } else {
+        selectedHistorySignatures.add(signature);
+      }
+      renderPredictionHistory();
+    });
+    list.appendChild(button);
+  });
+
+  predictionHistory.append(head, list);
 }
 
 function formatThetaInputValue(value) {
@@ -711,6 +1009,7 @@ function updateResponseCurveLegend(mode = "standard") {
 
 function resetPredictionState() {
   latestPredictionData = null;
+  resetHistoryDeleteState();
   document.body.classList.remove("has-result");
   emptyState.classList.remove("hidden");
   resultPanel.classList.add("hidden");
@@ -729,6 +1028,7 @@ function resetPredictionState() {
   xaiRequestSerial += 1;
   renderXai(null);
   renderResearchHidden();
+  renderPredictionHistory();
 }
 
 function xaiCategoryLabel(category) {
@@ -962,6 +1262,8 @@ function localizeXaiText(text) {
       "선택한 적층 구조가 Case 4인지 나타내는 one-hot 표시자입니다.",
     "Feature importance is local: the strongest 12 global candidates are recomputed for this theta/case input by feature masking.":
       "Feature 중요도는 현재 θ/Case 입력에 맞춰 계산됩니다. global 기준 상위 12개 후보 feature를 feature masking으로 다시 평가합니다.",
+    "Local sensitivity reports how much the model output changes when the current feature value is masked for this single input.":
+      "Local sensitivity는 현재 입력에서 해당 feature 값을 가렸을 때 모델 출력이 얼마나 변하는지 나타냅니다.",
     "A small global prior is blended in to keep known model-level drivers visible.":
       "모델 전체에서 중요한 feature도 함께 보이도록 작은 global prior를 섞었습니다.",
     "Feature importance is global because live local masking was unavailable for this model response.":
@@ -979,6 +1281,19 @@ function localizeXaiFeatureSet(featureSet) {
     "theta + CLT physics": "θ + CLT 물리 feature",
   };
   return map[featureSet] || featureSet;
+}
+
+function localizeXaiPerturbation(text) {
+  const normalized = String(text);
+  const maskedMatch = normalized.match(/^masked to\s+(.+)$/i);
+  if (maskedMatch) {
+    const replacement = maskedMatch[1];
+    return IS_KO ? `${replacement}으로 대체` : `replaced with ${replacement}`;
+  }
+  if (!IS_KO) {
+    return normalized;
+  }
+  return normalized;
 }
 
 function renderXai(xai) {
@@ -1066,6 +1381,9 @@ async function requestLazyXai(data) {
       model: data.model_key,
     });
     if (serial === xaiRequestSerial) {
+      if (latestPredictionData) {
+        latestPredictionData = { ...latestPredictionData, xai };
+      }
       renderXai(xai);
     }
   } catch (error) {
@@ -1096,6 +1414,23 @@ function createXaiFeatureItem(feature, maxImportance) {
   description.textContent = localizeXaiText(feature.explanation || "");
 
   main.append(head, description);
+
+  const detailParts = [];
+  if (feature.local_value !== null && feature.local_value !== undefined) {
+    detailParts.push(`${TEXT.xaiLocalValue}: ${formatCompactNumber(feature.local_value)}`);
+  }
+  if (feature.local_sensitivity !== null && feature.local_sensitivity !== undefined) {
+    detailParts.push(`${TEXT.xaiLocalSensitivity}: ${formatCompactNumber(feature.local_sensitivity)}`);
+  }
+  if (feature.perturbation) {
+    detailParts.push(`${TEXT.xaiPerturbation}: ${localizeXaiPerturbation(String(feature.perturbation))}`);
+  }
+  if (detailParts.length) {
+    const localDetail = document.createElement("p");
+    localDetail.className = "xai-feature-local";
+    localDetail.textContent = detailParts.join(" · ");
+    main.appendChild(localDetail);
+  }
 
   const score = document.createElement("div");
   score.className = "xai-feature-score";
@@ -1244,6 +1579,9 @@ async function requestDesignSpace(data, scope) {
       scope,
     });
     if (serial === researchRequestSerial) {
+      if (latestPredictionData) {
+        latestPredictionData = { ...latestPredictionData, design_space: insight };
+      }
       renderDesignSpace(insight);
     }
   } catch (error) {
@@ -1289,7 +1627,8 @@ function nearestResearchMapPoint(canvasX, canvasY) {
       return;
     }
     const selectedCaseBonus = entry.point.case === researchMapState.inputs?.case ? -2.5 : 0;
-    const score = distance + selectedCaseBonus;
+    const currentInputBonus = entry.point.isCurrentInput ? -10 : 0;
+    const score = distance + selectedCaseBonus + currentInputBonus;
     if (score < bestScore) {
       best = { ...entry, distance };
       bestScore = score;
@@ -1313,17 +1652,25 @@ function renderResearchMapTooltip(point) {
     return;
   }
   researchMapTooltip.innerHTML = "";
+  const isCurrentInput = Boolean(point.isCurrentInput);
   const title = document.createElement("strong");
-  title.textContent = `${caseLabel(point.case)} · ${typeLabel(point.type)}`;
+  title.textContent = isCurrentInput
+    ? `${TEXT.currentInputPoint} · ${caseLabel(point.case)}`
+    : `${caseLabel(point.case)} · ${typeLabel(point.type)}`;
   const meta = document.createElement("span");
-  meta.textContent = point.case === researchMapState.inputs?.case
+  meta.textContent = isCurrentInput
+    ? TEXT.modelEstimate
+    : point.case === researchMapState.inputs?.case
     ? TEXT.selectedCasePoint
     : TEXT.otherCasePoint;
   const list = document.createElement("dl");
   addTooltipField(list, "θ₁", formatMetric(point.theta1, 0));
   addTooltipField(list, "θ₂", formatMetric(point.theta2, 0));
   addTooltipField(list, "Pt", formatMetric(point.pt, 2));
-  addTooltipField(list, "Test", point.test_id || "-");
+  addTooltipField(list, isCurrentInput ? "Type" : "Test", isCurrentInput ? typeLabel(point.type) : (point.test_id || "-"));
+  if (isCurrentInput && point.confidence !== undefined && point.confidence !== null) {
+    addTooltipField(list, IS_KO ? "신뢰도" : "Confidence", percent(point.confidence));
+  }
   researchMapTooltip.append(title, meta, list);
 }
 
@@ -1445,26 +1792,47 @@ function drawDesignSpaceMap(points, inputs) {
     ctx.arc(pointX, pointY, radius, 0, Math.PI * 2);
     ctx.fill();
   });
-  researchMapState = { hoverPoints, inputs };
-  hideResearchMapTooltip();
   ctx.globalAlpha = 1;
 
   if (inputs) {
-    ctx.save();
-    ctx.translate(x(inputs.theta1), y(inputs.theta2));
-    ctx.fillStyle = "#7c3aed";
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(0, 0, 8, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = "#111827";
-    ctx.font = "700 12px system-ui, sans-serif";
-    ctx.textAlign = "left";
-    ctx.fillText(IS_KO ? "현재 입력" : "Current input", 12, -10);
-    ctx.restore();
+    const currentTheta1 = Number(inputs.theta1);
+    const currentTheta2 = Number(inputs.theta2);
+    if (Number.isFinite(currentTheta1) && Number.isFinite(currentTheta2)) {
+      const currentX = x(currentTheta1);
+      const currentY = y(currentTheta2);
+      hoverPoints.push({
+        x: currentX,
+        y: currentY,
+        radius: 10,
+        point: {
+          isCurrentInput: true,
+          theta1: currentTheta1,
+          theta2: currentTheta2,
+          case: inputs.case,
+          type: latestPredictionData?.predicted_type ?? null,
+          pt: latestPredictionData?.predicted_pt ?? latestPredictionData?.inputs?.pt ?? null,
+          confidence: latestPredictionData?.confidence ?? null,
+          test_id: TEXT.currentInputPoint,
+        },
+      });
+      ctx.save();
+      ctx.translate(currentX, currentY);
+      ctx.fillStyle = "#7c3aed";
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, 0, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#111827";
+      ctx.font = "700 12px system-ui, sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText(TEXT.currentInputPoint, 12, -10);
+      ctx.restore();
+    }
   }
+  researchMapState = { hoverPoints, inputs };
+  hideResearchMapTooltip();
 
   ctx.fillStyle = "#617086";
   ctx.font = "700 12px system-ui, sans-serif";
@@ -1648,9 +2016,21 @@ function formatThetaRange(minValue, maxValue) {
   if (Math.round(min) === Math.round(max)) {
     return formatMetric(min, 0);
   }
-  return IS_KO
-    ? `${formatMetric(min, 0)} ~ ${formatMetric(max, 0)}`
-    : `${formatMetric(min, 0)} to ${formatMetric(max, 0)}`;
+  return `${formatMetric(min, 0)} ~ ${formatMetric(max, 0)}`;
+}
+
+function caseInsightClass(caseValue) {
+  const normalized = String(caseValue || "").toLowerCase();
+  if (normalized.includes("case2")) {
+    return "case-2";
+  }
+  if (normalized.includes("case3")) {
+    return "case-3";
+  }
+  if (normalized.includes("case4")) {
+    return "case-4";
+  }
+  return "case-unknown";
 }
 
 function renderCaseInsights(insight) {
@@ -1668,24 +2048,42 @@ function renderCaseInsights(insight) {
   researchCaseInsightList.innerHTML = "";
   items.forEach((item) => {
     const card = document.createElement("article");
-    card.className = `case-insight-card${item.case === selectedCase ? " selected" : ""}`;
+    card.className = `case-insight-card ${caseInsightClass(item.case)}${item.case === selectedCase ? " selected" : ""}`;
     card.innerHTML = `
       <div class="case-insight-head">
-        <span>${caseLabel(item.case)}</span>
+        <span class="case-insight-badge">${caseLabel(item.case)}</span>
         <strong>${focusKindLabel(item.focus_kind)}</strong>
+        <em>${percent(item.focus_rate)}</em>
       </div>
-      <dl>
+      <div class="case-theta-window">
+        <span>${TEXT.thetaWindow}</span>
+        <dl class="case-theta-grid">
+          <div class="case-theta-chip">
+            <dt>θ₁</dt>
+            <dd>${formatThetaRange(item.theta1_min, item.theta1_max)}</dd>
+          </div>
+          <div class="case-theta-chip">
+            <dt>θ₂</dt>
+            <dd>${formatThetaRange(item.theta2_min, item.theta2_max)}</dd>
+          </div>
+        </dl>
+      </div>
+      <dl class="case-insight-metrics">
         <div>
-          <dt>${TEXT.thetaWindow}</dt>
-          <dd>θ₁ ${formatThetaRange(item.theta1_min, item.theta1_max)} / θ₂ ${formatThetaRange(item.theta2_min, item.theta2_max)}</dd>
+          <dt>${TEXT.bestPt}</dt>
+          <dd>${formatMetric(item.best_pt, 0)}</dd>
         </div>
         <div>
-          <dt>${TEXT.bestObserved}</dt>
-          <dd>Pt ${formatMetric(item.best_pt, 0)} · θ₁ ${formatMetric(item.best_theta1, 0)} / θ₂ ${formatMetric(item.best_theta2, 0)} · ${typeLabel(item.best_type)}</dd>
+          <dt>${TEXT.bestTheta}</dt>
+          <dd>θ₁ ${formatMetric(item.best_theta1, 0)} · θ₂ ${formatMetric(item.best_theta2, 0)}</dd>
+        </div>
+        <div>
+          <dt>${TEXT.bestType}</dt>
+          <dd>${typeLabel(item.best_type)}</dd>
         </div>
         <div>
           <dt>${TEXT.coverage}</dt>
-          <dd>${item.focus_count}/${item.count} · ${percent(item.focus_rate)}</dd>
+          <dd>${item.focus_count}/${item.count}</dd>
         </div>
       </dl>
     `;
@@ -2494,6 +2892,7 @@ function renderResponseEstimate(data) {
     requestLazyXai(data);
   }
   requestDesignSpace(data, "response");
+  savePredictionHistory("response", data);
 }
 
 function renderU3PtResult(data) {
@@ -2563,6 +2962,7 @@ function renderU3PtResult(data) {
     item.textContent = IS_KO ? (NOTE_LABELS_KO[note] || note) : note;
     notes.appendChild(item);
   });
+  savePredictionHistory("u3", data);
 }
 
 function parseCurveCsv(text) {
@@ -2737,6 +3137,184 @@ function drawReportProbabilities(ctx, probabilities, x, y, width, height) {
   ctx.textAlign = "left";
 }
 
+function isReportVisible(element) {
+  return Boolean(element && !element.classList.contains("hidden"));
+}
+
+function cleanReportText(text) {
+  return String(text || "").replace(/\s+/g, " ").trim();
+}
+
+function reportDomLines(root, selector, limit = Number.POSITIVE_INFINITY) {
+  if (!root) {
+    return [];
+  }
+  return Array.from(root.querySelectorAll(selector))
+    .map((element) => cleanReportText(element.textContent))
+    .filter(Boolean)
+    .slice(0, limit);
+}
+
+function wrapReportLines(ctx, text, maxWidth) {
+  const words = cleanReportText(text).split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = "";
+  words.forEach((word) => {
+    const candidate = line ? `${line} ${word}` : word;
+    if (ctx.measureText(candidate).width > maxWidth && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = candidate;
+    }
+  });
+  if (line) {
+    lines.push(line);
+  }
+  return lines;
+}
+
+function drawReportHeader(ctx, title, x, y) {
+  ctx.fillStyle = "#132236";
+  ctx.font = "900 24px Inter, system-ui, sans-serif";
+  ctx.fillText(title, x, y);
+}
+
+function drawReportTextBlock(ctx, lines, x, y, width, options = {}) {
+  const font = options.font || "18px Inter, system-ui, sans-serif";
+  const color = options.color || "#607086";
+  const lineHeight = options.lineHeight || 27;
+  const maxLines = options.maxLines || Number.POSITIVE_INFINITY;
+  let drawn = 0;
+  ctx.fillStyle = color;
+  ctx.font = font;
+  lines.filter(Boolean).some((line) => {
+    const wrapped = wrapReportLines(ctx, line, width);
+    return wrapped.some((wrappedLine) => {
+      if (drawn >= maxLines) {
+        return true;
+      }
+      ctx.fillText(wrappedLine, x, y + drawn * lineHeight);
+      drawn += 1;
+      return false;
+    });
+  });
+  return y + Math.max(drawn, 1) * lineHeight;
+}
+
+function drawReportSection(ctx, title, lines, x, y, width, options = {}) {
+  if (!lines.length && !options.force) {
+    return y;
+  }
+  drawReportHeader(ctx, title, x, y);
+  return drawReportTextBlock(ctx, lines, x, y + 36, width, options) + (options.gap ?? 34);
+}
+
+function reportXaiLines(data = {}) {
+  if (!isReportVisible(xaiPanel) && !data.xai) {
+    return [];
+  }
+  const lines = [];
+  const title = cleanReportText(xaiTitle?.textContent || data.xai?.title);
+  const summary = cleanReportText(xaiSummary?.textContent || data.xai?.summary);
+  const method = cleanReportText(xaiMethod?.textContent || data.xai?.method);
+  if (title) {
+    lines.push(title);
+  }
+  if (summary) {
+    lines.push(summary);
+  }
+  if (method) {
+    lines.push(method);
+  }
+
+  const featureLines = xaiFeatures
+    ? Array.from(xaiFeatures.querySelectorAll(".xai-feature")).map((feature, index) => {
+      const label = cleanReportText(feature.querySelector(".xai-feature-head strong")?.textContent);
+      const category = cleanReportText(feature.querySelector(".xai-feature-head span")?.textContent);
+      const score = cleanReportText(feature.querySelector(".xai-feature-score span")?.textContent);
+      const description = cleanReportText(feature.querySelector(".xai-feature-description")?.textContent);
+      const headline = [label, category ? `(${category})` : "", score ? `- ${score}` : ""]
+        .filter(Boolean)
+        .join(" ");
+      return `${index + 1}. ${headline}${description ? `: ${description}` : ""}`;
+    }).filter(Boolean)
+    : [];
+  if (!featureLines.length) {
+    featureLines.push(...reportDomLines(xaiFeatures, ".xai-loading"));
+  }
+  const noteLines = reportDomLines(xaiNotes, "li").map((line) => `${IS_KO ? "노트" : "Note"}: ${line}`);
+  return [...lines, ...featureLines, ...noteLines];
+}
+
+function reportResearchLines(data = {}) {
+  if (!isReportVisible(researchPanel) && !data.design_space) {
+    return [];
+  }
+  const lines = [];
+  const title = cleanReportText(researchTitle?.textContent);
+  const summary = cleanReportText(researchSummary?.textContent);
+  if (title) {
+    lines.push(title);
+  }
+  if (summary) {
+    lines.push(summary);
+  }
+  reportDomLines(researchComparison, ".comparison-card").forEach((line) => {
+    lines.push(`${IS_KO ? "비교" : "Comparison"}: ${line}`);
+  });
+  reportDomLines(researchComparison, ".comparison-score i").forEach((line) => {
+    lines.push(`${IS_KO ? "점수" : "Score"}: ${line}`);
+  });
+  reportDomLines(researchComparison, ".comparison-rationale").forEach((line) => {
+    lines.push(line);
+  });
+  reportDomLines(researchCaseInsightList, ".case-insight-card").forEach((line) => {
+    lines.push(`${IS_KO ? "Case 유리 영역" : "Case behavior zone"}: ${line}`);
+  });
+  reportDomLines(researchCaseList, ".case-risk-card").forEach((line) => {
+    lines.push(`${IS_KO ? "Case 위험도" : "Case risk"}: ${line}`);
+  });
+  reportDomLines(researchNearestList, ".nearest-item").forEach((line) => {
+    lines.push(`${IS_KO ? "가까운 해석" : "Nearest simulation"}: ${line}`);
+  });
+  reportDomLines(researchRecommendations, ".recommendation-card").forEach((line, index) => {
+    lines.push(`${IS_KO ? "추천 후보" : "Recommended candidate"} ${index + 1}: ${line}`);
+  });
+  reportDomLines(researchNotes, "li").forEach((line) => {
+    lines.push(`${IS_KO ? "노트" : "Note"}: ${line}`);
+  });
+  return lines;
+}
+
+function reportResultNotes(data = {}) {
+  const domNotes = reportDomLines(notes, "li");
+  if (domNotes.length) {
+    return domNotes;
+  }
+  return (data.notes || []).map((note) => IS_KO ? (NOTE_LABELS_KO[note] || note) : note);
+}
+
+function estimateReportHeight(data, sections) {
+  const measureCanvas = document.createElement("canvas");
+  const measureCtx = measureCanvas.getContext("2d");
+  measureCtx.font = "18px Inter, system-ui, sans-serif";
+  let height = 960;
+  if (data.curve?.length) {
+    height += 900;
+  }
+  if (isReportVisible(researchPanel) && researchMapCanvas) {
+    height += 430;
+  }
+  sections.forEach((section) => {
+    const wrappedLineCount = section.lines.reduce((count, line) => (
+      count + Math.max(1, wrapReportLines(measureCtx, line, 1072).length)
+    ), 0);
+    height += 118 + wrappedLineCount * 32;
+  });
+  return Math.max(1200, Math.min(22000, height + 120));
+}
+
 function drawCanvasImage(ctx, sourceCanvas, x, y, width, height) {
   if (!sourceCanvas) {
     return;
@@ -2786,10 +3364,17 @@ function buildResultReportCanvas() {
 
   const data = latestPredictionData;
   const hasCurve = Boolean(data.curve?.length);
-  const hasNotes = Boolean(data.notes?.length);
+  const noteLines = reportResultNotes(data).map((note, index) => `${index + 1}. ${note}`);
+  const xaiLines = reportXaiLines(data);
+  const researchLines = reportResearchLines(data);
+  const sections = [
+    { title: "XAI", lines: xaiLines },
+    { title: IS_KO ? "연구 인사이트" : "Research Insight", lines: researchLines },
+    { title: TEXT.reportNotes, lines: noteLines },
+  ].filter((section) => section.lines.length);
   const canvas = document.createElement("canvas");
   canvas.width = 1200;
-  canvas.height = hasCurve ? (hasNotes ? 2100 : 1860) : (hasNotes ? 1060 : 880);
+  canvas.height = estimateReportHeight(data, sections);
   const ctx = canvas.getContext("2d");
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -2813,30 +3398,16 @@ function buildResultReportCanvas() {
   drawReportCard(ctx, 612, 210, 250, 116, "Predicted Pt", formatMetric(data.predicted_pt ?? data.inputs?.pt, 2));
   drawReportCard(ctx, 886, 210, 250, 116, IS_KO ? "곡선 포인트" : "Curve points", String(data.curve?.length || "-"));
 
-  ctx.fillStyle = "#132236";
-  ctx.font = "900 24px Inter, system-ui, sans-serif";
-  ctx.fillText(TEXT.reportInputs, 64, 384);
-  ctx.fillStyle = "#607086";
-  ctx.font = "18px Inter, system-ui, sans-serif";
-  drawWrappedText(ctx, reportInputText(data.inputs), 64, 420, 1072, 28, 2);
+  let y = 386;
+  y = drawReportSection(ctx, TEXT.reportInputs, [reportInputText(data.inputs)], 64, y, 1072, { gap: 30 });
+  y = drawReportSection(ctx, IS_KO ? "모델" : "Model", [displayModelLabel(data.model_label)], 64, y, 1072, { gap: 34 });
 
-  ctx.fillStyle = "#132236";
-  ctx.font = "900 24px Inter, system-ui, sans-serif";
-  ctx.fillText(IS_KO ? "모델" : "Model", 64, 500);
-  ctx.fillStyle = "#607086";
-  ctx.font = "18px Inter, system-ui, sans-serif";
-  drawWrappedText(ctx, displayModelLabel(data.model_label), 64, 536, 1072, 28, 2);
+  drawReportHeader(ctx, TEXT.reportProbabilities, 64, y);
+  drawReportProbabilities(ctx, data.probabilities, 64, y + 34, 1072, 150);
+  y += 224;
 
-  ctx.fillStyle = "#132236";
-  ctx.font = "900 24px Inter, system-ui, sans-serif";
-  ctx.fillText(TEXT.reportProbabilities, 64, 628);
-  drawReportProbabilities(ctx, data.probabilities, 64, 662, 1072, 150);
-
-  let y = 900;
   if (hasCurve) {
-    ctx.fillStyle = "#132236";
-    ctx.font = "900 24px Inter, system-ui, sans-serif";
-    ctx.fillText(TEXT.reportCurve, 64, y);
+    drawReportHeader(ctx, TEXT.reportCurve, 64, y);
     drawCanvasImage(ctx, responseCurveCanvas, 64, y + 30, 1072, 643);
     y += 740;
     drawReportCard(ctx, 64, y, 330, 104, "Max. Displacement", formatMetric(data.predicted_max_displacement, 5));
@@ -2845,19 +3416,41 @@ function buildResultReportCanvas() {
     y += 170;
   }
 
-  if (hasNotes) {
-    ctx.fillStyle = "#132236";
-    ctx.font = "900 24px Inter, system-ui, sans-serif";
-    ctx.fillText(TEXT.reportNotes, 64, y);
-    ctx.fillStyle = "#607086";
-    ctx.font = "18px Inter, system-ui, sans-serif";
-    data.notes.forEach((note, index) => {
-      const localizedNote = IS_KO ? (NOTE_LABELS_KO[note] || note) : note;
-      drawWrappedText(ctx, `${index + 1}. ${localizedNote}`, 64, y + 38 + index * 68, 1072, 26, 2);
+  if (isReportVisible(researchPanel) && researchMapCanvas) {
+    drawReportHeader(ctx, IS_KO ? "Design-space map" : "Design-space Map", 64, y);
+    drawCanvasImage(ctx, researchMapCanvas, 64, y + 30, 1072, 476);
+    y += 570;
+  }
+
+  sections.forEach((section) => {
+    y = drawReportSection(ctx, section.title, section.lines, 64, y, 1072, {
+      lineHeight: 30,
+      gap: 40,
     });
+  });
+
+  if (y + 80 < canvas.height) {
+    ctx.fillStyle = "#f1f7fb";
+    ctx.fillRect(0, y + 20, canvas.width, canvas.height - y - 20);
   }
 
   return canvas;
+}
+
+function reportCanvasPageDataUrls(canvas, pageHeight = 1600) {
+  const pages = [];
+  for (let y = 0; y < canvas.height; y += pageHeight) {
+    const sliceHeight = Math.min(pageHeight, canvas.height - y);
+    const page = document.createElement("canvas");
+    page.width = canvas.width;
+    page.height = sliceHeight;
+    const ctx = page.getContext("2d");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, page.width, page.height);
+    ctx.drawImage(canvas, 0, y, canvas.width, sliceHeight, 0, 0, page.width, sliceHeight);
+    pages.push(page.toDataURL("image/png"));
+  }
+  return pages;
 }
 
 function exportReportAsPng() {
@@ -2899,13 +3492,23 @@ function exportReportAsPdf() {
       setError(IS_KO ? "팝업 차단을 해제한 뒤 다시 시도해 주세요." : "Allow pop-ups and try again.");
       return;
     }
-    const dataUrl = canvas.toDataURL("image/png");
+    const pageImages = reportCanvasPageDataUrls(canvas);
+    const pageMarkup = pageImages.map((dataUrl, index) => (
+      `<section class="report-page"><img src="${dataUrl}" alt="${TEXT.reportTitle} ${index + 1}" /></section>`
+    )).join("");
     popup.document.write(`<!doctype html><html><head><title>${TEXT.reportTitle}</title><style>
       body { margin: 0; padding: 24px; font-family: system-ui, sans-serif; color: #132236; background: #f4f8fb; }
-      img { display: block; width: 100%; max-width: 980px; margin: 0 auto; box-shadow: 0 18px 46px rgba(19,34,54,0.16); }
+      .report-page { width: 980px; margin: 0 auto 24px; break-after: page; page-break-after: always; }
+      .report-page:last-of-type { break-after: auto; page-break-after: auto; }
+      img { display: block; width: 100%; box-shadow: 0 18px 46px rgba(19,34,54,0.16); }
       p { max-width: 980px; margin: 16px auto 0; color: #607086; font-weight: 700; }
-      @media print { body { padding: 0; background: #fff; } img { width: 100%; max-width: none; box-shadow: none; } p { display: none; } }
-    </style></head><body><img src="${dataUrl}" alt="${TEXT.reportTitle}" /><p>${TEXT.reportPdfHint}</p></body></html>`);
+      @media print {
+        body { padding: 0; background: #fff; }
+        .report-page { width: 100%; margin: 0; }
+        img { width: 100%; box-shadow: none; }
+        p { display: none; }
+      }
+    </style></head><body>${pageMarkup}<p>${TEXT.reportPdfHint}</p></body></html>`);
     popup.document.close();
     popup.focus();
     popup.print();
@@ -2939,6 +3542,154 @@ async function postForm(path, formData) {
   return data;
 }
 
+async function postRagJson(path, payload) {
+  const response = await fetch(`${RAG_BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.detail || `HTTP ${response.status}`);
+  }
+  return data;
+}
+
+async function ensurePredictionXaiForAssistant(data) {
+  const inputs = data?.inputs || {};
+  if (data?.xai || !data?.model_key || inputs.theta1 === undefined || inputs.theta2 === undefined || !inputs.case) {
+    return data?.xai || null;
+  }
+  try {
+    const xai = await postJson("/xai/local", {
+      theta1: Number(inputs.theta1),
+      theta2: Number(inputs.theta2),
+      case: inputs.case,
+      model: data.model_key,
+    });
+    latestPredictionData = { ...data, xai };
+    renderXai(xai);
+    return xai;
+  } catch {
+    return null;
+  }
+}
+
+function buildAssistantPredictionContext(data, xai = data?.xai || null) {
+  if (!data) {
+    return null;
+  }
+  const topFeatures = Array.isArray(xai?.top_features)
+    ? xai.top_features.slice(0, 8).map((feature) => ({
+      name: feature.name,
+      label: feature.label,
+      category: feature.category,
+      importance: feature.importance,
+      local_sensitivity: feature.local_sensitivity,
+      local_value: feature.local_value,
+      perturbation: feature.perturbation,
+      explanation: feature.explanation,
+    }))
+    : [];
+  return {
+    mode: data.model_key?.startsWith("u3_") ? "u3 Forecast" : "Laminate Forecast",
+    inputs: data.inputs || {},
+    model_key: data.model_key || "",
+    model_label: data.model_label || "",
+    predicted_type: data.predicted_type ?? null,
+    confidence: data.confidence ?? null,
+    probabilities: data.probabilities || null,
+    predicted_pt: data.predicted_pt ?? null,
+    predicted_max_displacement: data.predicted_max_displacement ?? null,
+    predicted_max_force: data.predicted_max_force ?? null,
+    xai: xai ? {
+      title: xai.title,
+      summary: xai.summary,
+      method: xai.method,
+      feature_set: xai.feature_set,
+      top_features: topFeatures,
+    } : null,
+  };
+}
+
+function renderRagAnswer(data) {
+  if (!ragAnswer) {
+    return;
+  }
+  ragAnswer.classList.remove("hidden");
+  ragAnswer.textContent = "";
+
+  const head = document.createElement("div");
+  head.className = "rag-answer-head";
+  const title = document.createElement("strong");
+  title.textContent = TEXT.ragAnswerTitle;
+  const actions = document.createElement("div");
+  actions.className = "rag-answer-actions";
+  const provider = document.createElement("span");
+  provider.className = "rag-provider";
+  provider.textContent = `${data.provider || "rag"} · ${data.model || "local"}`;
+  const citationToggle = document.createElement("button");
+  citationToggle.className = "rag-citation-toggle";
+  citationToggle.type = "button";
+  citationToggle.textContent = TEXT.ragShowCitations;
+  citationToggle.setAttribute("aria-expanded", "false");
+  actions.append(provider, citationToggle);
+  head.append(title, actions);
+
+  const answerText = document.createElement("p");
+  answerText.className = "rag-answer-text";
+  answerText.textContent = data.answer || "";
+
+  const citationBlock = document.createElement("div");
+  citationBlock.className = "rag-citations hidden";
+  const citationTitle = document.createElement("strong");
+  citationTitle.textContent = TEXT.ragCitations;
+  citationBlock.append(citationTitle);
+
+  (data.citations || []).forEach((citation) => {
+    const item = document.createElement("div");
+    item.className = "rag-citation";
+    const itemTitle = document.createElement("strong");
+    itemTitle.textContent = `[${citation.index}] ${citation.title}`;
+    const source = citation.source && /^https?:\/\//.test(citation.source)
+      ? document.createElement("a")
+      : document.createElement("span");
+    source.textContent = citation.source || citation.source_id || "";
+    if (source.tagName === "A") {
+      source.href = citation.source;
+      source.target = "_blank";
+      source.rel = "noreferrer";
+    }
+    const excerpt = document.createElement("p");
+    excerpt.textContent = citation.excerpt || "";
+    item.append(itemTitle, source, excerpt);
+    citationBlock.append(item);
+  });
+
+  citationToggle.addEventListener("click", () => {
+    const isHidden = citationBlock.classList.toggle("hidden");
+    citationToggle.textContent = isHidden ? TEXT.ragShowCitations : TEXT.ragHideCitations;
+    citationToggle.setAttribute("aria-expanded", String(!isHidden));
+  });
+
+  ragAnswer.append(head, answerText, citationBlock);
+}
+
+function clearDefaultRagQuestion() {
+  if (!ragQueryInput) {
+    return;
+  }
+  const defaultQuery = ragQueryInput.dataset.defaultQuery || "";
+  if (ragQueryInput.value.trim() === defaultQuery.trim()) {
+    ragQueryInput.value = "";
+  }
+}
+
+if (ragQueryInput) {
+  ragQueryInput.addEventListener("focus", clearDefaultRagQuestion, { once: true });
+  ragQueryInput.addEventListener("beforeinput", clearDefaultRagQuestion, { once: true });
+}
+
 document.querySelectorAll(".mode-button").forEach((button) => {
   button.addEventListener("click", () => {
     const previousMode = document.querySelector(".mode-button.active")?.dataset.mode;
@@ -2960,7 +3711,10 @@ document.querySelectorAll(".mode-button").forEach((button) => {
     curvePreviewPanel.classList.toggle("hidden", mode !== "curve");
     workspaceGrid.classList.toggle("curve-active", mode === "curve");
     workspaceGrid.classList.toggle("u3-active", mode === "u3");
+    summaryStrip?.classList.toggle("curve-active", mode === "curve");
+    summaryStrip?.classList.toggle("u3-active", mode === "u3");
     updateDynamicStackPreview();
+    renderPredictionHistory();
     clearError();
     inputPanel.scrollIntoView({ behavior: "smooth", block: "start" });
   });
@@ -3090,6 +3844,38 @@ if (researchMapCanvas) {
   document.addEventListener("mousemove", handleResearchMapDocumentPointer);
 }
 
+if (ragForm) {
+  ragForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    clearError();
+    setLoading(ragForm, true);
+    const submitButton = ragForm.querySelector('button[type="submit"]');
+    const originalText = submitButton?.textContent || "";
+    if (submitButton) {
+      submitButton.textContent = TEXT.ragAsking;
+    }
+    try {
+      const formData = new FormData(ragForm);
+      const predictionXai = await ensurePredictionXaiForAssistant(latestPredictionData);
+      const data = await postRagJson("/answer", {
+        query: String(formData.get("query") || ""),
+        top_k: 5,
+        use_llm: formData.get("use_llm") === "on",
+        language: IS_KO ? "ko" : "en",
+        prediction_context: buildAssistantPredictionContext(latestPredictionData, predictionXai),
+      });
+      renderRagAnswer(data);
+    } catch (error) {
+      setError(`${TEXT.ragFailed} ${error.message}`);
+    } finally {
+      if (submitButton) {
+        submitButton.textContent = originalText;
+      }
+      setLoading(ragForm, false);
+    }
+  });
+}
+
 setupThetaSliders(responseForm);
 setupThetaSliders(u3PtForm);
 attachDynamicStackPreview(responseForm);
@@ -3103,4 +3889,5 @@ clearCurvePreview.addEventListener("click", () => {
 
 updateCurvePreview([]);
 updateDynamicStackPreview();
+renderPredictionHistory();
 loadModels();

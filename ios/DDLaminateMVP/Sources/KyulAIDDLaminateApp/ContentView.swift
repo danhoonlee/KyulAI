@@ -10,14 +10,14 @@ struct ContentView: View {
     }
 
     private enum DetailRoute: Hashable, Identifiable {
-        case response(ResponsePredictionResult)
-        case u3(U3PtPredictionResult)
+        case response(ResponsePredictionResult, DesignSpaceResponse?)
+        case u3(U3PtPredictionResult, DesignSpaceResponse?)
 
         var id: String {
             switch self {
-            case .response(let result):
+            case .response(let result, _):
                 "response-\(result.modelKey)-\(result.predictedPt)-\(result.curve.count)"
-            case .u3(let result):
+            case .u3(let result, _):
                 "u3-\(result.modelKey)-\(result.predictedPt)-\(result.curve.count)"
             }
         }
@@ -167,10 +167,12 @@ struct ContentView: View {
         }
         .navigationDestination(item: $selectedDetail) { route in
             switch route {
-            case .response(let result):
-                ResultDetailView(result: result)
-            case .u3(let result):
-                U3PtResultDetailView(result: result)
+            case .response(let result, let designSpace):
+                ResultDetailView(result: result, designSpace: designSpace)
+                    .environmentObject(settings)
+            case .u3(let result, let designSpace):
+                U3PtResultDetailView(result: result, designSpace: designSpace)
+                    .environmentObject(settings)
             }
         }
         .task {
@@ -770,12 +772,12 @@ struct ContentView: View {
 
                 InterpretationSummaryView(result: result, maxLines: 2)
 
-                CurveChartView(points: result.curve, predictedPt: result.predictedPt)
-                    .frame(height: 190)
+                CurveChartView(points: result.curve, predictedPt: result.predictedPt, curveFit: result.curveFit)
+                    .frame(height: 270)
 
                 HStack(spacing: 10) {
                     Button {
-                        selectedDetail = .response(result)
+                        selectedDetail = .response(result, viewModel.responseDesignSpace)
                     } label: {
                         Label(L10n.t("open.full.result"), systemImage: "chart.xyaxis.line")
                             .frame(maxWidth: .infinity)
@@ -858,11 +860,11 @@ struct ContentView: View {
                     miniMetric("Max. Disp.", result.predictedMaxDisplacement.metricText(digits: 5))
                 }
 
-                CurveChartView(points: result.curve, predictedPt: result.predictedPt, fitMode: .u3)
-                    .frame(height: 190)
+                CurveChartView(points: result.curve, predictedPt: result.predictedPt, fitMode: .u3, curveFit: result.curveFit)
+                    .frame(height: 270)
 
                 Button {
-                    selectedDetail = .u3(result)
+                    selectedDetail = .u3(result, viewModel.u3DesignSpace)
                 } label: {
                     Label(L10n.t("open.full.result"), systemImage: "chart.xyaxis.line")
                         .frame(maxWidth: .infinity)
@@ -1026,7 +1028,7 @@ struct ContentView: View {
             let url = try BaseURLValidator.parse(settings.apiBaseURL)
             await viewModel.predict(baseURL: url)
             if let result = viewModel.result, viewModel.errorMessage == nil {
-                selectedDetail = .response(result)
+                selectedDetail = .response(result, viewModel.responseDesignSpace)
             }
         } catch {
             viewModel.errorMessage = error.localizedDescription
@@ -1038,7 +1040,7 @@ struct ContentView: View {
             let url = try BaseURLValidator.parse(settings.apiBaseURL)
             await viewModel.predictU3Forecast(baseURL: url)
             if let result = viewModel.u3PtResult, viewModel.errorMessage == nil {
-                selectedDetail = .u3(result)
+                selectedDetail = .u3(result, viewModel.u3DesignSpace)
             }
         } catch {
             viewModel.errorMessage = error.localizedDescription
@@ -1050,7 +1052,7 @@ struct ContentView: View {
     }
 
     private var appHeadlineTitle: String {
-        localText(en: "C2ES\nLaminate Forecast", ko: "C2ES\n적층 예측")
+        localText(en: "C2ES Laminate Forecast", ko: "C2ES 적층 예측")
     }
 
     private func friendlyConnectionMessage(_ message: String?) -> String {

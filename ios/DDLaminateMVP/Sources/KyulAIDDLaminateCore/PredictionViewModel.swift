@@ -26,9 +26,13 @@ public final class PredictionViewModel: ObservableObject {
     @Published public var u3PtModel: ModelInfo?
     @Published public var result: ResponsePredictionResult?
     @Published public var u3PtResult: U3PtPredictionResult?
+    @Published public var responseDesignSpace: DesignSpaceResponse?
+    @Published public var u3DesignSpace: DesignSpaceResponse?
     @Published public var errorMessage: String?
     @Published public var isPredicting = false
     @Published public var isPredictingU3Pt = false
+    @Published public private(set) var isLoadingResponseDesignSpace = false
+    @Published public private(set) var isLoadingU3DesignSpace = false
     @Published public private(set) var recentRuns: [DDLaminateRecentRun] = []
 
     public var responseForecastRecentRuns: [DDLaminateRecentRun] {
@@ -66,6 +70,8 @@ public final class PredictionViewModel: ObservableObject {
         u3PtModel = nil
         result = nil
         u3PtResult = nil
+        responseDesignSpace = nil
+        u3DesignSpace = nil
         errorMessage = nil
     }
 
@@ -93,6 +99,7 @@ public final class PredictionViewModel: ObservableObject {
         selectedResponseModelKey = key
         responseModel = responseModels.first { $0.key == key }
         result = nil
+        responseDesignSpace = nil
         updateReadyStateIfNeeded()
     }
 
@@ -100,6 +107,7 @@ public final class PredictionViewModel: ObservableObject {
         selectedU3PtModelKey = key
         u3PtModel = u3PtModels.first { $0.key == key }
         u3PtResult = nil
+        u3DesignSpace = nil
     }
 
     public func predict(baseURL: URL) async {
@@ -124,15 +132,52 @@ public final class PredictionViewModel: ObservableObject {
         )
         isPredicting = true
         errorMessage = nil
+        responseDesignSpace = nil
         defer { isPredicting = false }
 
         do {
-            result = try await apiClient.predictResponse(baseURL: baseURL, request: request)
-            if let result {
-                saveRecentRun(from: request, result: result)
+            var prediction = try await apiClient.predictResponse(baseURL: baseURL, request: request)
+            if prediction.xai == nil {
+                prediction.xai = await loadLocalXAI(baseURL: baseURL, request: request)
             }
+            result = prediction
+            saveRecentRun(from: request, result: prediction)
+            await loadResponseDesignSpace(baseURL: baseURL, request: request)
         } catch {
             errorMessage = "Prediction failed: \(error.localizedDescription)"
+        }
+    }
+
+    public func loadResponseDesignSpace(baseURL: URL, request: ResponsePredictionRequest? = nil) async {
+        let resolvedRequest: ResponsePredictionRequest
+        if let request {
+            resolvedRequest = request
+        } else {
+            guard let theta1Value = normalizedThetaValue(theta1), let theta2Value = normalizedThetaValue(theta2) else {
+                responseDesignSpace = nil
+                return
+            }
+            resolvedRequest = ResponsePredictionRequest(
+                theta1: theta1Value,
+                theta2: theta2Value,
+                case: selectedCase,
+                model: selectedResponseModelKey
+            )
+        }
+        isLoadingResponseDesignSpace = true
+        defer { isLoadingResponseDesignSpace = false }
+        do {
+            responseDesignSpace = try await apiClient.designSpace(
+                baseURL: baseURL,
+                request: DesignSpaceRequest(
+                    theta1: resolvedRequest.theta1,
+                    theta2: resolvedRequest.theta2,
+                    case: resolvedRequest.case,
+                    scope: .response
+                )
+            )
+        } catch {
+            responseDesignSpace = nil
         }
     }
 
@@ -156,6 +201,7 @@ public final class PredictionViewModel: ObservableObject {
         }
         isPredictingU3Pt = true
         errorMessage = nil
+        u3DesignSpace = nil
         defer { isPredictingU3Pt = false }
 
         do {
@@ -198,12 +244,56 @@ public final class PredictionViewModel: ObservableObject {
             model: selectedU3PtModelKey
         )
         do {
-            u3PtResult = try await apiClient.predictU3Forecast(baseURL: baseURL, request: request)
-            if let u3PtResult {
-                saveRecentRun(from: request, result: u3PtResult)
+            var prediction = try await apiClient.predictU3Forecast(baseURL: baseURL, request: request)
+            if prediction.xai == nil {
+                prediction.xai = await loadLocalXAI(
+                    baseURL: baseURL,
+                    request: LocalXAIRequest(
+                        theta1: request.theta1,
+                        theta2: request.theta2,
+                        case: request.case,
+                        model: request.model
+                    )
+                )
             }
+            u3PtResult = prediction
+            saveRecentRun(from: request, result: prediction)
+            await loadU3DesignSpace(baseURL: baseURL, request: request)
         } catch {
             errorMessage = "u3 Forecast failed: \(error.localizedDescription)"
+        }
+    }
+
+    public func loadU3DesignSpace(baseURL: URL, request: U3ForecastPredictionRequest? = nil) async {
+        let resolvedRequest: U3ForecastPredictionRequest
+        if let request {
+            resolvedRequest = request
+        } else {
+            guard let theta1Value = normalizedThetaValue(theta1), let theta2Value = normalizedThetaValue(theta2) else {
+                u3DesignSpace = nil
+                return
+            }
+            resolvedRequest = U3ForecastPredictionRequest(
+                theta1: theta1Value,
+                theta2: theta2Value,
+                case: selectedCase,
+                model: selectedU3PtModelKey
+            )
+        }
+        isLoadingU3DesignSpace = true
+        defer { isLoadingU3DesignSpace = false }
+        do {
+            u3DesignSpace = try await apiClient.designSpace(
+                baseURL: baseURL,
+                request: DesignSpaceRequest(
+                    theta1: resolvedRequest.theta1,
+                    theta2: resolvedRequest.theta2,
+                    case: resolvedRequest.case,
+                    scope: .u3
+                )
+            )
+        } catch {
+            u3DesignSpace = nil
         }
     }
 
@@ -221,6 +311,8 @@ public final class PredictionViewModel: ObservableObject {
         }
         result = nil
         u3PtResult = nil
+        responseDesignSpace = nil
+        u3DesignSpace = nil
         updateReadyStateIfNeeded()
     }
 
@@ -247,6 +339,8 @@ public final class PredictionViewModel: ObservableObject {
             selectedCase = fixture.request.case
             selectedResponseModelKey = fixture.request.model
             result = fixture.response
+            responseDesignSpace = nil
+            u3DesignSpace = nil
             errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
@@ -272,6 +366,26 @@ public final class PredictionViewModel: ObservableObject {
         recentRuns = ([run] + recentRuns.filter { $0.signature != run.signature }).prefix(5).map { $0 }
         if let data = try? JSONEncoder().encode(recentRuns) {
             userDefaults.set(data, forKey: recentRunsKey)
+        }
+    }
+
+    private func loadLocalXAI(baseURL: URL, request: ResponsePredictionRequest) async -> XAIExplanation? {
+        await loadLocalXAI(
+            baseURL: baseURL,
+            request: LocalXAIRequest(
+                theta1: request.theta1,
+                theta2: request.theta2,
+                case: request.case,
+                model: request.model
+            )
+        )
+    }
+
+    private func loadLocalXAI(baseURL: URL, request: LocalXAIRequest) async -> XAIExplanation? {
+        do {
+            return try await apiClient.localXAI(baseURL: baseURL, request: request)
+        } catch {
+            return nil
         }
     }
 

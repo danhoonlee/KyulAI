@@ -137,3 +137,73 @@ Notes:
 - Slash Commands must receive a response quickly. The endpoint only writes to
   `.agent-bus/` and returns an acknowledgement; actual coding work still needs
   a local runner or an active Codex session to read and act on the bus.
+
+## Codex Work Notifications
+
+Use this when Codex needs to notify the user on a phone or watch that an
+approval prompt needs attention, a long task finished, or a failure happened.
+This is separate from the agent-bus Slack bridge and can be called directly.
+
+Supported channels:
+
+- Telegram: `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID`
+- Slack: `SLACK_WEBHOOK_URL`
+
+Recommended private environment file:
+
+```bash
+mkdir -p ~/.codex
+cat > ~/.codex/notify.env <<'EOF'
+export TELEGRAM_BOT_TOKEN="123456:..."
+export TELEGRAM_CHAT_ID="123456789"
+export SLACK_WEBHOOK_URL="https://hooks.slack.com/services/..."
+EOF
+chmod 600 ~/.codex/notify.env
+```
+
+Load it in the current terminal:
+
+```bash
+source ~/.codex/notify.env
+```
+
+Check which channels are available:
+
+```bash
+python3 scripts/codex-notify.py --status
+```
+
+Send a test notification:
+
+```bash
+python3 scripts/codex-notify.py test --channel auto \
+  --message "Codex notification test from KyulAI."
+```
+
+Notify that a Codex approval prompt needs attention:
+
+```bash
+python3 scripts/codex-notify.py approval --channel auto \
+  --message "Codex needs command approval. Please check the Codex app."
+```
+
+Notify that work is complete:
+
+```bash
+python3 scripts/codex-notify.py complete --channel auto \
+  --message "Task complete. Tests passed and the APK artifact was refreshed."
+```
+
+Dry-run without sending:
+
+```bash
+python3 scripts/codex-notify.py approval --dry-run \
+  --message "Preview only."
+```
+
+Notes:
+
+- Phone/watch delivery depends on Telegram or Slack app notification settings.
+- The script does not store secrets in the repository.
+- Codex app approval buttons still must be pressed inside Codex; this script is
+  a phone/watch nudge so the user knows to return to the app.
