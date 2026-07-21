@@ -163,6 +163,27 @@ def make_model(input_dim: int, seq_len: int, args) -> DDResponseGointSurrogate:
     ).to(args.device_torch)
 
 
+def _pin_memory(args) -> bool:
+    if args.pin_memory == "on":
+        return True
+    if args.pin_memory == "off":
+        return False
+    return args.device_torch.type == "cuda"
+
+
+def _loader(dataset, args, *, shuffle: bool) -> DataLoader:
+    kwargs = {
+        "batch_size": args.batch_size,
+        "shuffle": shuffle,
+        "num_workers": args.num_workers,
+        "pin_memory": _pin_memory(args),
+    }
+    if args.num_workers > 0:
+        kwargs["persistent_workers"] = True
+        kwargs["prefetch_factor"] = args.prefetch_factor
+    return DataLoader(dataset, **kwargs)
+
+
 def teacher_predictions(teacher: dict, x: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     classifier = teacher["classifier"]
     scalar_model = teacher["scalar_model"]
@@ -210,17 +231,18 @@ def run_epoch(
     curve_teacher: list[np.ndarray] = []
     total_loss = 0.0
     total_n = 0
+    non_blocking = bool(getattr(args, "non_blocking", False))
 
     with torch.set_grad_enabled(train):
         for batch in loader:
-            x = batch["x"].to(args.device_torch)
-            labels = batch["label"].to(args.device_torch)
-            scalars = batch["scalars"].to(args.device_torch)
-            curve = batch["curve"].to(args.device_torch)
-            teacher_probs = batch["teacher_probs"].to(args.device_torch)
-            teacher_scalars = batch["teacher_scalars"].to(args.device_torch)
-            teacher_curve = batch["teacher_curve"].to(args.device_torch)
-            sample_weight = batch["sample_weight"].to(args.device_torch)
+            x = batch["x"].to(args.device_torch, non_blocking=non_blocking)
+            labels = batch["label"].to(args.device_torch, non_blocking=non_blocking)
+            scalars = batch["scalars"].to(args.device_torch, non_blocking=non_blocking)
+            curve = batch["curve"].to(args.device_torch, non_blocking=non_blocking)
+            teacher_probs = batch["teacher_probs"].to(args.device_torch, non_blocking=non_blocking)
+            teacher_scalars = batch["teacher_scalars"].to(args.device_torch, non_blocking=non_blocking)
+            teacher_curve = batch["teacher_curve"].to(args.device_torch, non_blocking=non_blocking)
+            sample_weight = batch["sample_weight"].to(args.device_torch, non_blocking=non_blocking)
 
             if train:
                 optimizer.zero_grad(set_to_none=True)
@@ -348,8 +370,8 @@ def train_cv(
                 np.concatenate([teacher_curve[train_idx], synthetic.teacher_curve], axis=0),
                 np.concatenate([np.ones(len(train_idx), dtype=float), synthetic.sample_weight], axis=0),
             )
-        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-        val_loader = DataLoader(Subset(real_dataset, val_idx.tolist()), batch_size=args.batch_size, shuffle=False)
+        train_loader = _loader(train_dataset, args, shuffle=True)
+        val_loader = _loader(Subset(real_dataset, val_idx.tolist()), args, shuffle=False)
         model = make_model(x_norm.shape[1], y_curve.shape[1], args)
         optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
         best_state = None
@@ -469,6 +491,7 @@ def train_strict_cv(
                 y_curve[train_idx],
                 args.teacher_n_components,
                 args.seed + fold * 101,
+                args.tree_n_jobs,
             )
         )
         feature_mean = np.mean(x_raw[train_idx], axis=0)
@@ -559,8 +582,8 @@ def train_strict_cv(
             np.ones(len(val_idx), dtype=float),
         )
 
-        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-        val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
+        train_loader = _loader(train_dataset, args, shuffle=True)
+        val_loader = _loader(val_dataset, args, shuffle=False)
         model = make_model(x_raw.shape[1], y_curve.shape[1], args)
         optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
         best_state = None
@@ -629,7 +652,7 @@ def train_final(
         teacher_curve,
         sample_weight,
     )
-    loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
+    loader = _loader(dataset, args, shuffle=True)
     model = make_model(x_norm.shape[1], y_curve.shape[1], args)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     for epoch in range(1, args.final_epochs + 1):
@@ -704,22 +727,35 @@ def write_report(output_dir: Path, metrics: dict[str, float | int | str], fold_r
         f"- Strict synthetic exclusion radius: {metrics['strict_synthetic_exclusion_radius']}",
         f"- Fold-local teacher PCA components: {metrics['teacher_n_components']}",
         "",
-        "## Cross-validation",
-        "",
-        f"- Type accuracy: {metrics['cv_accuracy_mean']:.4f} +/- {metrics['cv_accuracy_std']:.4f}",
-        f"- Macro F1: {metrics['cv_macro_f1_mean']:.4f} +/- {metrics['cv_macro_f1_std']:.4f}",
-        f"- Teacher Type agreement: {metrics['cv_teacher_agreement_mean']:.4f}",
-        f"- Pt MAE vs ground truth: {metrics['cv_pt_mae_mean']:.2f} kips",
-        f"- Pt MAE vs teacher: {metrics['cv_teacher_pt_mae_mean']:.2f} kips",
-        f"- Curve normalized RMSE vs ground truth: {metrics['cv_curve_norm_rmse_mean']:.5f}",
-        f"- Curve normalized RMSE vs teacher: {metrics['cv_teacher_curve_norm_rmse_mean']:.5f}",
-        "",
-        "## Interpretation",
-        "",
-        "Strict CV uses fold-local teachers and removes synthetic grid points near validation inputs when enabled. "
-        "This gives a more conservative performance estimate than the optimistic deployment-style distillation run, "
-        "where the final teacher is trained on all available data.",
     ]
+    if "cv_accuracy_mean" in metrics:
+        lines.extend(
+            [
+                "## Cross-validation",
+                "",
+                f"- Type accuracy: {metrics['cv_accuracy_mean']:.4f} +/- {metrics['cv_accuracy_std']:.4f}",
+                f"- Macro F1: {metrics['cv_macro_f1_mean']:.4f} +/- {metrics['cv_macro_f1_std']:.4f}",
+                f"- Teacher Type agreement: {metrics['cv_teacher_agreement_mean']:.4f}",
+                f"- Pt MAE vs ground truth: {metrics['cv_pt_mae_mean']:.2f} kips",
+                f"- Pt MAE vs teacher: {metrics['cv_teacher_pt_mae_mean']:.2f} kips",
+                f"- Curve normalized RMSE vs ground truth: {metrics['cv_curve_norm_rmse_mean']:.5f}",
+                f"- Curve normalized RMSE vs teacher: {metrics['cv_teacher_curve_norm_rmse_mean']:.5f}",
+                "",
+                "## Interpretation",
+                "",
+                "Strict CV uses fold-local teachers and removes synthetic grid points near validation inputs when enabled. "
+                "This gives a more conservative performance estimate than the optimistic deployment-style distillation run, "
+                "where the final teacher is trained on all available data.",
+            ]
+        )
+    else:
+        lines.extend(
+            [
+                "## Cross-validation",
+                "",
+                "- Not included in this final-only artifact. Pass `--reference-metrics` to attach a validation report.",
+            ]
+        )
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "distillation_report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     (output_dir / "response_distilled_metrics.json").write_text(
@@ -754,6 +790,9 @@ def main() -> None:
     parser.add_argument("--final-epochs", type=int, default=180)
     parser.add_argument("--patience", type=int, default=36)
     parser.add_argument("--batch-size", type=int, default=64)
+    parser.add_argument("--num-workers", type=int, default=0)
+    parser.add_argument("--prefetch-factor", type=int, default=2)
+    parser.add_argument("--pin-memory", choices=["auto", "on", "off"], default="auto")
     parser.add_argument("--hidden-dim", type=int, default=64)
     parser.add_argument("--branches", type=int, default=6)
     parser.add_argument("--dropout", type=float, default=0.10)
@@ -772,6 +811,7 @@ def main() -> None:
     parser.add_argument("--clip-grad", type=float, default=3.0)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--device", choices=["auto", "cpu", "mps", "cuda"], default="auto")
+    parser.add_argument("--tree-n-jobs", type=int, default=-1)
     parser.add_argument("--strict-cv", action="store_true", help="Use fold-local teachers and remove validation-near synthetic points from each fold.")
     parser.add_argument("--strict-cv-only", action="store_true", help="Run strict CV/report only and skip final deployment model training.")
     parser.add_argument("--final-only", action="store_true", help="Skip CV and train only the final deployment artifact.")
@@ -802,6 +842,7 @@ def main() -> None:
     args = parser.parse_args()
     args.device_torch = resolve_device(args.device)
     args.synthetic_panel_size_values = parse_panel_sizes(args.synthetic_panel_sizes)
+    args.non_blocking = _pin_memory(args)
     print(f"Using device: {describe_device(args.device_torch)}")
     set_seed(args.seed)
 

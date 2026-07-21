@@ -10,6 +10,10 @@ EPOCHS="${EPOCHS:-220}"
 FINAL_EPOCHS="${FINAL_EPOCHS:-170}"
 BATCH_SIZE="${BATCH_SIZE:-512}"
 PANEL_SIZES="${PANEL_SIZES:-6x4,6x8}"
+TREE_N_JOBS="${TREE_N_JOBS:-8}"
+NUM_WORKERS="${NUM_WORKERS:-2}"
+PIN_MEMORY="${PIN_MEMORY:-auto}"
+PREFETCH_FACTOR="${PREFETCH_FACTOR:-2}"
 
 GEOMETRY_TREE_DIR="models/dd_laminate_response_geometry_tree_rtx_strict_${RUN_ID}"
 GEOMETRY_GOINT_DIR="models/dd_laminate_response_geometry_goint_rtx_strict_${RUN_ID}"
@@ -20,6 +24,9 @@ echo "[run] ${RUN_ID}"
 echo "[device] ${DEVICE}"
 echo "[panel_sizes] ${PANEL_SIZES}"
 echo "[grid_step] ${GRID_STEP}"
+echo "[tree_n_jobs] ${TREE_N_JOBS}"
+echo "[num_workers] ${NUM_WORKERS}"
+echo "[pin_memory] ${PIN_MEMORY}"
 echo "[repo] $(pwd)"
 echo "[commit] $(git rev-parse --short HEAD)"
 
@@ -48,6 +55,10 @@ python scripts/dd_response_physics_xai_train.py \
   --final-epochs "${FINAL_EPOCHS}" \
   --patience 36 \
   --batch-size "${BATCH_SIZE}" \
+  --tree-n-jobs "${TREE_N_JOBS}" \
+  --num-workers "${NUM_WORKERS}" \
+  --pin-memory "${PIN_MEMORY}" \
+  --prefetch-factor "${PREFETCH_FACTOR}" \
   --response-hidden-dim 96 \
   --response-branches 10 \
   --dropout 0.08 \
@@ -74,6 +85,10 @@ python scripts/dd_response_distillation_train.py \
   --epochs "${EPOCHS}" \
   --patience 36 \
   --batch-size "${BATCH_SIZE}" \
+  --tree-n-jobs "${TREE_N_JOBS}" \
+  --num-workers "${NUM_WORKERS}" \
+  --pin-memory "${PIN_MEMORY}" \
+  --prefetch-factor "${PREFETCH_FACTOR}" \
   --hidden-dim 96 \
   --branches 10 \
   --dropout 0.08 \

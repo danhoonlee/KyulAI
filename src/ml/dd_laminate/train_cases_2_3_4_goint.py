@@ -117,12 +117,13 @@ def run_response_epoch(model, loader, optimizer, weights, device: torch.device, 
     curve_true: list[np.ndarray] = []
     total_loss = 0.0
     total_n = 0
+    non_blocking = bool(getattr(args, "non_blocking", False))
     with torch.set_grad_enabled(train):
         for batch in loader:
-            x = batch["x"].to(device)
-            labels = batch["label"].to(device)
-            scalars = batch["scalars"].to(device)
-            curve = batch["curve"].to(device)
+            x = batch["x"].to(device, non_blocking=non_blocking)
+            labels = batch["label"].to(device, non_blocking=non_blocking)
+            scalars = batch["scalars"].to(device, non_blocking=non_blocking)
+            curve = batch["curve"].to(device, non_blocking=non_blocking)
             if train:
                 optimizer.zero_grad(set_to_none=True)
             class_logits, ordinal_logits, pred_scalars, pred_curve = model(x)

@@ -57,19 +57,19 @@ def make_response_targets(records, seq_len: int) -> tuple[np.ndarray, np.ndarray
     return np.asarray(scalars, dtype=float), np.asarray(curves, dtype=float), grid
 
 
-def _fit_tree(x_train, y_class_train, y_scalars_train, y_curve_train, n_components: int, seed: int):
+def _fit_tree(x_train, y_class_train, y_scalars_train, y_curve_train, n_components: int, seed: int, n_jobs: int = -1):
     classifier = ExtraTreesClassifier(
         n_estimators=850,
         random_state=seed,
         class_weight="balanced",
         min_samples_leaf=1,
-        n_jobs=-1,
+        n_jobs=n_jobs,
     )
     scalar_model = ExtraTreesRegressor(
         n_estimators=850,
         random_state=seed + 1,
         min_samples_leaf=1,
-        n_jobs=-1,
+        n_jobs=n_jobs,
     )
     pca = PCA(n_components=min(n_components, y_curve_train.shape[0], y_curve_train.shape[1]), random_state=seed)
     curve_scores = pca.fit_transform(y_curve_train)
@@ -77,12 +77,33 @@ def _fit_tree(x_train, y_class_train, y_scalars_train, y_curve_train, n_componen
         n_estimators=850,
         random_state=seed + 2,
         min_samples_leaf=1,
-        n_jobs=-1,
+        n_jobs=n_jobs,
     )
     classifier.fit(x_train, y_class_train)
     scalar_model.fit(x_train, y_scalars_train)
     curve_model.fit(x_train, curve_scores)
     return classifier, scalar_model, pca, curve_model
+
+
+def _pin_memory(args) -> bool:
+    if args.pin_memory == "on":
+        return True
+    if args.pin_memory == "off":
+        return False
+    return args.device_torch.type == "cuda"
+
+
+def _loader(dataset, args, *, shuffle: bool) -> DataLoader:
+    kwargs = {
+        "batch_size": args.batch_size,
+        "shuffle": shuffle,
+        "num_workers": args.num_workers,
+        "pin_memory": _pin_memory(args),
+    }
+    if args.num_workers > 0:
+        kwargs["persistent_workers"] = True
+        kwargs["prefetch_factor"] = args.prefetch_factor
+    return DataLoader(dataset, **kwargs)
 
 
 def train_tree(records, x, feature_names, y_class, y_scalars, y_curve, grid, output_dir: Path, args) -> dict:
@@ -97,6 +118,7 @@ def train_tree(records, x, feature_names, y_class, y_scalars, y_curve, grid, out
             y_curve[train_idx],
             args.n_components,
             args.seed + fold * 10,
+            args.tree_n_jobs,
         )
         pred_class = classifier.predict(x[val_idx])
         pred_scalars = scalar_model.predict(x[val_idx])
@@ -127,7 +149,9 @@ def train_tree(records, x, feature_names, y_class, y_scalars, y_curve, grid, out
         metrics[f"cv_{key}_mean"] = float(np.mean(values))
         metrics[f"cv_{key}_std"] = float(np.std(values))
 
-    classifier, scalar_model, pca, curve_model = _fit_tree(x, y_class, y_scalars, y_curve, args.n_components, args.seed)
+    classifier, scalar_model, pca, curve_model = _fit_tree(
+        x, y_class, y_scalars, y_curve, args.n_components, args.seed, args.tree_n_jobs
+    )
     output_dir.mkdir(parents=True, exist_ok=True)
     bundle = {
         "model_name": "laminate_forecast_tree_physics_xai",
@@ -160,8 +184,8 @@ def train_goint(records, x, feature_names, y_class, y_scalars, y_curve, grid, ou
     fold_rows = []
     splitter = GroupKFold(n_splits=args.splits)
     for fold, (train_idx, val_idx) in enumerate(splitter.split(x_norm, y_class, groups), start=1):
-        train_loader = DataLoader(Subset(dataset, train_idx.tolist()), batch_size=args.batch_size, shuffle=True)
-        val_loader = DataLoader(Subset(dataset, val_idx.tolist()), batch_size=args.batch_size, shuffle=False)
+        train_loader = _loader(Subset(dataset, train_idx.tolist()), args, shuffle=True)
+        val_loader = _loader(Subset(dataset, val_idx.tolist()), args, shuffle=False)
         model = make_response_model(x_norm.shape[1], y_curve.shape[1], args, args.device_torch)
         weights = class_weights(y_class[train_idx] - 1, args.device_torch)
         optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
@@ -192,7 +216,7 @@ def train_goint(records, x, feature_names, y_class, y_scalars, y_curve, grid, ou
         print(f"goint fold {fold}: acc={row['accuracy']:.4f}, macro_f1={row['macro_f1']:.4f}, pt_mae={row['pt_mae']:.2f}")
 
     final_model = make_response_model(x_norm.shape[1], y_curve.shape[1], args, args.device_torch)
-    final_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
+    final_loader = _loader(dataset, args, shuffle=True)
     weights = class_weights(y_class - 1, args.device_torch)
     optimizer = torch.optim.AdamW(final_model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     for _ in range(args.final_epochs):
@@ -283,6 +307,9 @@ def main() -> None:
     parser.add_argument("--final-epochs", type=int, default=90)
     parser.add_argument("--patience", type=int, default=24)
     parser.add_argument("--batch-size", type=int, default=64)
+    parser.add_argument("--num-workers", type=int, default=0)
+    parser.add_argument("--prefetch-factor", type=int, default=2)
+    parser.add_argument("--pin-memory", choices=["auto", "on", "off"], default="auto")
     parser.add_argument("--response-hidden-dim", type=int, default=64)
     parser.add_argument("--response-branches", type=int, default=8)
     parser.add_argument("--dropout", type=float, default=0.12)
@@ -293,6 +320,7 @@ def main() -> None:
     parser.add_argument("--curve-weight", type=float, default=0.25)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--device", choices=["cpu", "mps", "cuda"], default="cpu")
+    parser.add_argument("--tree-n-jobs", type=int, default=-1)
     parser.add_argument(
         "--feature-set",
         choices=["theta_physics", "theta_physics_v2", "theta_physics_nn_v2", "theta_physics_geometry_v1"],
@@ -303,6 +331,7 @@ def main() -> None:
     args = parser.parse_args()
     set_seed(args.seed)
     args.device_torch = torch.device(args.device)
+    args.non_blocking = _pin_memory(args)
 
     records = load_records(Path(args.data_dir))
     x, feature_names = response_feature_matrix(records, args.feature_set)

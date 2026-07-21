@@ -14676,3 +14676,27 @@ Follow-up in same debugging pass:
   - `reports/dd_response_geometry_rtx_strict_20260721_geometry_strict_rtx_v1/response_geometry_training_report.md`.
   - `reports/dd_response_hybrid_geometry_strict_cv_20260721_geometry_strict_rtx_v1/distillation_report.md`.
   - `reports/dd_response_hybrid_geometry_strict_cv_20260721_geometry_strict_rtx_v1/response_distilled_metrics.json`.
+
+## 2026-07-21 - Added RTX training resource controls
+- User noticed the Windows RTX worker seemed to use CPU heavily and asked to continue with the next optimization step.
+- Diagnosis:
+  - PyTorch CUDA is available on the WSL worker and detects `NVIDIA GeForce RTX 5070`.
+  - High CPU usage is expected during sklearn `ExtraTrees`, PCA, synthetic grid generation, and teacher pseudo-label prediction because those parts are CPU-only.
+  - GPU is used by the GointMLP / PyTorch and Hybrid Student training sections.
+- Added runtime controls:
+  - `scripts/dd_response_physics_xai_train.py`
+    - `--tree-n-jobs` to cap sklearn ExtraTrees CPU parallelism.
+    - `--num-workers`, `--prefetch-factor`, and `--pin-memory` for PyTorch DataLoader tuning.
+  - `scripts/dd_response_distillation_train.py`
+    - Same DataLoader controls.
+    - Same `--tree-n-jobs` control for fold-local teachers in strict CV.
+    - Fixed final-only report generation when no `--reference-metrics` is provided.
+  - `src/ml/dd_laminate/train_cases_2_3_4_goint.py`
+    - Uses non-blocking tensor transfer when pinned memory is enabled.
+  - `scripts/remote/Run-LaminateGeometryStrictRTX.sh`
+    - Defaults now include `TREE_N_JOBS=8`, `NUM_WORKERS=2`, `PIN_MEMORY=auto`, and `PREFETCH_FACTOR=2`.
+- Verification:
+  - Local `py_compile` passed for the modified Python files.
+  - WSL RTX venv `py_compile` passed.
+  - WSL CUDA smoke passed for distillation final-only training with `--device cuda --num-workers 2 --pin-memory auto`.
+  - WSL CUDA smoke passed for Geometry GointMLP training with `--device cuda --skip-tree --splits 2 --epochs 1 --final-epochs 1`.
