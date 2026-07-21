@@ -1,0 +1,22 @@
+# Laminate Forecast Physics XAI Training Report
+
+- Dataset: Case2/Case3/Case4 curated DD laminate response data
+- Feature set: `theta_physics_geometry_v1`
+
+## Tree + Physics XAI
+
+- Samples: 1800
+- Input features: 40
+- Type accuracy: 0.9561 +/- 0.0106
+- Type macro F1: 0.9511 +/- 0.0149
+- Pt MAE: 313.91
+- Curve normalized RMSE: 0.00571
+
+## GointMLP + Physics XAI
+
+- Samples: 1800
+- Input features: 40
+- Type accuracy: 0.9511 +/- 0.0080
+- Type macro F1: 0.9480 +/- 0.0108
+- Pt MAE: 738.04
+- Curve normalized RMSE: 0.02698

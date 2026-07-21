@@ -14743,3 +14743,49 @@ Follow-up in same debugging pass:
   - Homebrew `openjdk@17` was already installed; using `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home` fixed the toolchain.
   - `gradle :app:assembleDebug` passed in `android/LuveloxMVP`.
   - `gradle :app:assembleDebug` passed in `android/DDLaminateMVP`.
+
+## 2026-07-21 - RTX Geometry-Aware Strict Leaderboard v2
+- User asked to continue improving the model direction after panel-size support and Android build verification.
+- Ran the latest geometry-aware Laminate Forecast leaderboard on the Windows WSL RTX worker.
+- Remote worker:
+  - Host: `user@100.65.153.56`.
+  - GPU: `NVIDIA GeForce RTX 5070`.
+  - PyTorch: `2.11.0+cu128`.
+  - Run id: `20260721_geometry_strict_rtx_v2`.
+  - Remote commit: `d789947`.
+- Dataset:
+  - Built `data/datasets/DD_cases_2_3_4_geometry_v1`.
+  - Total rows: `1800`.
+  - Case2/Case3/Case4 each have `600` rows.
+  - Each case combines `300` existing `6x4` curated rows and `300` new `6x8` rows.
+  - Feature set: `theta_physics_geometry_v1`.
+- Strict grouped CV results:
+  - Geometry Tree + Physics XAI:
+    - Type accuracy `0.9561 +/- 0.0106`.
+    - Macro F1 `0.9511 +/- 0.0149`.
+    - Pt MAE `313.91 +/- 50.55` kips.
+    - Curve normalized RMSE `0.00571 +/- 0.00086`.
+    - Curve force RMSE `401.38 +/- 66.36` kips.
+  - Geometry GointMLP + Physics XAI:
+    - Type accuracy `0.9511 +/- 0.0080`.
+    - Macro F1 `0.9480 +/- 0.0108`.
+    - Pt MAE `738.04 +/- 116.19` kips.
+    - Curve normalized RMSE `0.02698 +/- 0.01042`.
+    - Curve force RMSE `1241.92 +/- 341.99` kips.
+  - Geometry Hybrid Student:
+    - Type accuracy `0.9622 +/- 0.0117`.
+    - Macro F1 `0.9601 +/- 0.0143`.
+    - Teacher Type agreement `0.9789`.
+    - Pt MAE vs ground truth `423.02 +/- 47.02` kips.
+    - Pt MAE vs teacher `333.96 +/- 51.24` kips.
+    - Curve normalized RMSE vs ground truth `0.00951 +/- 0.00094`.
+    - Curve force RMSE vs ground truth `648.20 +/- 29.84` kips.
+- Interpretation:
+  - Geometry Tree remains the best all-around deployment default because Pt and curve regression are strongest.
+  - Geometry Hybrid Student is the best Type classifier and should remain a strong research/challenger model.
+  - Geometry GointMLP remains a useful deep-learning baseline but is not competitive for Pt/curve regression yet.
+- Local reports copied back:
+  - `reports/dd_response_geometry_rtx_strict_20260721_geometry_strict_rtx_v2/response_geometry_training_report.md`.
+  - `reports/dd_response_hybrid_geometry_strict_cv_20260721_geometry_strict_rtx_v2/distillation_report.md`.
+  - `reports/dd_response_hybrid_geometry_strict_cv_20260721_geometry_strict_rtx_v2/response_distilled_metrics.json`.
+  - `reports/dd_laminate_geometry_strict_leaderboard_20260721.md`.
