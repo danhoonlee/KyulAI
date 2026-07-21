@@ -14700,3 +14700,24 @@ Follow-up in same debugging pass:
   - WSL RTX venv `py_compile` passed.
   - WSL CUDA smoke passed for distillation final-only training with `--device cuda --num-workers 2 --pin-memory auto`.
   - WSL CUDA smoke passed for Geometry GointMLP training with `--device cuda --skip-tree --splits 2 --epochs 1 --final-epochs 1`.
+
+## 2026-07-21 - Benchmarked RTX DataLoader worker settings
+- Added `scripts/remote/Benchmark-LaminateRTXResources.sh` to compare short CUDA training runs across DataLoader worker settings.
+- Ran benchmark on WSL RTX worker:
+  - Run id: `20260721_resource_benchmark_v1`.
+  - GPU: `NVIDIA GeForce RTX 5070`.
+  - Batch size: `512`.
+  - Epochs: `3`.
+  - Goint smoke splits: `2`.
+  - Configs: `0:auto,1:auto,2:auto,4:auto`.
+- Results:
+  - Distillation final-only: workers `0=5s`, `1=6s`, `2=5s`, `4=6s`.
+  - Geometry GointMLP CV smoke: workers `0=3s`, `1=4s`, `2=4s`, `4=4s`.
+- Recommendation:
+  - Keep `NUM_WORKERS=2` as the default for stable longer RTX runs.
+  - Use `NUM_WORKERS=0` when Windows desktop responsiveness matters more.
+  - Avoid `NUM_WORKERS=4` for current dataset scale because worker overhead did not help.
+  - Keep `TREE_N_JOBS=8` as a balanced default; lower to `4` if sklearn Tree/fold-local teacher stages make CPU too busy.
+- Local artifacts:
+  - `reports/rtx_resource_benchmarks/20260721_resource_benchmark_v1/resource_benchmark.csv`.
+  - `reports/rtx_resource_benchmarks/20260721_resource_benchmark_v1/benchmark_summary.md`.

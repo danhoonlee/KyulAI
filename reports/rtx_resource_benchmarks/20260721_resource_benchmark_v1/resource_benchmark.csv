@@ -1,0 +1,9 @@
+run_id,stage,num_workers,pin_memory,batch_size,epochs,splits,seconds,gpu_name,gpu_memory_used_mib,gpu_memory_total_mib
+20260721_resource_benchmark_v1,distill-final,0,auto,512,3,2,5,NVIDIA GeForce RTX 5070, 1366, 12227
+20260721_resource_benchmark_v1,goint-cv,0,auto,512,3,2,3,NVIDIA GeForce RTX 5070, 1366, 12227
+20260721_resource_benchmark_v1,distill-final,1,auto,512,3,2,6,NVIDIA GeForce RTX 5070, 1366, 12227
+20260721_resource_benchmark_v1,goint-cv,1,auto,512,3,2,4,NVIDIA GeForce RTX 5070, 1366, 12227
+20260721_resource_benchmark_v1,distill-final,2,auto,512,3,2,5,NVIDIA GeForce RTX 5070, 1366, 12227
+20260721_resource_benchmark_v1,goint-cv,2,auto,512,3,2,4,NVIDIA GeForce RTX 5070, 1366, 12227
+20260721_resource_benchmark_v1,distill-final,4,auto,512,3,2,6,NVIDIA GeForce RTX 5070, 1366, 12227
+20260721_resource_benchmark_v1,goint-cv,4,auto,512,3,2,4,NVIDIA GeForce RTX 5070, 1366, 12227

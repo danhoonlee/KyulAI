@@ -49,10 +49,40 @@ print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else "no cuda")
 PY'
 ```
 
+Check GPU utilization from WSL:
+
+```bash
+scripts/remote/Run-WSLGPU.sh '/usr/lib/wsl/lib/nvidia-smi'
+```
+
+Watch it live after connecting directly through SSH:
+
+```bash
+watch -n 1 /usr/lib/wsl/lib/nvidia-smi
+```
+
 Run a training script:
 
 ```bash
 scripts/remote/Run-WSLGPU.sh 'python scripts/dd_response_distillation_train.py --help'
+```
+
+Run the Laminate RTX strict validation with balanced resource controls:
+
+```bash
+scripts/remote/Run-WSLGPU.sh 'RUN_ID=manual_geometry_strict TREE_N_JOBS=8 NUM_WORKERS=2 bash scripts/remote/Run-LaminateGeometryStrictRTX.sh'
+```
+
+Run with lower CPU pressure:
+
+```bash
+scripts/remote/Run-WSLGPU.sh 'RUN_ID=manual_geometry_strict_light TREE_N_JOBS=4 NUM_WORKERS=0 bash scripts/remote/Run-LaminateGeometryStrictRTX.sh'
+```
+
+Run a short resource benchmark:
+
+```bash
+scripts/remote/Run-WSLGPU.sh 'RUN_ID=manual_resource_benchmark CONFIGS=0:auto,2:auto EPOCHS=3 SPLITS=2 BATCH_SIZE=512 bash scripts/remote/Benchmark-LaminateRTXResources.sh'
 ```
 
 After training, commit/push results from either the remote worker or local Mac after pulling/copying the outputs.
@@ -60,5 +90,8 @@ After training, commit/push results from either the remote worker or local Mac a
 ## Notes
 
 - `nvidia-smi` may not be on the WSL shell `PATH`, but PyTorch CUDA was verified and works.
+- For WSL, `/usr/lib/wsl/lib/nvidia-smi` is the most reliable explicit path.
+- Laminate training still uses CPU heavily during sklearn `ExtraTrees`, PCA, synthetic grid generation, and Tree teacher pseudo-labeling. CUDA is used by the PyTorch GointMLP / Hybrid Student sections.
+- Current balanced defaults: `TREE_N_JOBS=8`, `NUM_WORKERS=2`, `PIN_MEMORY=auto`, `PREFETCH_FACTOR=2`.
 - Keep secrets out of Git. Do not commit `.env.local` or local SQLite auth DBs.
 - Large model artifacts should use the targeted Git LFS paths already configured in `.gitattributes`.
