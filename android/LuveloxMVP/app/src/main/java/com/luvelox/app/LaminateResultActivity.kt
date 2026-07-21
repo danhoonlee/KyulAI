@@ -114,6 +114,8 @@ class LaminateResultActivity : Activity() {
         val caseName = intent.getStringExtra(EXTRA_LAMINATE_CASE) ?: "-"
         val theta1 = intent.getIntExtra(EXTRA_LAMINATE_THETA1, 0)
         val theta2 = intent.getIntExtra(EXTRA_LAMINATE_THETA2, 0)
+        val panelA = intent.getDoubleExtra(EXTRA_LAMINATE_PANEL_A, Double.NaN)
+        val panelB = intent.getDoubleExtra(EXTRA_LAMINATE_PANEL_B, Double.NaN)
         return LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(14), dp(12), dp(14), dp(12))
@@ -133,6 +135,9 @@ class LaminateResultActivity : Activity() {
                 })
             }
             addView(row, margin(top = 10))
+            if (readMode() != "u3" && panelA.isFinite() && panelB.isFinite()) {
+                addView(summaryPill("Panel ${formatDimension(panelA)} × ${formatDimension(panelB)} in"), margin(top = 8))
+            }
         }
     }
 
@@ -350,6 +355,8 @@ class LaminateResultActivity : Activity() {
             .put("case", intent.getStringExtra(EXTRA_LAMINATE_CASE) ?: "")
             .put("theta1", intent.getIntExtra(EXTRA_LAMINATE_THETA1, 0))
             .put("theta2", intent.getIntExtra(EXTRA_LAMINATE_THETA2, 0))
+            .put("panel_a_in", intent.getDoubleExtra(EXTRA_LAMINATE_PANEL_A, 6.0))
+            .put("panel_b_in", intent.getDoubleExtra(EXTRA_LAMINATE_PANEL_B, 4.0))
             .put("model_label", result.displayModelLabel)
             .put("predicted_type", result.predictedType)
             .put("predicted_pt", result.predictedPt ?: JSONObject.NULL)
@@ -811,6 +818,15 @@ class LaminateResultActivity : Activity() {
     private fun formatMetric(value: Double?, digits: Int): String = value?.let { "%.${digits}f".format(it) } ?: "-"
 
     private fun formatPercent(value: Double?): String = value?.let { "%.1f%%".format(it * 100.0) } ?: "-"
+
+    private fun formatDimension(value: Double): String {
+        val rounded = kotlin.math.round(value * 1000.0) / 1000.0
+        return if (rounded % 1.0 == 0.0) {
+            rounded.toInt().toString()
+        } else {
+            "%.3f".format(rounded).trimEnd('0').trimEnd('.')
+        }
+    }
 
     private fun Double.degText(): String = "%+.0f°".format(this)
 

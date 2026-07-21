@@ -16,6 +16,8 @@ public final class PredictionViewModel: ObservableObject {
 
     @Published public var theta1 = "30"
     @Published public var theta2 = "-30"
+    @Published public var panelAIn = "6"
+    @Published public var panelBIn = "4"
     @Published public var selectedCase: DDLaminateCase = .case2
     @Published public var connectionState: ConnectionState = .idle
     @Published public var responseModels: [ModelInfo] = []
@@ -115,8 +117,14 @@ public final class PredictionViewModel: ObservableObject {
             errorMessage = "Enter numeric theta values."
             return
         }
+        guard let panelAValue = normalizedPositiveValue(panelAIn), let panelBValue = normalizedPositiveValue(panelBIn) else {
+            errorMessage = "Enter positive panel length and width values."
+            return
+        }
         theta1 = Self.thetaInputString(theta1Value)
         theta2 = Self.thetaInputString(theta2Value)
+        panelAIn = Self.decimalInputString(panelAValue)
+        panelBIn = Self.decimalInputString(panelBValue)
         if responseModels.isEmpty {
             await checkConnection(baseURL: baseURL)
         }
@@ -128,7 +136,9 @@ public final class PredictionViewModel: ObservableObject {
             theta1: theta1Value,
             theta2: theta2Value,
             case: selectedCase,
-            model: selectedResponseModelKey
+            model: selectedResponseModelKey,
+            panelAIn: panelAValue,
+            panelBIn: panelBValue
         )
         isPredicting = true
         errorMessage = nil
@@ -157,11 +167,15 @@ public final class PredictionViewModel: ObservableObject {
                 responseDesignSpace = nil
                 return
             }
+            let panelAValue = normalizedPositiveValue(panelAIn) ?? 6
+            let panelBValue = normalizedPositiveValue(panelBIn) ?? 4
             resolvedRequest = ResponsePredictionRequest(
                 theta1: theta1Value,
                 theta2: theta2Value,
                 case: selectedCase,
-                model: selectedResponseModelKey
+                model: selectedResponseModelKey,
+                panelAIn: panelAValue,
+                panelBIn: panelBValue
             )
         }
         isLoadingResponseDesignSpace = true
@@ -300,6 +314,12 @@ public final class PredictionViewModel: ObservableObject {
     public func applyRecentRun(_ run: DDLaminateRecentRun) {
         theta1 = run.theta1Display
         theta2 = run.theta2Display
+        if let panelA = run.panelAIn {
+            panelAIn = Self.decimalInputString(panelA)
+        }
+        if let panelB = run.panelBIn {
+            panelBIn = Self.decimalInputString(panelB)
+        }
         selectedCase = run.selectedCase
         switch run.kind {
         case .responseForecast:
@@ -354,6 +374,8 @@ public final class PredictionViewModel: ObservableObject {
             responseModelKey: request.model,
             theta1: theta1,
             theta2: theta2,
+            panelAIn: request.panelAIn,
+            panelBIn: request.panelBIn,
             createdAt: Date(),
             predictedType: result.predictedType,
             confidence: result.confidence,
@@ -376,7 +398,9 @@ public final class PredictionViewModel: ObservableObject {
                 theta1: request.theta1,
                 theta2: request.theta2,
                 case: request.case,
-                model: request.model
+                model: request.model,
+                panelAIn: request.panelAIn,
+                panelBIn: request.panelBIn
             )
         )
     }
@@ -427,8 +451,25 @@ public final class PredictionViewModel: ObservableObject {
         return min(90, max(-90, value)).rounded()
     }
 
+    private func normalizedPositiveValue(_ text: String) -> Double? {
+        guard let value = Double(text.trimmingCharacters(in: .whitespacesAndNewlines)), value > 0 else {
+            return nil
+        }
+        return value
+    }
+
     private static func thetaInputString(_ value: Double) -> String {
         String(Int(min(90, max(-90, value)).rounded()))
+    }
+
+    private static func decimalInputString(_ value: Double) -> String {
+        let rounded = (value * 1000).rounded() / 1000
+        if rounded.rounded() == rounded {
+            return String(Int(rounded))
+        }
+        return String(format: "%.3f", rounded)
+            .replacingOccurrences(of: #"0+$"#, with: "", options: .regularExpression)
+            .replacingOccurrences(of: #"\.$"#, with: "", options: .regularExpression)
     }
 
     private static func optimalResponseModels(from models: [ModelInfo]) -> [ModelInfo] {
@@ -477,6 +518,8 @@ public struct DDLaminateRecentRun: Identifiable, Codable, Equatable, Sendable {
     public let responseModelKey: String
     public let theta1: String
     public let theta2: String
+    public let panelAIn: Double?
+    public let panelBIn: Double?
     public let createdAt: Date
     public let predictedType: Int?
     public let confidence: Double?
@@ -492,6 +535,8 @@ public struct DDLaminateRecentRun: Identifiable, Codable, Equatable, Sendable {
         responseModelKey: String,
         theta1: String,
         theta2: String,
+        panelAIn: Double? = nil,
+        panelBIn: Double? = nil,
         createdAt: Date,
         predictedType: Int? = nil,
         confidence: Double? = nil,
@@ -506,6 +551,8 @@ public struct DDLaminateRecentRun: Identifiable, Codable, Equatable, Sendable {
         self.responseModelKey = responseModelKey
         self.theta1 = theta1
         self.theta2 = theta2
+        self.panelAIn = panelAIn
+        self.panelBIn = panelBIn
         self.createdAt = createdAt
         self.predictedType = predictedType
         self.confidence = confidence
@@ -522,6 +569,8 @@ public struct DDLaminateRecentRun: Identifiable, Codable, Equatable, Sendable {
         case responseModelKey
         case theta1
         case theta2
+        case panelAIn
+        case panelBIn
         case createdAt
         case predictedType
         case confidence
@@ -539,6 +588,8 @@ public struct DDLaminateRecentRun: Identifiable, Codable, Equatable, Sendable {
         responseModelKey = try container.decodeIfPresent(String.self, forKey: .responseModelKey) ?? DDLaminateDefaults.responseModelKey
         theta1 = try container.decode(String.self, forKey: .theta1)
         theta2 = try container.decode(String.self, forKey: .theta2)
+        panelAIn = try container.decodeIfPresent(Double.self, forKey: .panelAIn)
+        panelBIn = try container.decodeIfPresent(Double.self, forKey: .panelBIn)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         predictedType = try container.decodeIfPresent(Int.self, forKey: .predictedType)
         confidence = try container.decodeIfPresent(Double.self, forKey: .confidence)
@@ -554,7 +605,8 @@ public struct DDLaminateRecentRun: Identifiable, Codable, Equatable, Sendable {
     }
 
     public var displaySubtitle: String {
-        "\(DDLaminateModelDisplayLabel.cleanKey(responseModelKey)) · Theta \(theta1Display) / \(theta2Display)"
+        let panelText = panelDisplay.map { " · \($0)" } ?? ""
+        return "\(DDLaminateModelDisplayLabel.cleanKey(responseModelKey)) · Theta \(theta1Display) / \(theta2Display)\(panelText)"
     }
 
     public var displayModelLabel: String {
@@ -569,8 +621,15 @@ public struct DDLaminateRecentRun: Identifiable, Codable, Equatable, Sendable {
         Self.integerAngleText(theta2)
     }
 
+    public var panelDisplay: String? {
+        guard kind == .responseForecast, let panelAIn, let panelBIn else {
+            return nil
+        }
+        return "Panel \(Self.decimalText(panelAIn)) × \(Self.decimalText(panelBIn)) in"
+    }
+
     fileprivate var signature: String {
-        "\(kind.rawValue)|\(selectedCase.rawValue)|\(responseModelKey)|\(theta1)|\(theta2)"
+        "\(kind.rawValue)|\(selectedCase.rawValue)|\(responseModelKey)|\(theta1)|\(theta2)|\(panelAIn ?? -1)|\(panelBIn ?? -1)"
     }
 
     private static func integerAngleText(_ text: String) -> String {
@@ -578,5 +637,15 @@ public struct DDLaminateRecentRun: Identifiable, Codable, Equatable, Sendable {
             return text
         }
         return String(Int(min(90, max(-90, value)).rounded()))
+    }
+
+    private static func decimalText(_ value: Double) -> String {
+        let rounded = (value * 1000).rounded() / 1000
+        if rounded.rounded() == rounded {
+            return String(Int(rounded))
+        }
+        return String(format: "%.3f", rounded)
+            .replacingOccurrences(of: #"0+$"#, with: "", options: .regularExpression)
+            .replacingOccurrences(of: #"\.$"#, with: "", options: .regularExpression)
     }
 }

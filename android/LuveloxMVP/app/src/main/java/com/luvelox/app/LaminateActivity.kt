@@ -49,6 +49,8 @@ const val EXTRA_LAMINATE_MODE = "com.luvelox.app.EXTRA_LAMINATE_MODE"
 const val EXTRA_LAMINATE_CASE = "com.luvelox.app.EXTRA_LAMINATE_CASE"
 const val EXTRA_LAMINATE_THETA1 = "com.luvelox.app.EXTRA_LAMINATE_THETA1"
 const val EXTRA_LAMINATE_THETA2 = "com.luvelox.app.EXTRA_LAMINATE_THETA2"
+const val EXTRA_LAMINATE_PANEL_A = "com.luvelox.app.EXTRA_LAMINATE_PANEL_A"
+const val EXTRA_LAMINATE_PANEL_B = "com.luvelox.app.EXTRA_LAMINATE_PANEL_B"
 
 private enum class LaminateForecastMode(
     val key: String,
@@ -63,6 +65,8 @@ private enum class LaminateForecastMode(
 class LaminateActivity : Activity() {
     private lateinit var theta1Input: EditText
     private lateinit var theta2Input: EditText
+    private lateinit var panelAInput: EditText
+    private lateinit var panelBInput: EditText
     private lateinit var theta1Readout: TextView
     private lateinit var theta2Readout: TextView
     private lateinit var theta1SeekBar: SeekBar
@@ -185,12 +189,28 @@ class LaminateActivity : Activity() {
             },
         ), margin(top = 12))
 
+        panelAInput = decimalInput("6")
+        panelBInput = decimalInput("4")
+        inputCard.addView(setupSection(
+            step = "03",
+            title = "Panel size",
+            subtitle = "Geometry-aware forecast dimensions",
+            accent = LaminateV2.amber,
+            content = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                addView(inputBlock("Length a (in)", panelAInput), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+                addView(inputBlock("Width b (in)", panelBInput), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    marginStart = dp(10)
+                })
+            },
+        ), margin(top = 12))
+
         modelSpinner = Spinner(this)
         modelSpinner.background = fieldBackground()
         modelSpinner.minimumHeight = dp(48)
         modelSpinner.setPadding(dp(10), 0, dp(10), 0)
         inputCard.addView(setupSection(
-            step = "03",
+            step = "04",
             title = "Model",
             subtitle = "Select Machine Learning or Deep Learning predictor",
             accent = LaminateV2.green,
@@ -271,8 +291,16 @@ class LaminateActivity : Activity() {
             showError("Enter numeric theta values.")
             return
         }
+        val panelA = parsePositiveDimension(panelAInput.text.toString())
+        val panelB = parsePositiveDimension(panelBInput.text.toString())
+        if (selectedMode == LaminateForecastMode.RESPONSE && (panelA == null || panelB == null)) {
+            showError("Enter positive panel length and width values.")
+            return
+        }
         theta1Input.setText(theta1.toString())
         theta2Input.setText(theta2.toString())
+        panelA?.let { panelAInput.setText(it.dimensionReadout()) }
+        panelB?.let { panelBInput.setText(it.dimensionReadout()) }
         updatePlyPreview()
         val mode = selectedMode
         val model = models.getOrNull(modelSpinner.selectedItemPosition)?.key ?: when (mode) {
@@ -289,6 +317,8 @@ class LaminateActivity : Activity() {
                         theta1 = theta1.toDouble(),
                         theta2 = theta2.toDouble(),
                         modelKey = model,
+                        panelAIn = panelA ?: 6.0,
+                        panelBIn = panelB ?: 4.0,
                     )
                     LaminateForecastMode.U3 -> api.predictU3Forecast(
                         caseName = caseSpinner.selectedItem.toString(),
@@ -301,7 +331,7 @@ class LaminateActivity : Activity() {
             runOnUiThread {
                 result.onSuccess {
                     statusText.text = "API ready"
-                    saveRecentRun(it, mode, caseSpinner.selectedItem.toString(), theta1, theta2, model)
+                    saveRecentRun(it, mode, caseSpinner.selectedItem.toString(), theta1, theta2, model, panelA, panelB)
                     renderRecentHistory()
                     startActivity(Intent(this@LaminateActivity, LaminateResultActivity::class.java).apply {
                         putExtra(EXTRA_LAMINATE_RESULT, it)
@@ -309,6 +339,8 @@ class LaminateActivity : Activity() {
                         putExtra(EXTRA_LAMINATE_CASE, caseSpinner.selectedItem.toString())
                         putExtra(EXTRA_LAMINATE_THETA1, theta1)
                         putExtra(EXTRA_LAMINATE_THETA2, theta2)
+                        panelA?.let { value -> putExtra(EXTRA_LAMINATE_PANEL_A, value) }
+                        panelB?.let { value -> putExtra(EXTRA_LAMINATE_PANEL_B, value) }
                     })
                 }.onFailure {
                     showError("Prediction failed: ${it.message ?: "Unknown error"}")
@@ -467,10 +499,11 @@ class LaminateActivity : Activity() {
             listOf(
                 "θ₁ ${run.theta1.thetaReadout()}",
                 "θ₂ ${run.theta2.thetaReadout()}",
+                run.panelLabel,
                 run.predictedType?.let { "Type $it" } ?: "Type -",
                 run.confidence.percentText(),
                 "Pt ${run.predictedPt.metricText(2)}",
-            )
+            ).filterNotNull()
         ), margin(top = 8))
     }
 
@@ -502,7 +535,14 @@ class LaminateActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             runs.forEachIndexed { index, run ->
                 val checkBox = CheckBox(this@LaminateActivity).apply {
-                    text = "${if (index == 0) "Latest" else "#${index + 1}"}  ${run.caseName}  ·  θ₁ ${run.theta1.thetaReadout()}  ·  θ₂ ${run.theta2.thetaReadout()}  ·  Pt ${run.predictedPt.metricText(2)}"
+                    text = listOfNotNull(
+                        if (index == 0) "Latest" else "#${index + 1}",
+                        run.caseName,
+                        "θ₁ ${run.theta1.thetaReadout()}",
+                        "θ₂ ${run.theta2.thetaReadout()}",
+                        run.panelLabel,
+                        "Pt ${run.predictedPt.metricText(2)}",
+                    ).joinToString("  ·  ")
                     textSize = 12f
                     setTextColor(LaminateV2.ink)
                     useAppFont(Typeface.BOLD)
@@ -612,6 +652,8 @@ class LaminateActivity : Activity() {
         theta2SeekBar.progress = run.theta2.coerceIn(-90, 90) + 90
         theta1Readout.text = run.theta1.thetaReadout()
         theta2Readout.text = run.theta2.thetaReadout()
+        run.panelAIn?.let { panelAInput.setText(it.dimensionReadout()) }
+        run.panelBIn?.let { panelBInput.setText(it.dimensionReadout()) }
         val modelIndex = models.indexOfFirst { it.key == run.modelKey }
         if (modelIndex >= 0) {
             modelSpinner.setSelection(modelIndex)
@@ -625,12 +667,23 @@ class LaminateActivity : Activity() {
         renderRecentHistory()
     }
 
-    private fun saveRecentRun(result: LaminateResult, mode: LaminateForecastMode, caseName: String, theta1: Int, theta2: Int, modelKey: String) {
+    private fun saveRecentRun(
+        result: LaminateResult,
+        mode: LaminateForecastMode,
+        caseName: String,
+        theta1: Int,
+        theta2: Int,
+        modelKey: String,
+        panelAIn: Double?,
+        panelBIn: Double?,
+    ) {
         val run = LaminateRecentRun(
             kind = mode.key,
             caseName = caseName,
             theta1 = theta1,
             theta2 = theta2,
+            panelAIn = if (mode == LaminateForecastMode.RESPONSE) panelAIn else null,
+            panelBIn = if (mode == LaminateForecastMode.RESPONSE) panelBIn else null,
             modelKey = modelKey,
             modelLabel = result.displayModelLabel,
             predictedType = result.predictedType,
@@ -680,6 +733,11 @@ class LaminateActivity : Activity() {
         val value = rawValue.trim().toDoubleOrNull() ?: return null
         if (value !in -90.0..90.0) return null
         return value.roundToInt().coerceIn(-90, 90)
+    }
+
+    private fun parsePositiveDimension(rawValue: String): Double? {
+        val value = rawValue.trim().toDoubleOrNull() ?: return null
+        return value.takeIf { it > 0.0 }
     }
 
     private fun angleControl(title: String, field: EditText, readout: TextView, seekBar: SeekBar): LinearLayout = LinearLayout(this).apply {
@@ -985,6 +1043,15 @@ class LaminateActivity : Activity() {
         background = strokedRounded(Color.WHITE, LaminateV2.line, dp(8))
     }
 
+    private fun decimalInput(initial: String): EditText = EditText(this).apply {
+        setText(initial)
+        inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+        textSize = 18f
+        typeface = Typeface.MONOSPACE
+        setPadding(dp(12), 0, dp(12), 0)
+        background = strokedRounded(Color.WHITE, LaminateV2.line, dp(8))
+    }
+
     private fun metricBox(title: String, value: String): LinearLayout = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
         setPadding(dp(12), dp(10), dp(12), dp(10))
@@ -1146,19 +1213,28 @@ data class LaminateRecentRun(
     val caseName: String,
     val theta1: Int,
     val theta2: Int,
+    val panelAIn: Double?,
+    val panelBIn: Double?,
     val modelKey: String,
     val modelLabel: String,
     val predictedType: Int?,
     val confidence: Double?,
     val predictedPt: Double?,
 ) {
-    val signature: String get() = "$kind|$caseName|$theta1|$theta2|$modelKey"
+    val signature: String get() = "$kind|$caseName|$theta1|$theta2|${panelAIn ?: "-"}|${panelBIn ?: "-"}|$modelKey"
+    val panelLabel: String? get() = if (kind == LaminateForecastMode.RESPONSE.key && panelAIn != null && panelBIn != null) {
+        "Panel ${panelAIn.dimensionReadout()}×${panelBIn.dimensionReadout()} in"
+    } else {
+        null
+    }
 
     fun toJson(): JSONObject = JSONObject()
         .put("kind", kind)
         .put("case", caseName)
         .put("theta1", theta1)
         .put("theta2", theta2)
+        .put("panel_a_in", panelAIn)
+        .put("panel_b_in", panelBIn)
         .put("model_key", modelKey)
         .put("model_label", modelLabel)
         .put("predicted_type", predictedType)
@@ -1173,6 +1249,8 @@ data class LaminateRecentRun(
                 caseName = json.optString("case", "Case2"),
                 theta1 = json.optInt("theta1", 0).coerceIn(-90, 90),
                 theta2 = json.optInt("theta2", 0).coerceIn(-90, 90),
+                panelAIn = json.optionalDouble("panel_a_in"),
+                panelBIn = json.optionalDouble("panel_b_in"),
                 modelKey = json.optString("model_key", DEFAULT_RESPONSE_MODEL),
                 modelLabel = json.optString("model_label", "Laminate Forecast - Machine Learning").cleanModelLabel(),
                 predictedType = json.optionalInt("predicted_type"),
@@ -1304,12 +1382,21 @@ class LaminateApi {
         )
     }
 
-    fun predictResponse(caseName: String, theta1: Double, theta2: Double, modelKey: String): LaminateResult {
+    fun predictResponse(
+        caseName: String,
+        theta1: Double,
+        theta2: Double,
+        modelKey: String,
+        panelAIn: Double = 6.0,
+        panelBIn: Double = 4.0,
+    ): LaminateResult {
         val body = JSONObject()
             .put("case", caseName)
             .put("theta1", theta1)
             .put("theta2", theta2)
             .put("model", modelKey)
+            .put("panel_a_in", panelAIn)
+            .put("panel_b_in", panelBIn)
             .toString()
         val json = JSONObject(request("POST", endpoint("/api/v1/dd-laminate/predict/response"), body))
         return json.toLaminateResult()
@@ -1611,5 +1698,13 @@ private fun List<LaminateCurvePoint>.displacementAtForce(targetForce: Double?): 
 
 private fun Double?.metricText(digits: Int): String = this?.let { "%.${digits}f".format(it) } ?: "-"
 private fun Double.metricText(digits: Int): String = "%.${digits}f".format(this)
+private fun Double.dimensionReadout(): String {
+    val rounded = kotlin.math.round(this * 1000.0) / 1000.0
+    return if (rounded % 1.0 == 0.0) {
+        rounded.toInt().toString()
+    } else {
+        "%.3f".format(rounded).trimEnd('0').trimEnd('.')
+    }
+}
 private fun Double?.percentText(): String = this?.let { "%.1f%%".format(it * 100.0) } ?: "-"
 private fun Double.percentText(): String = "%.1f%%".format(this * 100.0)

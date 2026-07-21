@@ -490,7 +490,7 @@ function writePredictionHistory(runs) {
 }
 
 function historySignature(run) {
-  return [run.kind, run.caseName, run.theta1, run.theta2, run.modelKey].join("|");
+  return [run.kind, run.caseName, run.theta1, run.theta2, run.panelAIn ?? "-", run.panelBIn ?? "-", run.modelKey].join("|");
 }
 
 function currentPredictionHistoryRuns() {
@@ -534,6 +534,8 @@ function savePredictionHistory(kind, data) {
     caseName: inputs.case || "Case2",
     theta1: clampStackAngle(inputs.theta1),
     theta2: clampStackAngle(inputs.theta2),
+    panelAIn: kind === "response" ? Number(inputs.panel_a_in || 6) : null,
+    panelBIn: kind === "response" ? Number(inputs.panel_b_in || 4) : null,
     modelKey: data.model_key || historyFormForKind(kind)?.querySelector('select[name="model"]')?.value || "",
     modelLabel: displayModelLabel(data.model_label || ""),
     predictedType: data.predicted_type ?? null,
@@ -570,10 +572,14 @@ function applyPredictionHistoryRun(run) {
   }
   const theta1Input = form.querySelector('input[name="theta1"]');
   const theta2Input = form.querySelector('input[name="theta2"]');
+  const panelAInput = form.querySelector('input[name="panel_a_in"]');
+  const panelBInput = form.querySelector('input[name="panel_b_in"]');
   const caseSelect = form.querySelector('select[name="case"]');
   const modelSelect = form.querySelector('select[name="model"]');
   if (theta1Input) theta1Input.value = String(clampStackAngle(run.theta1));
   if (theta2Input) theta2Input.value = String(clampStackAngle(run.theta2));
+  if (panelAInput && run.panelAIn) panelAInput.value = String(run.panelAIn);
+  if (panelBInput && run.panelBIn) panelBInput.value = String(run.panelBIn);
   if (caseSelect) caseSelect.value = run.caseName || "Case2";
   if (modelSelect && run.modelKey && Array.from(modelSelect.options).some((option) => option.value === run.modelKey)) {
     modelSelect.value = run.modelKey;
@@ -692,6 +698,7 @@ function renderPredictionHistory() {
       <div class="prediction-history-chips">
         <span>θ₁ ${signedTheta(run.theta1)}</span>
         <span>θ₂ ${signedTheta(run.theta2)}</span>
+        ${run.kind === "response" ? `<span>Panel ${formatMetric(run.panelAIn || 6, 3)} × ${formatMetric(run.panelBIn || 4, 3)} in</span>` : ""}
         <span>${run.predictedType ? `Type ${run.predictedType}` : "Type -"}</span>
         <span>${percent(run.confidence)}</span>
         <span>Pt ${formatMetric(run.predictedPt, 2)}</span>
@@ -4449,6 +4456,8 @@ async function ensurePredictionXaiForAssistant(data) {
       theta2: Number(inputs.theta2),
       case: inputs.case,
       model: data.model_key,
+      panel_a_in: Number(inputs.panel_a_in || 6),
+      panel_b_in: Number(inputs.panel_b_in || 4),
     });
     latestPredictionData = { ...data, xai };
     renderXai(xai);

@@ -14721,3 +14721,22 @@ Follow-up in same debugging pass:
 - Local artifacts:
   - `reports/rtx_resource_benchmarks/20260721_resource_benchmark_v1/resource_benchmark.csv`.
   - `reports/rtx_resource_benchmarks/20260721_resource_benchmark_v1/benchmark_summary.md`.
+
+## 2026-07-21 - Matched Laminate panel-size inputs across Web/iOS/Android
+- User clarified that the next panel-size step referred to the existing `Panel length a` and `Panel width b` inputs.
+- Confirmed backend and ML feature layer already support geometry-aware response forecasts:
+  - `/api/v1/dd-laminate/predict/response` accepts `panel_a_in` and `panel_b_in`.
+  - XAI local requests also accept the same fields.
+  - Feature pack uses panel aspect/slenderness and raw panel dimensions.
+- Updated clients:
+  - Web `app-v2.js` now saves panel dimensions in response forecast history, restores them when a history card is clicked, includes them in history signatures, and passes them to assistant lazy-XAI requests.
+  - iOS `DDLaminateMVP` now has `panelAIn`/`panelBIn` ViewModel state, sends `panel_a_in`/`panel_b_in`, restores/saves them in recent runs, and shows panel chips in response history.
+  - Android `LuveloxMVP` now shows Panel size inputs, sends geometry values for Response Forecast, includes them in result summaries, assistant context, and recent-history signatures/cards.
+  - Standalone Android `DDLaminateMVP` also sends and stores panel dimensions to avoid stale behavior in that older app surface.
+- Scope note:
+  - u3 Forecast remains theta/case-only for now because the current u3 model request/schema does not include panel geometry.
+- Verification:
+  - `node --check src/frontend/dd-laminate/app-v2.js` passed.
+  - `git diff --check` passed.
+  - `swift test` in `ios/DDLaminateMVP` passed: 11 tests.
+  - Android Gradle assemble could not run on this Mac because Java 17 toolchain is not installed/configured; source-level review was completed instead.

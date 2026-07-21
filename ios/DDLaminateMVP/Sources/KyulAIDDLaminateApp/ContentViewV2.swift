@@ -40,6 +40,8 @@ struct ContentViewV2: View {
     private enum FocusedField: Hashable {
         case theta1
         case theta2
+        case panelA
+        case panelB
         case apiBaseURL
     }
 
@@ -420,6 +422,21 @@ struct ContentViewV2: View {
                 angleField(localText(en: "Theta 2", ko: "Theta 2"), text: $viewModel.theta2, field: .theta2)
             }
 
+            if selectedMode == .response {
+                HStack(spacing: 12) {
+                    panelSizeField(
+                        localText(en: "Panel length a", ko: "패널 길이 a"),
+                        text: $viewModel.panelAIn,
+                        field: .panelA
+                    )
+                    panelSizeField(
+                        localText(en: "Panel width b", ko: "패널 폭 b"),
+                        text: $viewModel.panelBIn,
+                        field: .panelB
+                    )
+                }
+            }
+
             DynamicPlyStackPreviewCard(
                 laminateCase: viewModel.selectedCase,
                 theta1Text: viewModel.theta1,
@@ -563,6 +580,41 @@ struct ContentViewV2: View {
         Binding(
             get: { Self.clampedAngleValue(text.wrappedValue) },
             set: { text.wrappedValue = Self.angleInputString($0) }
+        )
+    }
+
+    private func panelSizeField(_ title: String, text: Binding<String>, field: FocusedField) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.caption.weight(.black))
+                .foregroundStyle(WantedV2Theme.muted)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+            HStack {
+                TextField("0", text: text)
+                    .focused($focusedField, equals: field)
+                    #if os(iOS)
+                    .keyboardType(.decimalPad)
+                    #endif
+                    .font(.title3.monospacedDigit().weight(.black))
+                    .foregroundStyle(WantedV2Theme.ink)
+                Text("in")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(WantedV2Theme.muted)
+            }
+            .padding(.horizontal, 12)
+            .frame(height: 50)
+            .background(WantedV2Theme.field, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(WantedV2Theme.line, lineWidth: 1)
+            )
+        }
+        .padding(12)
+        .background(WantedV2Theme.field, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(WantedV2Theme.line, lineWidth: 1)
         )
     }
 
@@ -717,6 +769,9 @@ struct ContentViewV2: View {
                     HStack(spacing: 8) {
                         historyChip("θ₁ \(signedAngle(run.theta1Display))")
                         historyChip("θ₂ \(signedAngle(run.theta2Display))")
+                        if let panelDisplay = run.panelDisplay {
+                            historyChip(panelDisplay.replacingOccurrences(of: "Panel ", with: ""))
+                        }
                         historyChip(run.predictedType.map { "Type \($0)" } ?? localText(en: "Type -", ko: "Type -"))
                         historyChip(run.confidence.percentText)
                         historyChip("Pt \(run.predictedPt?.metricText(digits: 2) ?? "-")")

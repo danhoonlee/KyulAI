@@ -76,17 +76,42 @@ public struct ResponsePredictionRequest: Codable, Equatable, Hashable, Sendable 
     public let theta2: Double
     public let `case`: DDLaminateCase
     public let model: String
+    public let panelAIn: Double
+    public let panelBIn: Double
 
     public init(
         theta1: Double,
         theta2: Double,
         case laminateCase: DDLaminateCase,
-        model: String = DDLaminateDefaults.responseModelKey
+        model: String = DDLaminateDefaults.responseModelKey,
+        panelAIn: Double = 6,
+        panelBIn: Double = 4
     ) {
         self.theta1 = theta1
         self.theta2 = theta2
         self.case = laminateCase
         self.model = model
+        self.panelAIn = panelAIn
+        self.panelBIn = panelBIn
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case theta1
+        case theta2
+        case `case`
+        case model
+        case panelAIn = "panel_a_in"
+        case panelBIn = "panel_b_in"
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        theta1 = try container.decode(Double.self, forKey: .theta1)
+        theta2 = try container.decode(Double.self, forKey: .theta2)
+        self.case = try container.decode(DDLaminateCase.self, forKey: .case)
+        model = try container.decodeIfPresent(String.self, forKey: .model) ?? DDLaminateDefaults.responseModelKey
+        panelAIn = try container.decodeIfPresent(Double.self, forKey: .panelAIn) ?? 6
+        panelBIn = try container.decodeIfPresent(Double.self, forKey: .panelBIn) ?? 4
     }
 }
 
@@ -149,17 +174,32 @@ public struct LocalXAIRequest: Codable, Equatable, Hashable, Sendable {
     public let theta2: Double
     public let `case`: DDLaminateCase
     public let model: String
+    public let panelAIn: Double?
+    public let panelBIn: Double?
 
     public init(
         theta1: Double,
         theta2: Double,
         case laminateCase: DDLaminateCase,
-        model: String
+        model: String,
+        panelAIn: Double? = nil,
+        panelBIn: Double? = nil
     ) {
         self.theta1 = theta1
         self.theta2 = theta2
         self.case = laminateCase
         self.model = model
+        self.panelAIn = panelAIn
+        self.panelBIn = panelBIn
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case theta1
+        case theta2
+        case `case`
+        case model
+        case panelAIn = "panel_a_in"
+        case panelBIn = "panel_b_in"
     }
 }
 

@@ -22,12 +22,16 @@ class DDLaminateApi {
         theta1: Double,
         theta2: Double,
         modelKey: String,
+        panelAIn: Double = 6.0,
+        panelBIn: Double = 4.0,
     ): ForecastResult {
         val body = JSONObject()
             .put("case", caseName)
             .put("theta1", theta1)
             .put("theta2", theta2)
             .put("model", modelKey)
+            .put("panel_a_in", panelAIn)
+            .put("panel_b_in", panelBIn)
             .toString()
         val json = JSONObject(request("POST", endpoint(baseUrl, "/api/v1/dd-laminate/predict/response"), body))
         return ForecastResult(

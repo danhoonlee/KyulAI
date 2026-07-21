@@ -59,6 +59,8 @@ class MainActivity : Activity() {
     private lateinit var responseModelDescription: TextView
     private lateinit var theta1Field: EditText
     private lateinit var theta2Field: EditText
+    private lateinit var panelAField: EditText
+    private lateinit var panelBField: EditText
     private lateinit var theta1Readout: TextView
     private lateinit var theta2Readout: TextView
     private lateinit var theta1SeekBar: SeekBar
@@ -195,6 +197,12 @@ class MainActivity : Activity() {
             theta2SeekBar = angleSeekBar(-30)
             addView(angleControl(getString(R.string.theta_1), theta1Field, theta1Readout, theta1SeekBar))
             addView(angleControl(getString(R.string.theta_2), theta2Field, theta2Readout, theta2SeekBar))
+            panelAField = input("6")
+            panelBField = input("4")
+            addView(twoColumnRow(
+                inputBlock("Panel length a (in)", panelAField),
+                inputBlock("Panel width b (in)", panelBField),
+            ))
             addView(plyPreviewCard())
             predictButton = Button(context).apply {
                 text = getString(R.string.predict_forecast)
@@ -258,8 +266,16 @@ class MainActivity : Activity() {
             modelText.text = getString(R.string.friendly_input)
             return
         }
+        val panelA = parsePositiveDimension(panelAField.text.toString())
+        val panelB = parsePositiveDimension(panelBField.text.toString())
+        if (panelA == null || panelB == null) {
+            modelText.text = "Enter positive panel length and width values."
+            return
+        }
         theta1Field.setText(theta1.toString())
         theta2Field.setText(theta2.toString())
+        panelAField.setText(formatDimension(panelA))
+        panelBField.setText(formatDimension(panelB))
         updatePlyPreview()
 
         isBusy = true
@@ -276,14 +292,14 @@ class MainActivity : Activity() {
                 main.post { populateResponseModelSpinner() }
                 val model = selectedResponseModel()
                 check(model?.available == true) { getString(R.string.response_unavailable) }
-                api.predictResponse(baseUrl, caseName, theta1.toDouble(), theta2.toDouble(), selectedResponseModelKey)
+                api.predictResponse(baseUrl, caseName, theta1.toDouble(), theta2.toDouble(), selectedResponseModelKey, panelA, panelB)
             }.onSuccess { result ->
                 main.post {
                     isBusy = false
                     predictButton.isEnabled = true
                     setStatus(null)
                     showApiSettings(false)
-                    saveRecentRun(caseName, selectedResponseModelKey, theta1.toString(), theta2.toString(), result)
+                    saveRecentRun(caseName, selectedResponseModelKey, theta1.toString(), theta2.toString(), panelA, panelB, result)
                     renderResult(result)
                 }
             }.onFailure { error ->
@@ -1242,6 +1258,11 @@ class MainActivity : Activity() {
         return value.roundToInt().coerceIn(-90, 90)
     }
 
+    private fun parsePositiveDimension(rawValue: String): Double? {
+        val value = rawValue.trim().toDoubleOrNull() ?: return null
+        return value.takeIf { it > 0.0 }
+    }
+
     private fun displayThetaDegrees(rawValue: String): String {
         return rawValue.trim().toDoubleOrNull()
             ?.roundToInt()
@@ -1290,6 +1311,8 @@ class MainActivity : Activity() {
         }
         theta1Field.setText(displayThetaDegrees(item.optString("theta1", theta1Field.text.toString())))
         theta2Field.setText(displayThetaDegrees(item.optString("theta2", theta2Field.text.toString())))
+        item.optDoubleOrNull("panel_a_in")?.let { panelAField.setText(formatDimension(it)) }
+        item.optDoubleOrNull("panel_b_in")?.let { panelBField.setText(formatDimension(it)) }
         selectedResponseModelKey = item.optString("model", Defaults.RESPONSE_MODEL_KEY)
         populateResponseModelSpinner()
         updatePlyPreview()
@@ -1309,6 +1332,7 @@ class MainActivity : Activity() {
             "• Case: ${item.optString("case")}",
             "• Theta 1: ${displayThetaDegrees(item.optString("theta1"))} deg",
             "• Theta 2: ${displayThetaDegrees(item.optString("theta2"))} deg",
+            "• Panel: ${formatDimension(item.optDoubleOrNull("panel_a_in") ?: 6.0)} × ${formatDimension(item.optDoubleOrNull("panel_b_in") ?: 4.0)} in",
             "",
             "RESULTS",
             "• Predicted type: $type",
@@ -1326,12 +1350,14 @@ class MainActivity : Activity() {
             .show()
     }
 
-    private fun saveRecentRun(caseName: String, modelKey: String, theta1: String, theta2: String, result: ForecastResult) {
+    private fun saveRecentRun(caseName: String, modelKey: String, theta1: String, theta2: String, panelA: Double, panelB: Double, result: ForecastResult) {
         val run = JSONObject()
             .put("case", caseName)
             .put("model", modelKey)
             .put("theta1", theta1)
             .put("theta2", theta2)
+            .put("panel_a_in", panelA)
+            .put("panel_b_in", panelB)
             .put("predicted_type", result.predictedType)
             .put("confidence", result.confidence)
             .put("predicted_pt", result.predictedPt)
@@ -1365,7 +1391,7 @@ class MainActivity : Activity() {
             val item = runs.getJSONObject(index)
             val model = item.optString("model", Defaults.RESPONSE_MODEL_KEY).cleanModelKeyLabel()
             val prefix = if (index == 0) "${index + 1}. ${getString(R.string.recent_latest)}" else "${index + 1}."
-            "$prefix ${item.optString("case")} · $model · Theta ${displayThetaDegrees(item.optString("theta1"))}/${displayThetaDegrees(item.optString("theta2"))} · Pt ${item.optDoubleOrNull("predicted_pt").numberText(2)}"
+            "$prefix ${item.optString("case")} · $model · Theta ${displayThetaDegrees(item.optString("theta1"))}/${displayThetaDegrees(item.optString("theta2"))} · Panel ${formatDimension(item.optDoubleOrNull("panel_a_in") ?: 6.0)}×${formatDimension(item.optDoubleOrNull("panel_b_in") ?: 4.0)} · Pt ${item.optDoubleOrNull("predicted_pt").numberText(2)}"
         }
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.recent_delete_title))
@@ -1403,7 +1429,7 @@ class MainActivity : Activity() {
     }
 
     private fun recentSignature(item: JSONObject): String {
-        return "${item.optString("case")}|${item.optString("model", Defaults.RESPONSE_MODEL_KEY)}|${item.optString("theta1")}|${item.optString("theta2")}"
+        return "${item.optString("case")}|${item.optString("model", Defaults.RESPONSE_MODEL_KEY)}|${item.optString("theta1")}|${item.optString("theta2")}|${item.optDoubleOrNull("panel_a_in") ?: "-"}|${item.optDoubleOrNull("panel_b_in") ?: "-"}"
     }
 
     private fun updateRecentButton() {
@@ -1597,6 +1623,21 @@ class MainActivity : Activity() {
         dividerDrawable = SpaceDrawable(dp(spacing))
     }
 
+    private fun twoColumnRow(left: View, right: View): LinearLayout = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+        addView(left, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+            rightMargin = dp(6)
+        })
+        addView(right, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+            leftMargin = dp(6)
+        })
+    }
+
+    private fun inputBlock(title: String, field: EditText): LinearLayout = vertical(spacing = 6).apply {
+        addView(label(title))
+        addView(field)
+    }
+
     private fun title(text: String, size: Int): TextView = TextView(this).apply {
         this.text = text
         textSize = size.toFloat()
@@ -1780,6 +1821,15 @@ private class SpaceDrawable(private val height: Int) : android.graphics.drawable
 private fun Double?.percentText(): String = this?.let { "%.1f%%".format(it * 100.0) } ?: "-"
 
 private fun Double?.numberText(digits: Int): String = this?.let { "%.${digits}f".format(it) } ?: "-"
+
+private fun formatDimension(value: Double): String {
+    val rounded = kotlin.math.round(value * 1000.0) / 1000.0
+    return if (rounded % 1.0 == 0.0) {
+        rounded.toInt().toString()
+    } else {
+        "%.3f".format(rounded).trimEnd('0').trimEnd('.')
+    }
+}
 
 private fun JSONObject.optDoubleOrNull(key: String): Double? = if (has(key) && !isNull(key)) optDouble(key) else null
 
