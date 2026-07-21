@@ -14739,4 +14739,7 @@ Follow-up in same debugging pass:
   - `node --check src/frontend/dd-laminate/app-v2.js` passed.
   - `git diff --check` passed.
   - `swift test` in `ios/DDLaminateMVP` passed: 11 tests.
-  - Android Gradle assemble could not run on this Mac because Java 17 toolchain is not installed/configured; source-level review was completed instead.
+  - Initial Android Gradle assemble was blocked because macOS could not locate Java 17.
+  - Homebrew `openjdk@17` was already installed; using `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home` fixed the toolchain.
+  - `gradle :app:assembleDebug` passed in `android/LuveloxMVP`.
+  - `gradle :app:assembleDebug` passed in `android/DDLaminateMVP`.
