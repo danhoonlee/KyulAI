@@ -14621,3 +14621,23 @@ Follow-up in same debugging pass:
   - `.env.local` and `data/luvelox_auth.sqlite3`, because they contain local secrets/runtime state.
   - Build caches and OS metadata.
   - Untracked `random_forest.joblib` / `extra_trees.joblib` challenger artifacts, because they are large local experiment outputs and not current deployment models.
+
+## 2026-07-21 - Added WSL RTX GPU worker bridge
+- User wants Codex on the Mac to be able to run heavy model training on the Windows RTX PC through WSL when GPU is needed.
+- Verified remote worker:
+  - Tailscale SSH target: `user@100.65.153.56`.
+  - Remote project: `~/projects/KyulAI`.
+  - Python `3.11.15`.
+  - PyTorch `2.11.0+cu128`.
+  - CUDA available through PyTorch.
+  - GPU detected by PyTorch: `NVIDIA GeForce RTX 5070`.
+  - `nvidia-smi` is not currently on WSL PATH, but PyTorch CUDA is working.
+- Added:
+  - `scripts/remote/Run-WSLGPU.sh` for one-line remote command execution from the Mac repo into WSL.
+  - `docs/WINDOWS_WSL_GPU_WORKER.md` documenting worker address, runtime, command examples, and operational notes.
+- Git/network notes:
+  - Local Mac DNS could not resolve `github.com`, so normal `git push` initially failed before authentication.
+  - WSL could resolve/reach GitHub, but WSL did not have GitHub push credentials configured.
+  - GitHub connector had read access but not write access.
+  - Final push succeeded from Mac by temporarily pinning `github.com:443` to the GitHub IP resolved by WSL with `git -c http.curloptResolve=github.com:443:20.200.245.247 push`.
+  - Remote branch `codex/dd-laminate-ui-api` advanced to `cbd9006`.
