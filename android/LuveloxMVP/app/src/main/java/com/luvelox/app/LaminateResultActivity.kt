@@ -179,6 +179,9 @@ class LaminateResultActivity : Activity() {
         result.uncertainty?.let {
             card.addView(uncertaintySection(it), margin(top = 14))
         }
+        result.teacherStudent?.let {
+            card.addView(teacherStudentSection(it), margin(top = 14))
+        }
 
         if (result.curve.size >= 2) {
             card.addView(responseCurveSection(result), margin(top = 18))
@@ -278,6 +281,73 @@ class LaminateResultActivity : Activity() {
             box.addView(paragraph(note), margin(top = 8))
         }
         return box
+    }
+
+    private fun teacherStudentSection(agreement: LaminateTeacherStudentAgreement): LinearLayout {
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(12), dp(12), dp(12), dp(12))
+            background = strokedRounded(LaminateV2.field, LaminateV2.line, dp(8))
+        }
+        val labelText = when (agreement.confidenceLabel) {
+            "high" -> localText("High agreement", "높은 일치")
+            "medium" -> localText("Medium agreement", "중간 일치")
+            else -> localText("Low agreement", "낮은 일치")
+        }
+        box.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(label(localText("Tree vs Student agreement", "Tree vs Student 일치도"), LaminateV2.ink, 18f, Typeface.BOLD), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            addView(label(labelText, uncertaintyBadgeColor(agreement.confidenceLabel), 12f, Typeface.BOLD).apply {
+                setPadding(dp(10), dp(6), dp(10), dp(6))
+                background = rounded(uncertaintyBadgeBackground(agreement.confidenceLabel), dp(999))
+            })
+        })
+        val typeText = if (agreement.typeAgreement) {
+            "${localText("Match", "일치")} · Type ${agreement.teacher.predictedType}"
+        } else {
+            "${localText("Mismatch", "불일치")} · T${agreement.teacher.predictedType} / S${agreement.student.predictedType}"
+        }
+        val curveText = agreement.curveNormRmse?.let { formatMetric(it * 100.0, 2) + "%" } ?: "-"
+        val studentText = "Type ${agreement.student.predictedType}, Pt ${formatMetric(agreement.student.predictedPt, 0)}"
+        listOf(
+            localText("Agreement", "종합 일치도") to formatPercent(agreement.agreementScore),
+            localText("Type comparison", "Type 비교") to typeText,
+            localText("Pt delta", "Pt 차이") to "${formatMetric(agreement.ptDelta, 0)} (${formatPercent(agreement.ptDeltaPercent)})",
+            localText("Curve delta", "곡선 차이") to curveText,
+            localText("Student prediction", "Student 예측") to studentText,
+        ).chunked(2).forEach { rowItems ->
+            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            rowItems.forEachIndexed { index, item ->
+                row.addView(metricBox(item.first, item.second), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    if (index == 0) marginEnd = dp(8)
+                })
+            }
+            box.addView(row, margin(top = 10))
+        }
+        agreement.notes.take(2).forEach { note ->
+            box.addView(paragraph(teacherStudentNote(note)), margin(top = 8))
+        }
+        return box
+    }
+
+    private fun teacherStudentNote(note: String): String {
+        if (!LaminateXaiText.isKoreanUi(this)) return note
+        return when (note) {
+            "Teacher is the deployment Tree model; Student is the distilled Hybrid neural model." ->
+                "Teacher는 배포 기본 Tree 모델이고, Student는 distillation 기반 Hybrid 신경망 모델입니다."
+            "Agreement compares Type, Pt, max force, and response-curve shape for the same theta/case input." ->
+                "같은 θ/Case 입력에 대해 Type, Pt, 최대 하중, 응답 곡선 형태가 얼마나 일치하는지 비교합니다."
+            "Tree and Student disagree on Type, so validate this candidate before treating the classification as stable." ->
+                "Tree와 Student의 Type 예측이 달라서, 안정적인 분류로 보기 전에 추가 검증이 필요합니다."
+            "Type agrees, but Pt differs by more than 8%; treat the Pt estimate as a screening value." ->
+                "Type은 일치하지만 Pt 차이가 8%를 넘어, Pt 값은 screening 용도로 해석하는 것이 좋습니다."
+            "Tree and Student are locally consistent, which supports using this result as an early screening candidate." ->
+                "Tree와 Student가 일관된 결과를 보여, 초기 screening 후보로 활용하기에 비교적 안정적입니다."
+            "Teacher/Student agreement is included as a deployment consistency check, not as a replacement for simulation validation." ->
+                "Teacher/Student 일치도는 배포용 일관성 체크이며, 최종 해석 검증을 대체하지는 않습니다."
+            else -> note
+        }
     }
 
     private fun uncertaintyBadgeColor(label: String): Int = when (label) {

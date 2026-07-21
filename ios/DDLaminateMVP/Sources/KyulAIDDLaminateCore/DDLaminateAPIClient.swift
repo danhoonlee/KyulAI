@@ -65,10 +65,17 @@ public struct DDLaminateAPIClient: DDLaminateAPIClientProtocol {
         baseURL: URL,
         request: ResponsePredictionRequest
     ) async throws -> ResponsePredictionResult {
-        var urlRequest = URLRequest(url: Self.endpoint(baseURL: baseURL, path: "/api/v1/dd-laminate/predict/response"))
+        let path = request.model == "response_geometry_tree_v1"
+            ? "/api/v1/dd-laminate/predict/response-ensemble"
+            : "/api/v1/dd-laminate/predict/response"
+        var urlRequest = URLRequest(url: Self.endpoint(baseURL: baseURL, path: path))
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        urlRequest.httpBody = try encoder.encode(request)
+        if request.model == "response_geometry_tree_v1" {
+            urlRequest.httpBody = try encoder.encode(ResponseEnsemblePredictionRequest(from: request))
+        } else {
+            urlRequest.httpBody = try encoder.encode(request)
+        }
         return try await send(urlRequest)
     }
 

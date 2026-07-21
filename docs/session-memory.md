@@ -14860,3 +14860,30 @@ Follow-up in same debugging pass:
     - Tree predicted Type `2`, Pt `17151.49`.
     - Student predicted Type `2`, Pt `17299.25`.
     - Agreement score `0.7623`, confidence label `medium`, Pt delta `147.76` kips.
+
+## 2026-07-22 - Applied Tree/Student Agreement to iOS and Android Apps
+- User asked to continue with app parity after the web ensemble panel.
+- iOS changes:
+  - Added `ResponseModelSnapshot` and `TeacherStudentAgreement` decoding to `DDLaminateModels.swift`.
+  - Added `ResponseEnsemblePredictionRequest` and routed the default Laminate ML model (`response_geometry_tree_v1`) through `/predict/response-ensemble`.
+  - Updated default Laminate model keys to geometry-aware models:
+    - ML: `response_geometry_tree_v1`.
+    - DL: `response_geometry_goint_v1`.
+    - Student/challenger: `response_hybrid_student_deploy_quick_v1`.
+  - Added `TeacherStudentAgreementCard` to result detail and Laminate result panels.
+  - Exposed the shared agreement card for reuse and inserted it into the separate `ios/LuveloxMVP` Laminate forecast result flow as well.
+  - Korean/English labels and notes are included.
+- Android changes:
+  - Updated Luvelox Android Laminate defaults to the same geometry-aware model keys.
+  - Added `LaminateTeacherStudentAgreement` and snapshot parsing.
+  - Default ML forecast now calls `/predict/response-ensemble`; other selected models still call `/predict/response`.
+  - Added a `Tree vs Student agreement` section to the Android result detail page.
+- Verification:
+  - `swift build --package-path ios/DDLaminateMVP` passed.
+  - `swift build --package-path ios/LuveloxMVP` passed.
+  - `xcodebuild` for `KyulAIDDLaminateCore` simulator scheme passed.
+  - `xcodebuild` for `KyulAIDDLaminateApp` simulator scheme passed.
+  - `xcodebuild` for `LuveloxMVPHost` simulator scheme passed.
+  - Android `:app:compileDebugKotlin` passed with `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home`.
+- Note:
+  - The Mac has Homebrew `openjdk@17`, but system `/usr/bin/java` is not linked. Use the explicit `JAVA_HOME` above for Android builds.

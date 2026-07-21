@@ -115,6 +115,56 @@ public struct ResponsePredictionRequest: Codable, Equatable, Hashable, Sendable 
     }
 }
 
+public struct ResponseEnsemblePredictionRequest: Codable, Equatable, Hashable, Sendable {
+    public let theta1: Double
+    public let theta2: Double
+    public let `case`: DDLaminateCase
+    public let teacherModel: String
+    public let studentModel: String
+    public let panelAIn: Double
+    public let panelBIn: Double
+
+    public init(
+        theta1: Double,
+        theta2: Double,
+        case laminateCase: DDLaminateCase,
+        teacherModel: String = "response_geometry_tree_v1",
+        studentModel: String = "response_hybrid_student_deploy_quick_v1",
+        panelAIn: Double = 6,
+        panelBIn: Double = 4
+    ) {
+        self.theta1 = theta1
+        self.theta2 = theta2
+        self.case = laminateCase
+        self.teacherModel = teacherModel
+        self.studentModel = studentModel
+        self.panelAIn = panelAIn
+        self.panelBIn = panelBIn
+    }
+
+    public init(from request: ResponsePredictionRequest) {
+        self.init(
+            theta1: request.theta1,
+            theta2: request.theta2,
+            case: request.case,
+            teacherModel: "response_geometry_tree_v1",
+            studentModel: "response_hybrid_student_deploy_quick_v1",
+            panelAIn: request.panelAIn,
+            panelBIn: request.panelBIn
+        )
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case theta1
+        case theta2
+        case `case`
+        case teacherModel = "teacher_model"
+        case studentModel = "student_model"
+        case panelAIn = "panel_a_in"
+        case panelBIn = "panel_b_in"
+    }
+}
+
 public struct U3ForecastPredictionRequest: Codable, Equatable, Hashable, Sendable {
     public let theta1: Double
     public let theta2: Double
@@ -303,6 +353,52 @@ public struct PredictionUncertainty: Codable, Equatable, Hashable, Sendable {
         case ptIntervalLow = "pt_interval_low"
         case ptIntervalHigh = "pt_interval_high"
         case typeConsistency = "type_consistency"
+        case notes
+    }
+}
+
+public struct ResponseModelSnapshot: Codable, Equatable, Hashable, Sendable {
+    public let modelKey: String
+    public let modelLabel: String
+    public let predictedType: Int
+    public let confidence: Double?
+    public let predictedPt: Double
+    public let predictedMaxForce: Double
+
+    public var displayModelLabel: String { DDLaminateModelDisplayLabel.clean(modelLabel) }
+
+    enum CodingKeys: String, CodingKey {
+        case modelKey = "model_key"
+        case modelLabel = "model_label"
+        case predictedType = "predicted_type"
+        case confidence
+        case predictedPt = "predicted_pt"
+        case predictedMaxForce = "predicted_max_force"
+    }
+}
+
+public struct TeacherStudentAgreement: Codable, Equatable, Hashable, Sendable {
+    public let teacher: ResponseModelSnapshot
+    public let student: ResponseModelSnapshot
+    public let typeAgreement: Bool
+    public let ptDelta: Double
+    public let ptDeltaPercent: Double
+    public let maxForceDelta: Double
+    public let curveNormRmse: Double?
+    public let agreementScore: Double
+    public let confidenceLabel: String
+    public let notes: [String]
+
+    enum CodingKeys: String, CodingKey {
+        case teacher
+        case student
+        case typeAgreement = "type_agreement"
+        case ptDelta = "pt_delta"
+        case ptDeltaPercent = "pt_delta_percent"
+        case maxForceDelta = "max_force_delta"
+        case curveNormRmse = "curve_norm_rmse"
+        case agreementScore = "agreement_score"
+        case confidenceLabel = "confidence_label"
         case notes
     }
 }
@@ -497,6 +593,7 @@ public struct ResponsePredictionResult: Codable, Equatable, Hashable, Sendable {
     public let metrics: [String: JSONValue]
     public var xai: XAIExplanation?
     public let uncertainty: PredictionUncertainty?
+    public let teacherStudent: TeacherStudentAgreement?
 
     public var sortedProbabilities: [(label: String, value: Double)] {
         (probabilities ?? [:]).sorted { $0.key < $1.key }.map { ($0.key, $0.value) }
@@ -522,6 +619,7 @@ public struct ResponsePredictionResult: Codable, Equatable, Hashable, Sendable {
         case metrics
         case xai
         case uncertainty
+        case teacherStudent = "teacher_student"
     }
 }
 
@@ -658,11 +756,11 @@ public enum JSONValue: Codable, Equatable, Hashable, Sendable {
 }
 
 public enum DDLaminateDefaults {
-    public static let responseModelKey = "response_surrogate_physics_v2"
+    public static let responseModelKey = "response_geometry_tree_v1"
     public static let responseModelKeys = [
-        "response_surrogate_physics_v2",
-        "response_goint_physics_nn_v2",
-        "response_distilled_grid_conf_v1",
+        "response_geometry_tree_v1",
+        "response_geometry_goint_v1",
+        "response_hybrid_student_deploy_quick_v1",
     ]
     public static let u3PtModelKey = "u3_forecast_physics_v2"
     public static let u3PtModelKeys = [
@@ -710,12 +808,15 @@ enum DDLaminateModelDisplayLabel {
         "laminate forecast - gointmlp (theta)": "Laminate Forecast - GointMLP (Theta)",
         "laminate forecast - tree + physics xai": "Laminate Forecast - Machine Learning",
         "laminate forecast - tree + compact physics xai": "Laminate Forecast - Machine Learning",
+        "laminate forecast - geometry ml": "Laminate Forecast - Machine Learning",
         "laminate forecast - machine learning": "Laminate Forecast - Machine Learning",
+        "laminate forecast - geometry dl": "Laminate Forecast - Deep Learning",
         "laminate forecast - gointmlp + physics xai": "Laminate Forecast - Deep Learning",
         "laminate forecast - gointmlp + nn-friendly physics xai": "Laminate Forecast - Deep Learning",
         "laminate forecast - gointmlp + compact physics xai": "Laminate Forecast - Deep Learning",
         "laminate forecast - deep learning": "Laminate Forecast - Deep Learning",
         "laminate forecast - distilled nn v3": "Laminate Forecast - Distilled NN v3",
+        "laminate forecast - hybrid student": "Laminate Forecast - Hybrid Student",
         "laminate forecast - distilled nn v2": "Laminate Forecast - Distilled NN v2",
         "laminate forecast - distilled nn": "Laminate Forecast - Distilled NN",
     ]
@@ -724,10 +825,13 @@ enum DDLaminateModelDisplayLabel {
         "response_surrogate": "ExtraTrees + PCA",
         "response_goint": "GointMLP NN",
         "response_surrogate_physics": "Laminate Forecast - Machine Learning",
+        "response_geometry_tree_v1": "Laminate Forecast - Machine Learning",
+        "response_geometry_goint_v1": "Laminate Forecast - Deep Learning",
         "response_surrogate_physics_v2": "Laminate Forecast - Machine Learning",
         "response_goint_physics": "Laminate Forecast - Deep Learning",
         "response_goint_physics_nn_v2": "Laminate Forecast - Deep Learning",
         "response_distilled_grid_conf_v1": "Laminate Forecast - Distilled NN v3",
+        "response_hybrid_student_deploy_quick_v1": "Laminate Forecast - Hybrid Student",
         "response_distilled_grid_v1": "Laminate Forecast - Distilled NN v2",
         "response_distilled_v1": "Laminate Forecast - Distilled NN",
         "theta_classical": "RandomForest",

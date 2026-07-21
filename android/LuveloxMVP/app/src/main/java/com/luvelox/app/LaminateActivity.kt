@@ -34,9 +34,9 @@ import java.net.URL
 import kotlin.math.roundToInt
 
 private const val LAMINATE_BASE_URL = "https://laminate.luvelox.com"
-private const val DEFAULT_RESPONSE_MODEL = "response_surrogate_physics_v2"
-private const val DEEP_RESPONSE_MODEL = "response_goint_physics_nn_v2"
-private const val DISTILLED_RESPONSE_MODEL = "response_distilled_grid_conf_v1"
+private const val DEFAULT_RESPONSE_MODEL = "response_geometry_tree_v1"
+private const val DEEP_RESPONSE_MODEL = "response_geometry_goint_v1"
+private const val DISTILLED_RESPONSE_MODEL = "response_hybrid_student_deploy_quick_v1"
 private const val DEFAULT_U3_MODEL = "u3_forecast_physics_v2"
 private const val DEEP_U3_MODEL = "u3_forecast_goint_physics_v2"
 private const val LAMINATE_HISTORY_PREFS = "laminate_prediction_history"
@@ -259,8 +259,8 @@ class LaminateActivity : Activity() {
     private fun optimalResponseModels(allModels: List<LaminateModelInfo>): List<LaminateModelInfo> {
         val byKey = allModels.associateBy { it.key }
         val selected = listOfNotNull(
-            listOf(DEFAULT_RESPONSE_MODEL, "response_surrogate_physics").firstNotNullOfOrNull { byKey[it] },
-            listOf(DEEP_RESPONSE_MODEL, "response_goint_physics").firstNotNullOfOrNull { byKey[it] },
+            listOf(DEFAULT_RESPONSE_MODEL, "response_surrogate_physics_v2", "response_surrogate_physics").firstNotNullOfOrNull { byKey[it] },
+            listOf(DEEP_RESPONSE_MODEL, "response_goint_physics_nn_v2", "response_goint_physics").firstNotNullOfOrNull { byKey[it] },
             byKey[DISTILLED_RESPONSE_MODEL],
         )
         return selected.ifEmpty { allModels.take(3) }
@@ -1289,10 +1289,35 @@ data class LaminateResult(
     val xai: LaminateXai?,
     val curveFit: LaminateCurveFit?,
     val uncertainty: LaminateUncertainty?,
+    val teacherStudent: LaminateTeacherStudentAgreement?,
 ) : Serializable {
     val displayModelLabel: String get() = modelLabel.cleanModelLabel()
     val predictedPtDisplacement: Double? get() = curve.displacementAtForce(predictedPt)
 }
+
+data class LaminateModelSnapshot(
+    val modelKey: String,
+    val modelLabel: String,
+    val predictedType: Int,
+    val confidence: Double?,
+    val predictedPt: Double?,
+    val predictedMaxForce: Double?,
+) : Serializable {
+    val displayModelLabel: String get() = modelLabel.cleanModelLabel()
+}
+
+data class LaminateTeacherStudentAgreement(
+    val teacher: LaminateModelSnapshot,
+    val student: LaminateModelSnapshot,
+    val typeAgreement: Boolean,
+    val ptDelta: Double?,
+    val ptDeltaPercent: Double?,
+    val maxForceDelta: Double?,
+    val curveNormRmse: Double?,
+    val agreementScore: Double?,
+    val confidenceLabel: String,
+    val notes: List<String>,
+) : Serializable
 
 data class LaminateUncertainty(
     val reliabilityScore: Double?,
@@ -1390,15 +1415,24 @@ class LaminateApi {
         panelAIn: Double = 6.0,
         panelBIn: Double = 4.0,
     ): LaminateResult {
+        val useEnsemble = modelKey == DEFAULT_RESPONSE_MODEL
         val body = JSONObject()
             .put("case", caseName)
             .put("theta1", theta1)
             .put("theta2", theta2)
-            .put("model", modelKey)
             .put("panel_a_in", panelAIn)
             .put("panel_b_in", panelBIn)
+            .apply {
+                if (useEnsemble) {
+                    put("teacher_model", DEFAULT_RESPONSE_MODEL)
+                    put("student_model", DISTILLED_RESPONSE_MODEL)
+                } else {
+                    put("model", modelKey)
+                }
+            }
             .toString()
-        val json = JSONObject(request("POST", endpoint("/api/v1/dd-laminate/predict/response"), body))
+        val path = if (useEnsemble) "/api/v1/dd-laminate/predict/response-ensemble" else "/api/v1/dd-laminate/predict/response"
+        val json = JSONObject(request("POST", endpoint(path), body))
         return json.toLaminateResult()
     }
 
@@ -1477,6 +1511,40 @@ private fun JSONObject.toLaminateResult(): LaminateResult {
         xai = optJSONObject("xai").toLaminateXai(),
         curveFit = optJSONObject("curve_fit").toLaminateCurveFit(),
         uncertainty = optJSONObject("uncertainty").toLaminateUncertainty(),
+        teacherStudent = optJSONObject("teacher_student").toLaminateTeacherStudentAgreement(),
+    )
+}
+
+private fun JSONObject?.toLaminateTeacherStudentAgreement(): LaminateTeacherStudentAgreement? {
+    if (this == null) return null
+    val notesArray = optJSONArray("notes")
+    val notes = if (notesArray == null) {
+        emptyList()
+    } else {
+        List(notesArray.length()) { index -> notesArray.optString(index) }
+    }
+    return LaminateTeacherStudentAgreement(
+        teacher = optJSONObject("teacher").toLaminateModelSnapshot(),
+        student = optJSONObject("student").toLaminateModelSnapshot(),
+        typeAgreement = optBoolean("type_agreement", false),
+        ptDelta = optionalDouble("pt_delta"),
+        ptDeltaPercent = optionalDouble("pt_delta_percent"),
+        maxForceDelta = optionalDouble("max_force_delta"),
+        curveNormRmse = optionalDouble("curve_norm_rmse"),
+        agreementScore = optionalDouble("agreement_score"),
+        confidenceLabel = optString("confidence_label", "low"),
+        notes = notes,
+    )
+}
+
+private fun JSONObject?.toLaminateModelSnapshot(): LaminateModelSnapshot {
+    return LaminateModelSnapshot(
+        modelKey = this?.optString("model_key").orEmpty(),
+        modelLabel = this?.optString("model_label").orEmpty(),
+        predictedType = this?.optInt("predicted_type") ?: 0,
+        confidence = this?.optionalDouble("confidence"),
+        predictedPt = this?.optionalDouble("predicted_pt"),
+        predictedMaxForce = this?.optionalDouble("predicted_max_force"),
     )
 }
 
@@ -1658,8 +1726,9 @@ private fun String.cleanModelLabel(): String {
         lower == "u3_forecast_goint_physics_v2" || lower == "u3_forecast_goint_physics" -> "u3 Forecast - Deep Learning"
         lower == "u3 forecast - physics xai" || lower == "u3 forecast - machine learning" -> "u3 Forecast - Machine Learning"
         lower == "u3 forecast - gointmlp nn" || lower == "u3 forecast - deep learning" -> "u3 Forecast - Deep Learning"
-        lower == "response_surrogate_physics" || lower == "response_surrogate_physics_v2" -> "Laminate Forecast - Machine Learning"
-        lower == "response_goint_physics" || lower == "response_goint_physics_nn_v2" -> "Laminate Forecast - Deep Learning"
+        lower == "response_surrogate_physics" || lower == "response_surrogate_physics_v2" || lower == "response_geometry_tree_v1" || lower == "laminate forecast - geometry ml" -> "Laminate Forecast - Machine Learning"
+        lower == "response_goint_physics" || lower == "response_goint_physics_nn_v2" || lower == "response_geometry_goint_v1" || lower == "laminate forecast - geometry dl" -> "Laminate Forecast - Deep Learning"
+        lower == "response_hybrid_student_deploy_quick_v1" || lower == "laminate forecast - hybrid student" -> "Laminate Forecast - Hybrid Student"
         lower == "response_distilled_grid_conf_v1" || lower == "laminate forecast - distilled nn v3" -> "Laminate Forecast - Distilled NN v3"
         lower == "response_distilled_grid_v1" || lower == "laminate forecast - distilled nn v2" -> "Laminate Forecast - Distilled NN v2"
         lower == "response_distilled_v1" || lower == "laminate forecast - distilled nn" -> "Laminate Forecast - Distilled NN"

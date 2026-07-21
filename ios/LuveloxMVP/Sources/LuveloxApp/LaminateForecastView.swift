@@ -198,6 +198,10 @@ struct LaminateForecastView: View {
 
             probabilityBars(result)
 
+            if let agreement = result.teacherStudent {
+                TeacherStudentAgreementCard(agreement: agreement)
+            }
+
             if let xai = result.xai {
                 xaiInsight(xai)
             }

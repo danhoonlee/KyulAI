@@ -772,6 +772,10 @@ struct ContentView: View {
 
                 InterpretationSummaryView(result: result, maxLines: 2)
 
+                if let agreement = result.teacherStudent {
+                    TeacherStudentAgreementCard(agreement: agreement)
+                }
+
                 CurveChartView(points: result.curve, predictedPt: result.predictedPt, curveFit: result.curveFit)
                     .frame(height: 270)
 
