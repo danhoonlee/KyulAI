@@ -14641,3 +14641,38 @@ Follow-up in same debugging pass:
   - GitHub connector had read access but not write access.
   - Final push succeeded from Mac by temporarily pinning `github.com:443` to the GitHub IP resolved by WSL with `git -c http.curloptResolve=github.com:443:20.200.245.247 push`.
   - Remote branch `codex/dd-laminate-ui-api` advanced to `cbd9006`.
+
+## 2026-07-21 - Ran RTX Geometry-aware Laminate strict validation
+- User asked to run the next Laminate research/model step: Geometry-aware strict CV and Hybrid/Student revalidation on the Windows RTX worker.
+- Preparation:
+  - Added `--synthetic-panel-sizes` to `scripts/dd_response_distillation_train.py`.
+  - Default remains `6x4` for backward compatibility.
+  - RTX run used `6x4,6x8`, so synthetic grid distillation reflects both panel sizes.
+  - Added `scripts/remote/Run-LaminateGeometryStrictRTX.sh` to make the remote run reproducible.
+  - Copied untracked-but-required `data/New_Data/csv_6x8_Case2`, `csv_6x8_Case3`, `csv_6x8_Case4`, and `classified_curve_csv_v1/classification_manifest.csv` to the WSL worker because those source CSVs are not all tracked in Git.
+- RTX worker:
+  - Host: `user@100.65.153.56`.
+  - GPU visible to PyTorch: `NVIDIA GeForce RTX 5070`.
+  - Run id: `20260721_geometry_strict_rtx_v1`.
+  - Remote log: `reports/rtx_runs/20260721_geometry_strict_rtx_v1.log`.
+- Geometry ML/DL strict grouped CV, 1800 samples, feature set `theta_physics_geometry_v1`:
+  - Geometry ML / Tree: Type accuracy `0.9561 +/- 0.0106`, Macro F1 `0.9511 +/- 0.0149`, Pt MAE `313.91` kips, curve norm RMSE `0.00571`.
+  - Geometry DL / GointMLP: Type accuracy `0.9500 +/- 0.0111`, Macro F1 `0.9473 +/- 0.0142`, Pt MAE `837.34` kips, curve norm RMSE `0.03257`.
+- Geometry-aware Hybrid Student strict CV:
+  - Teacher: `models/dd_laminate_response_geometry_tree_v1/response_surrogate.joblib`.
+  - Samples: `1800`.
+  - Synthetic samples: `31974`.
+  - Synthetic grid step: `2.5`.
+  - Synthetic panel sizes: `6x4,6x8`.
+  - Type accuracy `0.9622 +/- 0.0132`, Macro F1 `0.9601 +/- 0.0169`.
+  - Pt MAE vs ground truth `471.62` kips.
+  - Curve norm RMSE vs ground truth `0.00943`.
+- Interpretation:
+  - Hybrid Student improves Type classification over Geometry ML in strict CV.
+  - Geometry ML / Tree remains better for Pt and curve prediction.
+  - Current deployment default should remain Geometry ML unless the product goal shifts toward Type-only screening.
+  - Hybrid Student remains a strong research/deployment candidate for compact or Type-focused workflows, but not yet a better all-around replacement for Geometry ML.
+- Local reports copied back:
+  - `reports/dd_response_geometry_rtx_strict_20260721_geometry_strict_rtx_v1/response_geometry_training_report.md`.
+  - `reports/dd_response_hybrid_geometry_strict_cv_20260721_geometry_strict_rtx_v1/distillation_report.md`.
+  - `reports/dd_response_hybrid_geometry_strict_cv_20260721_geometry_strict_rtx_v1/response_distilled_metrics.json`.
