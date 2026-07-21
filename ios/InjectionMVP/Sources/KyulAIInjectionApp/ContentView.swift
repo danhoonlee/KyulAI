@@ -707,6 +707,26 @@ struct ContentView: View {
                 ForEach(Array(xai.topFeatures.prefix(5))) { feature in
                     xaiFeatureRow(feature)
                 }
+                if xai.topFeatures.count > 5 {
+                    DisclosureGroup {
+                        VStack(spacing: 8) {
+                            ForEach(Array(xai.topFeatures.dropFirst(5))) { feature in
+                                xaiFeatureRow(feature)
+                            }
+                        }
+                        .padding(.top, 8)
+                    } label: {
+                        Text(isKorean ? "나머지 \(xai.topFeatures.count - 5)개 feature 더보기" : "Show \(xai.topFeatures.count - 5) more features")
+                            .font(.caption.weight(.black))
+                            .foregroundStyle(AppTheme.primary)
+                    }
+                    .padding(10)
+                    .background(Color.white.opacity(0.66), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .stroke(AppTheme.primary.opacity(0.12), lineWidth: 1)
+                    )
+                }
             }
         }
         .padding(12)

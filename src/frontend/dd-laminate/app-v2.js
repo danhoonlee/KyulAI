@@ -28,6 +28,16 @@ const TEXT = {
     ? "CSV 미리보기 실패: 숫자 displacement,force 행이 1개 이상 필요합니다."
     : "CSV preview failed: expected at least one numeric displacement,force row.",
   csvParseFailed: IS_KO ? "이 CSV를 읽을 수 없습니다." : "Could not parse this CSV.",
+  batchPredicting: IS_KO ? "일괄 예측 중..." : "Batch predicting...",
+  batchResults: IS_KO ? "일괄 분류 결과" : "Batch classification results",
+  batchDownload: IS_KO ? "CSV 다운로드" : "Download CSV",
+  batchSummary: (ok, total) => IS_KO ? `${total}개 중 ${ok}개 분류 완료` : `${ok} of ${total} files classified`,
+  batchMetadataHint: IS_KO
+    ? "metadata CSV가 없으면 화면 입력값을 모든 파일에 공통 적용했습니다."
+    : "Without metadata CSV, the shared form inputs were reused for every file.",
+  stackSequenceFailed: IS_KO
+    ? "Ply sequence를 읽을 수 없습니다. 예: 30,-30,-60,60 형식으로 입력해 주세요."
+    : "Could not parse the ply sequence. Use a format like 30,-30,-60,60.",
   noFileSelected: IS_KO ? "선택된 파일 없음" : "No file selected",
   reportTitle: IS_KO ? "Double-Double 적층 예측 리포트" : "Double-Double Laminate Prediction Report",
   reportCreated: IS_KO ? "생성 시간" : "Created",
@@ -109,6 +119,17 @@ const TEXT = {
   riskHigh: IS_KO ? "높음" : "High",
   observedType: IS_KO ? "관측 Type" : "Observed Type",
   score: IS_KO ? "점수" : "Score",
+  reliabilityTitle: IS_KO ? "예측 안정성" : "Prediction reliability",
+  reliabilityHigh: IS_KO ? "높은 신뢰" : "High confidence",
+  reliabilityMedium: IS_KO ? "중간 신뢰" : "Medium confidence",
+  reliabilityLow: IS_KO ? "주의 필요" : "Use caution",
+  reliabilityScore: IS_KO ? "종합 신뢰도" : "Reliability",
+  ptRange: IS_KO ? "Pt 예상 범위" : "Pt screening range",
+  designCoverage: IS_KO ? "설계공간 커버리지" : "Design-space coverage",
+  typeAgreement: IS_KO ? "주변 Type 일치도" : "Nearby Type agreement",
+  interpolation: IS_KO ? "보간 영역" : "Interpolation",
+  nearEdge: IS_KO ? "경계 근처" : "Near edge",
+  extrapolation: IS_KO ? "외삽 주의" : "Extrapolation",
   ragAsking: IS_KO ? "답변 생성 중..." : "Answering...",
   ragAnswerTitle: IS_KO ? "Composite AI 답변" : "Composite AI answer",
   ragCitations: IS_KO ? "근거 자료" : "Citations",
@@ -144,6 +165,8 @@ const MODEL_LABELS_KO = {
   "GointMLP + NN-Friendly XAI": "GointMLP + NN-Friendly XAI",
   "Laminate Forecast - Tree + Compact Physics XAI": "적층 예측 - Tree + Compact Physics XAI",
   "Laminate Forecast - GointMLP + NN-Friendly Physics XAI": "적층 예측 - GointMLP + NN-Friendly Physics XAI",
+  "Laminate Forecast - Geometry ML": "적층 예측 - Geometry ML",
+  "Laminate Forecast - Geometry DL": "적층 예측 - Geometry DL",
   "Laminate Forecast - Machine Learning": "적층 예측 - Machine Learning",
   "Laminate Forecast - Deep Learning": "적층 예측 - Deep Learning",
   "u3 Forecast - ExtraTrees + PCA": "u3 예측 - ExtraTrees + PCA",
@@ -193,6 +216,7 @@ const thetaForm = document.querySelector("#theta-form");
 const curveForm = document.querySelector("#curve-form");
 const responseForm = document.querySelector("#response-form");
 const u3PtForm = document.querySelector("#u3-pt-form");
+const stackPreviewForm = document.querySelector("#stack-preview-form");
 const thetaModel = document.querySelector("#theta-model");
 const curveModel = document.querySelector("#curve-model");
 const responseModel = document.querySelector("#response-model");
@@ -201,6 +225,12 @@ const emptyState = document.querySelector("#empty-state");
 const readyCopy = document.querySelector("#ready-copy");
 const predictionHistory = document.querySelector("#prediction-history");
 const resultPanel = document.querySelector("#result");
+const stackPreviewResult = document.querySelector("#stack-preview-result");
+const stackPreviewTitle = document.querySelector("#stack-preview-title");
+const stackPreviewMetrics = document.querySelector("#stack-preview-metrics");
+const stackPreviewSequence = document.querySelector("#stack-preview-sequence");
+const stackPreviewPhysics = document.querySelector("#stack-preview-physics");
+const stackPreviewNotes = document.querySelector("#stack-preview-notes");
 const errorPanel = document.querySelector("#error");
 const predictedType = document.querySelector("#predicted-type");
 const confidenceEl = document.querySelector("#confidence");
@@ -209,6 +239,8 @@ const modelLabel = document.querySelector("#model-label");
 const inputSummary = document.querySelector("#input-summary");
 const notes = document.querySelector("#notes");
 const curveFile = document.querySelector("#curve-file");
+const curveMetadataFile = document.querySelector("#curve-metadata-file");
+const curveBatchResults = document.querySelector("#curve-batch-results");
 const curvePreviewPanel = document.querySelector("#curve-preview-panel");
 const curvePreviewTitle = document.querySelector("#curve-preview-title");
 const curvePreviewCanvas = document.querySelector("#curve-preview-canvas");
@@ -220,9 +252,15 @@ const responseEstimate = document.querySelector("#response-estimate");
 const responseCurveCanvas = document.querySelector("#response-curve-canvas");
 const responseCurveTitle = document.querySelector("#response-curve-title");
 const responseCurveLegend = document.querySelector(".curve-legend");
+const responseCurveZoomLabel = document.querySelector("#response-curve-zoom-label");
+const responseCurveZoomButtons = Array.from(document.querySelectorAll("[data-curve-zoom]"));
 const predictedPt = document.querySelector("#predicted-pt");
 const predictedMaxDisplacement = document.querySelector("#predicted-max-displacement");
 const predictedMaxForce = document.querySelector("#predicted-max-force");
+const uncertaintyPanel = document.querySelector("#uncertainty-panel");
+const uncertaintyLabel = document.querySelector("#uncertainty-label");
+const uncertaintyGrid = document.querySelector("#uncertainty-grid");
+const uncertaintyNotes = document.querySelector("#uncertainty-notes");
 const xaiPanel = document.querySelector("#xai-panel");
 const xaiTitle = document.querySelector("#xai-title");
 const xaiSummary = document.querySelector("#xai-summary");
@@ -247,13 +285,31 @@ const ragForm = document.querySelector("#rag-form");
 const ragAnswer = document.querySelector("#rag-answer");
 const ragQueryInput = ragForm?.querySelector('textarea[name="query"]');
 let latestPredictionData = null;
+const RESPONSE_CURVE_MIN_ZOOM = 1;
+const RESPONSE_CURVE_MAX_ZOOM = 6;
+const responseCurveView = {
+  points: null,
+  predictedPtValue: null,
+  fitMode: "standard",
+  backendFit: null,
+  scale: 1,
+  centerXNorm: 0.5,
+  centerYNorm: 0.5,
+  logicalWidth: 720,
+  logicalHeight: 432,
+  domain: null,
+  plot: null,
+  drag: null,
+};
+let responseCurveResizeTimer = null;
 let xaiRequestSerial = 0;
 let researchRequestSerial = 0;
 let researchMapState = { hoverPoints: [], inputs: null };
 
 const PRIMARY_RESPONSE_MODEL_KEYS = [
-  "response_surrogate_physics_v2",
-  "response_goint_physics_nn_v2",
+  "response_geometry_tree_v1",
+  "response_geometry_goint_v1",
+  "response_hybrid_student_deploy_quick_v1",
 ];
 const PREDICTION_HISTORY_KEY = "ddLaminate.predictionHistory.v1";
 const PREDICTION_HISTORY_LIMIT = 5;
@@ -313,6 +369,38 @@ function formatCompactNumber(value) {
   return numeric.toLocaleString(undefined, { maximumFractionDigits: digits });
 }
 
+function formatSignedAngle(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return "-";
+  }
+  return `${numeric >= 0 ? "+" : ""}${formatMetric(numeric, 1)}°`;
+}
+
+function physicsLabel(label) {
+  if (!IS_KO) {
+    return label;
+  }
+  const labels = {
+    "D11 bending stiffness": "D11 굽힘 강성",
+    "D22 bending stiffness": "D22 굽힘 강성",
+    "D66 twisting stiffness": "D66 비틀림 강성",
+    "D11/D22 ratio": "D11/D22 비율",
+    "Bending anisotropy": "굽힘 이방성",
+    "A11 membrane stiffness": "A11 막 강성",
+    "A22 membrane stiffness": "A22 막 강성",
+    "Stack symmetry mismatch": "적층 대칭 불일치",
+    "Mean |θ|": "평균 |θ|",
+    "|θ| spread": "|θ| 분산",
+    "Panel aspect ratio": "패널 종횡비",
+    "Length slenderness": "길이 방향 세장비",
+    "Width slenderness": "폭 방향 세장비",
+    "Panel length": "패널 길이",
+    "Panel width": "패널 폭",
+  };
+  return labels[label] || label;
+}
+
 function formatAxisTick(value, smallValueDigits = 4) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) {
@@ -338,6 +426,8 @@ function cleanModelLabel(label) {
     "Laminate Forecast - GointMLP NN + CLT (legacy Case3/4)": "GointMLP NN",
     "Laminate Forecast - Tree + Compact Physics XAI": "Tree + Compact XAI",
     "Laminate Forecast - GointMLP + NN-Friendly Physics XAI": "GointMLP + NN-Friendly XAI",
+    "Laminate Forecast - Geometry ML": "Geometry ML",
+    "Laminate Forecast - Geometry DL": "Geometry DL",
     "Estimated response - ExtraTrees + PCA + CLT": "ExtraTrees + PCA",
     "Estimated response - GointMLP NN + CLT": "GointMLP NN",
     "Theta + Case - RandomForest": "RandomForest",
@@ -712,6 +802,196 @@ function buildStackSequence({ caseName, theta1, theta2 }) {
   return repeatStackPattern([...theta1Pair, ...theta2Pair], 4);
 }
 
+function parsePlySequence(text) {
+  return String(text || "")
+    .replace(/[()[\]{}]/g, " ")
+    .split(/[,\s/]+/)
+    .map((value) => Number(value.trim()))
+    .filter((value) => Number.isFinite(value));
+}
+
+function normalizeStackFormula(formula) {
+  const subscriptDigits = {
+    "₀": "0",
+    "₁": "1",
+    "₂": "2",
+    "₃": "3",
+    "₄": "4",
+    "₅": "5",
+    "₆": "6",
+    "₇": "7",
+    "₈": "8",
+    "₉": "9",
+  };
+  let text = String(formula || "")
+    .replace(/[₀₁₂₃₄₅₆₇₈₉]/g, (digit) => subscriptDigits[digit] || digit)
+    .replace(/[θΘ]/g, "theta")
+    .replace(/theta\s*[_-]?\s*1/gi, "theta1")
+    .replace(/theta\s*[_-]?\s*2/gi, "theta2")
+    .replace(/\+\/-/g, "±")
+    .replace(/-\/\+/g, "∓")
+    .replace(/[×✕]/g, "x");
+  const colon = text.indexOf(":");
+  if (colon >= 0 && /(?:theta[12]|±|∓)/i.test(text.slice(colon + 1))) {
+    text = text.slice(colon + 1);
+  }
+  return text;
+}
+
+function parseStackFormula(formula, theta1, theta2) {
+  const source = normalizeStackFormula(formula);
+  if (!/(?:theta[12]|±|∓)/i.test(source)) {
+    return [];
+  }
+
+  let index = 0;
+  const matching = { "[": "]", "(": ")", "{": "}" };
+
+  function skipSeparators() {
+    while (index < source.length && /[\s,;/]+/.test(source[index])) {
+      index += 1;
+    }
+  }
+
+  function readRepeat() {
+    skipSeparators();
+    if (source[index] === "_" || source[index] === "^") {
+      index += 1;
+      skipSeparators();
+    } else if (source[index]?.toLowerCase() === "x") {
+      index += 1;
+      skipSeparators();
+    }
+    const match = source.slice(index).match(/^\d+/);
+    if (!match) {
+      return 1;
+    }
+    index += match[0].length;
+    return Math.max(1, Math.min(64, Number(match[0])));
+  }
+
+  function readPlyToken() {
+    const match = source.slice(index).match(/^(±|∓|\+|-)?\s*theta([12])/i);
+    if (!match) {
+      return null;
+    }
+    index += match[0].length;
+    const value = match[2] === "1" ? theta1 : theta2;
+    const sign = match[1] || "";
+    if (sign === "±") {
+      return [value, -value];
+    }
+    if (sign === "∓") {
+      return [-value, value];
+    }
+    if (sign === "-") {
+      return [-value];
+    }
+    return [value];
+  }
+
+  function readSequence(stopChar = "") {
+    const sequence = [];
+    while (index < source.length) {
+      skipSeparators();
+      if (stopChar && source[index] === stopChar) {
+        index += 1;
+        break;
+      }
+
+      const char = source[index];
+      if (matching[char]) {
+        index += 1;
+        const group = readSequence(matching[char]);
+        const repeat = readRepeat();
+        sequence.push(...repeatStackPattern(group.map((angle) => ({ angle })), repeat).map((ply) => ply.angle));
+        continue;
+      }
+
+      const token = readPlyToken();
+      if (token) {
+        const repeat = readRepeat();
+        sequence.push(...repeatStackPattern(token.map((angle) => ({ angle })), repeat).map((ply) => ply.angle));
+        continue;
+      }
+
+      index += 1;
+    }
+    return sequence;
+  }
+
+  return readSequence().filter((value) => Number.isFinite(value));
+}
+
+function formatPlySequence(sequence) {
+  return sequence.map((value) => formatMetric(value, 1).replace(/\.0$/, "")).join(",");
+}
+
+function stackSequenceFromFormulaOrManual(formData, theta1, theta2) {
+  const fromFormula = parseStackFormula(formData.get("formula"), theta1, theta2);
+  if (fromFormula.length) {
+    return { sequence: fromFormula, generated: true };
+  }
+  return { sequence: parsePlySequence(formData.get("ply_sequence")), generated: false };
+}
+
+function insertFormulaToken(form, token) {
+  const input = form?.querySelector('textarea[name="formula"]');
+  if (!input) {
+    return;
+  }
+  const start = input.selectionStart ?? input.value.length;
+  const end = input.selectionEnd ?? input.value.length;
+  input.value = `${input.value.slice(0, start)}${token}${input.value.slice(end)}`;
+  const nextPosition = start + token.length;
+  input.focus();
+  input.setSelectionRange(nextPosition, nextPosition);
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+function attachFormulaToolbar(form) {
+  if (!form) {
+    return;
+  }
+  form.querySelectorAll("[data-formula-token]").forEach((button) => {
+    button.addEventListener("click", () => {
+      insertFormulaToken(form, button.dataset.formulaToken || "");
+    });
+  });
+}
+
+function sequenceToStackPlies(sequence, theta1, theta2) {
+  return sequence.map((angle) => {
+    const theta1Distance = Math.abs(Math.abs(angle) - Math.abs(theta1));
+    const theta2Distance = Math.abs(Math.abs(angle) - Math.abs(theta2));
+    return {
+      angle,
+      family: theta2Distance < theta1Distance ? "theta2" : "theta1",
+    };
+  });
+}
+
+function customStackSequenceFromForm(form) {
+  const formData = new FormData(form);
+  const theta1 = clampStackAngle(formData.get("theta1"));
+  const theta2 = clampStackAngle(formData.get("theta2"));
+  const { sequence, generated } = stackSequenceFromFormulaOrManual(formData, theta1, theta2);
+  if (generated) {
+    const sequenceInput = form.querySelector('textarea[name="ply_sequence"]');
+    if (sequenceInput && sequenceInput.value !== formatPlySequence(sequence)) {
+      sequenceInput.value = formatPlySequence(sequence);
+    }
+  }
+  return {
+    caseName: String(formData.get("case") || "Case5"),
+    formula: String(formData.get("formula") || "").trim(),
+    theta1,
+    theta2,
+    rawSequence: sequence,
+    sequence: sequenceToStackPlies(sequence, theta1, theta2),
+  };
+}
+
 function renderStackPly(ply, index, uid) {
   const palette = STACK_COLORS[ply.family];
   const x = 555 - index * 30;
@@ -795,6 +1075,9 @@ function renderStackSvg(sequence, uid = "app-stack") {
 
 function activeStackForm() {
   const mode = document.querySelector(".mode-button.active")?.dataset.mode;
+  if (mode === "stack" && stackPreviewForm) {
+    return stackPreviewForm;
+  }
   if (mode === "u3" && u3PtForm) {
     return u3PtForm;
   }
@@ -803,6 +1086,9 @@ function activeStackForm() {
 
 function readStackState() {
   const form = activeStackForm();
+  if (form === stackPreviewForm) {
+    return customStackSequenceFromForm(form);
+  }
   const formData = new FormData(form);
   return {
     caseName: String(formData.get("case") || "Case2"),
@@ -816,12 +1102,12 @@ function updateDynamicStackPreview() {
     return;
   }
   const stackState = readStackState();
-  const sequence = buildStackSequence(stackState);
+  const sequence = stackState.sequence || buildStackSequence(stackState);
   dynamicStackVisuals.forEach((visual, index) => {
     visual.innerHTML = renderStackSvg(sequence, `app-stack-${index}`);
   });
   if (dynamicStackFormula) {
-    dynamicStackFormula.textContent = STACK_FORMULAS[stackState.caseName] || STACK_FORMULAS.Case2;
+    dynamicStackFormula.textContent = stackState.formula || STACK_FORMULAS[stackState.caseName] || STACK_FORMULAS.Case2;
   }
   if (dynamicStackCount) {
     dynamicStackCount.textContent = String(sequence.length);
@@ -832,7 +1118,7 @@ function attachDynamicStackPreview(form) {
   if (!form) {
     return;
   }
-  form.querySelectorAll('input[name="theta1"], input[name="theta2"], select[name="case"]').forEach((control) => {
+  form.querySelectorAll('input[name="theta1"], input[name="theta2"], select[name="case"], textarea[name="formula"], textarea[name="ply_sequence"]').forEach((control) => {
     control.addEventListener("input", updateDynamicStackPreview);
     control.addEventListener("change", updateDynamicStackPreview);
   });
@@ -924,10 +1210,86 @@ function renderProbabilities(probabilities) {
   });
 }
 
+function uncertaintyLabelText(label) {
+  if (label === "high") return TEXT.reliabilityHigh;
+  if (label === "medium") return TEXT.reliabilityMedium;
+  return TEXT.reliabilityLow;
+}
+
+function interpolationLabelText(label) {
+  if (label === "interpolation") return TEXT.interpolation;
+  if (label === "near-edge") return TEXT.nearEdge;
+  return TEXT.extrapolation;
+}
+
+function renderUncertainty(uncertainty) {
+  if (!uncertaintyPanel || !uncertaintyLabel || !uncertaintyGrid || !uncertaintyNotes) {
+    return;
+  }
+  if (!uncertainty) {
+    uncertaintyPanel.classList.add("hidden");
+    uncertaintyPanel.classList.remove("high", "medium", "low");
+    uncertaintyGrid.innerHTML = "";
+    uncertaintyNotes.innerHTML = "";
+    return;
+  }
+
+  const confidenceLabel = uncertainty.confidence_label || "low";
+  uncertaintyPanel.classList.remove("hidden", "high", "medium", "low");
+  uncertaintyPanel.classList.add(confidenceLabel);
+  uncertaintyLabel.textContent = uncertaintyLabelText(confidenceLabel);
+  const ptLow = uncertainty.pt_interval_low;
+  const ptHigh = uncertainty.pt_interval_high;
+  const ptRange = ptLow != null && ptHigh != null
+    ? `${formatMetric(ptLow, 0)} - ${formatMetric(ptHigh, 0)}`
+    : "-";
+  const cards = [
+    [TEXT.reliabilityScore, percent(uncertainty.reliability_score)],
+    [TEXT.ptRange, ptRange],
+    [TEXT.designCoverage, interpolationLabelText(uncertainty.interpolation_label)],
+    [TEXT.typeAgreement, uncertainty.type_consistency != null ? percent(uncertainty.type_consistency) : "-"],
+  ];
+  uncertaintyGrid.innerHTML = "";
+  cards.forEach(([label, value]) => {
+    const card = document.createElement("div");
+    card.className = "uncertainty-card";
+    const labelEl = document.createElement("span");
+    labelEl.textContent = label;
+    const valueEl = document.createElement("strong");
+    valueEl.textContent = value;
+    card.append(labelEl, valueEl);
+    uncertaintyGrid.appendChild(card);
+  });
+
+  uncertaintyNotes.innerHTML = "";
+  (uncertainty.notes || []).slice(0, 3).forEach((note) => {
+    const item = document.createElement("li");
+    item.textContent = IS_KO ? translateUncertaintyNote(note) : note;
+    uncertaintyNotes.appendChild(item);
+  });
+}
+
+function translateUncertaintyNote(note) {
+  const labels = {
+    "Reliability combines model confidence, distance to nearby curated simulations, and local Type agreement.":
+      "종합 신뢰도는 모델 확률, 가까운 curated 해석 데이터와의 거리, 주변 Type 일치도를 함께 반영합니다.",
+    "Pt interval is a screening band from nearby Pt scatter, not a formal statistical confidence interval.":
+      "Pt 범위는 주변 Pt 산포 기반의 screening band이며, 엄밀한 통계적 신뢰구간은 아닙니다.",
+    "This theta/case input is far from nearby curated simulations; validate before treating the recommendation as stable.":
+      "현재 θ/Case 입력은 가까운 curated 해석 데이터에서 멀어, 안정적인 추천으로 보기 전에 검증이 필요합니다.",
+    "This theta/case input is close to the edge of the observed design space.":
+      "현재 θ/Case 입력은 관측된 설계 공간의 경계에 가까운 편입니다.",
+    "This theta/case input is within a well-covered region of the observed design space.":
+      "현재 θ/Case 입력은 관측된 설계 공간 안에서 비교적 잘 커버된 영역에 있습니다.",
+  };
+  return labels[note] || note;
+}
+
 function renderResult(data) {
   latestPredictionData = data;
   document.body.classList.add("has-result");
   emptyState.classList.add("hidden");
+  stackPreviewResult?.classList.add("hidden");
   resultPanel.classList.remove("hidden");
   resultPanel.classList.remove("type-1", "type-2", "type-3");
   resultPanel.classList.add(`type-${data.predicted_type}`);
@@ -964,6 +1326,7 @@ function renderResult(data) {
       inputSummary.appendChild(item);
   });
   renderProbabilities(data.probabilities);
+  renderUncertainty(data.uncertainty);
   responseEstimate.classList.add("hidden");
   xaiRequestSerial += 1;
   renderXai(null);
@@ -977,12 +1340,317 @@ function renderResult(data) {
   });
 }
 
+function curveBatchCsv(data) {
+  const headers = [
+    "filename",
+    "test_id",
+    "case",
+    "theta1",
+    "theta2",
+    "pt",
+    "predicted_type",
+    "confidence",
+    "type1",
+    "type2",
+    "type3",
+    "status",
+    "error",
+  ];
+  const rows = (data.results || []).map((row) => {
+    const probabilities = row.probabilities || {};
+    return [
+      row.filename,
+      row.test_id,
+      row.case,
+      row.theta1,
+      row.theta2,
+      row.pt,
+      row.predicted_type ? `Type ${row.predicted_type}` : "",
+      row.confidence ?? "",
+      probabilities.type1 ?? "",
+      probabilities.type2 ?? "",
+      probabilities.type3 ?? "",
+      row.status,
+      row.error || "",
+    ];
+  });
+  return [headers, ...rows]
+    .map((items) => items.map((item) => `"${String(item ?? "").replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+}
+
+function downloadCurveBatchCsv(data) {
+  const blob = new Blob(["\ufeff" + curveBatchCsv(data)], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `curve-batch-classification-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function renderCurveBatchResults(data, usedMetadata) {
+  latestPredictionData = null;
+  document.body.classList.remove("has-result");
+  resultPanel.classList.add("hidden");
+  responseEstimate.classList.add("hidden");
+  emptyState.classList.remove("hidden");
+  renderXai(null);
+  renderResearchHidden();
+
+  if (!curveBatchResults) {
+    return;
+  }
+  curveBatchResults.innerHTML = "";
+  curveBatchResults.classList.remove("hidden");
+
+  const header = document.createElement("div");
+  header.className = "batch-results-head";
+  const title = document.createElement("div");
+  const eyebrow = document.createElement("span");
+  eyebrow.textContent = data.model_label || "-";
+  const heading = document.createElement("strong");
+  heading.textContent = TEXT.batchResults;
+  const summary = document.createElement("p");
+  summary.textContent = `${TEXT.batchSummary(data.ok_count, data.total_files)}${usedMetadata ? "" : ` · ${TEXT.batchMetadataHint}`}`;
+  title.append(eyebrow, heading, summary);
+
+  const download = document.createElement("button");
+  download.type = "button";
+  download.textContent = TEXT.batchDownload;
+  download.addEventListener("click", () => downloadCurveBatchCsv(data));
+  header.append(title, download);
+
+  const tableWrap = document.createElement("div");
+  tableWrap.className = "batch-table-wrap";
+  const table = document.createElement("table");
+  table.className = "batch-table";
+  const thead = document.createElement("thead");
+  const headRow = document.createElement("tr");
+  [
+    "File",
+    "Test ID",
+    "Case",
+    "θ₁",
+    "θ₂",
+    "Pt",
+    "Type",
+    "Confidence",
+    "Status",
+  ].forEach((label) => {
+    const th = document.createElement("th");
+    th.textContent = label;
+    headRow.appendChild(th);
+  });
+  thead.appendChild(headRow);
+
+  const tbody = document.createElement("tbody");
+  (data.results || []).forEach((row) => {
+    const tr = document.createElement("tr");
+    if (row.status !== "ok") {
+      tr.className = "batch-error-row";
+    }
+    [
+      row.filename,
+      row.test_id,
+      row.case,
+      row.theta1,
+      row.theta2,
+      Number(row.pt).toLocaleString(undefined, { maximumFractionDigits: 2 }),
+      row.predicted_type ? `Type ${row.predicted_type}` : "-",
+      row.confidence == null ? "-" : percent(row.confidence),
+      row.status === "ok" ? "OK" : row.error || "Error",
+    ].forEach((value) => {
+      const td = document.createElement("td");
+      td.textContent = String(value ?? "-");
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  table.append(thead, tbody);
+  tableWrap.appendChild(table);
+  curveBatchResults.append(header, tableWrap);
+}
+
 function clearResponseCurveCanvas() {
   if (!responseCurveCanvas) {
     return;
   }
   const ctx = responseCurveCanvas.getContext("2d");
   ctx.clearRect(0, 0, responseCurveCanvas.width, responseCurveCanvas.height);
+}
+
+function updateResponseCurveZoomControls() {
+  const zoomPercent = `${Math.round(responseCurveView.scale * 100)}%`;
+  if (responseCurveZoomLabel) {
+    responseCurveZoomLabel.textContent = zoomPercent;
+  }
+  responseCurveZoomButtons.forEach((button) => {
+    const action = button.dataset.curveZoom;
+    button.disabled = (action === "out" || action === "reset")
+      ? responseCurveView.scale <= RESPONSE_CURVE_MIN_ZOOM + 0.01
+      : responseCurveView.scale >= RESPONSE_CURVE_MAX_ZOOM - 0.01;
+  });
+}
+
+function resetResponseCurveView(redraw = false) {
+  responseCurveView.scale = 1;
+  responseCurveView.centerXNorm = 0.5;
+  responseCurveView.centerYNorm = 0.5;
+  responseCurveView.drag = null;
+  if (redraw) {
+    redrawResponseCurve();
+  } else {
+    updateResponseCurveZoomControls();
+  }
+}
+
+function setResponseCurveSource(points, predictedPtValue, fitMode = "standard", backendFit = null) {
+  responseCurveView.points = points;
+  responseCurveView.predictedPtValue = predictedPtValue;
+  responseCurveView.fitMode = fitMode;
+  responseCurveView.backendFit = backendFit;
+  resetResponseCurveView();
+  drawResponseCurve(points, predictedPtValue, fitMode, backendFit);
+}
+
+function redrawResponseCurve() {
+  if (!responseCurveView.points) {
+    updateResponseCurveZoomControls();
+    return;
+  }
+  drawResponseCurve(
+    responseCurveView.points,
+    responseCurveView.predictedPtValue,
+    responseCurveView.fitMode,
+    responseCurveView.backendFit,
+  );
+}
+
+function responseCurvePointFromEvent(event) {
+  if (!responseCurveCanvas) {
+    return null;
+  }
+  const rect = responseCurveCanvas.getBoundingClientRect();
+  return {
+    x: ((event.clientX - rect.left) / Math.max(1, rect.width)) * responseCurveView.logicalWidth,
+    y: ((event.clientY - rect.top) / Math.max(1, rect.height)) * responseCurveView.logicalHeight,
+  };
+}
+
+function responseCurveDomainCenter(domain, axis) {
+  const min = axis === "x" ? domain.baseMinX : domain.baseMinY;
+  const span = axis === "x" ? domain.baseSpanX : domain.baseSpanY;
+  const norm = axis === "x" ? responseCurveView.centerXNorm : responseCurveView.centerYNorm;
+  return min + span * norm;
+}
+
+function setResponseCurveZoom(nextScale, anchor = null) {
+  const previousDomain = responseCurveView.domain;
+  const previousPlot = responseCurveView.plot;
+  const previousScale = responseCurveView.scale;
+  responseCurveView.scale = clampNumber(nextScale, RESPONSE_CURVE_MIN_ZOOM, RESPONSE_CURVE_MAX_ZOOM);
+
+  if (anchor && previousDomain && previousPlot && responseCurveView.scale !== previousScale) {
+    const plotX = clampNumber(anchor.x, previousPlot.left, previousPlot.right);
+    const plotY = clampNumber(anchor.y, previousPlot.top, previousPlot.bottom);
+    const xRatio = (plotX - previousPlot.left) / Math.max(1e-9, previousPlot.width);
+    const yRatio = 1 - ((plotY - previousPlot.top) / Math.max(1e-9, previousPlot.height));
+    const anchorDataX = previousDomain.visibleMinX + previousDomain.visibleSpanX * xRatio;
+    const anchorDataY = previousDomain.visibleMinY + previousDomain.visibleSpanY * yRatio;
+    const nextSpanX = previousDomain.baseSpanX / responseCurveView.scale;
+    const nextSpanY = previousDomain.baseSpanY / responseCurveView.scale;
+    const nextCenterX = anchorDataX + (0.5 - xRatio) * nextSpanX;
+    const nextCenterY = anchorDataY + (0.5 - yRatio) * nextSpanY;
+    responseCurveView.centerXNorm = clampNumber(
+      (nextCenterX - previousDomain.baseMinX) / previousDomain.baseSpanX,
+      0,
+      1,
+    );
+    responseCurveView.centerYNorm = clampNumber(
+      (nextCenterY - previousDomain.baseMinY) / previousDomain.baseSpanY,
+      0,
+      1,
+    );
+  }
+
+  redrawResponseCurve();
+}
+
+function panResponseCurve(dx, dy) {
+  const domain = responseCurveView.domain;
+  const plot = responseCurveView.plot;
+  if (!domain || !plot || responseCurveView.scale <= RESPONSE_CURVE_MIN_ZOOM + 0.01) {
+    return;
+  }
+  const nextCenterX = responseCurveDomainCenter(domain, "x") - (dx / Math.max(1, plot.width)) * domain.visibleSpanX;
+  const nextCenterY = responseCurveDomainCenter(domain, "y") + (dy / Math.max(1, plot.height)) * domain.visibleSpanY;
+  responseCurveView.centerXNorm = clampNumber((nextCenterX - domain.baseMinX) / domain.baseSpanX, 0, 1);
+  responseCurveView.centerYNorm = clampNumber((nextCenterY - domain.baseMinY) / domain.baseSpanY, 0, 1);
+  redrawResponseCurve();
+}
+
+function installResponseCurveZoomControls() {
+  if (!responseCurveCanvas) {
+    return;
+  }
+
+  responseCurveZoomButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const action = button.dataset.curveZoom;
+      if (action === "in") {
+        setResponseCurveZoom(responseCurveView.scale * 1.35);
+      } else if (action === "out") {
+        setResponseCurveZoom(responseCurveView.scale / 1.35);
+      } else {
+        resetResponseCurveView(true);
+      }
+    });
+  });
+
+  responseCurveCanvas.addEventListener("wheel", (event) => {
+    if (!responseCurveView.points) {
+      return;
+    }
+    event.preventDefault();
+    const factor = event.deltaY < 0 ? 1.15 : 1 / 1.15;
+    setResponseCurveZoom(responseCurveView.scale * factor, responseCurvePointFromEvent(event));
+  }, { passive: false });
+
+  responseCurveCanvas.addEventListener("pointerdown", (event) => {
+    if (!responseCurveView.points || responseCurveView.scale <= RESPONSE_CURVE_MIN_ZOOM + 0.01) {
+      return;
+    }
+    responseCurveView.drag = responseCurvePointFromEvent(event);
+    responseCurveCanvas.setPointerCapture(event.pointerId);
+  });
+
+  responseCurveCanvas.addEventListener("pointermove", (event) => {
+    if (!responseCurveView.drag) {
+      return;
+    }
+    const point = responseCurvePointFromEvent(event);
+    if (!point) {
+      return;
+    }
+    panResponseCurve(point.x - responseCurveView.drag.x, point.y - responseCurveView.drag.y);
+    responseCurveView.drag = point;
+  });
+
+  ["pointerup", "pointercancel", "pointerleave"].forEach((eventName) => {
+    responseCurveCanvas.addEventListener(eventName, () => {
+      responseCurveView.drag = null;
+    });
+  });
+
+  responseCurveCanvas.addEventListener("dblclick", () => resetResponseCurveView(true));
+  window.addEventListener("resize", () => {
+    window.clearTimeout(responseCurveResizeTimer);
+    responseCurveResizeTimer = window.setTimeout(() => redrawResponseCurve(), 120);
+  });
+  updateResponseCurveZoomControls();
 }
 
 function updateResponseCurveLegend(mode = "standard") {
@@ -1013,6 +1681,7 @@ function resetPredictionState() {
   document.body.classList.remove("has-result");
   emptyState.classList.remove("hidden");
   resultPanel.classList.add("hidden");
+  stackPreviewResult?.classList.add("hidden");
   resultPanel.classList.remove("type-1", "type-2", "type-3");
   responseEstimate.classList.add("hidden");
   predictedType.textContent = "-";
@@ -1020,6 +1689,7 @@ function resetPredictionState() {
   modelLabel.textContent = "-";
   inputSummary.innerHTML = "";
   probabilityBars.innerHTML = "";
+  renderUncertainty(null);
   notes.innerHTML = "";
   predictedPt.textContent = "-";
   predictedMaxDisplacement.textContent = "-";
@@ -1028,7 +1698,101 @@ function resetPredictionState() {
   xaiRequestSerial += 1;
   renderXai(null);
   renderResearchHidden();
+  curveBatchResults?.classList.add("hidden");
+  if (curveBatchResults) {
+    curveBatchResults.innerHTML = "";
+  }
   renderPredictionHistory();
+}
+
+function metricCard(label, value, suffix = "") {
+  const item = document.createElement("div");
+  const labelEl = document.createElement("span");
+  const valueEl = document.createElement("strong");
+  labelEl.textContent = label;
+  valueEl.textContent = value === null || value === undefined || value === "" ? "-" : `${value}${suffix}`;
+  item.append(labelEl, valueEl);
+  return item;
+}
+
+function renderPhysicsMetric(label, value) {
+  const item = document.createElement("div");
+  item.className = "stack-physics-item";
+  const name = document.createElement("span");
+  const number = document.createElement("strong");
+  name.textContent = label;
+  number.textContent = Number.isFinite(Number(value)) ? formatMetric(Number(value), 4) : String(value ?? "-");
+  item.append(name, number);
+  return item;
+}
+
+function renderStackPreviewResult(data) {
+  latestPredictionData = null;
+  document.body.classList.add("has-result");
+  emptyState.classList.add("hidden");
+  resultPanel.classList.add("hidden");
+  stackPreviewResult?.classList.remove("hidden");
+
+  const physics = data.physics || {};
+  const designSpace = data.design_space || {};
+  if (stackPreviewTitle) {
+    const label = data.case === "Custom" ? "Custom" : String(data.case || "Case5").replace("Case", "Case ");
+    stackPreviewTitle.textContent = IS_KO ? `${label} 적층 물리값` : `${label} stack physics`;
+  }
+
+  if (stackPreviewMetrics) {
+    stackPreviewMetrics.innerHTML = "";
+    stackPreviewMetrics.append(
+      metricCard(IS_KO ? "Ply 수" : "Plies", data.ply_count),
+      metricCard(IS_KO ? "전체 두께" : "Total thickness", formatMetric(data.total_thickness_in, 4), " in"),
+      metricCard(IS_KO ? "신뢰도" : "Reliability", percent(designSpace.reliability_score ?? 0)),
+      metricCard(IS_KO ? "설계공간" : "Coverage", designSpace.interpolation_label || "-")
+    );
+  }
+
+  if (stackPreviewSequence) {
+    stackPreviewSequence.innerHTML = "";
+    (data.ply_sequence || []).forEach((angle, index) => {
+      const chip = document.createElement("span");
+      chip.className = "stack-sequence-chip";
+      chip.textContent = `P${index + 1} ${formatSignedAngle(angle)}`;
+      stackPreviewSequence.appendChild(chip);
+    });
+  }
+
+  if (stackPreviewPhysics) {
+    const featured = [
+      ["D11 bending stiffness", physics.d11],
+      ["D22 bending stiffness", physics.d22],
+      ["D66 twisting stiffness", physics.d66],
+      ["D11/D22 ratio", physics.d11_d22_ratio],
+      ["Bending anisotropy", physics.bending_anisotropy],
+      ["A11 membrane stiffness", physics.a11],
+      ["A22 membrane stiffness", physics.a22],
+      ["Stack symmetry mismatch", physics.stack_symmetry_mismatch],
+      ["Mean |θ|", physics.angle_abs_mean],
+      ["|θ| spread", physics.angle_abs_std],
+    ];
+    stackPreviewPhysics.innerHTML = "";
+    featured.forEach(([label, value]) => {
+      stackPreviewPhysics.appendChild(renderPhysicsMetric(physicsLabel(label), value));
+    });
+  }
+
+  if (stackPreviewNotes) {
+    stackPreviewNotes.innerHTML = "";
+    [
+      ...(data.notes || []),
+      ...(designSpace.notes || []),
+      IS_KO
+        ? "이 탭은 새 적층식을 학습 모델에 넣기 전 물리 feature와 설계공간 위치를 확인하는 실험용 preview입니다."
+        : "This tab previews physics descriptors and design-space position before the new stack is added to trained forecast models.",
+    ].forEach((note) => {
+      const item = document.createElement("li");
+      item.textContent = IS_KO ? (NOTE_LABELS_KO[note] || note) : note;
+      stackPreviewNotes.appendChild(item);
+    });
+  }
 }
 
 function xaiCategoryLabel(category) {
@@ -1067,6 +1831,22 @@ function localizeXaiText(text) {
       "Laminate Forecast Tree + Physics XAI 모델의 설명입니다. θ₁, θ₂, Case에 CLT ABD 강성, membrane-bending coupling, 적층 anisotropy descriptor를 함께 사용합니다.",
     "This explanation uses the Laminate Forecast GointMLP + Physics XAI model. It masks one physics feature at a time and measures how much the neural Type, Pt, max-value, and curve heads move.":
       "Laminate Forecast GointMLP + Physics XAI 모델의 설명입니다. 물리 feature를 하나씩 가리고 neural Type, Pt, max value, curve head가 얼마나 움직이는지 측정합니다.",
+    "This explanation uses the Laminate Forecast Machine Learning model. It keeps the strongest θ, Case, CLT stiffness, coupling, anisotropy, and stack-shape features.":
+      "Laminate Forecast Machine Learning 모델의 설명입니다. θ, Case, CLT 강성, coupling, anisotropy, 적층 형상 feature 중 영향이 큰 항목을 사용합니다.",
+    "This explanation uses the Laminate Forecast Machine Learning model. It keeps the strongest θ, Case, CLT stiffness, coupling, anisotropy, and stack-shape features with ABD terms normalized as A/h, 2B/h², and 12D/h³.":
+      "Laminate Forecast Machine Learning 모델의 설명입니다. θ, Case, CLT 강성, coupling, anisotropy, 적층 형상 feature 중 영향이 큰 항목을 사용하며, ABD 항은 A/h, 2B/h², 12D/h³ 기준으로 정규화했습니다.",
+    "This explanation uses the Laminate Forecast Machine Learning model. It keeps the strongest θ, Case, normalized CLT stiffness, coupling, anisotropy, and stack-shape features.":
+      "Laminate Forecast Machine Learning 모델의 설명입니다. θ, Case, 정규화된 CLT 강성, coupling, anisotropy, 적층 형상 feature 중 영향이 큰 항목을 사용합니다.",
+    "This explanation uses the Laminate Forecast Deep Learning model. It keeps physics descriptors and selected basis terms that improved the neural multi-task surrogate.":
+      "Laminate Forecast Deep Learning 모델의 설명입니다. neural multi-task surrogate에 도움이 된 물리 descriptor와 선택된 basis 항목을 사용합니다.",
+    "This explanation uses the Laminate Forecast Deep Learning model. It masks one physics feature at a time for the current θ/Case input.":
+      "Laminate Forecast Deep Learning 모델의 설명입니다. 현재 θ/Case 입력에서 물리 feature를 하나씩 가려 민감도를 확인합니다.",
+    "This explanation uses the u3 Forecast Machine Learning model. It keeps θ periodicity, CLT stiffness, coupling, anisotropy, and stack-shape features.":
+      "u3 Forecast Machine Learning 모델의 설명입니다. θ 주기성, CLT 강성, coupling, anisotropy, 적층 형상 feature를 사용합니다.",
+    "This explanation uses the u3 Forecast Machine Learning model. It keeps θ periodicity, normalized CLT stiffness, coupling, anisotropy, and stack-shape features.":
+      "u3 Forecast Machine Learning 모델의 설명입니다. θ 주기성, 정규화된 CLT 강성, coupling, anisotropy, 적층 형상 feature를 사용합니다.",
+    "This explanation uses the u3 Forecast Deep Learning model. It masks one physics feature at a time and measures how much the neural Pt, max-value, and curve heads move for the current θ/Case input.":
+      "u3 Forecast Deep Learning 모델의 설명입니다. 현재 θ/Case 입력에서 물리 feature를 하나씩 가리고 neural Pt, max value, curve head 변화량을 측정합니다.",
     "This explanation uses the GointMLP theta/case model. It masks one theta feature at a time and measures how much the neural Pt, max-value, and curve heads move.":
       "GointMLP θ/Case 모델의 설명입니다. θ feature를 하나씩 가리고 neural Pt, max value, curve head가 얼마나 움직이는지 측정합니다.",
     "This explanation uses the original theta/case model. It mainly shows angle periodicity and case effects, not full laminate physics.":
@@ -1379,6 +2159,8 @@ async function requestLazyXai(data) {
       theta2: Number(inputs.theta2),
       case: inputs.case,
       model: data.model_key,
+      panel_a_in: Number(inputs.panel_a_in || 6),
+      panel_b_in: Number(inputs.panel_b_in || 4),
     });
     if (serial === xaiRequestSerial) {
       if (latestPredictionData) {
@@ -2281,15 +3063,15 @@ function drawPtLabel(ctx, label, value, ptX, ptY, pad, width, height, options = 
     value: options.valueColor || "#7c2d12",
   };
   ctx.save();
-  ctx.font = "600 13px Inter, system-ui, sans-serif";
+  ctx.font = "700 17px Inter, system-ui, sans-serif";
   const titleWidth = ctx.measureText(label).width;
-  ctx.font = "700 15px Inter, system-ui, sans-serif";
+  ctx.font = "800 22px Inter, system-ui, sans-serif";
   const valueWidth = ctx.measureText(value).width;
 
-  const labelWidth = Math.max(titleWidth, valueWidth) + 26;
-  const labelHeight = 47;
-  const gapX = options.gapX ?? 18;
-  const gapY = options.gapY ?? 16;
+  const labelWidth = Math.max(titleWidth, valueWidth) + 36;
+  const labelHeight = 66;
+  const gapX = options.gapX ?? 24;
+  const gapY = options.gapY ?? 22;
   const autoRight = ptX + gapX + labelWidth < width - pad.right;
   const side = options.side || (autoRight ? "right" : "left");
   const wantsRight = side === "right";
@@ -2313,28 +3095,49 @@ function drawPtLabel(ctx, label, value, ptX, ptY, pad, width, height, options = 
   const anchorY = labelY + labelHeight * 0.62;
 
   ctx.strokeStyle = colors.line;
-  ctx.lineWidth = 1.1;
+  ctx.lineWidth = 1.8;
   ctx.beginPath();
   ctx.moveTo(ptX, ptY);
   ctx.lineTo(anchorX, anchorY);
   ctx.stroke();
 
-  drawRoundedRect(ctx, labelX, labelY, labelWidth, labelHeight, 7);
+  drawRoundedRect(ctx, labelX, labelY, labelWidth, labelHeight, 10);
   ctx.fillStyle = colors.fill;
   ctx.fill();
   ctx.strokeStyle = colors.border;
-  ctx.lineWidth = 1;
+  ctx.lineWidth = 1.4;
   ctx.stroke();
 
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
   ctx.fillStyle = colors.title;
-  ctx.font = "600 13px Inter, system-ui, sans-serif";
-  ctx.fillText(label, labelX + 13, labelY + 18);
+  ctx.font = "700 17px Inter, system-ui, sans-serif";
+  ctx.fillText(label, labelX + 18, labelY + 25);
   ctx.fillStyle = colors.value;
-  ctx.font = "700 15px Inter, system-ui, sans-serif";
-  ctx.fillText(value, labelX + 13, labelY + 37);
+  ctx.font = "800 22px Inter, system-ui, sans-serif";
+  ctx.fillText(value, labelX + 18, labelY + 52);
   ctx.restore();
+}
+
+function prepareResponseCurveCanvas() {
+  const ctx = responseCurveCanvas.getContext("2d");
+  const rect = responseCurveCanvas.getBoundingClientRect();
+  const parentWidth = responseCurveCanvas.parentElement?.clientWidth || 720;
+  const logicalWidth = Math.max(320, rect.width || parentWidth || 720);
+  const logicalHeight = logicalWidth * 0.6;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+  const pixelWidth = Math.round(logicalWidth * dpr);
+  const pixelHeight = Math.round(logicalHeight * dpr);
+
+  if (responseCurveCanvas.width !== pixelWidth || responseCurveCanvas.height !== pixelHeight) {
+    responseCurveCanvas.width = pixelWidth;
+    responseCurveCanvas.height = pixelHeight;
+  }
+  responseCurveCanvas.style.height = `${logicalHeight}px`;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  responseCurveView.logicalWidth = logicalWidth;
+  responseCurveView.logicalHeight = logicalHeight;
+  return { ctx, width: logicalWidth, height: logicalHeight };
 }
 
 function rightUpperEnvelopeSlope(points, kinkX, kinkForce, proposedSlope) {
@@ -2671,15 +3474,14 @@ function buildBackendBilinearFit(points, predictedPtValue, backendFit) {
 }
 
 function drawResponseCurve(points, predictedPtValue, fitMode = "standard", backendFit = null) {
-  const ctx = responseCurveCanvas.getContext("2d");
-  const { width, height } = responseCurveCanvas;
-  const pad = { left: 76, right: 24, top: 30, bottom: 64 };
+  const { ctx, width, height } = prepareResponseCurveCanvas();
+  const pad = { left: 92, right: 28, top: 36, bottom: 76 };
   ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = "#f8fafc";
   ctx.fillRect(0, 0, width, height);
   if (!points || !points.length) {
     ctx.fillStyle = "#637184";
-    ctx.font = "14px system-ui, sans-serif";
+    ctx.font = "16px system-ui, sans-serif";
     ctx.textAlign = "center";
     ctx.fillText(TEXT.estimatedCurveEmpty, width / 2, height / 2);
     return;
@@ -2717,10 +3519,48 @@ function drawResponseCurve(points, predictedPtValue, fitMode = "standard", backe
   const maxY = Math.max(...ys) * 1.06;
   const plotW = width - pad.left - pad.right;
   const plotH = height - pad.top - pad.bottom;
-  const scaleX = (value) => pad.left + ((value - minX) / Math.max(1e-9, maxX - minX)) * plotW;
-  const scaleY = (value) => height - pad.bottom - ((value - minY) / Math.max(1e-9, maxY - minY)) * plotH;
-  const xTicks = Array.from({ length: 6 }, (_, index) => minX + ((maxX - minX) / 5) * index);
-  const yTicks = Array.from({ length: 6 }, (_, index) => minY + ((maxY - minY) / 5) * index);
+  const baseSpanX = Math.max(1e-9, maxX - minX);
+  const baseSpanY = Math.max(1e-9, maxY - minY);
+  const zoom = clampNumber(responseCurveView.scale || 1, RESPONSE_CURVE_MIN_ZOOM, RESPONSE_CURVE_MAX_ZOOM);
+  const visibleSpanX = baseSpanX / zoom;
+  const visibleSpanY = baseSpanY / zoom;
+  const centerX = minX + baseSpanX * clampNumber(responseCurveView.centerXNorm, 0, 1);
+  const centerY = minY + baseSpanY * clampNumber(responseCurveView.centerYNorm, 0, 1);
+  let visibleMinX = centerX - visibleSpanX / 2;
+  let visibleMinY = centerY - visibleSpanY / 2;
+  visibleMinX = clampNumber(visibleMinX, minX, maxX - visibleSpanX);
+  visibleMinY = clampNumber(visibleMinY, minY, maxY - visibleSpanY);
+  const visibleMaxX = visibleMinX + visibleSpanX;
+  const visibleMaxY = visibleMinY + visibleSpanY;
+  responseCurveView.centerXNorm = clampNumber(((visibleMinX + visibleSpanX / 2) - minX) / baseSpanX, 0, 1);
+  responseCurveView.centerYNorm = clampNumber(((visibleMinY + visibleSpanY / 2) - minY) / baseSpanY, 0, 1);
+  responseCurveView.domain = {
+    baseMinX: minX,
+    baseMaxX: maxX,
+    baseMinY: minY,
+    baseMaxY: maxY,
+    baseSpanX,
+    baseSpanY,
+    visibleMinX,
+    visibleMaxX,
+    visibleMinY,
+    visibleMaxY,
+    visibleSpanX,
+    visibleSpanY,
+  };
+  responseCurveView.plot = {
+    left: pad.left,
+    right: width - pad.right,
+    top: pad.top,
+    bottom: height - pad.bottom,
+    width: plotW,
+    height: plotH,
+  };
+  updateResponseCurveZoomControls();
+  const scaleX = (value) => pad.left + ((value - visibleMinX) / Math.max(1e-9, visibleMaxX - visibleMinX)) * plotW;
+  const scaleY = (value) => height - pad.bottom - ((value - visibleMinY) / Math.max(1e-9, visibleMaxY - visibleMinY)) * plotH;
+  const xTicks = Array.from({ length: 6 }, (_, index) => visibleMinX + ((visibleMaxX - visibleMinX) / 5) * index);
+  const yTicks = Array.from({ length: 6 }, (_, index) => visibleMinY + ((visibleMaxY - visibleMinY) / 5) * index);
 
   ctx.strokeStyle = "#e6edf3";
   ctx.lineWidth = 1;
@@ -2746,16 +3586,16 @@ function drawResponseCurve(points, predictedPtValue, fitMode = "standard", backe
   ctx.stroke();
 
   ctx.fillStyle = "#647184";
-  ctx.font = "11px Inter, system-ui, sans-serif";
+  ctx.font = "16px Inter, system-ui, sans-serif";
   ctx.textBaseline = "middle";
   ctx.textAlign = "right";
   yTicks.forEach((value) => {
-    ctx.fillText(formatAxisTick(value, 2), pad.left - 8, scaleY(value));
+    ctx.fillText(formatAxisTick(value, 2), pad.left - 12, scaleY(value));
   });
   ctx.textBaseline = "top";
   ctx.textAlign = "center";
   xTicks.forEach((value) => {
-    ctx.fillText(formatAxisTick(value, 4), scaleX(value), height - pad.bottom + 14);
+    ctx.fillText(formatAxisTick(value, 4), scaleX(value), height - pad.bottom + 20);
   });
 
   if (bilinearFit) {
@@ -2766,7 +3606,10 @@ function drawResponseCurve(points, predictedPtValue, fitMode = "standard", backe
     ctx.save();
     ctx.setLineDash([6, 4]);
     ctx.strokeStyle = "#ef4444";
-    ctx.lineWidth = 1.4;
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.rect(pad.left, pad.top, plotW, plotH);
+    ctx.clip();
     ctx.beginPath();
     ctx.moveTo(scaleX(bilinearFit.firstStartX), scaleY(lineY(bilinearFit.firstLine, bilinearFit.firstStartX)));
     ctx.lineTo(scaleX(bilinearFit.firstEndX), scaleY(lineY(bilinearFit.firstLine, bilinearFit.firstEndX)));
@@ -2776,7 +3619,7 @@ function drawResponseCurve(points, predictedPtValue, fitMode = "standard", backe
 
     ctx.setLineDash([7, 4]);
     ctx.strokeStyle = "#7c3aed";
-    ctx.lineWidth = 1.2;
+    ctx.lineWidth = 1.8;
     ctx.beginPath();
     ctx.moveTo(kinkX, pad.top);
     ctx.lineTo(kinkX, height - pad.bottom);
@@ -2784,8 +3627,12 @@ function drawResponseCurve(points, predictedPtValue, fitMode = "standard", backe
     ctx.restore();
   }
 
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(pad.left, pad.top, plotW, plotH);
+  ctx.clip();
   ctx.strokeStyle = "#0f766e";
-  ctx.lineWidth = 2.5;
+  ctx.lineWidth = 4;
   ctx.beginPath();
   points.forEach((point, index) => {
     const x = scaleX(point.displacement);
@@ -2797,6 +3644,7 @@ function drawResponseCurve(points, predictedPtValue, fitMode = "standard", backe
     }
   });
   ctx.stroke();
+  ctx.restore();
 
   if (bilinearFit) {
     const marker = fitMode === "u3"
@@ -2811,67 +3659,79 @@ function drawResponseCurve(points, predictedPtValue, fitMode = "standard", backe
       : null;
     const u3FitLabelY = pad.top + 14;
     const u3PredictedLabelY = pad.top + 74;
+    const ptIsVisible = ptX >= pad.left
+      && ptX <= width - pad.right
+      && ptY >= pad.top
+      && ptY <= height - pad.bottom;
 
-    ctx.fillStyle = "#ffffff";
-    ctx.strokeStyle = "#7c3aed";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(ptX, ptY - 6);
-    ctx.lineTo(ptX + 6, ptY);
-    ctx.lineTo(ptX, ptY + 6);
-    ctx.lineTo(ptX - 6, ptY);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
+    if (ptIsVisible) {
+      ctx.fillStyle = "#ffffff";
+      ctx.strokeStyle = "#7c3aed";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(ptX, ptY - 9);
+      ctx.lineTo(ptX + 9, ptY);
+      ctx.lineTo(ptX, ptY + 9);
+      ctx.lineTo(ptX - 9, ptY);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
 
-    drawPtLabel(ctx, ptLabel, ptValue, ptX, ptY, pad, width, height, {
-      placement: "below",
-      side: fitMode === "u3" ? "right" : undefined,
-      labelX: u3LabelX,
-      labelY: fitMode === "u3" ? u3FitLabelY : undefined,
-      gapX: fitMode === "u3" ? 34 : undefined,
-      lineColor: "rgba(124, 58, 237, 0.62)",
-      fillColor: "rgba(245, 243, 255, 0.96)",
-      borderColor: "#c4b5fd",
-      titleColor: "#5b21b6",
-      valueColor: "#4c1d95",
-    });
+      drawPtLabel(ctx, ptLabel, ptValue, ptX, ptY, pad, width, height, {
+        placement: "below",
+        side: fitMode === "u3" ? "right" : undefined,
+        labelX: u3LabelX,
+        labelY: fitMode === "u3" ? u3FitLabelY : undefined,
+        gapX: fitMode === "u3" ? 48 : undefined,
+        lineColor: "rgba(124, 58, 237, 0.62)",
+        fillColor: "rgba(245, 243, 255, 0.96)",
+        borderColor: "#c4b5fd",
+        titleColor: "#5b21b6",
+        valueColor: "#4c1d95",
+      });
+    }
 
     if (fitMode === "u3" && bilinearFit.predictedPoint) {
       const predictedMarker = bilinearFit.predictedPoint;
       const predictedX = scaleX(predictedMarker.displacement);
       const predictedY = scaleY(predictedMarker.force);
       const labelIsTooClose = Math.hypot(predictedX - ptX, predictedY - ptY) < 34;
+      const predictedIsVisible = predictedX >= pad.left
+        && predictedX <= width - pad.right
+        && predictedY >= pad.top
+        && predictedY <= height - pad.bottom;
 
-      ctx.fillStyle = "#ef4444";
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(predictedX, predictedY, 5.5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
+      if (predictedIsVisible) {
+        ctx.fillStyle = "#ef4444";
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(predictedX, predictedY, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
 
-      drawPtLabel(ctx, TEXT.predictedPtLabel, formatMetric(predictedMarker.force, 2), predictedX, predictedY, pad, width, height, {
-        placement: labelIsTooClose ? "above" : "below",
-        side: "right",
-        labelX: u3LabelX,
-        labelY: u3PredictedLabelY,
-        gapX: 34,
-        lineColor: "rgba(239, 68, 68, 0.62)",
-        fillColor: "rgba(255, 247, 247, 0.96)",
-        borderColor: "#fecaca",
-        titleColor: "#991b1b",
-        valueColor: "#7f1d1d",
-      });
+        drawPtLabel(ctx, TEXT.predictedPtLabel, formatMetric(predictedMarker.force, 2), predictedX, predictedY, pad, width, height, {
+          placement: labelIsTooClose ? "above" : "below",
+          side: "right",
+          labelX: u3LabelX,
+          labelY: u3PredictedLabelY,
+          gapX: 48,
+          lineColor: "rgba(239, 68, 68, 0.62)",
+          fillColor: "rgba(255, 247, 247, 0.96)",
+          borderColor: "#fecaca",
+          titleColor: "#991b1b",
+          valueColor: "#7f1d1d",
+        });
+      }
     }
   }
 
   ctx.fillStyle = "#637184";
-  ctx.font = "12px system-ui, sans-serif";
+  ctx.font = "17px Inter, system-ui, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText(TEXT.displacementAxis, pad.left + plotW / 2, height - 12);
+  ctx.fillText(TEXT.displacementAxis, pad.left + plotW / 2, height - 18);
   ctx.save();
-  ctx.translate(16, pad.top + plotH / 2 + 18);
+  ctx.translate(24, pad.top + plotH / 2 + 24);
   ctx.rotate(-Math.PI / 2);
   ctx.fillText(TEXT.forceAxis, 0, 0);
   ctx.restore();
@@ -2885,7 +3745,7 @@ function renderResponseEstimate(data) {
   predictedMaxDisplacement.textContent = formatMetric(data.predicted_max_displacement, 5);
   predictedMaxForce.textContent = formatMetric(data.predicted_max_force, 2);
   updateResponseCurveLegend("standard");
-  drawResponseCurve(data.curve, data.predicted_pt, "standard", data.curve_fit);
+  setResponseCurveSource(data.curve, data.predicted_pt, "standard", data.curve_fit);
   if (data.xai) {
     renderXai(data.xai);
   } else {
@@ -2899,6 +3759,7 @@ function renderU3PtResult(data) {
   latestPredictionData = data;
   document.body.classList.add("has-result");
   emptyState.classList.add("hidden");
+  stackPreviewResult?.classList.add("hidden");
   resultPanel.classList.remove("hidden", "type-1", "type-2", "type-3");
   predictedType.textContent = data.predicted_type ? `u3 Type ${data.predicted_type}` : TEXT.u3PtTitle;
   confidenceEl.textContent = data.confidence != null ? percent(data.confidence) : formatMetric(data.predicted_pt, 2);
@@ -2941,6 +3802,7 @@ function renderU3PtResult(data) {
     summary.textContent = TEXT.u3ForecastSummary;
     probabilityBars.appendChild(summary);
   }
+  renderUncertainty(data.uncertainty);
 
   responseEstimate.classList.remove("hidden");
   responseCurveTitle.textContent = IS_KO ? "예측 u3 곡선과 Pt" : "Predicted u3 curve with Pt";
@@ -2948,7 +3810,7 @@ function renderU3PtResult(data) {
   predictedMaxDisplacement.textContent = formatMetric(data.predicted_max_displacement, 5);
   predictedMaxForce.textContent = formatMetric(data.predicted_max_force, 2);
   updateResponseCurveLegend("u3");
-  drawResponseCurve(data.curve, data.predicted_pt, "u3", data.curve_fit);
+  setResponseCurveSource(data.curve, data.predicted_pt, "u3", data.curve_fit);
   if (data.xai) {
     renderXai(data.xai);
   } else {
@@ -3287,6 +4149,25 @@ function reportResearchLines(data = {}) {
   return lines;
 }
 
+function reportUncertaintyLines(data = {}) {
+  const uncertainty = data.uncertainty;
+  if (!uncertainty) {
+    return [];
+  }
+  const ptLow = uncertainty.pt_interval_low;
+  const ptHigh = uncertainty.pt_interval_high;
+  const range = ptLow != null && ptHigh != null
+    ? `${formatMetric(ptLow, 0)} - ${formatMetric(ptHigh, 0)}`
+    : "-";
+  return [
+    `${TEXT.reliabilityScore}: ${percent(uncertainty.reliability_score)} (${uncertaintyLabelText(uncertainty.confidence_label)})`,
+    `${TEXT.ptRange}: ${range}`,
+    `${TEXT.designCoverage}: ${interpolationLabelText(uncertainty.interpolation_label)}`,
+    `${TEXT.typeAgreement}: ${uncertainty.type_consistency != null ? percent(uncertainty.type_consistency) : "-"}`,
+    ...(uncertainty.notes || []).slice(0, 2).map((note) => IS_KO ? translateUncertaintyNote(note) : note),
+  ];
+}
+
 function reportResultNotes(data = {}) {
   const domNotes = reportDomLines(notes, "li");
   if (domNotes.length) {
@@ -3365,9 +4246,11 @@ function buildResultReportCanvas() {
   const data = latestPredictionData;
   const hasCurve = Boolean(data.curve?.length);
   const noteLines = reportResultNotes(data).map((note, index) => `${index + 1}. ${note}`);
+  const uncertaintyLines = reportUncertaintyLines(data);
   const xaiLines = reportXaiLines(data);
   const researchLines = reportResearchLines(data);
   const sections = [
+    { title: IS_KO ? "예측 안정성" : "Prediction Reliability", lines: uncertaintyLines },
     { title: "XAI", lines: xaiLines },
     { title: IS_KO ? "연구 인사이트" : "Research Insight", lines: researchLines },
     { title: TEXT.reportNotes, lines: noteLines },
@@ -3707,12 +4590,17 @@ document.querySelectorAll(".mode-button").forEach((button) => {
     if (u3PtForm) {
       u3PtForm.classList.toggle("active", mode === "u3");
     }
+    if (stackPreviewForm) {
+      stackPreviewForm.classList.toggle("active", mode === "stack");
+    }
     visualPanel.classList.toggle("hidden", mode === "curve");
     curvePreviewPanel.classList.toggle("hidden", mode !== "curve");
     workspaceGrid.classList.toggle("curve-active", mode === "curve");
     workspaceGrid.classList.toggle("u3-active", mode === "u3");
+    workspaceGrid.classList.toggle("stack-active", mode === "stack");
     summaryStrip?.classList.toggle("curve-active", mode === "curve");
     summaryStrip?.classList.toggle("u3-active", mode === "u3");
+    summaryStrip?.classList.toggle("stack-active", mode === "stack");
     updateDynamicStackPreview();
     renderPredictionHistory();
     clearError();
@@ -3750,8 +4638,24 @@ curveForm.addEventListener("submit", async (event) => {
   formData.set("theta1", String(clampStackAngle(formData.get("theta1"))));
   formData.set("theta2", String(clampStackAngle(formData.get("theta2"))));
   try {
-    const data = await postForm("/predict/curve", formData);
-    renderResult(data);
+    curveBatchResults?.classList.add("hidden");
+    const selectedFiles = Array.from(curveFile.files || []);
+    if (selectedFiles.length > 1) {
+      const batchData = new FormData();
+      selectedFiles.forEach((file) => batchData.append("files", file));
+      const metadata = curveMetadataFile?.files?.[0];
+      if (metadata) {
+        batchData.append("metadata_file", metadata);
+      }
+      ["theta1", "theta2", "pt", "case", "model"].forEach((key) => {
+        batchData.set(key, formData.get(key));
+      });
+      const data = await postForm("/predict/curve-batch", batchData);
+      renderCurveBatchResults(data, Boolean(metadata));
+    } else {
+      const data = await postForm("/predict/curve", formData);
+      renderResult(data);
+    }
   } catch (error) {
     setError(error.message);
   } finally {
@@ -3770,6 +4674,8 @@ responseForm.addEventListener("submit", async (event) => {
       theta2: clampStackAngle(formData.get("theta2")),
       case: formData.get("case"),
       model: formData.get("model"),
+      panel_a_in: Number(formData.get("panel_a_in") || 6),
+      panel_b_in: Number(formData.get("panel_b_in") || 4),
     });
     renderResponseEstimate(data);
   } catch (error) {
@@ -3799,6 +4705,35 @@ if (u3PtForm) {
       setError(error.message);
     } finally {
       setLoading(u3PtForm, false);
+    }
+  });
+}
+
+if (stackPreviewForm) {
+  stackPreviewForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    clearError();
+    setLoading(stackPreviewForm, true);
+    const formData = new FormData(stackPreviewForm);
+    const theta1 = clampStackAngle(formData.get("theta1"));
+    const theta2 = clampStackAngle(formData.get("theta2"));
+    const { sequence: plySequence } = stackSequenceFromFormulaOrManual(formData, theta1, theta2);
+    try {
+      if (!plySequence.length) {
+        throw new Error(TEXT.stackSequenceFailed);
+      }
+      const data = await postJson("/stack/preview", {
+        theta1,
+        theta2,
+        case: formData.get("case"),
+        formula: String(formData.get("formula") || ""),
+        ply_sequence: plySequence,
+      });
+      renderStackPreviewResult(data);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(stackPreviewForm, false);
     }
   });
 }
@@ -3878,15 +4813,26 @@ if (ragForm) {
 
 setupThetaSliders(responseForm);
 setupThetaSliders(u3PtForm);
+setupThetaSliders(stackPreviewForm);
 attachDynamicStackPreview(responseForm);
 attachDynamicStackPreview(u3PtForm);
+attachDynamicStackPreview(stackPreviewForm);
+attachFormulaToolbar(stackPreviewForm);
 
 clearCurvePreview.addEventListener("click", () => {
   curveFile.value = "";
+  if (curveMetadataFile) {
+    curveMetadataFile.value = "";
+  }
+  curveBatchResults?.classList.add("hidden");
+  if (curveBatchResults) {
+    curveBatchResults.innerHTML = "";
+  }
   updateCurvePreview([]);
   clearError();
 });
 
+installResponseCurveZoomControls();
 updateCurvePreview([]);
 updateDynamicStackPreview();
 renderPredictionHistory();

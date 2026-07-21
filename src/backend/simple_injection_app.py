@@ -6,9 +6,9 @@ Run with:
 
 import mimetypes
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from src.backend.api.v1.modules import router as modules_router
@@ -19,6 +19,9 @@ from src.backend.api.v1.simple_injection import router as simple_injection_route
 PROJECT_ROOT = __import__("pathlib").Path(__file__).resolve().parents[2]
 FRONTEND_DIR = PROJECT_ROOT / "src/frontend/simple-injection"
 DATA_DIR = PROJECT_ROOT / "data"
+LUVELOX_TO_IMPERIALAX_REDIRECTS = {
+    "injection.luvelox.com": "https://injection.imperialax.com",
+}
 
 mimetypes.add_type("model/gltf-binary", ".glb")
 mimetypes.add_type("model/gltf+json", ".gltf")
@@ -43,6 +46,23 @@ app.include_router(modules_router, prefix="/api/v1")
 app.include_router(rag_router, prefix="/api/v1")
 
 app.mount("/data", StaticFiles(directory=DATA_DIR), name="data")
+
+
+def _request_host(request: Request) -> str:
+    forwarded_host = request.headers.get("x-forwarded-host")
+    host = forwarded_host or request.headers.get("host") or ""
+    return host.split(",", 1)[0].split(":", 1)[0].strip().lower()
+
+
+@app.middleware("http")
+async def redirect_legacy_luvelox_hosts(request: Request, call_next):
+    base_url = LUVELOX_TO_IMPERIALAX_REDIRECTS.get(_request_host(request))
+    if base_url:
+        location = f"{base_url}{request.url.path or '/'}"
+        if request.url.query:
+            location = f"{location}?{request.url.query}"
+        return Response(status_code=308, headers={"Location": location})
+    return await call_next(request)
 
 
 def _no_cache_file(path):

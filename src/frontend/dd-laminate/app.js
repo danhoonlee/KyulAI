@@ -146,8 +146,9 @@ const exportReportPdf = document.querySelector("#export-report-pdf");
 let latestPredictionData = null;
 
 const PRIMARY_RESPONSE_MODEL_KEYS = [
-  "response_surrogate_physics_v2",
-  "response_goint_physics_nn_v2",
+  "response_geometry_tree_v1",
+  "response_geometry_goint_v1",
+  "response_hybrid_student_deploy_quick_v1",
 ];
 const XAI_VISIBLE_LIMIT = 10;
 

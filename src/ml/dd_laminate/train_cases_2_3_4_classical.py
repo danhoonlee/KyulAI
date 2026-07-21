@@ -54,10 +54,51 @@ class DDRecord:
     pt: float
     label: int
     csv_path: Path
+    panel_a_in: float = 6.0
+    panel_b_in: float = 4.0
+    source_dataset: str = "6x4"
 
 
 def _float(row: dict[str, str], key: str) -> float:
     return float(str(row[key]).strip())
+
+
+def _optional_float(row: dict[str, str], key: str, default: float) -> float:
+    value = row.get(key)
+    if value is None or str(value).strip() == "":
+        return default
+    return float(str(value).strip())
+
+
+def _row_value(row: dict[str, str], *keys: str, default: str = "") -> str:
+    for key in keys:
+        value = row.get(key)
+        if value is not None and str(value).strip() != "":
+            return str(value).strip()
+    return default
+
+
+def _normalize_test_id(value: str) -> str:
+    raw = str(value).strip()
+    if raw.lower().startswith("test_"):
+        raw = raw.split("_", 1)[1]
+    try:
+        return f"{int(float(raw)):03d}"
+    except ValueError:
+        return raw
+
+
+def _resolve_csv_path(data_dir: Path, raw_path: str, case: str, test_id: str) -> Path:
+    if raw_path:
+        candidate = Path(raw_path)
+        if candidate.is_absolute():
+            return candidate
+        for base in (data_dir, data_dir.parent, Path.cwd()):
+            resolved = base / candidate
+            if resolved.exists():
+                return resolved
+        return data_dir / candidate
+    return data_dir / case / "csv_load" / f"force_disp_Test_{test_id}.csv"
 
 
 def load_records(data_dir: Path) -> list[DDRecord]:
@@ -69,19 +110,23 @@ def load_records(data_dir: Path) -> list[DDRecord]:
         with transition_path.open("r", encoding="utf-8-sig", newline="") as handle:
             reader = csv.DictReader(handle)
             for row in reader:
-                test_id = f"{int(float(row['Test_ID'])):03d}"
-                csv_path = data_dir / case / "csv_load" / f"force_disp_Test_{test_id}.csv"
+                test_id = _normalize_test_id(_row_value(row, "Test_ID", "test_id"))
+                csv_path = _resolve_csv_path(data_dir, _row_value(row, "csv_path", "curve_csv"), case, test_id)
                 if not csv_path.exists():
                     raise FileNotFoundError(csv_path)
+                label_raw = _row_value(row, "type", "predicted_type", "label")
                 records.append(
                     DDRecord(
                         case=case,
                         test_id=test_id,
-                        theta1=_float(row, "theta1"),
-                        theta2=_float(row, "theta2"),
-                        pt=_float(row, "Pt"),
-                        label=int(float(row["type"])),
+                        theta1=_optional_float(row, "theta1", _optional_float(row, "Theta1", 0.0)),
+                        theta2=_optional_float(row, "theta2", _optional_float(row, "Theta2", 0.0)),
+                        pt=_optional_float(row, "Pt", _optional_float(row, "pt", 0.0)),
+                        label=int(float(label_raw)),
                         csv_path=csv_path,
+                        panel_a_in=_optional_float(row, "panel_a_in", 6.0),
+                        panel_b_in=_optional_float(row, "panel_b_in", 4.0),
+                        source_dataset=_row_value(row, "source_dataset", default="6x4"),
                     )
                 )
     return records

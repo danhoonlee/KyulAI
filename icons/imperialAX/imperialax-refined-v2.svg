@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <defs>
+    <linearGradient id="navy" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#061a44"/>
+      <stop offset="1" stop-color="#0d377f"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#16c8ee"/>
+      <stop offset=".52" stop-color="#146fff"/>
+      <stop offset="1" stop-color="#0644c9"/>
+    </linearGradient>
+    <style>
+      .ui { font-family: Inter, Avenir Next, Arial, sans-serif; fill: #7c8594; font-size: 19px; font-weight: 700; letter-spacing: 3px; }
+      .word { font-family: Avenir Next, Inter, Arial, sans-serif; font-size: 86px; font-weight: 500; letter-spacing: .5px; }
+      .tag { font-family: Inter, Avenir Next, Arial, sans-serif; fill: #0a1738; font-size: 20px; font-weight: 700; letter-spacing: 11px; }
+      .smallWord { font-family: Avenir Next, Inter, Arial, sans-serif; font-size: 50px; font-weight: 500; letter-spacing: 0; }
+      .smallTag { font-family: Inter, Avenir Next, Arial, sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 4px; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="1000" fill="#f8fafc"/>
+  <text x="60" y="62" class="ui">IMPERIALAX / CONSERVATIVE REFINEMENT V2</text>
+  <line x1="60" y1="88" x2="1540" y2="88" stroke="#cdd4de" stroke-width="2"/>
+
+  <!-- Shared original-inspired monogram. Deliberately keeps the wide IAX silhouette. -->
+  <symbol id="iax-mark" viewBox="0 0 662 176">
+    <rect x="0" y="0" width="43" height="176" rx="2" fill="url(#navy)"/>
+    <polygon points="94,176 208,0 256,0 143,176" fill="url(#navy)"/>
+    <polygon points="268,0 382,176 332,176 222,0" fill="url(#navy)"/>
+    <polygon points="450,0 500,0 588,82 555,112" fill="url(#navy)"/>
+    <polygon points="450,176 557,72 588,103 500,176" fill="url(#navy)"/>
+    <polygon points="612,0 662,0 590,70 542,70" fill="url(#blue)"/>
+    <polygon points="542,106 590,106 662,176 612,176" fill="url(#blue)"/>
+  </symbol>
+
+  <g transform="translate(464 150) scale(1.02)">
+    <use href="#iax-mark" width="662" height="176"/>
+  </g>
+  <text x="468" y="433" class="word" fill="#071639">Imperial<tspan fill="#126af2" font-weight="600">AX</tspan></text>
+  <text x="470" y="487" class="tag">AI · ENGINEERING · INTELLIGENCE</text>
+
+  <line x1="60" y1="585" x2="1540" y2="585" stroke="#cdd4de" stroke-width="2"/>
+
+  <text x="60" y="646" class="ui">WEB HEADER</text>
+  <g transform="translate(78 706) scale(.43)">
+    <use href="#iax-mark" width="662" height="176"/>
+  </g>
+  <line x1="390" y1="710" x2="390" y2="796" stroke="#9ba6b7" stroke-width="2"/>
+  <text x="430" y="765" class="smallWord" fill="#071639">Imperial<tspan fill="#126af2" font-weight="600">AX</tspan></text>
+  <text x="433" y="800" class="smallTag" fill="#0a1738">AI · ENGINEERING · INTELLIGENCE</text>
+
+  <text x="942" y="646" class="ui">FAVICON / SMALL SIZE</text>
+  <rect x="1005" y="694" width="170" height="170" rx="36" fill="#061832"/>
+  <g transform="translate(1030 755) scale(.18)">
+    <rect x="0" y="0" width="43" height="176" rx="2" fill="#ffffff"/>
+    <polygon points="94,176 208,0 256,0 143,176" fill="#ffffff"/>
+    <polygon points="268,0 382,176 332,176 222,0" fill="#ffffff"/>
+    <polygon points="450,0 500,0 588,82 555,112" fill="#ffffff"/>
+    <polygon points="450,176 557,72 588,103 500,176" fill="#ffffff"/>
+    <polygon points="612,0 662,0 590,70 542,70" fill="url(#blue)"/>
+    <polygon points="542,106 590,106 662,176 612,176" fill="url(#blue)"/>
+  </g>
+
+  <rect x="0" y="900" width="1600" height="100" fill="#061832"/>
+  <g transform="translate(90 927) scale(.25)">
+    <rect x="0" y="0" width="43" height="176" rx="2" fill="#ffffff"/>
+    <polygon points="94,176 208,0 256,0 143,176" fill="#ffffff"/>
+    <polygon points="268,0 382,176 332,176 222,0" fill="#ffffff"/>
+    <polygon points="450,0 500,0 588,82 555,112" fill="#ffffff"/>
+    <polygon points="450,176 557,72 588,103 500,176" fill="#ffffff"/>
+    <polygon points="612,0 662,0 590,70 542,70" fill="url(#blue)"/>
+    <polygon points="542,106 590,106 662,176 612,176" fill="url(#blue)"/>
+  </g>
+  <line x1="282" y1="924" x2="282" y2="976" stroke="#8c96a8" stroke-width="2"/>
+  <text x="315" y="962" class="smallWord" fill="#ffffff">Imperial<tspan fill="#2f7dff" font-weight="600">AX</tspan></text>
+  <text x="634" y="962" class="smallTag" fill="#dce8ff">AI · ENGINEERING · INTELLIGENCE</text>
+</svg>

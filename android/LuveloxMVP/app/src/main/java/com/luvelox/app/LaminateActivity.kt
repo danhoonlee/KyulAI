@@ -36,6 +36,7 @@ import kotlin.math.roundToInt
 private const val LAMINATE_BASE_URL = "https://laminate.luvelox.com"
 private const val DEFAULT_RESPONSE_MODEL = "response_surrogate_physics_v2"
 private const val DEEP_RESPONSE_MODEL = "response_goint_physics_nn_v2"
+private const val DISTILLED_RESPONSE_MODEL = "response_distilled_grid_conf_v1"
 private const val DEFAULT_U3_MODEL = "u3_forecast_physics_v2"
 private const val DEEP_U3_MODEL = "u3_forecast_goint_physics_v2"
 private const val LAMINATE_HISTORY_PREFS = "laminate_prediction_history"
@@ -240,8 +241,9 @@ class LaminateActivity : Activity() {
         val selected = listOfNotNull(
             listOf(DEFAULT_RESPONSE_MODEL, "response_surrogate_physics").firstNotNullOfOrNull { byKey[it] },
             listOf(DEEP_RESPONSE_MODEL, "response_goint_physics").firstNotNullOfOrNull { byKey[it] },
+            byKey[DISTILLED_RESPONSE_MODEL],
         )
-        return selected.ifEmpty { allModels.take(2) }
+        return selected.ifEmpty { allModels.take(3) }
     }
 
     private fun optimalU3Models(allModels: List<LaminateModelInfo>): List<LaminateModelInfo> {
@@ -356,9 +358,11 @@ class LaminateActivity : Activity() {
             card.addView(label("$label  ${value.percentText()}", LaminateV2.muted, 13f, Typeface.BOLD), margin(top = 6))
         }
         result.xai?.let { xai ->
-            card.addView(label("Why this prediction?", LaminateV2.ink, 18f, Typeface.BOLD), margin(top = 18))
-            card.addView(paragraph(xai.summary), margin(top = 6))
-            card.addView(label("Method: ${xai.method} · ${xai.featureSet}", LaminateV2.blue, 12f, Typeface.BOLD), margin(top = 8))
+            card.addView(label(localText("Why this prediction?", "왜 이런 예측이 나왔나요?"), LaminateV2.ink, 18f, Typeface.BOLD), margin(top = 18))
+            card.addView(paragraph(LaminateXaiText.text(this, xai.summary)), margin(top = 6))
+            val methodLabel = localText("Method", "방법")
+            val featureSetLabel = localText("Feature set", "특징 세트")
+            card.addView(label("$methodLabel: ${LaminateXaiText.text(this, xai.method)} · $featureSetLabel: ${LaminateXaiText.featureSet(this, xai.featureSet)}", LaminateV2.blue, 12f, Typeface.BOLD), margin(top = 8))
             xai.topFeatures.take(5).forEach { feature ->
                 card.addView(xaiFeatureRow(feature), margin(top = 6))
             }
@@ -372,7 +376,7 @@ class LaminateActivity : Activity() {
                     }
                 }
                 val toggle = Button(this).apply {
-                    text = "Show ${hiddenFeatures.size} more features"
+                    text = localText("Show ${hiddenFeatures.size} more features", "나머지 ${hiddenFeatures.size}개 feature 보기")
                     textSize = 13f
                     setTextColor(LaminateV2.blue)
                     useAppFont(Typeface.BOLD)
@@ -380,7 +384,11 @@ class LaminateActivity : Activity() {
                     setOnClickListener {
                         val shouldExpand = hiddenList.visibility != View.VISIBLE
                         hiddenList.visibility = if (shouldExpand) View.VISIBLE else View.GONE
-                        text = if (shouldExpand) "Hide extra features" else "Show ${hiddenFeatures.size} more features"
+                        text = if (shouldExpand) {
+                            localText("Hide extra features", "추가 feature 숨기기")
+                        } else {
+                            localText("Show ${hiddenFeatures.size} more features", "나머지 ${hiddenFeatures.size}개 feature 보기")
+                        }
                     }
                 }
                 card.addView(toggle, margin(top = 8))
@@ -992,10 +1000,10 @@ class LaminateActivity : Activity() {
         addView(LinearLayout(this@LaminateActivity).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            addView(label(feature.label, LaminateV2.ink, 12f, Typeface.BOLD).apply {
+            addView(label(LaminateXaiText.text(this@LaminateActivity, feature.label), LaminateV2.ink, 12f, Typeface.BOLD).apply {
                 maxLines = 1
             }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-            addView(label(feature.category, LaminateV2.blue, 10f, Typeface.BOLD).apply {
+            addView(label(LaminateXaiText.category(this@LaminateActivity, feature.category), LaminateV2.blue, 10f, Typeface.BOLD).apply {
                 setPadding(dp(6), dp(2), dp(6), dp(2))
                 background = blueSoftBackground()
             })
@@ -1021,8 +1029,11 @@ class LaminateActivity : Activity() {
                 gravity = Gravity.END
             }, LinearLayout.LayoutParams(dp(56), LinearLayout.LayoutParams.WRAP_CONTENT))
         }, margin(top = 4))
-        addView(label(feature.explanation, LaminateV2.muted, 11f, Typeface.NORMAL), margin(top = 3))
+        addView(label(LaminateXaiText.text(this@LaminateActivity, feature.explanation), LaminateV2.muted, 11f, Typeface.NORMAL), margin(top = 3))
     }
+
+    private fun localText(en: String, ko: String): String =
+        if (LaminateXaiText.isKoreanUi(this)) ko else en
 
     private fun card(): LinearLayout = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
@@ -1199,10 +1210,24 @@ data class LaminateResult(
     val curve: List<LaminateCurvePoint>,
     val xai: LaminateXai?,
     val curveFit: LaminateCurveFit?,
+    val uncertainty: LaminateUncertainty?,
 ) : Serializable {
     val displayModelLabel: String get() = modelLabel.cleanModelLabel()
     val predictedPtDisplacement: Double? get() = curve.displacementAtForce(predictedPt)
 }
+
+data class LaminateUncertainty(
+    val reliabilityScore: Double?,
+    val confidenceLabel: String,
+    val interpolationLabel: String,
+    val nearestDistance: Double?,
+    val nearestCount: Int,
+    val localPtStd: Double?,
+    val ptIntervalLow: Double?,
+    val ptIntervalHigh: Double?,
+    val typeConsistency: Double?,
+    val notes: List<String>,
+) : Serializable
 
 data class LaminateXai(
     val title: String,
@@ -1364,6 +1389,7 @@ private fun JSONObject.toLaminateResult(): LaminateResult {
         curve = optJSONArray("curve").toCurvePoints(),
         xai = optJSONObject("xai").toLaminateXai(),
         curveFit = optJSONObject("curve_fit").toLaminateCurveFit(),
+        uncertainty = optJSONObject("uncertainty").toLaminateUncertainty(),
     )
 }
 
@@ -1376,6 +1402,28 @@ private fun org.json.JSONArray?.toCurvePoints(): List<LaminateCurvePoint> {
 }
 
 private fun JSONObject.optionalDouble(key: String): Double? = if (has(key) && !isNull(key)) optDouble(key) else null
+
+private fun JSONObject?.toLaminateUncertainty(): LaminateUncertainty? {
+    if (this == null) return null
+    val notesArray = optJSONArray("notes")
+    val notes = if (notesArray == null) {
+        emptyList()
+    } else {
+        List(notesArray.length()) { index -> notesArray.optString(index) }
+    }
+    return LaminateUncertainty(
+        reliabilityScore = optionalDouble("reliability_score"),
+        confidenceLabel = optString("confidence_label", "low"),
+        interpolationLabel = optString("interpolation_label", "extrapolation"),
+        nearestDistance = optionalDouble("nearest_distance"),
+        nearestCount = optInt("nearest_count", 0),
+        localPtStd = optionalDouble("local_pt_std"),
+        ptIntervalLow = optionalDouble("pt_interval_low"),
+        ptIntervalHigh = optionalDouble("pt_interval_high"),
+        typeConsistency = optionalDouble("type_consistency"),
+        notes = notes,
+    )
+}
 
 private fun JSONObject?.toLaminateCurveFit(): LaminateCurveFit? {
     if (this == null) return null
@@ -1525,6 +1573,9 @@ private fun String.cleanModelLabel(): String {
         lower == "u3 forecast - gointmlp nn" || lower == "u3 forecast - deep learning" -> "u3 Forecast - Deep Learning"
         lower == "response_surrogate_physics" || lower == "response_surrogate_physics_v2" -> "Laminate Forecast - Machine Learning"
         lower == "response_goint_physics" || lower == "response_goint_physics_nn_v2" -> "Laminate Forecast - Deep Learning"
+        lower == "response_distilled_grid_conf_v1" || lower == "laminate forecast - distilled nn v3" -> "Laminate Forecast - Distilled NN v3"
+        lower == "response_distilled_grid_v1" || lower == "laminate forecast - distilled nn v2" -> "Laminate Forecast - Distilled NN v2"
+        lower == "response_distilled_v1" || lower == "laminate forecast - distilled nn" -> "Laminate Forecast - Distilled NN"
         lower.contains("machine learning") -> "Laminate Forecast - Machine Learning"
         lower.contains("deep learning") -> "Laminate Forecast - Deep Learning"
         lower.contains("tree + physics") || lower.contains("tree + compact physics") || lower.contains("physics xai") && lower.contains("tree") -> "Laminate Forecast - Machine Learning"

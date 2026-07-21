@@ -306,6 +306,8 @@ def build_extractive_answer(
             lines.extend(prediction_explanations)
         elif feature_explanations:
             lines.extend(feature_explanations)
+            if should_include_citation_takeaways(query, citations):
+                lines.extend(citation_takeaways(citations, korean=True))
         else:
             if is_injection_prediction(prediction_context):
                 lines.append(
@@ -313,7 +315,11 @@ def build_extractive_answer(
                     "예측을 먼저 실행하면 현재 Sprue Pressure, Filling Pressure, 그리고 XAI 상위 인자를 함께 설명할 수 있습니다."
                 )
             else:
-                lines.append("질문과 가장 가까운 DD Laminate/XAI 문서 근거를 찾았지만, 특정 feature 설명은 감지하지 못했습니다.")
+                if should_include_citation_takeaways(query, citations):
+                    takeaways = citation_takeaways(citations, korean=True)
+                    lines.extend(takeaways)
+                else:
+                    lines.append("질문과 가장 가까운 DD Laminate/XAI 문서 근거를 찾았지만, 특정 feature 설명은 감지하지 못했습니다.")
         return "\n\n".join(lines)
 
     lines = [
@@ -325,6 +331,8 @@ def build_extractive_answer(
         lines.extend(prediction_explanations)
     elif feature_explanations:
         lines.extend(feature_explanations)
+        if should_include_citation_takeaways(query, citations):
+            lines.extend(citation_takeaways(citations, korean=False))
     else:
         if is_injection_prediction(prediction_context):
             lines.append(
@@ -332,8 +340,47 @@ def build_extractive_answer(
                 "Run a prediction first to connect the answer to sprue pressure, filling pressure, and local XAI drivers."
             )
         else:
-            lines.append("I found related DD Laminate/XAI context, but did not detect a specific feature name in the question.")
+            if should_include_citation_takeaways(query, citations):
+                takeaways = citation_takeaways(citations, korean=False)
+                lines.extend(takeaways)
+            else:
+                lines.append("I found related DD Laminate/XAI context, but did not detect a specific feature name in the question.")
     return "\n\n".join(lines)
+
+
+def should_include_citation_takeaways(query: str, citations: list[RagCitation]) -> bool:
+    """Keep legacy fallback terse except for comparison-style knowledge questions."""
+    haystack = " ".join([query, *[citation.title for citation in citations], *[citation.excerpt for citation in citations]]).lower()
+    comparison_terms = ("tac", "case 4", "case4", "case 5", "case5", "case 6", "case6", "비교", "대안")
+    return any(term in haystack for term in comparison_terms)
+
+
+def citation_takeaways(citations: list[RagCitation], *, korean: bool, limit: int = 3) -> list[str]:
+    """Return compact source-grounded snippets for local fallback answers."""
+    takeaways: list[str] = []
+    seen: set[str] = set()
+    for citation in citations:
+        text = clean_local_excerpt(citation.excerpt)
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        if korean:
+            takeaways.append(f"근거 [{citation.index}] {citation.title}: {text}")
+        else:
+            takeaways.append(f"Source [{citation.index}] {citation.title}: {text}")
+        if len(takeaways) >= limit:
+            break
+    return takeaways
+
+
+def clean_local_excerpt(text: str, max_chars: int = 360) -> str:
+    clean = re.sub(r"\s+", " ", text).strip()
+    if not clean:
+        return ""
+    if len(clean) <= max_chars:
+        return clean
+    truncated = clean[:max_chars].rsplit(" ", 1)[0].strip()
+    return f"{truncated}..."
 
 
 def is_injection_prediction(prediction_context: dict[str, Any] | None) -> bool:

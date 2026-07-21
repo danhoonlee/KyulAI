@@ -57,7 +57,8 @@ data class ModelsResponse(
 object Defaults {
     const val RESPONSE_MODEL_KEY = "response_surrogate_physics_v2"
     const val RESPONSE_DEEP_MODEL_KEY = "response_goint_physics_nn_v2"
-    val RESPONSE_MODEL_KEYS = listOf(RESPONSE_MODEL_KEY, RESPONSE_DEEP_MODEL_KEY)
+    const val RESPONSE_DISTILLED_MODEL_KEY = "response_distilled_grid_conf_v1"
+    val RESPONSE_MODEL_KEYS = listOf(RESPONSE_MODEL_KEY, RESPONSE_DEEP_MODEL_KEY, RESPONSE_DISTILLED_MODEL_KEY)
     const val DEFAULT_BASE_URL = "https://laminate.luvelox.com"
 }
 
@@ -67,6 +68,9 @@ fun String.cleanModelLabel(): String {
     return when {
         lower == "response_surrogate_physics" || lower == "response_surrogate_physics_v2" -> "Laminate Forecast - Machine Learning"
         lower == "response_goint_physics" || lower == "response_goint_physics_nn_v2" -> "Laminate Forecast - Deep Learning"
+        lower == "response_distilled_grid_conf_v1" || lower == "laminate forecast - distilled nn v3" -> "Laminate Forecast - Distilled NN v3"
+        lower == "response_distilled_grid_v1" || lower == "laminate forecast - distilled nn v2" -> "Laminate Forecast - Distilled NN v2"
+        lower == "response_distilled_v1" || lower == "laminate forecast - distilled nn" -> "Laminate Forecast - Distilled NN"
         lower.contains("machine learning") -> "Laminate Forecast - Machine Learning"
         lower.contains("deep learning") -> "Laminate Forecast - Deep Learning"
         lower.contains("tree + physics") || lower.contains("tree + compact physics") || lower.contains("physics xai") && lower.contains("tree") -> "Laminate Forecast - Machine Learning"
@@ -96,6 +100,9 @@ fun String.cleanModelKeyLabel(): String {
         "response_goint" -> "GointMLP NN"
         "response_surrogate_physics", "response_surrogate_physics_v2" -> "Laminate Forecast - Machine Learning"
         "response_goint_physics", "response_goint_physics_nn_v2" -> "Laminate Forecast - Deep Learning"
+        "response_distilled_grid_conf_v1" -> "Laminate Forecast - Distilled NN v3"
+        "response_distilled_grid_v1" -> "Laminate Forecast - Distilled NN v2"
+        "response_distilled_v1" -> "Laminate Forecast - Distilled NN"
         "theta_classical" -> "RandomForest"
         "theta_goint" -> "GointMLP NN"
         "curve_classical" -> "ExtraTrees"

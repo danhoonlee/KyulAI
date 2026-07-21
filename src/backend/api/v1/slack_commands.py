@@ -206,8 +206,8 @@ def _status() -> str:
         f"Recent messages: `{len(recent_messages)}`",
         "",
         "Public apps:",
-        "Laminate: https://laminate.luvelox.com/",
-        "Injection: https://injection.luvelox.com/",
+        "Laminate: https://laminate.imperialax.com/",
+        "Injection: https://injection.imperialax.com/",
     ]
     if open_tasks:
         lines.extend(["", "Recent open tasks:"])

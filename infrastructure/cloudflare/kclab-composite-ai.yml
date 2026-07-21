@@ -2,7 +2,25 @@ tunnel: 02b4b689-84ef-4459-91cd-48c81ea549ae
 credentials-file: /Users/danlee/.cloudflared/02b4b689-84ef-4459-91cd-48c81ea549ae.json
 
 ingress:
+  - hostname: imperialax.com
+    service: http://127.0.0.1:8000
+  - hostname: www.imperialax.com
+    service: http://127.0.0.1:8000
+  - hostname: ai.imperialax.com
+    service: http://127.0.0.1:8000
+  - hostname: app.imperialax.com
+    service: http://127.0.0.1:8000
+  - hostname: laminate.imperialax.com
+    service: http://127.0.0.1:8000
+  - hostname: dd.imperialax.com
+    service: http://127.0.0.1:8000
+  - hostname: injection.imperialax.com
+    service: http://127.0.0.1:8010
   - hostname: ai.luvelox.com
+    service: http://127.0.0.1:8000
+  - hostname: luvelox.com
+    service: http://127.0.0.1:8000
+  - hostname: www.luvelox.com
     service: http://127.0.0.1:8000
   - hostname: laminate.luvelox.com
     service: http://127.0.0.1:8000
@@ -12,10 +30,14 @@ ingress:
     service: http://127.0.0.1:8000
   - hostname: www.cafedecafe.co.kr
     service: http://127.0.0.1:8000
+  - hostname: ds-wedding.cafedecafe.co.kr
+    service: http://127.0.0.1:8000
   - hostname: laminate.cafedecafe.co.kr
     service: http://127.0.0.1:8000
   - hostname: dd.cafedecafe.co.kr
     service: http://127.0.0.1:8000
   - hostname: injection.cafedecafe.co.kr
     service: http://127.0.0.1:8010
+  - hostname: nangman.cafedecafe.co.kr
+    service: http://127.0.0.1:8020
   - service: http_status:404

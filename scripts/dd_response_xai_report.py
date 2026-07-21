@@ -85,7 +85,14 @@ def generate_tree_xai(model_path: Path, data_dir: Path, output_dir: Path, delta_
 
     sensitivity_rows = []
     for record in _representative_records(records):
-        base = predict_response(model_path, record.theta1, record.theta2, record.case)
+        base = predict_response(
+            model_path,
+            record.theta1,
+            record.theta2,
+            record.case,
+            panel_a_in=float(getattr(record, "panel_a_in", 6.0)),
+            panel_b_in=float(getattr(record, "panel_b_in", 4.0)),
+        )
         for variable in ("theta1", "theta2"):
             minus_theta1, minus_theta2 = record.theta1, record.theta2
             plus_theta1, plus_theta2 = record.theta1, record.theta2
@@ -95,8 +102,22 @@ def generate_tree_xai(model_path: Path, data_dir: Path, output_dir: Path, delta_
             else:
                 minus_theta2 -= delta_deg
                 plus_theta2 += delta_deg
-            minus = predict_response(model_path, minus_theta1, minus_theta2, record.case)
-            plus = predict_response(model_path, plus_theta1, plus_theta2, record.case)
+            minus = predict_response(
+                model_path,
+                minus_theta1,
+                minus_theta2,
+                record.case,
+                panel_a_in=float(getattr(record, "panel_a_in", 6.0)),
+                panel_b_in=float(getattr(record, "panel_b_in", 4.0)),
+            )
+            plus = predict_response(
+                model_path,
+                plus_theta1,
+                plus_theta2,
+                record.case,
+                panel_a_in=float(getattr(record, "panel_a_in", 6.0)),
+                panel_b_in=float(getattr(record, "panel_b_in", 4.0)),
+            )
             sensitivity_rows.append(
                 {
                     "case": record.case,
@@ -217,7 +238,15 @@ def generate_goint_xai(model_path: Path, data_dir: Path, output_dir: Path, delta
 
     sensitivity_rows = []
     for record in _representative_records(records):
-        base = predict_response_deep(model_path, record.theta1, record.theta2, record.case, device="cpu")
+        base = predict_response_deep(
+            model_path,
+            record.theta1,
+            record.theta2,
+            record.case,
+            device="cpu",
+            panel_a_in=float(getattr(record, "panel_a_in", 6.0)),
+            panel_b_in=float(getattr(record, "panel_b_in", 4.0)),
+        )
         for variable in ("theta1", "theta2"):
             minus_theta1, minus_theta2 = record.theta1, record.theta2
             plus_theta1, plus_theta2 = record.theta1, record.theta2
@@ -227,8 +256,24 @@ def generate_goint_xai(model_path: Path, data_dir: Path, output_dir: Path, delta
             else:
                 minus_theta2 -= delta_deg
                 plus_theta2 += delta_deg
-            minus = predict_response_deep(model_path, minus_theta1, minus_theta2, record.case, device="cpu")
-            plus = predict_response_deep(model_path, plus_theta1, plus_theta2, record.case, device="cpu")
+            minus = predict_response_deep(
+                model_path,
+                minus_theta1,
+                minus_theta2,
+                record.case,
+                device="cpu",
+                panel_a_in=float(getattr(record, "panel_a_in", 6.0)),
+                panel_b_in=float(getattr(record, "panel_b_in", 4.0)),
+            )
+            plus = predict_response_deep(
+                model_path,
+                plus_theta1,
+                plus_theta2,
+                record.case,
+                device="cpu",
+                panel_a_in=float(getattr(record, "panel_a_in", 6.0)),
+                panel_b_in=float(getattr(record, "panel_b_in", 4.0)),
+            )
             sensitivity_rows.append(
                 {
                     "case": record.case,

@@ -13033,3 +13033,1573 @@ Follow-up in same debugging pass:
   - `node --check src/frontend/simple-injection/app-v2.js` passed.
   - `git diff --check` passed.
   - Android Gradle verification is still blocked by missing local Java Runtime.
+
+## 2026-06-29 - DD Laminate Prediction Reliability / Uncertainty First Pass
+- User asked to start the next research/model enhancement direction:
+  recommendation confidence/uncertainty, validation-loop support, and more
+  research-style Type-cause analysis.
+- Implemented the first step as a lightweight, no-retraining uncertainty layer
+  for DD Laminate Forecast and u3 Forecast.
+- Backend:
+  - Added `PredictionUncertainty` to
+    `src/backend/api/v1/dd_laminate.py`.
+  - `POST /api/v1/dd-laminate/predict/response` and
+    `POST /api/v1/dd-laminate/predict/u3-forecast` now return
+    `uncertainty`.
+  - The score combines model confidence, distance to nearby curated
+    simulations in the same Case/design scope, and local Type agreement.
+  - The Pt range is a screening band from nearby Pt scatter, not a formal
+    statistical confidence interval.
+- Web:
+  - Added a compact Prediction reliability panel to
+    `src/frontend/dd-laminate/index-v2.html` and Korean page.
+  - `src/frontend/dd-laminate/app-v2.js` renders Reliability, Pt screening
+    range, design-space coverage, Type agreement, and short notes.
+  - PNG/PDF report export now includes a Prediction Reliability section.
+- iOS:
+  - Added `PredictionUncertainty` Codable model and result-detail card in
+    `ios/DDLaminateMVP`.
+- Android:
+  - Added uncertainty parsing to the Luvelox Laminate API result model and a
+    compact result-detail section in `LaminateResultActivity`.
+- Verification:
+  - `.venv/bin/python` FastAPI TestClient checks returned uncertainty for
+    response and u3 forecast examples.
+  - `python3 -m py_compile src/backend/api/v1/dd_laminate.py` passed.
+  - `node --check src/frontend/dd-laminate/app-v2.js` passed.
+  - `swift test --package-path ios/DDLaminateMVP` passed 11 tests.
+  - Android Gradle compile could not run because this Mac does not have a Java
+    17 toolchain configured for the Luvelox Android project.
+
+## 2026-06-30 - DD Laminate Case5 / Explicit Ply-Sequence Preview
+- User asked whether new laminate stacking patterns can be applied from the
+  existing Case2/Case3/Case4 model family, then asked to start with Case5.
+- Decision:
+  - Do not inject Case5 directly into the trained forecast models yet because
+    saved model feature schemas are trained on Case2/Case3/Case4 one-hot
+    features and no Case5 simulation labels exist.
+  - Add a safe preview path that expands or accepts an explicit ply sequence
+    and computes CLT/ABD physics descriptors without changing model behavior.
+- Backend:
+  - Added explicit-stack physics utilities in
+    `src/ml/dd_laminate/laminate_physics.py`:
+    `abd_matrices_from_stack`, `stack_physics_summary`, and public
+    `case_stack`.
+  - Added `POST /api/v1/dd-laminate/stack/preview` in
+    `src/backend/api/v1/dd_laminate.py`.
+  - Built-in Case2/Case3/Case4 can be previewed from `theta1`, `theta2`, and
+    `case`.
+  - Case5/Custom requires `ply_sequence`, e.g. an already-expanded list of
+    ply angles. The endpoint returns `low / extrapolation` reliability notes
+    because Case5 has no direct training samples yet.
+- Verification:
+  - `python3 -m py_compile src/backend/api/v1/dd_laminate.py
+    src/ml/dd_laminate/laminate_physics.py` passed.
+  - FastAPI TestClient returned HTTP 200 for a sample explicit Case5
+    16-ply sequence and reported CLT physics values plus extrapolation notes.
+  - FastAPI TestClient returned HTTP 200 for built-in Case2 preview and
+    expanded to 16 plies.
+
+## 2026-06-30 - DD Laminate Stack Lab UI
+- User asked whether a new stacking expression could be entered in real time,
+  first in a separate tab, before integrating it into the Case2/Case3/Case4
+  forecast flow.
+- Implemented a web-first `Stack Lab` tab on the DD Laminate v2 page:
+  - Added English and Korean forms for `Case5` / `Custom`.
+  - Inputs: `theta1`, `theta2`, case selector, formula memo, and expanded
+    ply sequence textarea.
+  - The live ply-stack preview now reads the custom sequence immediately.
+  - Submit calls `POST /api/v1/dd-laminate/stack/preview` and renders ply
+    count, total thickness, reliability, design-space coverage,
+    expanded sequence chips, and key CLT physics descriptors.
+- Important boundary:
+  - This is not yet a trained Case5 predictor. It is a physics/design-space
+    preview for testing new formulas before generating simulation labels and
+    retraining the forecast models.
+- Verification:
+  - `node --check src/frontend/dd-laminate/app-v2.js` passed.
+  - Local backend curl to `/stack/preview` returned HTTP 200 for the sample
+    16-ply Case5 sequence.
+  - Public `https://laminate.luvelox.com/` serves
+    `app-v2.js?v=20260630-stack-lab`.
+  - Browser smoke test clicked `Stack Lab`, verified active mode and 16-ply
+    live preview, then ran `Preview Stack Physics`; result showed 16 plies,
+    0.12 in thickness, 49% reliability, extrapolation coverage, 10 physics
+    rows, and 16 sequence chips with no visible error.
+
+## 2026-07-02 - DD Stack Lab Formula Parser
+- User asked whether entering `theta1`, `theta2`, and a stacking formula can
+  automatically generate the ply sequence.
+- Implemented frontend formula parsing in the DD Laminate `Stack Lab` tab:
+  - Supports `±θ₁`, `±θ₂`, `∓θ₁`, `∓θ₂`.
+  - Supports grouping with `[]`, `()`, `{}`.
+  - Supports repeat counts written as subscript digits such as `₂`, normal
+    digits like `4`, `_4`, `^4`, or `x4`.
+  - If the formula can be parsed, the generated sequence textarea is updated
+    automatically as theta values or formula text changes.
+  - If the formula cannot be parsed, the manual sequence textarea remains the
+    fallback.
+- Updated English/Korean Stack Lab copy from "Formula memo" to actual
+  stack-formula / generated-sequence wording.
+- Verification:
+  - `node --check src/frontend/dd-laminate/app-v2.js` passed.
+  - Public `https://laminate.luvelox.com/` serves
+    `app-v2.js?v=20260702-formula-parser`.
+  - Browser smoke test:
+    - Default `[[±θ₁]/[±θ₂]/[∓θ₂]/[∓θ₁]]₂` generated 16 plies.
+    - With `θ1=45`, `θ2=-15`, sequence updated to
+      `45,-45,-15,15,15,-15,-45,45,...`.
+    - Preview API rendered 16 plies, 0.12 in thickness, 49% reliability,
+      and no visible error.
+    - Case2 formula `[[±θ₁]/[±θ₂]]₄` also generated a 16-ply sequence.
+
+## 2026-07-02 - DD Stack Lab Formula Toolbar
+- User wanted to know the Case5 equation on screen and needed a way to enter
+  theta symbols without typing special Greek/subscript characters manually.
+- Updated the web DD Laminate Stack Lab:
+  - Added an on-form Case5 formula guide:
+    `[[±θ₁]/[±θ₂]/[∓θ₂]/[∓θ₁]]₂`.
+  - Added formula token buttons for `±θ₁`, `±θ₂`, `∓θ₁`, `∓θ₂`,
+    `[`, `]`, `/`, `₂`, and `₄`.
+  - Clicking a token inserts it at the current formula cursor position and
+    dispatches the normal input event, so the generated ply sequence and
+    live stack preview update immediately.
+  - Korean page received the same Case5 guide and toolbar.
+- Verification:
+  - `node --check src/frontend/dd-laminate/app-v2.js` passed.
+  - Public page serves `app-v2.js?v=20260702-formula-toolbar`.
+  - Browser smoke test confirmed the toolbar has 9 buttons and Case5 guide is
+    visible.
+  - Browser clicked `[`, `±θ₁`, `/`, `±θ₂`, `]`, `₂`; formula became
+    `[±θ₁/±θ₂]₂`, sequence became
+    `30,-30,-60,60,30,-30,-60,60`, and live ply count became `8`.
+
+## 2026-07-03 - Injection Shape Preview First Frame
+- User noticed that the Injection Preview area briefly showed a different
+  shape before the intended Shape Preview appeared.
+- Root cause:
+  - `app-v2.js` rendered an immediate SVG fallback while the Three.js module
+    was still loading.
+  - After Three.js finished importing, the fallback SVG was cleared and the
+    actual parametric 3D preview was rendered.
+  - This was technically a loading fallback, but it could look like a wrong
+    geometry to viewers.
+- Update:
+  - During normal Three.js loading, the Preview area now stays in the loading
+    state instead of showing the fallback SVG first.
+  - The SVG fallback is still kept for the real failure path, if Three.js
+    cannot be loaded.
+  - Bumped the English/Korean Injection v2 script cache version to
+    `20260703-shape-preview-loading`.
+- Verification:
+  - `node --check src/frontend/simple-injection/app-v2.js` passed.
+
+## 2026-07-03 - C2ES App Latest Build
+- User asked to update the app to the latest version.
+- Android:
+  - Built the unified Android app from `android/LuveloxMVP`.
+  - Used JDK 17 explicitly because the default macOS Java runtime was not
+    registered.
+  - Copied the latest debug APK to:
+    - `artifacts/android/C2ES-debug-20260703-latest.apk`
+    - `artifacts/android/C2ES-debug-latest.apk`
+- iOS:
+  - `swift test` passed for `ios/LuveloxMVP`.
+  - Simulator build succeeded for
+    `ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj`, scheme
+    `LuveloxMVPHost`, with `CODE_SIGNING_ALLOWED=NO`.
+- Verification:
+  - Android `gradle assembleDebug` passed.
+  - iOS Swift package tests passed: 6 tests, 0 failures.
+  - iOS simulator host build passed.
+
+## 2026-07-03 - Imperialax Cloudflare Server Routing
+- User registered `imperialax.com` and asked to connect the current app/web
+  servers.
+- Updated DD/Luvelox host routing:
+  - `ai.imperialax.com` and `app.imperialax.com` serve the C2ES workspace
+    login from the DD/Luvelox server on port 8000.
+  - `laminate.imperialax.com` and `dd.imperialax.com` serve the Laminate
+    Forecast v2 page from port 8000.
+  - `injection.imperialax.com` is routed in the Cloudflare Tunnel config to
+    the Injection server on port 8010.
+- Updated Cloudflare Tunnel config files:
+  - `infrastructure/cloudflare/kclab-composite-ai.yml`
+  - `infrastructure/cloudflare/kclab-composite-ai.windows.example.yml`
+- Server state:
+  - Restarted DD/Laminate server on port 8000.
+  - Injection server on port 8010 was already running.
+  - Restarted `cloudflared` with the updated ingress config.
+- Verification:
+  - `python3 -m py_compile src/backend/dd_laminate_app.py` passed.
+  - Local `/ready` checks for ports 8000 and 8010 returned ready/ok models.
+  - Local Host-header checks served the expected pages:
+    - `ai.imperialax.com` / `app.imperialax.com`: C2ES Account Access.
+    - `laminate.imperialax.com` / `dd.imperialax.com`: C2ES Laminate Forecast.
+    - `injection.imperialax.com`: C2ES Injection Forecast v2.
+- DNS caveat:
+  - `imperialax.com` NS resolves to Cloudflare
+    (`weston.ns.cloudflare.com`, `tegan.ns.cloudflare.com`).
+  - The local `cloudflared tunnel route dns` authentication is currently tied
+    to the existing `luvelox.com` zone, so CLI-created records landed under
+    `*.imperialax.com.luvelox.com` instead of the `imperialax.com` zone.
+  - Add the intended `imperialax.com` CNAME records manually in the Cloudflare
+    dashboard, or re-run `cloudflared tunnel login` for the `imperialax.com`
+    zone before using CLI DNS provisioning.
+
+## 2026-07-03 - Luvelox Root Domain Restored
+- User asked to keep `luvelox.com` open and verify that it works.
+- Root cause:
+  - DD/Luvelox and Injection servers were running and ready.
+  - `laminate.luvelox.com` and `injection.luvelox.com` already returned HTTP 200.
+  - `luvelox.com` and `www.luvelox.com` returned Cloudflare Tunnel HTTP 404 because they were missing from the active tunnel ingress list.
+- Fix:
+  - Added `luvelox.com` and `www.luvelox.com` to the active Cloudflare Tunnel config, routed to port 8000.
+  - Mirrored the same entries into the Windows example tunnel config.
+  - Restarted `cloudflared` with `/Users/danlee/KyulAI_codex/infrastructure/cloudflare/kclab-composite-ai.yml`.
+- Verification:
+  - `https://luvelox.com`, `https://www.luvelox.com`, `https://laminate.luvelox.com`, and `https://injection.luvelox.com` all returned HTTP 200 after restart.
+
+## 2026-07-03 - Luvelox Root Redirect to AI Workspace
+- User asked to make `luvelox.com` connect to `ai.luvelox.com`.
+- Updated `/Users/danlee/KyulAI_codex/src/backend/dd_laminate_app.py`:
+  - Added `AI_REDIRECT_HOSTS = {"luvelox.com", "www.luvelox.com"}`.
+  - Root requests for those hosts now return HTTP 308 to `https://ai.luvelox.com/`.
+- Restarted the DD/Luvelox uvicorn server on port 8000.
+- Verification:
+  - `python3 -m py_compile src/backend/dd_laminate_app.py` passed.
+  - Local Host-header checks for `luvelox.com` and `www.luvelox.com` return `308 Location: https://ai.luvelox.com/`.
+  - Public checks:
+    - `https://luvelox.com` -> HTTP 308 to `https://ai.luvelox.com/`.
+    - `https://www.luvelox.com` -> HTTP 308 to `https://ai.luvelox.com/`.
+    - `https://ai.luvelox.com`, `https://laminate.luvelox.com`, and `https://injection.luvelox.com` return HTTP 200.
+
+## 2026-07-03 - Imperialax Public DNS Connected
+- User approved Cloudflare login for `imperialax.com`.
+- `cloudflared tunnel login` saved a new `/Users/danlee/.cloudflared/cert.pem` for the active Cloudflare zone. The previous certificate was already backed up before login.
+- Provisioned Cloudflare Tunnel DNS routes for:
+  - `imperialax.com`
+  - `www.imperialax.com`
+  - `ai.imperialax.com`
+  - `app.imperialax.com`
+  - `laminate.imperialax.com`
+  - `dd.imperialax.com`
+  - `injection.imperialax.com`
+- Updated tunnel ingress config files:
+  - `/Users/danlee/KyulAI_codex/infrastructure/cloudflare/kclab-composite-ai.yml`
+  - `/Users/danlee/KyulAI_codex/infrastructure/cloudflare/kclab-composite-ai.windows.example.yml`
+- Updated `/Users/danlee/KyulAI_codex/src/backend/dd_laminate_app.py`:
+  - `imperialax.com` and `www.imperialax.com` redirect to `https://ai.imperialax.com/`.
+  - Existing `luvelox.com` and `www.luvelox.com` redirects to `https://ai.luvelox.com/` remain intact.
+- Restarted DD/Luvelox server on port 8000 and Cloudflare Tunnel.
+- Verification:
+  - DD `/ready` returned all models ok.
+  - Injection `/ready` returned all models ok before the routing update.
+  - Cloudflare DNS via `1.1.1.1` resolves all Imperialax hosts to Cloudflare edge A/AAAA records.
+  - HTTPS checks through Cloudflare edge:
+    - `https://imperialax.com` -> HTTP 308 to `https://ai.imperialax.com/`.
+    - `https://www.imperialax.com` -> HTTP 308 to `https://ai.imperialax.com/`.
+    - `https://ai.imperialax.com` and `https://app.imperialax.com` -> HTTP 200, C2ES workspace.
+    - `https://laminate.imperialax.com` and `https://dd.imperialax.com` -> HTTP 200, Laminate Forecast.
+    - `https://injection.imperialax.com` -> HTTP 200, Injection Forecast.
+- Note:
+  - The Mac's default ISP DNS resolver lagged behind temporarily, but Cloudflare/Google public DNS and direct Cloudflare edge checks were already correct.
+
+## 2026-07-08 - Laminate XAI D11/D66 Feature Source
+- User asked how Laminate XAI features such as D11 and D66 are computed.
+- Answer basis:
+  - The values are not read directly from Abaqus result files.
+  - They are derived in `/Users/danlee/KyulAI_codex/src/ml/dd_laminate/laminate_physics.py` using Classical Laminate Theory.
+  - The app expands `case + theta1 + theta2` into a ply stack, computes transformed lamina stiffness `Qbar` for each ply using T800/3900S material constants from the PPT, integrates through thickness to form ABD matrices, then uses normalized ABD terms in the XAI feature pack. As of the later ABD normalization update on 2026-07-08, those terms use `A* = A / h`, `B* = 2B / h^2`, and `D* = 12D / h^3`.
+- Important wording:
+  - In the UI/assistant, describe these as CLT-derived bending/twisting stiffness descriptors, not directly measured Abaqus outputs.
+
+## 2026-07-08 - ABD Normalization Update and Full DD Retrain
+- User requested ABD matrix normalization to follow:
+  - `A* = A / h`
+  - `B* = 2B / h^2`
+  - `D* = 12D / h^3`
+- Updated `/Users/danlee/KyulAI_codex/src/ml/dd_laminate/laminate_physics.py` so all stack/physics feature builders now use the requested normalized ABD definitions.
+- Because B and D feature magnitudes changed, retrained the active DD Laminate Forecast and u3 Forecast models into new non-overwriting folders:
+  - Laminate Forecast ML: `/Users/danlee/KyulAI_codex/models/dd_laminate_response_physics_abd_v1`
+  - Laminate Forecast DL: `/Users/danlee/KyulAI_codex/models/dd_laminate_response_goint_physics_nn_abd_v1`
+  - u3 Forecast ML/DL: `/Users/danlee/KyulAI_codex/models/dd_laminate_u3_forecast_physics_abd_v1`
+- Generated matching XAI reports:
+  - `/Users/danlee/KyulAI_codex/reports/dd_response_xai_physics_abd_v1`
+  - `/Users/danlee/KyulAI_codex/reports/dd_response_xai_goint_physics_nn_abd_v1`
+  - `/Users/danlee/KyulAI_codex/reports/dd_u3_xai_physics_abd_v1`
+  - `/Users/danlee/KyulAI_codex/reports/dd_u3_xai_goint_physics_abd_v1`
+- Updated the DD API registry so the existing user-facing model keys now point to the ABD-normalized models:
+  - `response_surrogate_physics_v2`
+  - `response_goint_physics_nn_v2`
+  - `u3_forecast_physics_v2`
+  - `u3_forecast_goint_physics_v2`
+- Updated Windows bundle packaging list so the new model/report folders are included in future migration packages.
+- Training results:
+  - Laminate Forecast ML: Type accuracy `0.9422`, macro F1 `0.9372`, Pt MAE `438.11 kips`, curve normalized RMSE `0.00697`.
+  - Laminate Forecast DL: Type accuracy `0.9389`, macro F1 `0.9383`, Pt MAE `661.41 kips`, curve normalized RMSE `0.02131`.
+  - u3 Forecast ML: best scalar model `extra_trees`, Pt MAE `223.78 kips`, Type accuracy `0.9753`, curve normalized RMSE `0.00700`.
+  - u3 Forecast DL: Pt MAE `168.65 kips`, Pt R2 `0.9226`, curve normalized RMSE `0.01018`.
+- Verification:
+  - `py_compile` passed for changed/training/API scripts.
+  - Direct prediction smoke tests passed for Laminate ML/DL and u3 ML/DL model files.
+  - Restarted DD server on port 8000.
+  - `/ready` returned all active DD models as `ok`.
+  - HTTP smoke tests passed for Laminate response prediction, u3 forecast prediction, and local XAI.
+- Follow-up:
+  - User asked to use the newly trained ABD-normalized models instead of the previous active models.
+  - Verified local and public `/api/v1/dd-laminate/models` both expose the active keys with `*_abd_v1` model paths.
+  - Removed previous active model/report folders from the Windows bundle include list so migration packages favor the current ABD-normalized model set.
+  - Updated iOS DD Laminate test fixtures to expect `models/dd_laminate_u3_forecast_physics_abd_v1` for the active u3 ML/DL models.
+  - Searched app/backend/frontend/package references and confirmed no stale previous active paths remain for:
+    `dd_laminate_response_physics_xai_v2`, `dd_laminate_response_goint_physics_nn_v2`,
+    `dd_laminate_u3_forecast_physics_v3`, and their previous XAI report folders.
+  - Verification: backend/package `py_compile` passed, and `swift test --package-path ios/DDLaminateMVP` passed 11 tests.
+
+## 2026-07-09 - Laminate RAG TAC vs DD PPT Added
+- User added `/Users/danlee/KyulAI_codex/data/PPT/TAC vs DD.pptx` and asked to reflect it in Laminate RAG.
+- Read the PPT and extracted 6 slides:
+  - DD vs TAC stacking sequence comparison.
+  - TAC has more angle-pair freedom and can intentionally create nonzero `B16*`/`B26*`.
+  - DD Case 1 vs Case 2: same angle counts can have different `D*`; Case 1 is the more balanced DD baseline.
+  - TAC Case 3 vs Case 4: Case 4 is the better balanced 8-ply TAC representative; Case 3 is a high-`D11*` specialized case.
+  - TAC Case 5 vs Case 6: Case 6 is the better 6-ply TAC representative for weight-reduction/balance; Case 5 is specialized for maximum x-direction `D11*`.
+  - Overall recommendation: Case 1 DD remains safest baseline; Case 4 is best 8-ply TAC alternative; Case 6 is best 6-ply TAC alternative when weight saving is prioritized.
+- Added summary document:
+  - `/Users/danlee/KyulAI_codex/docs/DD_Laminate_TAC_vs_DD_PPT_Basis.md`
+- Rebuilt local RAG index:
+  - `/Users/danlee/KyulAI_codex/data/rag/knowledge_index.json`
+  - New count: 242 chunks, 62 sources.
+- Improved local extractive fallback so TAC/DD comparison questions can include compact source takeaways without disturbing generic fallback behavior.
+- Restarted DD/Laminate server on port 8000 so the RAG answer code update is live.
+- App impact:
+  - Web, iOS, and Android Laminate Assistant all call the server `/api/v1/rag/answer` endpoint, so the new TAC vs DD knowledge is available to apps through the shared backend without a new app build.
+  - Android currently calls the Laminate RAG endpoint through `https://laminate.luvelox.com`; this is still live and backed by the same updated server/index.
+- Verification:
+  - `scripts/rag_query_index.py "TAC와 DD 차이 B16 B26 Case4 Case6"` returns `TAC vs DD.pptx` as top hits.
+  - `scripts/rag_answer.py "TAC와 DD를 비교할 때 D11만 보면 안 되는 이유는?" --top-k 6 --language ko` returns a Korean answer grounded in `TAC vs DD.pptx` and the new basis doc.
+  - Local `/api/v1/rag/answer` with `use_llm=false` returns citations from `DD Laminate TAC vs DD PPT Basis` and `TAC vs DD`.
+  - `pytest tests/unit/test_rag_answer.py tests/unit/test_rag_knowledge_index.py tests/backend/test_rag_api.py -q` passed: 21 tests.
+
+## 2026-07-09 - iOS LuveloxMVPHost Xcode Priors Cache Fix
+- User reported `SwiftDriver.ModuleDependencyGraph.ReadError error 14` while Xcode tried to read `KyulAIDDLaminateCore-primary.priors` under `DerivedData`.
+- Treated this as stale/corrupt Xcode incremental build cache rather than a source-code error.
+- Removed only the Luvelox host build caches:
+  - `/Users/danlee/Library/Developer/Xcode/DerivedData/LuveloxMVPHost-*`
+  - `/Users/danlee/KyulAI_codex/ios/LuveloxMVPApp/.derived-data`
+- Re-resolved Swift package dependencies for:
+  - `/Users/danlee/KyulAI_codex/ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj`
+  - Scheme: `LuveloxMVPHost`
+- Verification:
+  - `xcodebuild -resolvePackageDependencies -project /Users/danlee/KyulAI_codex/ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj -scheme LuveloxMVPHost` succeeded.
+  - Simulator build with `CODE_SIGNING_ALLOWED=NO` succeeded.
+- Recommendation:
+  - Reopen Xcode if it was already open, run Clean Build Folder once, then build/run again on the device.
+  - If a new device build failure appears after this cache reset, the next likely area is signing/provisioning rather than the `.priors` cache.
+
+## 2026-07-09 - App Laminate XAI Korean Translation Fix
+- User reported that the Laminate app section titled "Why this prediction?" still showed English content on the Korean page.
+- Added Android shared XAI localization helper:
+  - `/Users/danlee/KyulAI_codex/android/LuveloxMVP/app/src/main/java/com/luvelox/app/LaminateXaiText.kt`
+- Updated Android Laminate input/recent-result and result-detail XAI cards to localize:
+  - Section title: "왜 이런 예측이 나왔나요?"
+  - XAI summary text
+  - Method / Feature set labels
+  - Feature names, categories, explanations
+  - "Show more / hide extra features" toggle text
+- Updated iOS Laminate result XAI translation map to include newer normalized-CLT summary variants for Laminate Forecast and u3 Forecast.
+- Verification:
+  - Android `gradle -p android/LuveloxMVP :app:compileDebugKotlin` succeeded using local JetBrains JBR as `JAVA_HOME`.
+  - iOS `swift test --package-path ios/DDLaminateMVP` passed 11 tests.
+
+## 2026-07-10 - C2ES Product Page Copy Draft for Laminate Forecast
+- User wants to add the jointly built Laminate product to `c2eskorea.com > 제품소개`.
+- Checked the public C2ES product page/search snippets and existing product tone: CAE/engineering software descriptions are organized around problem, functions, application fields, and expected value.
+- Created a product-page draft document:
+  - `/Users/danlee/KyulAI_codex/docs/C2ES_Laminate_Product_Page_Draft.md`
+- Draft includes:
+  - Product name candidates and recommended title.
+  - Full Korean HTML-style product description for `C2ES Laminate Forecast`.
+  - Short product-card copy and one-line intro.
+  - Supported Case formulas.
+  - Core functions: Type prediction, Pt prediction, response curve, u3 Forecast, Physics XAI, Design-space Insight, AI Assistant/RAG.
+  - Application areas and expected benefits.
+  - Technical composition and validation caution language.
+  - 60-second video storyboard, required visual materials, and narration script.
+
+## 2026-07-10 - Laminate Product Page Screenshots
+- User asked whether Codex could capture screenshots/photos for the product page.
+- Generated Korean Laminate Forecast web screenshots from `https://laminate.imperialax.com/index-v2.ko.html` into:
+  - `/Users/danlee/KyulAI_codex/docs/product-assets/screenshots/`
+- Captures:
+  - `laminate-01-overview.png`
+  - `laminate-02-input-panel.png`
+  - `laminate-03-result-top.png`
+  - `laminate-04-response-curve.png`
+  - `laminate-05-xai.png`
+  - `laminate-06-design-space.png`
+  - `laminate-07-u3-result.png`
+  - `laminate-08-u3-curve.png`
+- During capture QA, noticed the Korean web XAI summary still had an English fallback for the new ABD-normalized Laminate Forecast summary.
+- Patched `src/frontend/dd-laminate/app-v2.js` in both active workspace roots to localize:
+  - `This explanation uses the Laminate Forecast Machine Learning model... with ABD terms normalized as A/h, 2B/h², and 12D/h³.`
+- Re-captured the XAI screenshot after confirming the summary appears in Korean.
+- Updated `/Users/danlee/KyulAI_codex/docs/C2ES_Laminate_Product_Page_Draft.md` with the screenshot list.
+
+## 2026-07-10 - C2ES Laminate Product Page Zip Package
+- User asked to package only the needed files for uploading from another PC.
+- Created upload package folder:
+  - `/Users/danlee/KyulAI_codex/dist/c2es-laminate-product-page-20260710/`
+- Included only:
+  - `C2ES_Laminate_Product_Page_Draft.md`
+  - `README.md`
+  - 8 screenshot PNGs under `images/`
+- Created zip:
+  - `/Users/danlee/KyulAI_codex/dist/c2es-laminate-product-page-20260710.zip`
+- Zip size: about 1.8 MB.
+
+## 2026-07-10 - AniForm-Style Laminate Product HTML
+- User provided the current AniForm product page source code and asked to remake the Laminate product copy in the same style.
+- Read the AniForm source:
+  - `m3d` wrapper and 1100px layout.
+  - Red-dot list style.
+  - `details/summary` accordion sections.
+  - 3-column feature cards with 16:9 images.
+- Created AniForm-style Laminate HTML:
+  - `/Users/danlee/KyulAI_codex/docs/C2ES_Laminate_Product_Page_AniFormStyle.html`
+- Structure:
+  - Intro / positioning.
+  - AI-based laminate screening.
+  - Response curve and transition load prediction.
+  - Physics XAI.
+  - Design-space insight and recommendation.
+  - u3 Forecast.
+  - AI Assistant and knowledge base.
+- Uses the screenshot package image paths as `images/laminate-*.png`.
+- Updated the upload package and regenerated:
+  - `/Users/danlee/KyulAI_codex/dist/c2es-laminate-product-page-20260710.zip`
+- Updated package README to explain the new `C2ES_Laminate_Product_Page_AniFormStyle.html` file.
+
+## 2026-07-10 - AniForm-Style Product HTML With Explicit Image Placement
+- User clarified that the source code should include the screenshots already placed at appropriate locations, not only separate image assets.
+- Created final recommended HTML:
+  - `/Users/danlee/KyulAI_codex/docs/C2ES_Laminate_Product_Page_AniFormStyle_FINAL.html`
+- Changes:
+  - Added a top representative hero image using `images/laminate-01-overview.png`.
+  - Kept function-specific card images for input, result, curve, XAI, design-space, and u3 sections.
+  - Added captions and CSS for the hero image block.
+  - Image placement now includes 9 `<img>` tags: one hero plus eight feature/card placements.
+- Copied the final HTML into the upload package and regenerated:
+  - `/Users/danlee/KyulAI_codex/dist/c2es-laminate-product-page-20260710.zip`
+- Updated package README to recommend using `C2ES_Laminate_Product_Page_AniFormStyle_FINAL.html` first.
+
+## 2026-07-10 - Copy/Paste Source Text for C2ES Product Admin
+- User clarified they want a source text file to paste into the product admin source editor, not just an `.html` artifact.
+- Created:
+  - `/Users/danlee/KyulAI_codex/docs/C2ES_Laminate_Product_Page_Source_For_Upload.txt`
+- Content is identical to the final image-placed AniForm-style source.
+- Copied it into the upload package and regenerated:
+  - `/Users/danlee/KyulAI_codex/dist/c2es-laminate-product-page-20260710.zip`
+- Updated README to instruct using `C2ES_Laminate_Product_Page_Source_For_Upload.txt` for copy/paste.
+
+## 2026-07-10 - C2ES Laminate Representative Image
+- User asked to create a representative image for the Laminate product page.
+- Generated screenshot-based 16:9 representative assets:
+  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/c2es-laminate-forecast-representative-1200x675.png`
+  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/c2es-laminate-forecast-representative-1200x675.jpg`
+  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/c2es-laminate-forecast-representative-1600x900.png`
+  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/c2es-laminate-forecast-representative-1600x900.jpg`
+- Design uses C2ES palette, Laminate Forecast title, Korean summary, feature pills, and real web UI screenshots.
+- Added the assets to the upload package under:
+  - `/Users/danlee/KyulAI_codex/dist/c2es-laminate-product-page-20260710/representative/`
+- Updated package README with representative image recommendations.
+- Regenerated:
+  - `/Users/danlee/KyulAI_codex/dist/c2es-laminate-product-page-20260710.zip`
+
+## 2026-07-10 - C2ES Product-Page-Fit Laminate Assets and Modern Source
+- User clarified the C2ES product page needs a square product photo matching the product list/detail style, not only a 16:9 representative banner.
+- Checked the live C2ES product list/detail pages:
+  - Product list uses 350x350 thumbnail-style product images.
+  - Current Laminate page source had `object-fit: cover`, causing UI screenshots to be cropped inside cards.
+- Generated square product-photo assets:
+  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/c2es-laminate-product-thumb-350x350.png`
+  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/c2es-laminate-product-thumb-350x350.jpg`
+  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/c2es-laminate-product-thumb-700x700.png`
+  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/c2es-laminate-product-thumb-700x700.jpg`
+  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/c2es-laminate-product-thumb-1000x1000.png`
+  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/c2es-laminate-product-thumb-1000x1000.jpg`
+- Created a new Laminate-specific product detail source that does not inherit the AniForm card-crop structure:
+  - `/Users/danlee/KyulAI_codex/docs/C2ES_Laminate_Product_Page_Source_Modern.txt`
+  - `/Users/danlee/KyulAI_codex/docs/C2ES_Laminate_Product_Page_Modern.html`
+- Modern source uses:
+  - Screenshot-first sections.
+  - `object-fit: contain`.
+  - Wide feature rows instead of cropped image cards.
+  - Case formulas, response curve, Physics XAI, Design-space, u3 Forecast, and AI Assistant sections.
+- Copied modern source and square representative images into:
+  - `/Users/danlee/KyulAI_codex/dist/c2es-laminate-product-page-20260710/`
+- Updated README to recommend:
+  - `C2ES_Laminate_Product_Page_Source_Modern.txt` for product detail source.
+  - `representative/c2es-laminate-product-thumb-700x700.png` for product main/list image.
+- Regenerated:
+  - `/Users/danlee/KyulAI_codex/dist/c2es-laminate-product-page-20260710.zip`
+- Follow-up: User asked to make the square product image name appear on one line as `Laminate | Forecast AI`.
+- Regenerated the 350x350, 700x700, and 1000x1000 square product thumbnail PNG/JPG files.
+- Re-copied updated thumbnails into the upload package and regenerated the same zip.
+- Follow-up: User asked to remove the `|`, remove the non-white/background area, and make the product-name font bolder.
+- Updated square product thumbnails to use one-line `Laminate Forecast AI`, a heavier font, and transparent PNG background outside the white product card.
+- Added explicit transparent files:
+  - `c2es-laminate-product-thumb-transparent-350x350.png`
+  - `c2es-laminate-product-thumb-transparent-700x700.png`
+  - `c2es-laminate-product-thumb-transparent-1000x1000.png`
+- Verified alpha channel on the 700x700 transparent PNG; corner pixels are fully transparent.
+- Updated README to recommend `representative/c2es-laminate-product-thumb-transparent-700x700.png`.
+- Regenerated the upload zip.
+- Follow-up: User asked for the Design-space insight result image to be scrollable and for the product detail source fonts to be smaller.
+- Updated `/Users/danlee/KyulAI_codex/docs/C2ES_Laminate_Product_Page_Source_Modern.txt`:
+  - Reduced hero/title/body/card/list/table font sizes.
+  - Added `.screenBox.scroll` with vertical scrolling.
+  - Applied `class="screenBox tall scroll"` to the Design-space map figure.
+- Synced the modern `.html` preview and upload package files, then regenerated the zip.
+- Follow-up: User asked to show that SETUP reflects the input angles in the ply stack preview, and to simplify the Prediction Result section so it shows mainly the result image.
+- Created a focused setup crop:
+  - `/Users/danlee/KyulAI_codex/docs/product-assets/screenshots/laminate-09-setup-ply-stack.png`
+  - Shows the forecast setup controls next to the live `각도 반영 ply stack` preview.
+- Updated modern source:
+  - SETUP section now uses `laminate-09-setup-ply-stack.png`.
+  - SETUP copy now explicitly mentions real-time ply stack preview from θ input.
+  - Prediction Result section now uses a result-only layout and makes the long result screenshot scrollable.
+- Copied the new image into the upload package `images/` folder, updated README from 8 to 9 screenshots, and regenerated the zip.
+- Follow-up: User said the FORECAST SETUP image was still too small/cropped.
+- Regenerated `laminate-09-setup-ply-stack.png` at 1280x860 using the complete input panel and a larger ply stack preview crop.
+- Updated the SETUP article to use the full-width `feature resultOnly` layout instead of the two-column layout.
+- Added `.screenBox.setupFull img { max-height: none; }` so the setup image is not height-limited.
+- Synced the source, preview HTML, package image, and regenerated the zip.
+- Follow-up: User reported the `∓` character was not rendering on the homepage.
+- Replaced `∓θ` in the supported-case formulas with `opposite ±θ` text for better CMS/font compatibility.
+- Synced source/preview/package files and regenerated the zip.
+
+## 2026-07-10 - C2ES Laminate product page formula entity fix
+- User clarified that the `∓` symbol must appear in the supported-case formulas, even though the homepage/CMS may not read the literal character correctly.
+- Updated the modern product-page upload source to use HTML numeric entity `&#8723;` instead of literal `∓` or the temporary `opposite ±θ` text.
+- Current supported-case formulas in upload source:
+  - Case 3: `[[±θ₁]/[±θ₂]/[&#8723;θ₂]/[&#8723;θ₂]]₂`
+  - Case 4: `[([±θ₁]/[±θ₂])₂ / ([&#8723;θ₁]/[&#8723;θ₂])₂]`
+- Added math/symbol-capable font fallbacks to `.formula`: `Cambria Math`, `STIX Two Math`, `DejaVu Sans`, `Segoe UI Symbol`, `Apple Symbols`.
+- Synced `docs/C2ES_Laminate_Product_Page_Source_Modern.txt` to the preview HTML and the package copy.
+- Regenerated `/Users/danlee/KyulAI_codex/dist/c2es-laminate-product-page-20260710.zip`.
+
+## 2026-07-10 - C2ES Laminate product page site link
+- User asked whether the product page includes the demo/site URL at the bottom.
+- Added a bottom CTA site link to the modern upload source:
+  - `https://laminate.luvelox.com/`
+- Added `.siteLink` styling so the URL appears as a clear white pill button inside the final CTA block, with mobile-safe line breaking.
+- Synced the modern source to preview/package HTML and regenerated `/Users/danlee/KyulAI_codex/dist/c2es-laminate-product-page-20260710.zip`.
+
+## 2026-07-10 - C2ES Laminate product page accordion and spacing update
+- User requested the modern product-page source to adopt the collapsible `details/summary` style seen in `C2ES_Laminate_Product_Page_AniFormStyle_FINAL.html`.
+- Reworked the modern upload source into six collapsible accordion sections:
+  - AI-based laminate screening / Why it matters
+  - Workflow
+  - Forecast setup and prediction result
+  - Response curve and Pt prediction
+  - Physics XAI and Design-space insight
+  - u3 Forecast and AI Assistant
+- Kept the content dense rather than reducing it; existing screenshots and explanatory copy remain included.
+- Moved `Double-Double 적층 패턴` into the first accordion section below the three summary cards.
+- Added `.casePanel` styling and `margin-top: 30px` to create clear spacing between the three summary cards and the supported-case formula block.
+- Continued using `&#8723;` HTML entity for the required `∓` symbol in Case 3 and Case 4 formulas.
+- Synced the modern source to preview/package HTML and regenerated `/Users/danlee/KyulAI_codex/dist/c2es-laminate-product-page-20260710.zip`.
+
+## 2026-07-15 - Laminate greenfield Codex rebuild package
+- User asked for a package so his brother can rebuild only the Laminate portion from scratch on another PC using Codex.
+- Created data-only/source-free rebuild package at:
+  `/Users/danlee/KyulAI_codex/dist/laminate_greenfield_codex_20260715`
+- Created zip:
+  `/Users/danlee/KyulAI_codex/dist/laminate_greenfield_codex_20260715.zip`
+- Zip size verified: about 460 MB. Unzipped package size: about 594 MB.
+- Intentionally excluded existing app/server/trained-model code so a new Codex session can implement from scratch.
+- Included data:
+  - `data/datasets/Double-Double` raw source data, excluding redundant `p1.zip`, `u3.zip`, `.DS_Store`, and `desktop.ini`.
+  - `data/datasets/DD_cases_2_3_4_curated_v1` 900-record curated Case2/3/4 Laminate Forecast dataset.
+  - `data/datasets/DD_u3_pt_v2` 566-record u3 forecast dataset.
+  - `data/PPT/Final ver2.pptx` and `data/PPT/TAC vs DD.pptx`.
+- Included references:
+  - `CS_DDpaper.pdf`
+  - `DD_Laminate_PPT_Basis.md`
+  - `DD_Laminate_TAC_vs_DD_PPT_Basis.md`
+  - `DD_Laminate_AI_Current_Summary.md`
+  - `dd_double_double_data_audit_2026-05-29.md`
+  - `dd_laminate_greenfield_flow.md`
+  - `DD_Laminate_Research_Context.md`
+  - GointMLP reference source under `references/gointmlp/GointMLP-master`.
+  - UI screenshots under `references/product-assets/screenshots`.
+- Added new package docs:
+  - `00_START_HERE.md`
+  - `docs/01_RESEARCH_CONTEXT.md`
+  - `docs/02_DATA_MANIFEST.md`
+  - `docs/03_IMPLEMENTATION_SPEC.md`
+  - `docs/04_MODELING_AND_XAI_SPEC.md`
+  - `docs/05_CODEX_BOOTSTRAP_PROMPT.md`
+  - `docs/06_ACCEPTANCE_TESTS.md`
+  - `docs/07_NEW_PC_SETUP.md`
+  - `docs/README_FOR_DATA_ONLY_REBUILD.md`
+  - `PACKAGE_CONTENTS.txt`
+- Verified zip contains key files:
+  - `00_START_HERE.md`
+  - `docs/05_CODEX_BOOTSTRAP_PROMPT.md`
+  - `data/datasets/DD_cases_2_3_4_curated_v1/label_manifest.csv`
+  - `data/datasets/DD_u3_pt_v2/manifest.csv`
+
+## 2026-07-15 - Added Cloudflare/server deployment guide to Laminate greenfield package
+- User asked whether Cloudflare/server setup instructions are included in the Laminate greenfield Codex rebuild package.
+- They were not included initially because the package was intentionally data/spec focused and excluded deployment settings.
+- Added `/Users/danlee/KyulAI_codex/dist/laminate_greenfield_codex_20260715/docs/08_DEPLOYMENT_CLOUDFLARE_SERVER.md`.
+- The deployment guide covers:
+  - local FastAPI/frontend server layout,
+  - single-port vs split frontend/backend deployment,
+  - Cloudflare Tunnel purpose,
+  - dashboard token-based tunnel setup,
+  - locally-managed named tunnel setup,
+  - Windows `cloudflared` service registration,
+  - Windows Task Scheduler/NSSM direction for keeping FastAPI alive,
+  - `.env` example,
+  - `/health` and `/ready`,
+  - troubleshooting 502/1033/origin-down scenarios,
+  - prompt for future Codex to create deployment scripts.
+- Updated package `00_START_HERE.md` and `docs/05_CODEX_BOOTSTRAP_PROMPT.md` to reference the new deployment guide.
+- Regenerated `/Users/danlee/KyulAI_codex/dist/laminate_greenfield_codex_20260715.zip` and verified the new MD is included.
+
+## 2026-07-15 - Added Windows EXE packaging guide to Laminate greenfield package
+- User asked whether Laminate Forecast can be made as a Windows `.exe` like most CAE software.
+- Answer: yes, recommended route is desktop wrapper + bundled backend/model, not just a web URL shortcut.
+- Added `/Users/danlee/KyulAI_codex/dist/laminate_greenfield_codex_20260715/docs/09_WINDOWS_EXE_PACKAGING.md`.
+- The EXE guide covers:
+  - Tauri/Electron desktop wrapper + Python/FastAPI backend option,
+  - PyInstaller-only local server launcher option,
+  - cloud server + EXE URL launcher option,
+  - recommended build sequence,
+  - backend PyInstaller example,
+  - frontend build strategy,
+  - model/data inclusion strategy,
+  - offline vs server inference tradeoffs,
+  - first target as portable folder before installer,
+  - prompt for future Codex to create EXE packaging scripts.
+- Updated package `00_START_HERE.md` and `docs/05_CODEX_BOOTSTRAP_PROMPT.md` to reference `09_WINDOWS_EXE_PACKAGING.md`.
+- Regenerated `/Users/danlee/KyulAI_codex/dist/laminate_greenfield_codex_20260715.zip` and verified the new MD is included.
+
+## 2026-07-15 - Prepared Windows EXE packaging scripts on Mac
+- User asked to prepare `.exe` packaging code/scripts on the Mac before moving to Windows.
+- Added Windows build kit under:
+  `/Users/danlee/KyulAI_codex/dist/laminate_greenfield_codex_20260715/packaging/windows`
+- Added files:
+  - `README_WINDOWS_EXE_BUILD.md`
+  - `Build-WindowsExe.ps1`
+  - `Build-BackendExe.ps1`
+  - `Build-Frontend.ps1`
+  - `Make-PortableBundle.ps1`
+  - `Check-PortableBundle.ps1`
+  - `templates/laminate_backend_launcher.py`
+  - `templates/laminate_desktop_launcher.py`
+  - `templates/laminate_backend.spec.template`
+- Build kit target: first portable Windows folder, not installer:
+  `dist/windows/LaminateForecast-win-x64-portable/`
+  with `LaminateForecast.exe`, `backend/laminate_backend.exe`, frontend assets, models, and `README_RUN.md`.
+- Updated:
+  - `00_START_HERE.md`
+  - `docs/05_CODEX_BOOTSTRAP_PROMPT.md`
+  - `docs/09_WINDOWS_EXE_PACKAGING.md`
+  to reference `packaging/windows` scripts.
+- Verified Python launcher templates with `python3 -m py_compile`.
+- `pwsh` is not installed on this Mac, so PowerShell scripts were not executed locally; final validation must happen on Windows.
+- Regenerated `/Users/danlee/KyulAI_codex/dist/laminate_greenfield_codex_20260715.zip` and verified packaging files are included.
+
+## 2026-07-15 - Added license login gate for existing Laminate EXE packaging
+- User clarified the previous greenfield package was for brother's Codex to rebuild from scratch; this pass targets the already-built Laminate app.
+- Implemented a Laminate license/login gate using the existing Luvelox auth system instead of inventing a separate license database.
+- Added frontend gate:
+  - `/Users/danlee/KyulAI_codex/src/frontend/dd-laminate/auth-gate.js`
+  - Included from `index-v2.html` and `index-v2.ko.html` before `app-v2.js`.
+  - Requires a real logged-in user with `module.laminate`; tokenless default-enabled catalog access no longer passes the gate.
+  - Wraps `fetch` so Laminate/RAG/Optimization API calls receive the saved bearer token.
+  - Adds a password visibility toggle and bilingual Korean/English copy.
+- Added CSS for the license overlay in `styles-v2.css`.
+- Added backend enforcement switch in `src/backend/dd_laminate_app.py`:
+  - `LAMINATE_REQUIRE_AUTH=1` makes `/api/v1/dd-laminate/*` require a bearer token with `module.laminate`.
+  - Path roots can now be supplied via `KYULAI_PROJECT_ROOT`, `LAMINATE_FRONTEND_DIR`, `LUVELOX_FRONTEND_DIR`, `WEDDING_FRONTEND_DIR`, and `WEDDING_DATA_DIR` for packaged execution.
+- Added demo-login kill switch in `src/backend/api/v1/modules.py`:
+  - `LUVELOX_DISABLE_DEMO_LOGIN=1` disables `/api/v1/modules/auth/demo-login`.
+- Added existing-app Windows EXE packaging kit:
+  - `scripts/windows/exe/Build-LaminateExe.ps1`
+  - `scripts/windows/exe/Create-LaminateUser.ps1`
+  - `scripts/windows/exe/laminate_backend_launcher.py`
+  - `scripts/windows/exe/laminate_desktop_launcher.py`
+  - `scripts/windows/exe/README_LAMINATE_EXISTING_EXE.md`
+- Added package note:
+  - `/Users/danlee/KyulAI_codex/docs/LAMINATE_EXISTING_EXE_PACKAGE.md`
+- Intended Windows build behavior:
+  - create licensed users with `Create-LaminateUser.ps1`, granting only `module.laminate`;
+  - run `Build-LaminateExe.ps1` on Windows;
+  - output portable bundle at `dist/windows/LaminateForecast-existing-win-x64-portable`;
+  - `LaminateForecast.exe` starts the local backend with auth required and demo login disabled.
+- Mac-side validation still needed: py_compile/import checks; PowerShell/PyInstaller build must be validated on Windows.
+- Follow-up refinement in the same pass:
+  - `auth-gate.js` now activates the login overlay only when the backend actually requires auth, detected by probing `/api/v1/dd-laminate/models` without a token and receiving 401/403.
+  - This avoids accidentally locking the public web deployment unless the server is started with `LAMINATE_REQUIRE_AUTH=1`.
+  - Expired/invalid local sessions are cleared and only block the UI in auth-required mode.
+- Verification:
+  - `python3 -m py_compile` passed for backend/app launcher files.
+  - `node --check src/frontend/dd-laminate/auth-gate.js` passed.
+  - FastAPI TestClient with `LAMINATE_REQUIRE_AUTH=1` verified: no token -> 401, password login -> 200, bearer token -> 200 for Laminate models, demo login -> 403.
+
+## 2026-07-15 - Created existing Laminate EXE build kit ZIP
+- User asked for a ZIP containing the organized files needed to move the existing Laminate EXE build work to a Windows PC.
+- Created staging folder:
+  `/Users/danlee/KyulAI_codex/dist/laminate_existing_exe_buildkit_20260715`
+- Created ZIP:
+  `/Users/danlee/KyulAI_codex/dist/laminate_existing_exe_buildkit_20260715.zip`
+- ZIP size: about 492 MB; unzipped staging folder size: about 792 MB.
+- Included:
+  - `README_START_HERE.md`
+  - `scripts/windows/exe/*` build and account scripts
+  - `docs/LAMINATE_EXISTING_EXE_PACKAGE.md`
+  - current Laminate backend/frontend/auth-gate source
+  - Luvelox login frontend source
+  - current ABD-normalized active Laminate/u3 model folders
+  - current XAI report folders
+  - RAG knowledge index and minimal DD design-space manifests
+  - `requirements-serving.txt`, `requirements-ml.txt`, `pyproject.toml`
+- Verified ZIP contains key files including `Build-LaminateExe.ps1`, `Create-LaminateUser.ps1`, `auth-gate.js`, `dd_laminate_app.py`, active model folders, `knowledge_index.json`, and design-space manifests.
+
+## 2026-07-15 - Built Laminate Forecast Distillation v1
+- User asked to try the first Foundation Model / Distillation direction by creating "Distillation v1".
+- Added training script:
+  `/Users/danlee/KyulAI_codex/scripts/dd_response_distillation_train.py`
+- Teacher:
+  `models/dd_laminate_response_physics_abd_v1/response_surrogate.joblib`
+  (`response_surrogate_physics_v2`, the active Laminate Forecast Machine Learning model).
+- Student:
+  `models/dd_laminate_response_distilled_v1/response_goint.pt`
+  and compatibility copy `response_distilled.pt`.
+- Student architecture:
+  compact `DDResponseGointSurrogate`, 35 `theta_physics_v2` inputs, 128-point curve output, hidden dim 64, 6 branches, dropout 0.10.
+- Distillation objective:
+  hard true Type/scalar/curve losses plus soft teacher Type probabilities, teacher scalar targets, and teacher curve targets.
+- Training dataset:
+  `data/datasets/DD_cases_2_3_4_curated_v1`, 900 samples.
+- Cross-validation result:
+  - Type accuracy: 0.9378 +/- 0.0119
+  - Macro F1: 0.9352 +/- 0.0156
+  - Teacher Type agreement: 0.9378
+  - Pt MAE: 739.90 kips
+  - Max force MAE: 1271.80 kips
+  - Curve normalized RMSE: 0.01864
+- Interpretation:
+  Distilled v1 is very small (~1 MB) and close to the tree teacher for Type classification, but still worse than the active Machine Learning teacher for Pt/curve accuracy. Keep it as an experimental compact deployment/comparison model, not the default production replacement yet.
+- Added model registry key:
+  `response_distilled_v1` with label `Laminate Forecast - Distilled NN`.
+- Connected Distilled NN to:
+  - backend Laminate model listing, prediction, warm preload, local XAI
+  - optimization deep-model routing
+  - web model dropdown order
+  - iOS and Android model key/label normalization
+  - Windows portable bundle include list
+- Generated dedicated Distilled XAI prior:
+  `/Users/danlee/KyulAI_codex/reports/dd_response_xai_distilled_v1/response_feature_importance.csv`
+  from live local masking over all 900 training inputs.
+- Distilled XAI top global features from the generated report:
+  `angle_abs_std`, `angle_min_abs`, `b_coupling_norm`, `abs_theta1`, `d66`.
+- Verification:
+  - `python -m py_compile` passed for `dd_laminate.py`, `optimization.py`, and `dd_response_distillation_train.py`.
+  - `node --check` passed for `src/frontend/dd-laminate/app-v2.js` and `app.js`.
+  - FastAPI TestClient `/api/v1/dd-laminate/models` returns:
+    `response_surrogate_physics_v2`, `response_goint_physics_nn_v2`, `response_distilled_v1`.
+  - FastAPI TestClient `/predict/response` and `/xai/local` returned 200 for all three Laminate Forecast models.
+
+## 2026-07-15 - Cleaned and classified mixed worktree
+- User noted that the current worktree had many previous changes mixed with the new Distillation v1 work and asked to clean it up.
+- Used the AI slop cleanup workflow:
+  - locked behavior with targeted compile/syntax/unit/API checks before claiming cleanup;
+  - avoided deleting user data or feature artifacts;
+  - only hid confirmed local runtime/Xcode state via `.gitignore`.
+- Added `.gitignore` entries:
+  - `runtime/`
+  - `**/*.xcodeproj/project.xcworkspace/`
+- This removed local server logs, wedding runtime submissions/admin token, and Xcode user workspace state from `git status`.
+- Added cleanup classification document:
+  `/Users/danlee/KyulAI_codex/docs/WORKTREE_CLEANUP_20260715.md`
+- Classification highlights:
+  - Keep as functional work: Distillation v1, ABD-normalized active models, EXE auth packaging, Laminate RAG/TAC-vs-DD, app/web UI parity, product-page assets, ImperialAX branding assets, Cloudflare/server config.
+  - Large artifacts needing intentional commit/bundle choice:
+    `models/dd_laminate_response_physics_abd_v1` (~453 MB),
+    `models/dd_laminate_u3_forecast_physics_abd_v1` (~324 MB),
+    `icons/imperialAX` (~66 MB).
+- Fallback review:
+  - Existing broad `except Exception` / frontend `catch` paths were classified as grounded compatibility/fail-safe fallbacks for model loading, optional XAI, and UI/network availability.
+  - No masking fallback was removed in this pass because changing those paths would need a dedicated behavior/test pass.
+- Verification:
+  - Python compile passed for Laminate backend, optimization, app launcher, distillation training script, and Windows EXE launcher scripts.
+  - JS syntax checks passed for Laminate v2, Laminate legacy, Laminate auth gate, and Simple Injection v2.
+  - RAG unit test passed: 14 tests.
+  - FastAPI Laminate model/predict/XAI smoke passed for Machine Learning, Deep Learning, and Distilled NN.
+  - iOS `swift test` passed in `ios/DDLaminateMVP`: 11 tests.
+  - Android `gradle -p android/LuveloxMVP :app:assembleDebug` was blocked by missing Java 17 toolchain on this Mac, before Kotlin/Java compilation.
+
+## 2026-07-15 - Built Laminate Forecast synthetic theta/case grid distillation v2
+- User asked to try `synthetic theta/case grid distillation`.
+- Extended `/Users/danlee/KyulAI_codex/scripts/dd_response_distillation_train.py` so the compact student can train on:
+  - the real 900 Case2/Case3/Case4 curated Laminate samples;
+  - synthetic theta/case grid pseudo-labels generated by the active Machine Learning teacher.
+- Synthetic grid settings used:
+  - theta range: -90 to 90 degrees
+  - grid step: 5 degrees
+  - cases: Case2, Case3, Case4
+  - pseudo-labeled samples: 4107
+  - synthetic sample weight: 0.35
+- Teacher:
+  `models/dd_laminate_response_physics_abd_v1/response_surrogate.joblib`
+  (`response_surrogate_physics_v2`).
+- Student output:
+  `/Users/danlee/KyulAI_codex/models/dd_laminate_response_distilled_grid_v1/response_goint.pt`
+  and compatibility copy `response_distilled.pt`.
+- Cross-validation result:
+  - Type accuracy: 0.9767 +/- 0.0133
+  - Macro F1: 0.9775 +/- 0.0139
+  - Teacher Type agreement: 0.9767
+  - Pt MAE: 490.16 kips
+  - Max force MAE: 691.92 kips
+  - Curve normalized RMSE: 0.01073
+- Comparison against Distillation v1:
+  - v1 Type accuracy: 0.9378 -> v2 0.9767
+  - v1 Macro F1: 0.9352 -> v2 0.9775
+  - v1 Pt MAE: 739.90 kips -> v2 490.16 kips
+  - v1 curve normalized RMSE: 0.01864 -> v2 0.01073
+- Added model registry key:
+  `response_distilled_grid_v1` with label `Laminate Forecast - Distilled NN v2`.
+- Updated default visible Laminate Forecast model lists on backend, web, iOS, Android, and Windows bundle packaging so the visible models are:
+  `response_surrogate_physics_v2`, `response_goint_physics_nn_v2`, and `response_distilled_grid_v1`.
+- Generated dedicated XAI prior:
+  `/Users/danlee/KyulAI_codex/reports/dd_response_xai_distilled_grid_v1/response_feature_importance.csv`
+  from live local masking over all 900 real training inputs.
+- Distilled Grid v2 XAI top global features from the generated report:
+  `angle_abs_std`, `angle_min_abs`, `b_coupling_norm`, `abs_theta1`, `d66`, `angle_abs_mean`, `angle_max_abs`, `d12`, `a12`, `a66`.
+- Verification:
+  - `python -m py_compile` passed for `dd_laminate.py`, `optimization.py`, and `dd_response_distillation_train.py`.
+  - `node --check` passed for `src/frontend/dd-laminate/app-v2.js` and `app.js`.
+  - FastAPI TestClient `/api/v1/dd-laminate/models` returns:
+    `response_surrogate_physics_v2`, `response_goint_physics_nn_v2`, `response_distilled_grid_v1`.
+  - FastAPI TestClient `/predict/response` and `/xai/local` returned 200 for all three visible Laminate Forecast models.
+  - iOS `swift test` passed in `ios/DDLaminateMVP`: 11 tests.
+
+## 2026-07-15 - Improved distillation with confidence-weighted synthetic grid v3
+- User asked to develop the synthetic theta/case grid distillation further.
+- Added confidence-weighted pseudo-sample support to:
+  `/Users/danlee/KyulAI_codex/scripts/dd_response_distillation_train.py`
+- New options:
+  - `--synthetic-confidence-power`
+  - `--synthetic-min-confidence-weight`
+  - `--model-name`
+- Rationale:
+  v2 assigned every synthetic teacher-labeled grid point the same weight. v3 keeps the same teacher-student setup but gives higher influence to grid points where the teacher is confident and lower influence to uncertain boundary points.
+- Tried a heavier 2.5-degree grid first:
+  - 15,987 synthetic samples
+  - confidence-weighted effective mean weight: 0.2522
+  - early folds looked strong (`pt_mae` 358.83 and 459.51), but CPU runtime was too high for a routine local training pass, so the run was intentionally interrupted and not promoted.
+- Promoted practical v3-lite run:
+  - Output: `/Users/danlee/KyulAI_codex/models/dd_laminate_response_distilled_grid_conf_v1/`
+  - Model key: `response_distilled_grid_conf_v1`
+  - Label: `Laminate Forecast - Distilled NN v3`
+  - Synthetic grid step: 3.75 degrees
+  - Synthetic samples: 7203
+  - Synthetic base weight: 0.30
+  - Synthetic confidence power: 1.5
+  - Synthetic minimum confidence multiplier: 0.45
+  - Synthetic effective weight mean: 0.2702
+  - Teacher confidence mean: 0.9273
+  - Hidden dim: 80
+  - Branches: 8
+  - Dropout: 0.08
+- Cross-validation result:
+  - Type accuracy: 0.9789 +/- 0.0124
+  - Macro F1: 0.9784 +/- 0.0150
+  - Teacher Type agreement: 0.9789
+  - Pt MAE: 469.74 kips
+  - Max force MAE: 617.01 kips
+  - Curve normalized RMSE: 0.00977
+- Comparison:
+  - Distilled v1 Pt MAE: 739.90 kips
+  - Synthetic grid v2 Pt MAE: 490.16 kips
+  - Confidence-weighted grid v3 Pt MAE: 469.74 kips
+  - v3 also improved curve normalized RMSE from v2's 0.01073 to 0.00977.
+- Generated dedicated XAI prior:
+  `/Users/danlee/KyulAI_codex/reports/dd_response_xai_distilled_grid_conf_v1/response_feature_importance.csv`
+  from live local masking over all 900 real training inputs.
+- v3 XAI top global features:
+  `angle_abs_std`, `angle_min_abs`, `b_coupling_norm`, `abs_theta1`, `d66`, `angle_max_abs`, `angle_abs_mean`, `a66`, `abs_theta2`, `d12`.
+- Updated backend/web/iOS/Android/Windows bundle visible model configuration so the visible Laminate Forecast models are now:
+  `response_surrogate_physics_v2`, `response_goint_physics_nn_v2`, and `response_distilled_grid_conf_v1`.
+- Verification:
+  - `python -m py_compile` passed for `dd_laminate.py`, `optimization.py`, and `dd_response_distillation_train.py`.
+  - `node --check` passed for `src/frontend/dd-laminate/app-v2.js` and `app.js`.
+  - FastAPI TestClient `/api/v1/dd-laminate/models` returns:
+    `response_surrogate_physics_v2`, `response_goint_physics_nn_v2`, `response_distilled_grid_conf_v1`.
+  - FastAPI TestClient `/predict/response` and `/xai/local` returned 200 for all three visible Laminate Forecast models.
+  - iOS `swift test` passed in `ios/DDLaminateMVP`: 11 tests.
+
+## 2026-07-15 - Added automatic GPU/MPS device selection for distillation training
+- User asked whether a GPU PC would be detected automatically for the heavier 2.5-degree synthetic grid distillation run.
+- Updated `/Users/danlee/KyulAI_codex/scripts/dd_response_distillation_train.py`:
+  - `--device` now supports `auto`, `cpu`, `mps`, and `cuda`.
+  - default device is now `auto`.
+  - auto priority is CUDA first, then Apple MPS, then CPU.
+  - script prints the actual selected device at startup, including CUDA GPU name and compute capability when available.
+  - explicit `--device cuda` now fails early if PyTorch cannot see CUDA, instead of silently running wrong.
+- Added Windows helper:
+  `/Users/danlee/KyulAI_codex/scripts/windows/Train-LaminateDistillationGPU.ps1`
+  - checks PyTorch CUDA visibility;
+  - launches the heavy Laminate distillation training with `--device auto`;
+  - defaults to the 2.5-degree confidence-weighted synthetic grid settings for a GPU PC.
+- Updated Windows setup:
+  `/Users/danlee/KyulAI_codex/scripts/windows/Setup-WindowsServing.ps1`
+  - added `-TorchBackend cpu|cuda`;
+  - CPU remains default for serving;
+  - `-TorchBackend cuda` installs the CUDA PyTorch wheel and prints `cuda available` plus GPU name.
+- Updated Windows docs:
+  - `/Users/danlee/KyulAI_codex/docs/WINDOWS_GIT_QUICKSTART.md`
+  - `/Users/danlee/KyulAI_codex/docs/windows-server-migration.md`
+- Verification:
+  - `python -m py_compile scripts/dd_response_distillation_train.py` passed.
+
+## 2026-07-20 - Added batch Curve CSV classification and classified 900 New_Data curves
+- User asked to classify all newly delivered `data/New_Data` force-displacement CSVs and make the Curve CSV web tab support multiple CSV files at once.
+- Backend update:
+  - Added `/api/v1/dd-laminate/predict/curve-batch` in
+    `/Users/danlee/KyulAI_codex/src/backend/api/v1/dd_laminate.py`.
+  - Batch endpoint accepts multiple `files` plus optional `metadata_file`.
+  - Metadata CSV can provide per-file `filename`, `theta1`, `theta2`, `pt`, `case`, and `test_id`.
+  - If metadata is omitted, the form's shared theta/Pt/case inputs are reused for every selected CSV.
+- Frontend update:
+  - Updated `/Users/danlee/KyulAI_codex/src/frontend/dd-laminate/index-v2.html`.
+  - Updated `/Users/danlee/KyulAI_codex/src/frontend/dd-laminate/index-v2.ko.html`.
+  - Updated `/Users/danlee/KyulAI_codex/src/frontend/dd-laminate/app-v2.js`.
+  - Updated `/Users/danlee/KyulAI_codex/src/frontend/dd-laminate/styles-v2.css`.
+  - Curve CSV file input now supports `multiple`.
+  - Added optional Batch metadata CSV input.
+  - Single CSV still renders the original prediction card.
+  - Multiple CSVs render a compact batch table with a CSV download button.
+- Added script:
+  `/Users/danlee/KyulAI_codex/scripts/dd_classify_new_data_curves.py`
+  - Uses `models/dd_laminate_cases_2_3_4_csv_v1/curve_classifier.joblib`.
+  - Optimized for batch inference by loading the joblib model once.
+  - Reads:
+    - `data/New_Data/6x8_Case2/transition load.csv`
+    - `data/New_Data/6x8_Case3/transition load.csv`
+    - `data/New_Data/6x8_Case4/transition load.csv`
+    - matching `csv_6x8_Case*` force-displacement CSVs
+    - matching `Original/plot_Test_*_original.png` plots
+- Generated classification outputs:
+  - `/Users/danlee/KyulAI_codex/reports/new_data_6x8_curve_type_classification.csv`
+  - `/Users/danlee/KyulAI_codex/reports/new_data_6x8_curve_type_classification.md`
+  - `/Users/danlee/KyulAI_codex/data/New_Data/classified_curve_csv_v1/`
+- Classification summary:
+  - Total curves: `900`
+  - Case2: Type1 `78`, Type2 `167`, Type3 `55`
+  - Case3: Type1 `85`, Type2 `161`, Type3 `54`
+  - Case4: Type1 `64`, Type2 `183`, Type3 `53`
+  - Review priority by confidence:
+    - low: `139`
+    - medium: `343`
+    - high: `418`
+- Sorted dataset:
+  - copied `900` CSV files and `900` plot images into Case/Type folders under
+    `/Users/danlee/KyulAI_codex/data/New_Data/classified_curve_csv_v1/`.
+  - Wrote a root `classification_manifest.csv` plus per-Case/per-Type manifest files.
+- Verification:
+  - `python -m py_compile src/backend/api/v1/dd_laminate.py scripts/dd_classify_new_data_curves.py` passed.
+  - `node --check src/frontend/dd-laminate/app-v2.js` passed.
+  - `scripts/dd_classify_new_data_curves.py --no-copy` smoke test classified all `900` curves.
+  - Router check confirmed `/dd-laminate/predict/curve-batch` is registered.
+
+## 2026-07-20 - Documented Curve CSV batch file format in Korean and English
+- User asked for a clear explanation of how to prepare files for the `Curve CSV` tab.
+- Added bilingual guide:
+  `/Users/danlee/KyulAI_codex/docs/DD_CURVE_CSV_BATCH_GUIDE.md`
+- Guide covers:
+  - single CSV prediction inputs;
+  - batch CSV selection;
+  - recommended folder structure;
+  - metadata CSV format;
+  - required/recommended columns:
+    `filename,test_id,theta1,theta2,pt,case`;
+  - how `metadata_file` is matched to uploaded force-displacement CSV files;
+  - what happens when metadata is omitted;
+  - current `data/New_Data` example.
+- Updated UI copy in:
+  - `/Users/danlee/KyulAI_codex/src/frontend/dd-laminate/index-v2.html`
+  - `/Users/danlee/KyulAI_codex/src/frontend/dd-laminate/index-v2.ko.html`
+  so the Curve CSV tab states the batch metadata columns and filename matching rule.
+- Updated:
+  `/Users/danlee/KyulAI_codex/src/frontend/dd-laminate/README.md`
+  with a pointer to the bilingual guide.
+- Added helper script:
+  `/Users/danlee/KyulAI_codex/scripts/dd_make_curve_batch_metadata.py`
+- Generated ready-to-upload metadata files:
+  - `/Users/danlee/KyulAI_codex/data/New_Data/batch_metadata/curve_batch_metadata_6x8_Case2.csv`
+  - `/Users/danlee/KyulAI_codex/data/New_Data/batch_metadata/curve_batch_metadata_6x8_Case3.csv`
+  - `/Users/danlee/KyulAI_codex/data/New_Data/batch_metadata/curve_batch_metadata_6x8_Case4.csv`
+- Each generated metadata file has `300` rows and columns:
+  `filename,test_id,theta1,theta2,pt,case`.
+- Verification:
+  - `python -m py_compile scripts/dd_make_curve_batch_metadata.py` passed.
+  - `node --check src/frontend/dd-laminate/app-v2.js` passed.
+
+## 2026-07-20 - Re-checked newly added Laminate New_Data files
+- User added more files under:
+  `/Users/danlee/KyulAI_codex/data/New_Data`
+- Current folder structure now includes:
+  - `6x8_Case2/Original`
+  - `6x8_Case3/Original`
+  - `6x8_Case4/Original`
+  - `csv_6x8_Case2`
+  - `csv_6x8_Case3`
+  - `csv_6x8_Case4`
+- Newly confirmed transition load files:
+  - `/Users/danlee/KyulAI_codex/data/New_Data/6x8_Case2/transition load.csv`
+  - `/Users/danlee/KyulAI_codex/data/New_Data/6x8_Case3/transition load.csv`
+  - `/Users/danlee/KyulAI_codex/data/New_Data/6x8_Case4/transition load.csv`
+- Integrity check:
+  - Each case has `300` transition rows, Test IDs `001-300`, no missing IDs, no duplicate IDs.
+  - Each case has `300` plot images under `Original`.
+  - Each matching `csv_6x8_Case*` folder has `300` `force_disp_Test_*.csv` files.
+  - Theta ranges are `-89` to `90` for both `Theta1` and `Theta2` in all three cases.
+- Pt summary:
+  - Case2 Pt min/max/mean: `3213.638 / 11751.285 / 7434.859`
+  - Case3 Pt min/max/mean: `3214.143 / 11666.361 / 7445.659`
+  - Case4 Pt min/max/mean: `3213.762 / 11665.921 / 7415.716`
+- Important interpretation:
+  - The earlier first inspection was correct at that time: actual Pt files were not present yet.
+  - After the user's latest additions, actual Pt values are now available in the three `transition load.csv` files.
+  - The new data is ready for a dataset-builder/training pass using Case2, Case3, and Case4 with actual Pt labels.
+
+## 2026-07-20 - Inspected LaminateForecast share folder RTX results
+- User asked to inspect `/Users/danlee/KyulAI_codex/dist/LaminateForecast(share)` because it should contain RTX-trained results and additional changes.
+- Folder size:
+  - about `1.6 GB`.
+- Key new model artifact found:
+  `/Users/danlee/KyulAI_codex/dist/LaminateForecast(share)/models/dd_laminate_response_hybrid_type_student_v1/`
+- Hybrid student files:
+  - `response_goint.pt`
+  - `response_distilled.pt`
+  - `response_distilled_metrics.json`
+  - `distillation_report.md`
+- Reported model metadata:
+  - model name: `laminate_forecast_hybrid_type_student_v1`
+  - teacher: `models/dd_laminate_response_physics_abd_v1/response_surrogate.joblib`
+  - real samples: `900`
+  - synthetic samples: `15987`
+  - feature builder: `theta_physics_v2`
+  - input features: `35`
+  - sequence length: `128`
+  - hidden dim: `96`
+  - branches: `10`
+  - dropout: `0.08`
+  - synthetic grid step: `2.5`
+  - synthetic weight: `0.28`
+  - confidence power: `1.5`
+- Reported optimistic/deployment-style CV metrics:
+  - Type accuracy: `0.9922 +/- 0.0067`
+  - Macro F1: `0.9928 +/- 0.0062`
+  - Teacher Type agreement: `0.9922`
+  - Pt MAE vs ground truth: `368.07 kips`
+  - Max Force MAE: `426.66`
+  - Curve normalized RMSE: `0.00633`
+  - Curve force RMSE: `439.59`
+- Interpretation:
+  - This is better than current Distilled NN v3 optimistic metrics
+    (`0.9789` accuracy, `469.74 kips` Pt MAE, `0.00977` curve normalized RMSE).
+  - It is still not a strict independent CV result because it follows the full-data teacher/synthetic-grid distillation pattern.
+  - Treat it as a strong deployment candidate, but use strict CV or external holdout before making research/generalization claims.
+- Code differences vs current repo:
+  - package `src/backend/api/v1/dd_laminate.py` registers new model key
+    `response_hybrid_distilled_type_tree_response_v1`;
+  - it exposes label `Laminate Forecast - Hybrid`;
+  - it combines distilled neural Type prediction with the stable Tree response model for Pt and response curves;
+  - visible Laminate models in package are Machine Learning, Deep Learning, and Hybrid;
+  - package `src/frontend/dd-laminate/app-v2.js` changes the primary response model list to show Hybrid instead of Distilled NN v3;
+  - package `src/data/rag/answer.py` is much simpler/older than the current repo RAG answer layer and should not be copied over blindly.
+- Runtime log note:
+  - package backend ran locally on port `8765`;
+  - `/api/v1/dd-laminate/xai/local` returned `404` in the package log, suggesting the packaged EXE may have been serving an older compiled backend or route mismatch even though the source file contains the route.
+- Current repo state:
+  - `models/dd_laminate_response_hybrid_type_student_v1/` is not yet present in the main repo.
+  - Hybrid integration from the share package has not yet been merged into the active source tree.
+
+## 2026-07-20 - Ran strict CV check for RTX Hybrid distillation settings
+- User asked to keep newer repo files such as current RAG `answer.py`, and then check whether the RTX Hybrid result is optimistic because it used full-data teacher + synthetic grid distillation.
+- Important merge rule confirmed:
+  - Do not copy package `dist/LaminateForecast(share)/src/data/rag/answer.py` into the repo because it is older/simpler than the current repo RAG/Assistant implementation.
+  - Only candidate changes from the package are the RTX Hybrid model artifact and the targeted Hybrid model registration logic.
+- Ran strict CV-only with settings matching the RTX Hybrid model as closely as practical on this Mac:
+  - command used `.venv/bin/python scripts/dd_response_distillation_train.py`
+  - `--strict-cv --strict-cv-only`
+  - `--strict-synthetic-exclusion-radius 2.5`
+  - `--synthetic-grid-step 2.5`
+  - `--synthetic-weight 0.28`
+  - `--synthetic-confidence-power 1.5`
+  - `--synthetic-min-confidence-weight 0.45`
+  - `--epochs 90`
+  - `--patience 16`
+  - `--batch-size 512`
+  - `--hidden-dim 96`
+  - `--branches 10`
+  - `--dropout 0.08`
+  - output:
+    `/Users/danlee/KyulAI_codex/reports/dd_response_hybrid_type_student_strict_cv_mps/`
+- Device:
+  - selected `mps (Apple Metal Performance Shaders)`.
+- Synthetic data:
+  - `15,987` teacher-labeled samples;
+  - after validation-near exclusion, each fold kept about `15,075` to `15,171` synthetic samples.
+- Strict CV result:
+  - Type accuracy: `0.9556 +/- 0.0161`
+  - Macro F1: `0.9513 +/- 0.0173`
+  - Teacher Type agreement: `0.9689`
+  - Pt MAE vs ground truth: `501.14 kips`
+  - Pt MAE vs fold-local teacher: `347.39 kips`
+  - Max Force MAE: `667.28`
+  - Curve normalized RMSE vs ground truth: `0.01271`
+  - Curve normalized RMSE vs fold-local teacher: `0.01065`
+  - Curve force RMSE: `725.17`
+- Interpretation:
+  - RTX/package optimistic metrics were `0.9922` Type accuracy, `368.07 kips` Pt MAE, and `0.00633` curve normalized RMSE.
+  - Strict CV confirms those RTX/package metrics are optimistic and should not be used as independent generalization claims.
+  - The strict result is still better than the earlier quick strict run
+    (`0.9433` accuracy, `671.63 kips` Pt MAE, `0.02448` curve normalized RMSE),
+    so the RTX Hybrid remains a credible deployment/research candidate.
+  - For public/research reporting, cite the strict CV metrics; for product deployment,
+    the full-data Hybrid student can still be used if app/EXE behavior and XAI routes are verified.
+
+## 2026-07-20 - Inspected new sibling experiment data in data/New_Data
+- User added `/Users/danlee/KyulAI_codex/data/New_Data` and asked to read the three new experiments.
+- Folder size:
+  - about `35 MB`.
+- Structure:
+  - `csv_6x6_Case2`
+  - `csv_6x8_Case3`
+  - `csv_6x8_Case4`
+- File counts:
+  - each experiment folder contains `300` `force_disp_Test_###.csv` files;
+  - total force-displacement CSV files: `900`;
+  - no missing Test IDs from `001` to `300` in any of the three folders;
+  - `csv_6x8_Case3` also contains `desktop.ini`; top folder also contains `.DS_Store`.
+- CSV format:
+  - headerless 2-column data;
+  - column 1 appears to be displacement;
+  - column 2 appears to be force/load;
+  - row counts are `1001` or `1003`;
+  - maximum displacement is consistently `0.15000000596046448`.
+- Data integrity:
+  - all 900 CSVs parsed successfully;
+  - each folder has 300 unique file hashes;
+  - same Test number across the three new experiment folders is not byte-identical.
+- Missing metadata:
+  - `data/New_Data` currently does not include a `transition_load.csv`, `transition load.csv`, explicit Pt file, or Type label folders.
+  - If Test IDs follow the existing DD ordering, theta mapping can likely be inherited from
+    `/Users/danlee/KyulAI_codex/data/datasets/DD_cases_2_3_4_curated_v1/Case2/transition_load.csv`
+    because existing Case2/3/4 transition files share the same `Test_001..300` theta order.
+- Example inferred mapping from existing curated data:
+  - Test 001: theta1 `65`, theta2 `19`
+  - Test 002: theta1 `40`, theta2 `-51`
+  - Test 003: theta1 `-44`, theta2 `65`
+  - Test 300: theta1 `51`, theta2 `46`
+- Existing curated CSV comparison:
+  - no new CSV is byte-identical to the corresponding old curated CSV.
+  - New max force compared with old `DD_cases_2_3_4_curated_v1` max force:
+    - `csv_6x6_Case2` vs old Case2: mean ratio `0.9005`, median `0.8985`
+    - `csv_6x8_Case3` vs old Case3: mean ratio `0.9020`, median `0.8989`
+    - `csv_6x8_Case4` vs old Case4: mean ratio `0.9004`, median `0.8991`
+- Interpretation:
+  - These look like new force-displacement results for three experiment conditions:
+    `6x6 Case2`, `6x8 Case3`, and `6x8 Case4`.
+  - They are usable as new curve data, but Pt/type labels are not directly present in `New_Data`.
+  - Next useful step is to run the existing kink/Pt extraction method on all 900 new CSVs, then compare extracted Pt/type-like curve behavior against current Laminate Forecast models.
+
+## 2026-07-20 - Cleaned obsolete zip artifacts from dist
+- User asked to remove unnecessary zip files created in `/Users/danlee/KyulAI_codex/dist` to reclaim disk space.
+- Kept current/relevant deliverables:
+  - `/Users/danlee/KyulAI_codex/dist/KyulAI_windows_gpu_handoff_20260715_122841.zip`
+  - `/Users/danlee/KyulAI_codex/dist/KyulAI_windows_gpu_handoff_20260715_122841.sha256`
+  - `/Users/danlee/KyulAI_codex/dist/LaminateForecast(share).zip`
+  - `/Users/danlee/KyulAI_codex/dist/laminate_existing_exe_buildkit_20260715.zip`
+  - `/Users/danlee/KyulAI_codex/dist/c2es-laminate-product-page-20260710.zip`
+- Removed obsolete/superseded zip artifacts:
+  - `KyulAI_DD_Injection_windows_bundle_20260512_151719.zip`
+  - `KyulAI_dd_laminate_current_20260514_090104.zip`
+  - `KyulAI_separated_current_20260514_090104.zip`
+  - `KyulAI_shared_runtime_20260514_090104.zip`
+  - `KyulAI_simple_injection_current_20260514_090104.zip`
+  - `KyulAI_windows_server_bundle_2026-06-23.zip`
+  - `laminate_greenfield_codex_20260715.zip`
+  - stale checksum `KyulAI_separated_current_20260514_090104_checksums.sha256`
+- Result:
+  - `dist` size after zip cleanup: about `8.6 GB`.
+  - Remaining large cleanup candidates are extracted folders, not zip files:
+    `LaminateForecast(share)`, `KyulAI_separated_current_20260514_090104`,
+    `KyulAI_DD_Injection_windows_bundle_20260512_151457`,
+    `KyulAI_DD_Injection_windows_bundle_20260512_151719`,
+    `laminate_existing_exe_buildkit_20260715`, and
+    `laminate_greenfield_codex_20260715`.
+  - A 1-epoch smoke run with `--device auto` completed successfully on this Mac and selected `mps (Apple Metal Performance Shaders)`.
+  - PowerShell parse check was skipped because `pwsh` is not installed on this Mac.
+
+## 2026-07-15 - Prepared Windows GPU PC handoff bundle
+- User asked to prepare the current project state for moving to a GPU Windows PC, similar to the earlier handoff package.
+- Updated bundle packaging:
+  `/Users/danlee/KyulAI_codex/scripts/package_windows_bundle.py`
+  now includes the Laminate distillation training scripts:
+  - `scripts/dd_response_distillation_train.py`
+  - `scripts/dd_response_physics_xai_train.py`
+- Added handoff guide:
+  `/Users/danlee/KyulAI_codex/docs/WINDOWS_GPU_PC_HANDOFF_20260715.md`
+  covering:
+  - fresh Windows setup;
+  - CUDA PyTorch install with `Setup-WindowsServing.ps1 -TorchBackend cuda`;
+  - local server start;
+  - health checks;
+  - GPU distillation run with `Train-LaminateDistillationGPU.ps1`;
+  - current active Distilled NN v3 model and metrics.
+- Created package:
+  `/Users/danlee/KyulAI_codex/dist/KyulAI_windows_gpu_handoff_20260715_122841.zip`
+- Package size:
+  about `1.6 GB`.
+- SHA256:
+  `cef857f595b09576e9573d07e1bd3719abbe850aed658e58d9bee95f1e93e701`
+- Package verification:
+  - zip contains 9927 entries;
+  - required Windows setup/training scripts are included;
+  - required Distilled NN v3 model and XAI report are included;
+  - required backend files and serving requirements are included.
+
+## 2026-07-16 - Added and ran strict distillation CV sanity check
+- User reported an RTX5070 distillation run with accuracy near `0.99` and asked whether that might indicate a problem.
+- Analysis found the optimistic distillation CV can be inflated because:
+  - the teacher model used for pseudo-labeling is the final Tree teacher trained on all 900 samples;
+  - synthetic grid pseudo-labels are generated globally and then added to each fold;
+  - some validation case/theta points exactly overlap the synthetic grid, and many validation-near points are present.
+- Added strict CV support to:
+  `/Users/danlee/KyulAI_codex/scripts/dd_response_distillation_train.py`
+- New options:
+  - `--strict-cv`
+  - `--strict-cv-only`
+  - `--strict-synthetic-exclusion-radius`
+  - `--teacher-n-components`
+- Strict CV behavior:
+  - trains a fold-local Tree teacher only on that fold's real training samples;
+  - creates fold-local synthetic pseudo-labels from that fold-local teacher;
+  - removes synthetic points near the current validation fold's case/theta inputs;
+  - computes normalization statistics from fold training data only;
+  - reports CV metrics without training or saving a final deployment model when `--strict-cv-only` is used.
+- Smoke test:
+  - `--strict-cv --strict-cv-only --synthetic-grid-step 15 --epochs 2`
+  - selected `mps` on this Mac;
+  - completed all 5 folds, proving the strict path works.
+- More meaningful CPU/MPS quick strict run:
+  - command used `--synthetic-grid-step 7.5`, `--strict-synthetic-exclusion-radius 2.5`, `--epochs 45`, `--patience 8`.
+  - output directory:
+    `/Users/danlee/KyulAI_codex/reports/dd_response_distillation_strict_cv_quick/`
+  - Type accuracy: `0.9433 +/- 0.0119`
+  - Macro F1: `0.9381 +/- 0.0165`
+  - Teacher Type agreement: `0.9656`
+  - Pt MAE vs ground truth: `671.63 kips`
+  - Pt MAE vs fold-local teacher: `532.00 kips`
+  - Curve normalized RMSE vs ground truth: `0.02448`
+- Interpretation:
+  - The RTX `0.99` accuracy should be treated as optimistic/deployment-style distillation, not strict independent CV.
+  - The strict quick CV accuracy around `0.9433` aligns much more closely with the Tree teacher's conservative CV accuracy (`0.9422`).
+  - For publication/research claims, report strict CV. For deployment, the full-data teacher + synthetic grid student can still be trained as the production model.
+- Verification:
+  - `python -m py_compile scripts/dd_response_distillation_train.py` passed.
+
+## 2026-07-20 - Prepared Luvelox to ImperialAX URL migration
+- User said the company name is now ImperialAX and asked to forward Luvelox-side URLs to ImperialAX.
+- Updated host routing and public URLs:
+  - `luvelox.com`, `www.luvelox.com`, and `ai.luvelox.com` now return HTTP `308` to `https://ai.imperialax.com/`.
+  - `laminate.luvelox.com` now returns HTTP `308` to `https://laminate.imperialax.com/` while preserving path/query.
+  - `injection.luvelox.com` now returns HTTP `308` to `https://injection.imperialax.com/` while preserving path/query.
+- Updated the module catalog API to use `brand: "ImperialAX"` and ImperialAX module URLs:
+  - Laminate: `https://laminate.imperialax.com`
+  - Injection: `https://injection.imperialax.com`
+  - Optimization/Admin: `https://ai.imperialax.com`
+- Updated user-facing workspace/login/admin/optimization copy from Luvelox to ImperialAX.
+- Added demo email aliases so `demo@imperialax.com` and `danlee@imperialax.com` map to the existing demo sessions without breaking legacy accounts.
+- Kept legacy `X-Luvelox-*` headers and legacy demo account records for compatibility.
+- Kept old Luvelox hostnames in Cloudflare tunnel routing intentionally so the app can serve the redirects.
+- Restarted local production servers:
+  - DD/Laminate/C2ES app on port `8000`
+  - Simple Injection app on port `8010`
+- Verification:
+  - `python -m py_compile src/backend/dd_laminate_app.py src/backend/simple_injection_app.py src/backend/api/v1/modules.py src/backend/luvelox_app.py` passed.
+  - `node --check` passed for Luvelox workspace JS files.
+  - Public `/ready` checks returned `200` for `ai.imperialax.com`, `laminate.imperialax.com`, and `injection.imperialax.com`.
+  - Public legacy redirect checks returned `308` to the expected ImperialAX targets.
+  - `https://ai.imperialax.com/api/v1/modules` returns `brand: "ImperialAX"` and ImperialAX URLs.
+
+## 2026-07-20 - Added Laminate Forecast Hybrid Student deployment candidate
+- User asked whether the strict-CV-checked Hybrid Student could replace the optimistic Distilled NN path and whether it could be trained locally instead of on RTX.
+- Added final-only deployment training support to:
+  `/Users/danlee/KyulAI_codex/scripts/dd_response_distillation_train.py`
+  - `--final-only`
+  - `--reference-metrics`
+- Trained a Mac/MPS deployment candidate:
+  `/Users/danlee/KyulAI_codex/models/dd_laminate_response_hybrid_student_deploy_quick_v1/`
+- Training setup:
+  - real data: `900` Case2/Case3/Case4 samples;
+  - synthetic theta/case grid: `15,987` teacher-labeled samples;
+  - teacher: `/Users/danlee/KyulAI_codex/models/dd_laminate_response_physics_abd_v1/response_surrogate.joblib`;
+  - feature builder: `theta_physics_v2`;
+  - hidden dim: `96`;
+  - branches: `10`;
+  - dropout: `0.08`;
+  - final epochs: `65`.
+- Reference strict-CV metrics copied from:
+  `/Users/danlee/KyulAI_codex/reports/dd_response_hybrid_type_student_strict_cv_mps/response_distilled_metrics.json`
+  - Type accuracy: `0.9556`;
+  - macro F1: `0.9513`;
+  - Pt MAE: `501.14 kips`;
+  - curve norm RMSE: `0.01271`;
+  - teacher agreement: `0.9689`.
+- Generated model-specific XAI report:
+  `/Users/danlee/KyulAI_codex/reports/dd_response_xai_hybrid_student_deploy_quick_v1/`
+- Connected API model key:
+  `response_hybrid_student_deploy_quick_v1`
+- Updated visible Laminate Forecast response model list to:
+  - `response_surrogate_physics_v2` = `Laminate Forecast - Machine Learning`;
+  - `response_goint_physics_nn_v2` = `Laminate Forecast - Deep Learning`;
+  - `response_hybrid_student_deploy_quick_v1` = `Laminate Forecast - Hybrid Student`.
+- Kept old Distilled NN v3 registry key for backward compatibility but removed it from the optimal visible list.
+- Updated Windows bundle script so the Hybrid Student model and XAI report are included in future handoff packages.
+- Restarted local Laminate server on port `8000`.
+- Verification:
+  - `python3 -m py_compile scripts/dd_response_distillation_train.py scripts/package_windows_bundle.py src/backend/api/v1/dd_laminate.py` passed.
+  - Direct model smoke test for `theta1=30`, `theta2=-30`, `Case2` returned Type `2`, Pt `17299.25`, and `128` curve points.
+  - FastAPI TestClient `/predict/response` and `/xai/local` returned `200`.
+  - Live local server `/api/v1/dd-laminate/models` returns the three visible models including `response_hybrid_student_deploy_quick_v1`.
+
+## 2026-07-20 - Added geometry-aware Laminate Forecast prototype
+- User asked whether Laminate Forecast can still predict when the panel size changes.
+- Confirmed the original mechanics setup is `6 in x 4 in` from the DD PPT and code defaults.
+- Built a combined geometry-aware dataset:
+  `/Users/danlee/KyulAI_codex/data/datasets/DD_cases_2_3_4_geometry_v1/`
+  - total rows: `1800`;
+  - `900` existing curated `6x4` samples;
+  - `900` new `6x8` samples from `data/New_Data/classified_curve_csv_v1/classification_manifest.csv`;
+  - Case2/Case3/Case4 each has `600` rows.
+- Added response feature set `theta_physics_geometry_v1`:
+  - θ/case descriptors;
+  - compact CLT ABD features;
+  - panel geometry descriptors: `panel_aspect`, `a_slenderness`, `b_slenderness`, `panel_a_in`, `panel_b_in`.
+- Trained geometry-aware ML model:
+  `/Users/danlee/KyulAI_codex/models/dd_laminate_response_geometry_tree_v1/response_surrogate.joblib`
+- Training metrics from 5-fold CV:
+  - Type accuracy: `0.9561`;
+  - macro F1: `0.9511`;
+  - Pt MAE: `316.31 kips`;
+  - Max force MAE: `315.11 kips`;
+  - normalized curve RMSE: `0.00572`.
+- Generated XAI report:
+  `/Users/danlee/KyulAI_codex/reports/dd_response_xai_geometry_tree_v1/`
+- Connected API model key:
+  `response_geometry_tree_v1`
+- Updated visible Response Forecast model list so Geometry ML is first/default, followed by Deep Learning and Hybrid Student.
+- Updated web UI Response Forecast with panel size inputs:
+  - English: `Panel length a (in)`, `Panel width b (in)`;
+  - Korean: `패널 길이 a (in)`, `패널 폭 b (in)`.
+- Bumped DD web JS cache version to `20260720-geometry-panel`.
+- Updated Windows bundle script to include the geometry dataset, model, and XAI report.
+- Verification:
+  - Python compile passed for changed backend/ML/scripts files.
+  - `node --check src/frontend/dd-laminate/app-v2.js` passed.
+  - Direct model smoke test for `θ₁=30`, `θ₂=-30`, `Case2`:
+    - `6x4`: Type `2`, Pt `17151.49`, Max force `42629.76`;
+    - `6x8`: Type `2`, Pt `8393.31`, Max force `27970.08`.
+  - FastAPI TestClient `/predict/response`, `/predict/theta`, and `/xai/local` returned `200`.
+  - Restarted local Laminate server on port `8000`.
+  - Public `https://laminate.imperialax.com/api/v1/dd-laminate/models` returns `response_geometry_tree_v1` as the first Response model.
+  - Public prediction with `panel_a_in=6`, `panel_b_in=8` returned model `response_geometry_tree_v1`, Pt `8393.31`, and panel inputs in the response.
+  - Public DD HTML and `app-v2.js?v=20260720-geometry-panel` include the new panel-size controls and payload fields.
+- Caveat:
+  - The `6x8` Type labels are curve-classifier-generated labels, not manually reviewed labels. This is suitable for a prototype and internal screening, but research-grade claims should use human-reviewed labels or a geometry-held-out validation set.
+
+## 2026-07-20 - Trained Geometry GointMLP/DL Laminate Forecast
+- User asked to train `Geometry GointMLP/DL` using the same `6x4 + 6x8` geometry-aware dataset.
+- Trained DL model:
+  `/Users/danlee/KyulAI_codex/models/dd_laminate_response_geometry_goint_v1/response_goint.pt`
+- Dataset:
+  `/Users/danlee/KyulAI_codex/data/datasets/DD_cases_2_3_4_geometry_v1/`
+  - `1800` samples;
+  - `6x4` existing curated samples + `6x8` new classified samples;
+  - feature set `theta_physics_geometry_v1`;
+  - `40` input features.
+- Training settings:
+  - `5` GroupKFold splits;
+  - quick Mac/MPS run with `epochs=70`, `patience=12`, `final_epochs=35`, `batch_size=128`.
+- Geometry DL 5-fold metrics:
+  - Type accuracy: `0.9494`;
+  - macro F1: `0.9484`;
+  - Pt MAE: `823.04 kips`;
+  - Max force MAE: `1261.57 kips`;
+  - normalized curve RMSE: `0.02100`.
+- Comparison against Geometry ML / Tree:
+  - Geometry ML remains stronger for deployment:
+    - Type accuracy `0.9561`;
+    - Pt MAE `316.31 kips`;
+    - Max force MAE `315.11 kips`;
+    - normalized curve RMSE `0.00572`.
+  - Geometry DL is available as a neural comparison/research model, but not the recommended default yet.
+- Generated matching XAI report:
+  `/Users/danlee/KyulAI_codex/reports/dd_response_xai_geometry_goint_v1/`
+- Fixed `/Users/danlee/KyulAI_codex/scripts/dd_response_xai_report.py` so Tree/Goint finite-difference XAI passes each record's `panel_a_in` and `panel_b_in` instead of silently using the old `6x4` defaults.
+- Regenerated Geometry Tree XAI with the corrected panel-size-aware sensitivity logic:
+  `/Users/danlee/KyulAI_codex/reports/dd_response_xai_geometry_tree_v1/`
+- Added comparison report:
+  `/Users/danlee/KyulAI_codex/reports/dd_response_geometry_v1/response_geometry_training_report.md`
+- Connected API model key:
+  `response_geometry_goint_v1`
+- Updated visible Response Forecast model list to:
+  - `response_geometry_tree_v1` = `Laminate Forecast - Geometry ML`;
+  - `response_geometry_goint_v1` = `Laminate Forecast - Geometry DL`;
+  - `response_hybrid_student_deploy_quick_v1` = `Laminate Forecast - Hybrid Student`.
+- Updated Windows bundle script to include:
+  - `models/dd_laminate_response_geometry_goint_v1`;
+  - `reports/dd_response_xai_geometry_goint_v1`.
+- Verification:
+  - `python3 -m py_compile` passed for changed backend/XAI/package files.
+  - `node --check src/frontend/dd-laminate/app-v2.js` passed.
+  - FastAPI TestClient returned `200` for Geometry ML/DL predictions and local XAI.
+  - Local smoke test for `θ₁=30`, `θ₂=-30`, `Case2`:
+    - Geometry ML `6x4`: Type `2`, Pt `17151.49`;
+    - Geometry ML `6x8`: Type `2`, Pt `8393.31`;
+    - Geometry DL `6x4`: Type `2`, Pt `17874.86`;
+    - Geometry DL `6x8`: Type `3`, Pt `7959.53`.
+  - Restarted local Laminate server on port `8000`.
+  - Public `https://laminate.imperialax.com/api/v1/dd-laminate/models` returns Geometry ML and Geometry DL as the first two response models.
+  - Public Geometry DL prediction with `panel_a_in=6`, `panel_b_in=8` returned model `response_geometry_goint_v1`, Type `3`, Pt `7959.53`.
+
+## 2026-07-20 - Updated Laminate Forecast public branding
+- User asked to replace the remaining `C2ES Laminate Forecast` page title/header on `laminate.imperialax.com`.
+- Updated DD Laminate web shell files:
+  - `/Users/danlee/KyulAI_codex/src/frontend/dd-laminate/index-v2.html`
+  - `/Users/danlee/KyulAI_codex/src/frontend/dd-laminate/index.html`
+  - `/Users/danlee/KyulAI_codex/src/frontend/dd-laminate/index-v2.ko.html`
+  - `/Users/danlee/KyulAI_codex/src/frontend/dd-laminate/index.ko.html`
+- English public title/header now shows `ImperialAX Laminate Forecast`.
+- Korean public title/header now shows `ImperialAX 적층 예측`.
+- Verification:
+  - `rg` confirms the updated Laminate shell files no longer contain `C2ES Laminate Forecast`.
+  - `curl https://laminate.imperialax.com/` returns `<title>ImperialAX Laminate Forecast</title>` and the matching H1.
+
+## 2026-07-20 - Fixed empty Laminate Forecast model dropdown
+- User reported that `laminate.imperialax.com` showed no models in the model select bar.
+- Root cause:
+  - Backend `/api/v1/dd-laminate/models` was healthy and returned the new visible response model keys:
+    `response_geometry_tree_v1`, `response_geometry_goint_v1`, and `response_hybrid_student_deploy_quick_v1`.
+  - Frontend `PRIMARY_RESPONSE_MODEL_KEYS` still filtered for the previous keys:
+    `response_surrogate_physics_v2`, `response_goint_physics_nn_v2`, and `response_distilled_grid_conf_v1`.
+  - The filter therefore returned an empty list even though the API was working.
+- Fixed:
+  - `/Users/danlee/KyulAI_codex/src/frontend/dd-laminate/app-v2.js`
+  - `/Users/danlee/KyulAI_codex/src/frontend/dd-laminate/app.js`
+  - Updated `PRIMARY_RESPONSE_MODEL_KEYS` to:
+    - `response_geometry_tree_v1`
+    - `response_geometry_goint_v1`
+    - `response_hybrid_student_deploy_quick_v1`
+  - Bumped DD v2 JS cache version to `20260720-geometry-models` in English/Korean pages.
+- Verification:
+  - Public `/api/v1/dd-laminate/models` returns all three model keys as `available: true`.
+  - Public HTML references `app-v2.js?v=20260720-geometry-models`.
+  - Public JS contains the corrected `PRIMARY_RESPONSE_MODEL_KEYS`.
+  - Node reproduction of the frontend filter returns all three models.
+
+## 2026-07-20 - Moved panel-size controls to Response Forecast form
+- User reported that there was no visible control for setting/changing panel size.
+- Root cause:
+  - The panel-size controls had been added to the `u3 Pt Forecast` form instead of the `Response Forecast` form.
+- Fixed English/Korean DD Laminate pages:
+  - Removed `panel_a_in` / `panel_b_in` controls from `u3-pt-form`.
+  - Added them below `Case` in `response-form`.
+- Verification:
+  - Local HTML check: `u3_has_panel=False`, `response_has_panel=True`.
+  - Public `https://laminate.imperialax.com/` check: `u3_has_panel=False`, `response_has_panel=True`.
+  - Public response form contains `Panel length a (in)` and `Panel width b (in)` controls.
+
+## 2026-07-20 - Added web Predicted Curve zoom controls
+- User asked whether the DD Laminate `Predicted curve` section originally had a detailed graph view such as zoom in/out.
+- Finding:
+  - Web v2 used a static canvas for `#response-curve-canvas`.
+  - Android and iOS already had interactive zoom/pan chart work, but web did not.
+- Updated DD Laminate web v2:
+  - Added a compact `Curve view` / `곡선 상세 보기` toolbar above the predicted curve canvas.
+  - Added `−`, `+`, and `Reset` controls plus a percentage zoom label.
+  - Added mouse-wheel zoom, double-click reset, and drag-to-pan when zoomed in.
+  - Redraws chart axes/ticks against the zoomed visible domain instead of only bitmap-scaling the canvas.
+  - Clips curve/fit lines to the plot area so zoomed curves do not spill outside the graph frame.
+  - Bumped `index-v2.html` and `index-v2.ko.html` asset versions to `20260720-curve-zoom`.
+- Verification:
+  - `node --check src/frontend/dd-laminate/app-v2.js` passed.
+  - Local HTML contains `curve-viewer-head` and the new `20260720-curve-zoom` assets.
+  - Public `https://laminate.imperialax.com/index-v2.html` contains the new curve toolbar and cache-busted assets.
+  - Public `app-v2.js?v=20260720-curve-zoom` contains `installResponseCurveZoomControls`, `setResponseCurveSource`, and the zoom constants.
+  - Public response prediction smoke test for `θ₁=30`, `θ₂=-30`, `Case2`, `6x4`, `response_geometry_tree_v1` returned Type `2` and Pt `17151.49`.
+
+## 2026-07-20 - Improved Predicted Curve readability
+- User reported that text inside the `Predicted curve` graph, legend, and predicted Pt label looked too small.
+- Updated DD Laminate web v2:
+  - Increased `#response-curve-canvas` backing resolution from `720x432` to `1080x648` while keeping the displayed responsive size.
+  - Increased canvas plot padding so larger axis labels and Pt labels fit without crowding.
+  - Increased axis tick labels from `11px` to `16px`.
+  - Increased axis labels from `12px` to `17px`.
+  - Increased predicted Pt callout title/value fonts from `13/15px` to `17/22px`.
+  - Enlarged Pt markers, predicted curve line width, fit-line width, and kink-guide width.
+  - Increased web curve legend font size and swatch size.
+  - Bumped English/Korean web assets to `20260720-curve-readable`.
+- Verification:
+  - `node --check src/frontend/dd-laminate/app-v2.js` passed.
+  - Public `https://laminate.imperialax.com/index-v2.html` now references `20260720-curve-readable` assets and contains the `1080x648` response canvas.
+  - Public JS contains the larger chart font/padding/line-width settings.
+  - Public CSS contains the larger curve legend and swatch settings.
+
+## 2026-07-20 - Fixed canvas readability scaling issue
+- User reported that the graph text still did not look larger after the readability update.
+- Root cause:
+  - Increasing the canvas backing size from `720x432` to `1080x648` while displaying it at the same CSS width caused the browser to scale the whole bitmap down.
+  - The larger font settings were therefore mostly canceled out by the canvas down-scaling.
+- Fixed:
+  - Added `prepareResponseCurveCanvas()` to draw the response curve in CSS/logical pixels while using device-pixel-ratio backing pixels for sharpness.
+  - Updated pointer coordinate mapping to use the same logical pixel coordinate system, preserving zoom and pan behavior.
+  - Added resize redraw handling so the curve remains readable when the panel width changes.
+  - Bumped DD v2 assets to `20260720-curve-readable-v2`.
+- Verification:
+  - `node --check src/frontend/dd-laminate/app-v2.js` passed.
+  - Public `https://laminate.imperialax.com/index-v2.html` references `20260720-curve-readable-v2`.
+  - Public `app-v2.js?v=20260720-curve-readable-v2` contains `prepareResponseCurveCanvas`, logical pointer mapping, and the larger graph fonts.
+
+## 2026-07-21 - Prepared latest Git snapshot for Windows/RTX handoff
+- User asked to push the latest project state so the Windows RTX PC can start from `git clone`.
+- Repository state:
+  - Active branch: `codex/dd-laminate-ui-api`.
+  - Remote: `origin https://github.com/danhoonlee/KyulAI.git`.
+  - Latest state includes DD Laminate, Injection, web/app changes, Windows serving scripts, Cloudflare configs, RAG/Assistant updates, geometry-aware Laminate models, new 6x8 data, and product-page assets/docs.
+- Large artifact handling:
+  - Installed Git LFS locally because several deployment-critical model artifacts exceed GitHub's normal 100MB file limit.
+  - Initially tested broad `*.joblib`/`*.pt` LFS tracking, but narrowed it before final commit to avoid converting every historical model artifact.
+  - Final LFS tracking is limited to deployment-relevant oversized artifacts:
+    - `models/dd_laminate_response_geometry_tree_v1/response_surrogate.joblib`
+    - `models/dd_laminate_u3_forecast_physics_abd_v1/u3_forecast.joblib`
+    - `models/dd_laminate_response_physics_abd_v1/response_surrogate.joblib`
+  - Important new large model: `models/dd_laminate_response_geometry_tree_v1/response_surrogate.joblib` (~900MB).
+  - Excluded untracked local challenger artifacts `random_forest.joblib` and `extra_trees.joblib` under `models/dd_laminate_response_tabular_challengers_v1/` from the portable Git handoff.
+- Safety checks before staging:
+  - `.env.local` remains ignored and was not staged.
+  - `dist/`, `.venv/`, and Gradle cache folders remain ignored.
+  - Secret scan found only placeholder/example Slack/OpenAI strings, not real credentials.
+  - Syntax checks passed for DD Laminate web JS, Injection web JS, Luvelox web JS, and key Python backend/training/RAG files.

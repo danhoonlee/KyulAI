@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>C2ES 적층 예측</title>
-    <link rel="stylesheet" href="./styles-v2.css?v=20260626-case-formula-symbols" />
+    <title>ImperialAX 적층 예측</title>
+    <link rel="stylesheet" href="./styles-v2.css?v=20260720-curve-readable-v2" />
   </head>
   <body>
     <main class="shell shell-v2">
@@ -12,14 +12,14 @@
         <header class="topbar">
           <div class="brand-lockup">
             <p class="eyebrow">복합재 적층 AI</p>
-            <h1 id="app-title"><span>C2ES</span> <span>적층 예측</span></h1>
+            <h1 id="app-title"><span>ImperialAX</span> <span>적층 예측</span></h1>
             <p class="hero-copy">
               Case와 theta 입력으로 적층 Type, Pt, 응답 곡선을 예측합니다.
             </p>
           </div>
           <div class="top-actions">
             <div class="status-pill" id="api-status">확인 중</div>
-            <a class="language-link" href="https://ai.luvelox.com/index.ko.html">모듈 선택</a>
+            <a class="language-link" href="https://ai.imperialax.com/index.ko.html">모듈 선택</a>
             <a class="language-link" href="./index-v2.html">English</a>
           </div>
         </header>
@@ -111,6 +111,7 @@
         <div class="mode-switch" role="tablist" aria-label="예측 모드">
           <button class="mode-button active" type="button" data-mode="response">응답 예측</button>
           <button class="mode-button" type="button" data-mode="u3">u3 예측</button>
+          <button class="mode-button" type="button" data-mode="stack">Stack Lab</button>
           <button class="mode-button" type="button" data-mode="curve">곡선 CSV</button>
         </div>
 
@@ -162,8 +163,18 @@
 
               <label class="file-box">
                 Force-displacement CSV
-                <input id="curve-file" name="file" type="file" accept=".csv,text/csv" required />
+                <input id="curve-file" name="file" type="file" accept=".csv,text/csv" multiple required />
               </label>
+
+              <label class="file-box">
+                Batch metadata CSV
+                <input id="curve-metadata-file" name="metadata_file" type="file" accept=".csv,text/csv" />
+              </label>
+              <p class="form-hint">
+                Batch metadata 형식: filename, test_id, theta1, theta2, pt, case.
+                filename은 선택한 CSV 파일명과 같아야 합니다. 예: force_disp_Test_001.csv.
+                없으면 위 입력값을 모든 CSV에 공통 적용합니다.
+              </p>
 
               <div class="case-guide" aria-label="Case 공식">
                 <p><strong>Case 2</strong> [[±θ₁]/[±θ₂]]₄</p>
@@ -172,6 +183,8 @@
               </div>
 
               <button class="primary" type="submit">Type 예측</button>
+
+              <div id="curve-batch-results" class="batch-results hidden" aria-live="polite"></div>
             </form>
 
             <form id="u3-pt-form" class="form">
@@ -283,6 +296,17 @@
                 </select>
               </label>
 
+              <div class="panel-size-grid" aria-label="패널 크기 컨트롤">
+                <label>
+                  패널 길이 a (in)
+                  <input name="panel_a_in" type="number" min="0.1" step="0.1" value="6" required />
+                </label>
+                <label>
+                  패널 폭 b (in)
+                  <input name="panel_b_in" type="number" min="0.1" step="0.1" value="4" required />
+                </label>
+              </div>
+
               <div class="case-guide" aria-label="Case 공식">
                 <p><strong>Case 2</strong> [[±θ₁]/[±θ₂]]₄</p>
                 <p><strong>Case 3</strong> [[±θ₁]/[±θ₂]/[∓θ₁]/[∓θ₂]]₂</p>
@@ -290,6 +314,78 @@
               </div>
 
               <button class="primary" type="submit">예측 실행</button>
+            </form>
+
+            <form id="stack-preview-form" class="form">
+              <div class="form-header">
+                <p class="eyebrow">Stack Lab</p>
+                <h2>사용자 적층 미리보기</h2>
+                <p>새 적층식을 학습 모델에 넣기 전에 물리 feature를 먼저 확인합니다.</p>
+              </div>
+
+              <div class="angle-grid" aria-label="각도 컨트롤">
+                <label class="angle-control">
+                  <span class="angle-control-head">
+                    <span>Theta 1</span>
+                    <strong data-theta-readout="theta1">+30°</strong>
+                  </span>
+                  <span class="angle-number-wrap">
+                    <input name="theta1" type="number" min="-90" max="90" step="1" value="30" required />
+                    <span>도</span>
+                  </span>
+                  <input type="range" min="-90" max="90" step="1" value="30" data-theta-range="theta1" aria-label="Theta 1 슬라이더" />
+                </label>
+                <label class="angle-control">
+                  <span class="angle-control-head">
+                    <span>Theta 2</span>
+                    <strong data-theta-readout="theta2">-60°</strong>
+                  </span>
+                  <span class="angle-number-wrap">
+                    <input name="theta2" type="number" min="-90" max="90" step="1" value="-60" required />
+                    <span>도</span>
+                  </span>
+                  <input type="range" min="-90" max="90" step="1" value="-60" data-theta-range="theta2" aria-label="Theta 2 슬라이더" />
+                </label>
+              </div>
+
+              <label>
+                Case
+                <select name="case">
+                  <option value="Case5" selected>Case 5</option>
+                  <option value="Custom">Custom</option>
+                </select>
+              </label>
+
+              <div class="case-guide stack-formula-guide" aria-label="Case 5 공식">
+                <p><strong>Case 5</strong> [[±θ₁]/[±θ₂]/[∓θ₂]/[∓θ₁]]₂</p>
+                <p><strong>Custom</strong> 아래 수식 버튼으로 sequence를 만든 뒤 필요한 부분을 수정하세요.</p>
+              </div>
+
+              <label>
+                적층식
+                <textarea name="formula" rows="3" placeholder="예: [[±θ₁]/[±θ₂]/[∓θ₂]/[∓θ₁]]₂">[[±θ₁]/[±θ₂]/[∓θ₂]/[∓θ₁]]₂</textarea>
+              </label>
+
+              <div class="formula-toolbar" aria-label="수식 토큰 버튼">
+                <button type="button" data-formula-token="±θ₁">±θ₁</button>
+                <button type="button" data-formula-token="±θ₂">±θ₂</button>
+                <button type="button" data-formula-token="∓θ₁">∓θ₁</button>
+                <button type="button" data-formula-token="∓θ₂">∓θ₂</button>
+                <button type="button" data-formula-token="[">[</button>
+                <button type="button" data-formula-token="]">]</button>
+                <button type="button" data-formula-token="/">/</button>
+                <button type="button" data-formula-token="₂">₂</button>
+                <button type="button" data-formula-token="₄">₄</button>
+              </div>
+
+              <label>
+                생성된 ply sequence
+                <textarea name="ply_sequence" rows="5" required>30,-30,-60,60,60,-60,-30,30,30,-30,-60,60,60,-60,-30,30</textarea>
+              </label>
+
+              <p class="form-hint">현재 지원: ±θ₁, ±θ₂, ∓θ₁, ∓θ₂, 괄호/대괄호, 반복첨자 ₂ 또는 숫자 4. 식을 읽지 못하면 sequence를 직접 수정할 수 있습니다.</p>
+
+              <button class="primary" type="submit">적층 물리값 미리보기</button>
             </form>
           </section>
 
@@ -372,6 +468,17 @@
               </div>
 
               <div class="bars" id="probability-bars"></div>
+              <section class="uncertainty-panel hidden" id="uncertainty-panel" aria-label="예측 신뢰도와 불확실성">
+                <div class="uncertainty-head">
+                  <div>
+                    <p class="eyebrow">신뢰도</p>
+                    <h3>예측 안정성</h3>
+                  </div>
+                  <strong id="uncertainty-label">-</strong>
+                </div>
+                <div class="uncertainty-grid" id="uncertainty-grid"></div>
+                <ul class="uncertainty-notes" id="uncertainty-notes"></ul>
+              </section>
 
               <dl class="meta">
                 <div>
@@ -407,7 +514,16 @@
                   </div>
                 </div>
 
-                <canvas id="response-curve-canvas" width="720" height="432"></canvas>
+                <div class="curve-viewer-head">
+                  <span>곡선 상세 보기</span>
+                  <div class="curve-tools" aria-label="응답 곡선 확대/축소">
+                    <button type="button" data-curve-zoom="out" title="축소">−</button>
+                    <output id="response-curve-zoom-label">100%</output>
+                    <button type="button" data-curve-zoom="in" title="확대">+</button>
+                    <button type="button" data-curve-zoom="reset" title="초기화">Reset</button>
+                  </div>
+                </div>
+                <canvas id="response-curve-canvas" width="1080" height="648"></canvas>
                 <div class="curve-legend" aria-label="응답 곡선 범례">
                   <span><i class="legend-swatch curve"></i>예측 곡선</span>
                   <span><i class="legend-swatch guide"></i>선형 피팅</span>
@@ -472,12 +588,36 @@
               <ul class="notes" id="notes"></ul>
             </div>
 
+            <div class="stack-preview-result hidden" id="stack-preview-result">
+              <div class="preview-head">
+                <div>
+                  <p class="eyebrow">Stack Lab</p>
+                  <h2 id="stack-preview-title">사용자 적층 물리값</h2>
+                </div>
+              </div>
+
+              <div class="preview-stats stack-preview-metrics" id="stack-preview-metrics"></div>
+
+              <section class="stack-preview-section">
+                <p class="eyebrow">펼친 ply sequence</p>
+                <div class="stack-sequence-chips" id="stack-preview-sequence"></div>
+              </section>
+
+              <section class="stack-preview-section">
+                <p class="eyebrow">물리 descriptor</p>
+                <div class="stack-physics-grid" id="stack-preview-physics"></div>
+              </section>
+
+              <ul class="notes" id="stack-preview-notes"></ul>
+            </div>
+
             <div class="error hidden" id="error"></div>
           </section>
         </div>
       </section>
     </main>
 
-    <script src="./app-v2.js?v=20260626-case-formula-symbols"></script>
+    <script src="./auth-gate.js?v=20260715-license-gate"></script>
+    <script src="./app-v2.js?v=20260720-curve-readable-v2"></script>
   </body>
 </html>

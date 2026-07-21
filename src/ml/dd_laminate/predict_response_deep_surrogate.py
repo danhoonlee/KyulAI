@@ -51,10 +51,12 @@ def predict_response_deep(
     theta2: float,
     case: str,
     device: str = "cpu",
+    panel_a_in: float = 6.0,
+    panel_b_in: float = 4.0,
 ) -> dict:
     checkpoint = torch.load(model_path, map_location=device, weights_only=False)
     model = build_response_deep_model(checkpoint, device)
-    return predict_response_deep_from_artifacts(checkpoint, model, theta1, theta2, case, device)
+    return predict_response_deep_from_artifacts(checkpoint, model, theta1, theta2, case, device, panel_a_in, panel_b_in)
 
 
 def predict_response_deep_from_artifacts(
@@ -64,13 +66,15 @@ def predict_response_deep_from_artifacts(
     theta2: float,
     case: str,
     device: str = "cpu",
+    panel_a_in: float = 6.0,
+    panel_b_in: float = 4.0,
 ) -> dict:
     feature_columns = list(checkpoint.get("feature_columns") or [])
     feature_builder = str(checkpoint.get("feature_builder") or "")
     if feature_builder:
-        x_raw = prediction_feature_matrix(theta1, theta2, case, feature_builder)
+        x_raw = prediction_feature_matrix(theta1, theta2, case, feature_builder, panel_a_in, panel_b_in)
     elif "case_case2" in feature_columns:
-        x_raw = prediction_feature_matrix(theta1, theta2, case, feature_set_from_columns(feature_columns))
+        x_raw = prediction_feature_matrix(theta1, theta2, case, feature_set_from_columns(feature_columns), panel_a_in, panel_b_in)
     else:
         record = DDCurveRecord(
             case=case,

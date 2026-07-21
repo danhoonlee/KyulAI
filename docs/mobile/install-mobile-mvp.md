@@ -13,7 +13,7 @@ For a private MVP, install from Xcode first. TestFlight/App Store can come later
 The default mobile API base URL is:
 
 ```text
-https://laminate.luvelox.com
+https://laminate.imperialax.com
 ```
 
 For local development, the API base URL must be reachable from the phone:
@@ -37,7 +37,7 @@ Open `android/DDLaminateMVP` in Android Studio.
 The default Android API base URL is:
 
 ```text
-https://laminate.luvelox.com
+https://laminate.imperialax.com
 ```
 
 For Android local development:

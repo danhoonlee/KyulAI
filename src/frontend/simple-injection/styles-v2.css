@@ -1118,6 +1118,27 @@ select:focus {
   line-height: 1.35;
 }
 
+.xai-more {
+  border: 1px solid #d8e4ef;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.xai-more summary {
+  cursor: pointer;
+  padding: 10px 11px;
+  color: var(--blue-strong);
+  font-size: 0.78rem;
+  font-weight: 950;
+  list-style-position: inside;
+}
+
+.xai-more-list {
+  display: grid;
+  gap: 8px;
+  padding: 0 9px 9px;
+}
+
 .xai-notes {
   border-top: 1px solid #e8eef4;
   padding-top: 8px;

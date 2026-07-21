@@ -38,6 +38,7 @@ artifacts/android/*.apk
 .build/
 .swiftpm/
 DerivedData/
+**/*.xcodeproj/project.xcworkspace/
 xcuserdata/
 *.xcuserstate
 
@@ -50,6 +51,7 @@ data/luvelox_auth.sqlite3-*
 
 # Local agent runtime
 .agent-bus/
+runtime/
 
 # RAG source files that can be regenerated from the manifest/seeds.
 data/rag/online_corpus/raw/
@@ -68,6 +70,10 @@ Thumbs.db
 
 # MLflow
 mlruns/
+
+# Large local challenger artifacts kept out of the portable Git handoff.
+models/dd_laminate_response_tabular_challengers_v1/random_forest.joblib
+models/dd_laminate_response_tabular_challengers_v1/extra_trees.joblib
 
 # Local DVC configuration is not needed for the portable Git handoff.
 .dvc/

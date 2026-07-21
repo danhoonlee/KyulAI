@@ -39,6 +39,14 @@ Curve CSV mode:
 - `Case`
 - `Test ID`
 - model selection between the classical curve model and the Goint sequence model
+- multiple force-displacement CSV files can be selected at once
+- optional batch metadata CSV can provide per-file `filename`, `test_id`, `theta1`, `theta2`, `pt`, and `case`
+
+Detailed bilingual batch input guide:
+
+```text
+docs/DD_CURVE_CSV_BATCH_GUIDE.md
+```
 
 The API runs at:
 

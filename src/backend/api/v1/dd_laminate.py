@@ -30,14 +30,21 @@ ResponseModelKey = Literal[
     "response_surrogate",
     "response_goint",
     "response_surrogate_physics",
+    "response_geometry_tree_v1",
+    "response_geometry_goint_v1",
     "response_surrogate_physics_v2",
     "response_goint_physics",
     "response_goint_physics_v2",
     "response_goint_physics_nn_v2",
+    "response_distilled_v1",
+    "response_distilled_grid_v1",
+    "response_distilled_grid_conf_v1",
+    "response_hybrid_student_deploy_quick_v1",
 ]
 OPTIMAL_RESPONSE_MODEL_KEYS = (
-    "response_surrogate_physics_v2",
-    "response_goint_physics_nn_v2",
+    "response_geometry_tree_v1",
+    "response_geometry_goint_v1",
+    "response_hybrid_student_deploy_quick_v1",
 )
 OPTIMAL_U3_FORECAST_MODEL_KEYS = (
     "u3_forecast_physics_v2",
@@ -53,6 +60,7 @@ U3ForecastModelKey = Literal[
 ]
 U3FinderModelKey = Literal["u3_pt_classical", "u3_pt_goint"]
 CaseKey = Literal["Case2", "Case3", "Case4"]
+StackPreviewCaseKey = Literal["Case2", "Case3", "Case4", "Case5", "Custom"]
 U3BucketKey = Literal["2", "3"]
 
 
@@ -83,7 +91,9 @@ class ResponsePredictionRequest(BaseModel):
     theta1: float = Field(..., ge=-90, le=90)
     theta2: float = Field(..., ge=-90, le=90)
     case: CaseKey
-    model: ResponseModelKey = "response_surrogate_physics_v2"
+    model: ResponseModelKey = "response_geometry_tree_v1"
+    panel_a_in: float = Field(6.0, gt=0)
+    panel_b_in: float = Field(4.0, gt=0)
 
 
 class U3ForecastPredictionRequest(BaseModel):
@@ -100,6 +110,8 @@ class LocalXAIRequest(BaseModel):
     theta2: float = Field(..., ge=-90, le=90)
     case: CaseKey
     model: str
+    panel_a_in: float = Field(6.0, gt=0)
+    panel_b_in: float = Field(4.0, gt=0)
 
 
 DesignSpaceScope = Literal["response", "u3"]
@@ -112,6 +124,20 @@ class DesignSpaceRequest(BaseModel):
     scope: DesignSpaceScope = "response"
 
 
+class StackPreviewRequest(BaseModel):
+    theta1: float = Field(..., ge=-90, le=90)
+    theta2: float = Field(..., ge=-90, le=90)
+    case: StackPreviewCaseKey = "Case5"
+    ply_sequence: list[float] | None = Field(
+        default=None,
+        description=(
+            "Explicit bottom-to-top ply angles for Case5/Custom. "
+            "Use numeric angles after expanding ±θ1/±θ2 notation."
+        ),
+    )
+    formula: str | None = Field(default=None, description="Human-readable laminate formula for traceability.")
+
+
 class PredictionResponse(BaseModel):
     predicted_type: int
     confidence: float | None
@@ -122,6 +148,30 @@ class PredictionResponse(BaseModel):
     inputs: dict[str, float | str | None]
     notes: list[str] = []
     features: dict[str, float] | None = None
+
+
+class CurveBatchPredictionRow(BaseModel):
+    filename: str
+    test_id: str
+    theta1: float
+    theta2: float
+    pt: float
+    case: str
+    predicted_type: int | None
+    confidence: float | None = None
+    probabilities: dict[str, float] | None = None
+    status: Literal["ok", "error"] = "ok"
+    error: str | None = None
+
+
+class CurveBatchPredictionResponse(BaseModel):
+    model_key: str
+    model_label: str
+    input_mode: Literal["curve_batch"] = "curve_batch"
+    total_files: int
+    ok_count: int
+    error_count: int
+    results: list[CurveBatchPredictionRow]
 
 
 class ResponseCurvePoint(BaseModel):
@@ -149,6 +199,33 @@ class XAIExplanation(BaseModel):
     notes: list[str] = []
 
 
+class PredictionUncertainty(BaseModel):
+    reliability_score: float
+    confidence_label: Literal["high", "medium", "low"]
+    interpolation_score: float
+    interpolation_label: Literal["interpolation", "near-edge", "extrapolation"]
+    nearest_distance: float | None = None
+    nearest_count: int
+    local_pt_std: float | None = None
+    pt_interval_low: float | None = None
+    pt_interval_high: float | None = None
+    type_consistency: float | None = None
+    notes: list[str] = []
+
+
+class StackPreviewResponse(BaseModel):
+    case: StackPreviewCaseKey
+    formula: str | None = None
+    theta1: float
+    theta2: float
+    ply_sequence: list[float]
+    ply_count: int
+    total_thickness_in: float
+    physics: dict[str, float]
+    design_space: PredictionUncertainty | None = None
+    notes: list[str] = []
+
+
 class ResponseSurrogateResponse(PredictionResponse):
     predicted_pt: float
     predicted_max_displacement: float
@@ -157,6 +234,7 @@ class ResponseSurrogateResponse(PredictionResponse):
     curve_fit: dict[str, object] | None = None
     metrics: dict[str, float | int | str] = {}
     xai: XAIExplanation | None = None
+    uncertainty: PredictionUncertainty | None = None
 
 
 class U3PtPredictionResponse(BaseModel):
@@ -175,6 +253,7 @@ class U3PtPredictionResponse(BaseModel):
     notes: list[str] = []
     metrics: dict[str, float | int | str] = {}
     xai: XAIExplanation | None = None
+    uncertainty: PredictionUncertainty | None = None
 
 
 class DesignSpacePoint(BaseModel):
@@ -283,10 +362,22 @@ RESPONSE_MODELS: dict[str, dict[str, str]] = {
         "path": "models/dd_laminate_response_physics_xai_v1/response_surrogate.joblib",
         "requires": "joblib,sklearn,numpy",
     },
+    "response_geometry_tree_v1": {
+        "label": "Laminate Forecast - Geometry ML",
+        "description": "Geometry-aware machine-learning forecast trained on 6x4 and 6x8 panels using theta/case plus CLT ABD and panel-size descriptors.",
+        "path": "models/dd_laminate_response_geometry_tree_v1/response_surrogate.joblib",
+        "requires": "joblib,sklearn,numpy",
+    },
+    "response_geometry_goint_v1": {
+        "label": "Laminate Forecast - Geometry DL",
+        "description": "Geometry-aware GointMLP deep-learning forecast trained on 6x4 and 6x8 panels using theta/case plus CLT ABD and panel-size descriptors.",
+        "path": "models/dd_laminate_response_geometry_goint_v1/response_goint.pt",
+        "requires": "torch,numpy",
+    },
     "response_surrogate_physics_v2": {
         "label": "Laminate Forecast - Machine Learning",
         "description": "Fast, stable machine-learning forecast for routine laminate Type, Pt, and response-curve predictions.",
-        "path": "models/dd_laminate_response_physics_xai_v2/response_surrogate.joblib",
+        "path": "models/dd_laminate_response_physics_abd_v1/response_surrogate.joblib",
         "requires": "joblib,sklearn,numpy",
     },
     "response_goint_physics": {
@@ -298,7 +389,31 @@ RESPONSE_MODELS: dict[str, dict[str, str]] = {
     "response_goint_physics_nn_v2": {
         "label": "Laminate Forecast - Deep Learning",
         "description": "Neural deep-learning forecast for comparing laminate Type, Pt, and response-curve predictions against the machine-learning baseline.",
-        "path": "models/dd_laminate_response_goint_physics_nn_v2/response_goint.pt",
+        "path": "models/dd_laminate_response_goint_physics_nn_abd_v1/response_goint.pt",
+        "requires": "torch,numpy",
+    },
+    "response_distilled_v1": {
+        "label": "Laminate Forecast - Distilled NN",
+        "description": "Compact neural student distilled from the active Machine Learning teacher for fast deployment and EXE comparison.",
+        "path": "models/dd_laminate_response_distilled_v1/response_goint.pt",
+        "requires": "torch,numpy",
+    },
+    "response_distilled_grid_v1": {
+        "label": "Laminate Forecast - Distilled NN v2",
+        "description": "Compact neural student distilled with synthetic theta/case grid pseudo-labels from the active Machine Learning teacher.",
+        "path": "models/dd_laminate_response_distilled_grid_v1/response_goint.pt",
+        "requires": "torch,numpy",
+    },
+    "response_distilled_grid_conf_v1": {
+        "label": "Laminate Forecast - Distilled NN v3",
+        "description": "Compact neural student distilled with a confidence-weighted synthetic theta/case grid from the active Machine Learning teacher.",
+        "path": "models/dd_laminate_response_distilled_grid_conf_v1/response_goint.pt",
+        "requires": "torch,numpy",
+    },
+    "response_hybrid_student_deploy_quick_v1": {
+        "label": "Laminate Forecast - Hybrid Student",
+        "description": "Strict-CV-checked hybrid student trained from the active Machine Learning teacher with confidence-weighted synthetic theta/case grid samples.",
+        "path": "models/dd_laminate_response_hybrid_student_deploy_quick_v1/response_goint.pt",
         "requires": "torch,numpy",
     },
     "response_goint_physics_v2": {
@@ -331,7 +446,7 @@ U3_PT_MODELS: dict[str, dict[str, str]] = {
     "u3_forecast_physics_v2": {
         "label": "u3 Forecast - Machine Learning",
         "description": "Fast, stable machine-learning forecast for routine u3 Type, Pt, and response-curve predictions.",
-        "path": "models/dd_laminate_u3_forecast_physics_v3/u3_forecast.joblib",
+        "path": "models/dd_laminate_u3_forecast_physics_abd_v1/u3_forecast.joblib",
         "requires": "joblib,sklearn,numpy",
     },
     "u3_forecast_goint_physics": {
@@ -343,7 +458,7 @@ U3_PT_MODELS: dict[str, dict[str, str]] = {
     "u3_forecast_goint_physics_v2": {
         "label": "u3 Forecast - Deep Learning",
         "description": "Neural deep-learning forecast for comparing u3 Type, Pt, and response-curve predictions against the machine-learning baseline.",
-        "path": "models/dd_laminate_u3_forecast_physics_v3/u3_forecast_goint.pt",
+        "path": "models/dd_laminate_u3_forecast_physics_abd_v1/u3_forecast_goint.pt",
         "requires": "torch,numpy",
     },
     "u3_forecast": {
@@ -433,6 +548,89 @@ def _notes(probabilities: dict[str, float] | None, input_mode: str) -> list[str]
     return notes
 
 
+def _normalize_curve_case(case: str) -> str:
+    compact = str(case or "Unknown").strip().replace(" ", "")
+    lower = compact.lower()
+    if lower in {"2", "case2"}:
+        return "Case2"
+    if lower in {"3", "case3"}:
+        return "Case3"
+    if lower in {"4", "case4"}:
+        return "Case4"
+    return "Unknown"
+
+
+def _parse_curve_batch_metadata(content: bytes | None) -> dict[str, dict[str, str]]:
+    if not content:
+        return {}
+    text = content.decode("utf-8-sig")
+    rows = list(csv.DictReader(text.splitlines()))
+    metadata: dict[str, dict[str, str]] = {}
+    for row in rows:
+        filename = (
+            row.get("filename")
+            or row.get("file")
+            or row.get("csv")
+            or row.get("csv_path")
+            or row.get("path")
+            or ""
+        ).strip()
+        test_id = (row.get("test_id") or row.get("Test_ID") or "").strip()
+        keys = {filename, Path(filename).name if filename else "", Path(filename).stem if filename else "", test_id}
+        for key in keys:
+            if key:
+                metadata[key] = row
+    return metadata
+
+
+def _metadata_value(row: dict[str, str] | None, *keys: str, default: str | float) -> str | float:
+    if not row:
+        return default
+    for key in keys:
+        value = row.get(key)
+        if value is not None and str(value).strip() != "":
+            return str(value).strip()
+    return default
+
+
+def _predict_curve_csv_path(
+    *,
+    model: CurveModelKey,
+    model_path: Path,
+    csv_path: Path,
+    theta1: float,
+    theta2: float,
+    pt: float,
+    case: str,
+    test_id: str,
+) -> dict[str, Any]:
+    if model == "curve_goint":
+        from src.ml.dd_laminate.predict_deep_sequence_classifier import predict_deep_type
+
+        return predict_deep_type(
+            model_path=model_path,
+            csv_path=csv_path,
+            pt=pt,
+            case=case,
+            theta1=theta1,
+            theta2=theta2,
+            test_id=test_id,
+            device="cpu",
+        )
+
+    from src.ml.dd_laminate.predict_curve_classifier import predict_curve_type
+
+    return predict_curve_type(
+        model_path=model_path,
+        csv_path=csv_path,
+        pt=pt,
+        case=case,
+        test_id=test_id,
+        theta1=theta1,
+        theta2=theta2,
+    )
+
+
 def _model_info(key: str, meta: dict[str, str], input_mode: Literal["theta", "curve", "response", "u3_pt"]) -> ModelInfo:
     path = _model_path(meta)
     requirements = [item.strip() for item in meta.get("requires", "").split(",") if item.strip()]
@@ -491,7 +689,7 @@ def warm_prediction_models() -> dict[str, str]:
         try:
             meta = _ensure_available(key, RESPONSE_MODELS)
             path = str(_model_path(meta))
-            if key in {"response_goint", "response_goint_physics", "response_goint_physics_v2", "response_goint_physics_nn_v2"}:
+            if key in {"response_goint", "response_goint_physics", "response_goint_physics_v2", "response_goint_physics_nn_v2", "response_distilled_v1", "response_distilled_grid_v1", "response_distilled_grid_conf_v1", "response_hybrid_student_deploy_quick_v1"}:
                 _cached_response_deep_artifacts(path)
             else:
                 _cached_joblib_model(path)
@@ -779,6 +977,16 @@ FEATURE_EXPLANATIONS: dict[str, tuple[str, str, str]] = {
         "other",
         "Panel width divided by total laminate thickness.",
     ),
+    "panel_a_in": (
+        "Panel length",
+        "other",
+        "Mechanics panel length a in inches.",
+    ),
+    "panel_b_in": (
+        "Panel width",
+        "other",
+        "Mechanics panel width b in inches.",
+    ),
     "case_pattern_ii": (
         "Case pattern II",
         "case",
@@ -866,12 +1074,28 @@ def _xai_config(model_key: str) -> tuple[Path, str, str, str] | None:
             "membrane-bending coupling, and laminate anisotropy descriptors."
         )
         method = "Tree ensemble feature importance + local finite-difference sensitivity"
+    elif model_key == "response_geometry_tree_v1":
+        xai_path = PROJECT_ROOT / "reports/dd_response_xai_geometry_tree_v1/response_feature_importance.csv"
+        feature_set = "theta + compact CLT physics + panel geometry"
+        summary = (
+            "This explanation uses the Laminate Forecast Geometry ML model. It combines θ₁, θ₂, Case, normalized ABD stiffness terms, "
+            "coupling and anisotropy descriptors, and panel geometry terms such as panel aspect ratio and slenderness."
+        )
+        method = "Tree ensemble feature importance + live local feature masking"
+    elif model_key == "response_geometry_goint_v1":
+        xai_path = PROJECT_ROOT / "reports/dd_response_xai_geometry_goint_v1/response_feature_importance.csv"
+        feature_set = "theta + compact CLT physics + panel geometry"
+        summary = (
+            "This explanation uses the Laminate Forecast Geometry DL model. It combines θ₁, θ₂, Case, normalized ABD stiffness terms, "
+            "coupling and anisotropy descriptors, and panel geometry terms such as panel aspect ratio and slenderness."
+        )
+        method = "GointMLP occlusion sensitivity + live local feature masking"
     elif model_key == "response_surrogate_physics_v2":
-        xai_path = PROJECT_ROOT / "reports/dd_response_xai_physics_v2/response_feature_importance.csv"
+        xai_path = PROJECT_ROOT / "reports/dd_response_xai_physics_abd_v1/response_feature_importance.csv"
         feature_set = "theta + compact CLT physics"
         summary = (
             "This explanation uses the Laminate Forecast Machine Learning model. It keeps the strongest θ, Case, CLT stiffness, "
-            "coupling, anisotropy, and stack-shape features."
+            "coupling, anisotropy, and stack-shape features with ABD terms normalized as A/h, 2B/h², and 12D/h³."
         )
         method = "Tree ensemble feature importance + live local feature masking"
     elif model_key == "response_goint_physics":
@@ -883,13 +1107,49 @@ def _xai_config(model_key: str) -> tuple[Path, str, str, str] | None:
         )
         method = "GointMLP occlusion sensitivity + local finite-difference sensitivity"
     elif model_key == "response_goint_physics_nn_v2":
-        xai_path = PROJECT_ROOT / "reports/dd_response_xai_goint_physics_nn_v2/response_feature_importance.csv"
+        xai_path = PROJECT_ROOT / "reports/dd_response_xai_goint_physics_nn_abd_v1/response_feature_importance.csv"
         feature_set = "theta + NN-friendly CLT physics"
         summary = (
             "This explanation uses the Laminate Forecast Deep Learning model. It keeps physics descriptors and selected basis terms "
-            "that improved the neural multi-task surrogate."
+            "that improved the neural multi-task surrogate, with ABD terms normalized as A/h, 2B/h², and 12D/h³."
         )
         method = "GointMLP occlusion sensitivity + live local feature masking"
+    elif model_key == "response_distilled_v1":
+        xai_path = PROJECT_ROOT / "reports/dd_response_xai_distilled_v1/response_feature_importance.csv"
+        feature_set = "theta + compact CLT physics"
+        summary = (
+            "This explanation uses the Laminate Forecast Distilled NN model. It is a compact neural student distilled from the "
+            "active Machine Learning teacher, using the same compact CLT physics feature family with ABD terms normalized as "
+            "A/h, 2B/h², and 12D/h³."
+        )
+        method = "Distilled GointMLP occlusion sensitivity + live local feature masking"
+    elif model_key == "response_distilled_grid_v1":
+        xai_path = PROJECT_ROOT / "reports/dd_response_xai_distilled_grid_v1/response_feature_importance.csv"
+        feature_set = "theta + compact CLT physics + synthetic grid distillation"
+        summary = (
+            "This explanation uses the Laminate Forecast Distilled NN v2 model. It is a compact neural student trained from "
+            "real Case2/Case3/Case4 data plus synthetic theta/case grid pseudo-labels from the active Machine Learning teacher, "
+            "using ABD terms normalized as A/h, 2B/h², and 12D/h³."
+        )
+        method = "Synthetic-grid distilled GointMLP occlusion sensitivity + live local feature masking"
+    elif model_key == "response_distilled_grid_conf_v1":
+        xai_path = PROJECT_ROOT / "reports/dd_response_xai_distilled_grid_conf_v1/response_feature_importance.csv"
+        feature_set = "theta + compact CLT physics + confidence-weighted synthetic grid distillation"
+        summary = (
+            "This explanation uses the Laminate Forecast Distilled NN v3 model. It is a compact neural student trained from "
+            "real Case2/Case3/Case4 data plus a confidence-weighted synthetic theta/case grid pseudo-labeled by the active "
+            "Machine Learning teacher, using ABD terms normalized as A/h, 2B/h², and 12D/h³."
+        )
+        method = "Confidence-weighted synthetic-grid distilled GointMLP occlusion sensitivity + live local feature masking"
+    elif model_key == "response_hybrid_student_deploy_quick_v1":
+        xai_path = PROJECT_ROOT / "reports/dd_response_xai_hybrid_student_deploy_quick_v1/response_feature_importance.csv"
+        feature_set = "theta + compact CLT physics + confidence-weighted synthetic grid distillation"
+        summary = (
+            "This explanation uses the Laminate Forecast Hybrid Student model. It is a strict-CV-checked neural student trained from "
+            "real Case2/Case3/Case4 data plus a confidence-weighted synthetic theta/case grid pseudo-labeled by the active "
+            "Machine Learning teacher, using ABD terms normalized as A/h, 2B/h², and 12D/h³."
+        )
+        method = "Hybrid student occlusion sensitivity + live local feature masking"
     elif model_key == "response_goint_physics_v2":
         xai_path = PROJECT_ROOT / "reports/dd_response_xai_goint_physics_v2/response_feature_importance.csv"
         feature_set = "theta + compact CLT physics"
@@ -907,11 +1167,11 @@ def _xai_config(model_key: str) -> tuple[Path, str, str, str] | None:
         )
         method = "Tree ensemble feature importance + local finite-difference sensitivity"
     elif model_key == "u3_forecast_physics_v2":
-        xai_path = PROJECT_ROOT / "reports/dd_u3_xai_physics_v3/u3_feature_importance.csv"
+        xai_path = PROJECT_ROOT / "reports/dd_u3_xai_physics_abd_v1/u3_feature_importance.csv"
         feature_set = "theta + compact CLT physics"
         summary = (
             "This explanation uses the u3 Forecast Machine Learning model. It keeps θ periodicity, CLT stiffness, "
-            "coupling, anisotropy, and stack-shape features."
+            "coupling, anisotropy, and stack-shape features with ABD terms normalized as A/h, 2B/h², and 12D/h³."
         )
         method = "Tree ensemble feature importance + live local feature masking"
     elif model_key == "u3_forecast_goint_physics":
@@ -923,11 +1183,11 @@ def _xai_config(model_key: str) -> tuple[Path, str, str, str] | None:
         )
         method = "GointMLP occlusion sensitivity + local finite-difference sensitivity"
     elif model_key == "u3_forecast_goint_physics_v2":
-        xai_path = PROJECT_ROOT / "reports/dd_u3_xai_goint_physics_v3/u3_feature_importance.csv"
+        xai_path = PROJECT_ROOT / "reports/dd_u3_xai_goint_physics_abd_v1/u3_feature_importance.csv"
         feature_set = "theta + compact CLT physics"
         summary = (
             "This explanation uses the u3 Forecast Deep Learning model. It masks one physics feature at a time and measures how much "
-            "the neural Pt, max-value, and curve heads move for the current θ/Case input."
+            "the neural Pt, max-value, and curve heads move for the current θ/Case input, using ABD terms normalized as A/h, 2B/h², and 12D/h³."
         )
         method = "GointMLP occlusion sensitivity + live local feature masking"
     elif model_key == "u3_forecast_goint":
@@ -1089,6 +1349,8 @@ def _local_xai_analysis(
     theta2: float,
     case: str,
     candidate_features: tuple[str, ...] = (),
+    panel_a_in: float = 6.0,
+    panel_b_in: float = 4.0,
 ) -> dict[str, dict[str, float | str]]:
     try:
         import numpy as np
@@ -1108,11 +1370,11 @@ def _local_xai_analysis(
         if model_key in RESPONSE_MODELS:
             meta = RESPONSE_MODELS[model_key]
             model_path = _model_path(meta)
-            if model_key in {"response_goint", "response_goint_physics", "response_goint_physics_v2", "response_goint_physics_nn_v2"}:
+            if model_key in {"response_goint", "response_goint_physics", "response_goint_physics_v2", "response_goint_physics_nn_v2", "response_distilled_v1", "response_distilled_grid_v1", "response_distilled_grid_conf_v1", "response_hybrid_student_deploy_quick_v1"}:
                 checkpoint, model = _cached_response_deep_artifacts(str(model_path))
                 feature_columns = list(checkpoint.get("feature_columns") or [])
                 feature_builder = str(checkpoint.get("feature_builder") or feature_set_from_columns(feature_columns))
-                x = prediction_feature_matrix(theta1, theta2, case, feature_builder)
+                x = prediction_feature_matrix(theta1, theta2, case, feature_builder, panel_a_in, panel_b_in)
                 feature_mean = np.asarray(checkpoint["feature_mean"], dtype=float)
                 feature_std = np.maximum(np.asarray(checkpoint["feature_std"], dtype=float), 1e-9)
 
@@ -1126,7 +1388,7 @@ def _local_xai_analysis(
                 bundle = _cached_joblib_model(str(model_path))
                 feature_columns = list(bundle.get("feature_columns") or [])
                 feature_builder = str(bundle.get("feature_builder") or feature_set_from_columns(feature_columns))
-                x = prediction_feature_matrix(theta1, theta2, case, feature_builder)
+                x = prediction_feature_matrix(theta1, theta2, case, feature_builder, panel_a_in, panel_b_in)
 
                 def output_fn(matrix: Any, *, _bundle: Any = bundle) -> Any:
                     return _response_tree_output_vector(_bundle, matrix)
@@ -1208,13 +1470,22 @@ def _local_xai_scores(
     theta2: float,
     case: str,
     candidate_features: tuple[str, ...] = (),
+    panel_a_in: float = 6.0,
+    panel_b_in: float = 4.0,
 ) -> dict[str, float]:
-    analysis = _local_xai_analysis(model_key, theta1, theta2, case, candidate_features)
+    analysis = _local_xai_analysis(model_key, theta1, theta2, case, candidate_features, panel_a_in, panel_b_in)
     return {feature: float(values.get("score", 0.0)) for feature, values in analysis.items()}
 
 
 @lru_cache(maxsize=256)
-def _load_local_xai_for_model(model_key: str, theta1: float, theta2: float, case: str) -> XAIExplanation | None:
+def _load_local_xai_for_model(
+    model_key: str,
+    theta1: float,
+    theta2: float,
+    case: str,
+    panel_a_in: float = 6.0,
+    panel_b_in: float = 4.0,
+) -> XAIExplanation | None:
     loaded = _load_global_xai_rows(model_key)
     if loaded is None:
         return None
@@ -1227,7 +1498,7 @@ def _load_local_xai_for_model(model_key: str, theta1: float, theta2: float, case
         feature
         for feature, _score in sorted(global_scores.items(), key=lambda item: item[1], reverse=True)[:LOCAL_XAI_MASK_LIMIT]
     )
-    local_analysis = _local_xai_analysis(model_key, theta1, theta2, case, local_candidates)
+    local_analysis = _local_xai_analysis(model_key, theta1, theta2, case, local_candidates, panel_a_in, panel_b_in)
     local_scores = {
         feature: float(values.get("score", 0.0))
         for feature, values in local_analysis.items()
@@ -1405,6 +1676,94 @@ def _space_point(row: dict[str, Any], theta1: float, theta2: float) -> DesignSpa
     )
 
 
+def _population_std(values: list[float]) -> float:
+    if len(values) < 2:
+        return 0.0
+    mean = sum(values) / len(values)
+    return math.sqrt(sum((value - mean) ** 2 for value in values) / len(values))
+
+
+def _prediction_uncertainty(
+    *,
+    theta1: float,
+    theta2: float,
+    case: str,
+    scope: DesignSpaceScope,
+    predicted_pt: float,
+    predicted_type: int | None,
+    confidence: float | None,
+) -> PredictionUncertainty | None:
+    rows = _design_space_rows(scope)
+    if not rows:
+        return None
+
+    same_case = [row for row in rows if row["case"] == case]
+    candidate_rows = same_case or rows
+    nearest_rows = sorted(candidate_rows, key=lambda row: _distance(theta1, theta2, row))[:12]
+    if not nearest_rows:
+        return None
+
+    nearest_distance = _distance(theta1, theta2, nearest_rows[0])
+    mean_nearest_distance = sum(_distance(theta1, theta2, row) for row in nearest_rows[:6]) / max(len(nearest_rows[:6]), 1)
+    interpolation_score = max(0.0, min(1.0, 1.0 - mean_nearest_distance / 80.0))
+    if interpolation_score >= 0.72:
+        interpolation_label: Literal["interpolation", "near-edge", "extrapolation"] = "interpolation"
+    elif interpolation_score >= 0.45:
+        interpolation_label = "near-edge"
+    else:
+        interpolation_label = "extrapolation"
+
+    local_pts = [float(row["pt"]) for row in nearest_rows]
+    local_std = _population_std(local_pts)
+    global_pts = [float(row["pt"]) for row in candidate_rows]
+    global_std = _population_std(global_pts)
+    pt_band = max(local_std, 0.04 * abs(predicted_pt), 0.20 * global_std)
+    pt_low = max(0.0, predicted_pt - pt_band)
+    pt_high = predicted_pt + pt_band
+
+    type_consistency: float | None = None
+    if predicted_type is not None:
+        typed_rows = [row for row in nearest_rows if row.get("type") is not None]
+        if typed_rows:
+            type_consistency = sum(int(row["type"]) == predicted_type for row in typed_rows) / len(typed_rows)
+
+    model_confidence = max(0.0, min(1.0, float(confidence))) if confidence is not None else 0.5
+    consistency_score = type_consistency if type_consistency is not None else 0.55
+    reliability = 0.45 * model_confidence + 0.35 * interpolation_score + 0.20 * consistency_score
+    reliability = max(0.0, min(1.0, reliability))
+    if reliability >= 0.75:
+        confidence_label: Literal["high", "medium", "low"] = "high"
+    elif reliability >= 0.55:
+        confidence_label = "medium"
+    else:
+        confidence_label = "low"
+
+    notes = [
+        "Reliability combines model confidence, distance to nearby curated simulations, and local Type agreement.",
+        "Pt interval is a screening band from nearby Pt scatter, not a formal statistical confidence interval.",
+    ]
+    if interpolation_label == "extrapolation":
+        notes.append("This theta/case input is far from nearby curated simulations; validate before treating the recommendation as stable.")
+    elif interpolation_label == "near-edge":
+        notes.append("This theta/case input is close to the edge of the observed design space.")
+    else:
+        notes.append("This theta/case input is within a well-covered region of the observed design space.")
+
+    return PredictionUncertainty(
+        reliability_score=round(reliability, 4),
+        confidence_label=confidence_label,
+        interpolation_score=round(interpolation_score, 4),
+        interpolation_label=interpolation_label,
+        nearest_distance=round(nearest_distance, 4),
+        nearest_count=len(nearest_rows),
+        local_pt_std=round(local_std, 4),
+        pt_interval_low=round(pt_low, 4),
+        pt_interval_high=round(pt_high, 4),
+        type_consistency=None if type_consistency is None else round(type_consistency, 4),
+        notes=notes,
+    )
+
+
 def _case_summaries(rows: list[dict[str, Any]], scope: DesignSpaceScope) -> list[DesignSpaceCaseSummary]:
     global_median = _median([float(row["pt"]) for row in rows])
     summaries: list[DesignSpaceCaseSummary] = []
@@ -1575,9 +1934,90 @@ def _map_rows(rows: list[dict[str, Any]], theta1: float, theta2: float, case: st
     return selected
 
 
+def _rounded_physics(values: dict[str, float]) -> dict[str, float]:
+    return {key: round(float(value), 6) for key, value in values.items() if math.isfinite(float(value))}
+
+
+def _stack_from_preview_request(payload: StackPreviewRequest) -> tuple[list[float], list[str]]:
+    notes: list[str] = []
+    if payload.case in {"Case2", "Case3", "Case4"}:
+        from src.ml.dd_laminate.laminate_physics import case_stack
+
+        notes.append("Built-in Case2/3/4 stack expansion follows the feature builder used by the current trained models.")
+        return case_stack(payload.case, payload.theta1, payload.theta2), notes
+
+    if not payload.ply_sequence:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Case5/Custom preview needs an explicit expanded ply_sequence. "
+                "Example for theta1=30, theta2=60: [30,-30,60,-60,...]."
+            ),
+        )
+    if len(payload.ply_sequence) > 96:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ply sequence is too long for preview; keep it at 96 plies or fewer.",
+        )
+    notes.append("Case5/Custom is preview-only until matching simulation data is added and models are retrained.")
+    notes.append("Physics descriptors are computed directly from the expanded ply sequence, not from a learned Case5 category.")
+    return [float(angle) for angle in payload.ply_sequence], notes
+
+
 @router.get("/models", response_model=DDLaminateModelsResponse, summary="List DD laminate models")
 async def list_dd_laminate_models() -> DDLaminateModelsResponse:
     return _models_response()
+
+
+@router.post(
+    "/stack/preview",
+    response_model=StackPreviewResponse,
+    summary="Expand a laminate stack and compute CLT physics descriptors",
+)
+async def preview_laminate_stack(payload: StackPreviewRequest) -> StackPreviewResponse:
+    from src.ml.dd_laminate.laminate_physics import stack_physics_summary
+
+    stack, notes = _stack_from_preview_request(payload)
+    try:
+        physics = stack_physics_summary(stack)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    rows = _design_space_rows("response")
+    predicted_pt = _median([float(row["pt"]) for row in rows]) if rows else 0.0
+    design_space = _prediction_uncertainty(
+        theta1=payload.theta1,
+        theta2=payload.theta2,
+        case=payload.case,
+        scope="response",
+        predicted_pt=predicted_pt,
+        predicted_type=None,
+        confidence=None,
+    )
+    if payload.case in {"Case5", "Custom"}:
+        notes.append("Design-space reliability compares only theta location against existing Case2/3/4 simulations.")
+        if design_space is not None:
+            design_space.reliability_score = min(design_space.reliability_score, 0.49)
+            design_space.confidence_label = "low"
+            design_space.interpolation_label = "extrapolation"
+            design_space.notes = [
+                "Case5/Custom has no direct training samples yet; treat this as a physics preview, not a validated forecast.",
+                "The theta location may be close to existing Case2/3/4 samples, but the stacking pattern itself is outside the trained case set.",
+                "Pt interval is copied from nearby Case2/3/4 screening data and should not be interpreted as a Case5 confidence interval.",
+            ]
+
+    return StackPreviewResponse(
+        case=payload.case,
+        formula=payload.formula,
+        theta1=payload.theta1,
+        theta2=payload.theta2,
+        ply_sequence=[round(float(angle), 6) for angle in stack],
+        ply_count=len(stack),
+        total_thickness_in=round(float(physics["total_thickness_in"]), 6),
+        physics=_rounded_physics(physics),
+        design_space=design_space,
+        notes=notes,
+    )
 
 
 @router.post(
@@ -1664,7 +2104,17 @@ async def predict_estimated_response(payload: ResponsePredictionRequest) -> Resp
     meta = _ensure_available(payload.model, RESPONSE_MODELS)
     model_path = _model_path(meta)
     try:
-        if payload.model in {"response_goint", "response_goint_physics", "response_goint_physics_v2", "response_goint_physics_nn_v2"}:
+        if payload.model in {
+            "response_goint",
+            "response_goint_physics",
+            "response_goint_physics_v2",
+            "response_goint_physics_nn_v2",
+            "response_geometry_goint_v1",
+            "response_distilled_v1",
+            "response_distilled_grid_v1",
+            "response_distilled_grid_conf_v1",
+            "response_hybrid_student_deploy_quick_v1",
+        }:
             from src.ml.dd_laminate.predict_response_deep_surrogate import (
                 predict_response_deep_from_artifacts,
             )
@@ -1677,6 +2127,8 @@ async def predict_estimated_response(payload: ResponsePredictionRequest) -> Resp
                 theta2=payload.theta2,
                 case=payload.case,
                 device="cpu",
+                panel_a_in=payload.panel_a_in,
+                panel_b_in=payload.panel_b_in,
             )
         else:
             from src.ml.dd_laminate.predict_response_surrogate import predict_response_from_bundle
@@ -1687,28 +2139,47 @@ async def predict_estimated_response(payload: ResponsePredictionRequest) -> Resp
                 theta1=payload.theta1,
                 theta2=payload.theta2,
                 case=payload.case,
+                panel_a_in=payload.panel_a_in,
+                panel_b_in=payload.panel_b_in,
             )
     except Exception as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
     probabilities = _clean_probabilities(result.get("probabilities"))
+    confidence = _probability_confidence(probabilities)
     notes = _notes(probabilities, "theta")
     notes[0] = f"{meta['label']} prediction; validate promising candidates with simulation."
+    predicted_pt = float(result["predicted_pt"])
     return ResponseSurrogateResponse(
         predicted_type=int(result["predicted_type"]),
-        confidence=_probability_confidence(probabilities),
+        confidence=confidence,
         probabilities=probabilities,
         model_key=payload.model,
         model_label=meta["label"],
         input_mode="response",
-        inputs={"theta1": payload.theta1, "theta2": payload.theta2, "case": payload.case},
+        inputs={
+            "theta1": payload.theta1,
+            "theta2": payload.theta2,
+            "case": payload.case,
+            "panel_a_in": payload.panel_a_in,
+            "panel_b_in": payload.panel_b_in,
+        },
         notes=notes,
-        predicted_pt=float(result["predicted_pt"]),
+        predicted_pt=predicted_pt,
         predicted_max_displacement=float(result["predicted_max_displacement"]),
         predicted_max_force=float(result["predicted_max_force"]),
         curve=result["curve"],
         curve_fit=result.get("curve_fit"),
         metrics=result.get("metrics", {}),
+        uncertainty=_prediction_uncertainty(
+            theta1=payload.theta1,
+            theta2=payload.theta2,
+            case=payload.case,
+            scope="response",
+            predicted_pt=predicted_pt,
+            predicted_type=int(result["predicted_type"]),
+            confidence=confidence,
+        ),
     )
 
 
@@ -1735,31 +2206,16 @@ async def predict_from_curve(
         tmp.flush()
         csv_path = Path(tmp.name)
         try:
-            if model == "curve_goint":
-                from src.ml.dd_laminate.predict_deep_sequence_classifier import predict_deep_type
-
-                result = predict_deep_type(
-                    model_path=model_path,
-                    csv_path=csv_path,
-                    pt=pt,
-                    case=case,
-                    theta1=theta1,
-                    theta2=theta2,
-                    test_id=test_id,
-                    device="cpu",
-                )
-            else:
-                from src.ml.dd_laminate.predict_curve_classifier import predict_curve_type
-
-                result = predict_curve_type(
-                    model_path=model_path,
-                    csv_path=csv_path,
-                    pt=pt,
-                    case=case,
-                    test_id=test_id,
-                    theta1=theta1,
-                    theta2=theta2,
-                )
+            result = _predict_curve_csv_path(
+                model=model,
+                model_path=model_path,
+                csv_path=csv_path,
+                pt=pt,
+                case=case,
+                theta1=theta1,
+                theta2=theta2,
+                test_id=test_id,
+            )
         except Exception as exc:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
@@ -1775,6 +2231,116 @@ async def predict_from_curve(
         inputs={"theta1": theta1, "theta2": theta2, "pt": pt, "case": case, "test_id": test_id},
         notes=_notes(probabilities, "curve"),
         features={key: float(value) for key, value in features.items()} if features else None,
+    )
+
+
+@router.post(
+    "/predict/curve-batch",
+    response_model=CurveBatchPredictionResponse,
+    summary="Predict Type for multiple force-displacement CSV files",
+)
+async def predict_from_curve_batch(
+    files: list[UploadFile] = File(...),
+    metadata_file: UploadFile | None = File(None),
+    theta1: float = Form(0.0),
+    theta2: float = Form(0.0),
+    pt: float = Form(1.0),
+    case: str = Form("Unknown"),
+    model: CurveModelKey = Form("curve_classical"),
+) -> CurveBatchPredictionResponse:
+    if not files:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Upload at least one .csv file.")
+    if len(files) > 1000:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Upload 1000 files or fewer per batch.")
+
+    meta = _ensure_available(model, CURVE_MODELS)
+    model_path = _model_path(meta)
+    metadata = _parse_curve_batch_metadata(await metadata_file.read() if metadata_file else None)
+    default_case = _normalize_curve_case(case)
+    results: list[CurveBatchPredictionRow] = []
+
+    for upload in files:
+        filename = Path(upload.filename or "").name
+        if not filename.lower().endswith(".csv"):
+            results.append(
+                CurveBatchPredictionRow(
+                    filename=filename or "unnamed",
+                    test_id=Path(filename).stem or "Uploaded",
+                    theta1=float(theta1),
+                    theta2=float(theta2),
+                    pt=float(pt),
+                    case=default_case,
+                    predicted_type=None,
+                    status="error",
+                    error="Upload a .csv file.",
+                )
+            )
+            continue
+
+        row_meta = metadata.get(filename) or metadata.get(Path(filename).stem)
+        row_test_id = Path(filename).stem or "Uploaded"
+        try:
+            row_theta1 = float(_metadata_value(row_meta, "theta1", "Theta1", default=theta1))
+            row_theta2 = float(_metadata_value(row_meta, "theta2", "Theta2", default=theta2))
+            row_pt = float(_metadata_value(row_meta, "pt", "Pt", "transition_load", default=pt))
+            row_case = _normalize_curve_case(str(_metadata_value(row_meta, "case", "Case", default=default_case)))
+            row_test_id = str(_metadata_value(row_meta, "test_id", "Test_ID", default=row_test_id))
+            with tempfile.NamedTemporaryFile(suffix=".csv", delete=True) as tmp:
+                shutil.copyfileobj(cast(Any, upload.file), tmp)
+                tmp.flush()
+                csv_path = Path(tmp.name)
+                if not math.isfinite(row_pt) or row_pt <= 0:
+                    raise ValueError("pt must be a positive number.")
+                result = _predict_curve_csv_path(
+                    model=model,
+                    model_path=model_path,
+                    csv_path=csv_path,
+                    pt=row_pt,
+                    case=row_case,
+                    theta1=row_theta1,
+                    theta2=row_theta2,
+                    test_id=row_test_id,
+                )
+                probabilities = _clean_probabilities(result.get("probabilities"))
+                results.append(
+                    CurveBatchPredictionRow(
+                        filename=filename,
+                        test_id=row_test_id,
+                        theta1=row_theta1,
+                        theta2=row_theta2,
+                        pt=row_pt,
+                        case=row_case,
+                        predicted_type=int(result["predicted_type"]),
+                        confidence=_probability_confidence(probabilities),
+                        probabilities=probabilities,
+                        status="ok",
+                    )
+                )
+        except Exception as exc:
+            results.append(
+                CurveBatchPredictionRow(
+                    filename=filename,
+                    test_id=row_test_id,
+                    theta1=float(theta1),
+                    theta2=float(theta2),
+                    pt=float(pt),
+                    case=default_case,
+                    predicted_type=None,
+                    confidence=None,
+                    probabilities=None,
+                    status="error",
+                    error=str(exc),
+                )
+            )
+
+    ok_count = sum(1 for item in results if item.status == "ok")
+    return CurveBatchPredictionResponse(
+        model_key=model,
+        model_label=meta["label"],
+        total_files=len(results),
+        ok_count=ok_count,
+        error_count=len(results) - ok_count,
+        results=results,
     )
 
 
@@ -1889,11 +2455,15 @@ async def predict_u3_forecast(payload: U3ForecastPredictionRequest) -> U3PtPredi
     except Exception as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
+    probabilities = _clean_probabilities(_result_probabilities(result.get("type_probabilities")))
+    confidence = _result_optional_float(result.get("type_confidence"))
+    predicted_type = _result_optional_int(result.get("predicted_type"))
+    predicted_pt = _result_float(result["predicted_pt"])
     return U3PtPredictionResponse(
-        predicted_type=_result_optional_int(result.get("predicted_type")),
-        confidence=_result_optional_float(result.get("type_confidence")),
-        probabilities=_clean_probabilities(_result_probabilities(result.get("type_probabilities"))),
-        predicted_pt=_result_float(result["predicted_pt"]),
+        predicted_type=predicted_type,
+        confidence=confidence,
+        probabilities=probabilities,
+        predicted_pt=predicted_pt,
         predicted_max_displacement=_result_float(result["predicted_max_displacement"]),
         predicted_max_force=_result_float(result["predicted_max_force"]),
         curve=_result_curve(result["curve"]),
@@ -1912,6 +2482,15 @@ async def predict_u3_forecast(payload: U3ForecastPredictionRequest) -> U3PtPredi
             "This u3 forecast uses only theta and case inputs; u3 Type is predicted, not user-selected.",
         ],
         metrics=_result_metrics(result.get("metrics", {})),
+        uncertainty=_prediction_uncertainty(
+            theta1=payload.theta1,
+            theta2=payload.theta2,
+            case=payload.case,
+            scope="u3",
+            predicted_pt=predicted_pt,
+            predicted_type=predicted_type,
+            confidence=confidence,
+        ),
     )
 
 
@@ -1927,7 +2506,14 @@ async def explain_local_prediction(payload: LocalXAIRequest) -> XAIExplanation:
             detail=f"Unknown XAI model: {payload.model}",
         )
 
-    xai = _load_local_xai_for_model(payload.model, payload.theta1, payload.theta2, payload.case)
+    xai = _load_local_xai_for_model(
+        payload.model,
+        payload.theta1,
+        payload.theta2,
+        payload.case,
+        payload.panel_a_in,
+        payload.panel_b_in,
+    )
     if xai is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

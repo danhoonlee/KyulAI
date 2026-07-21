@@ -1,6 +1,11 @@
 param(
     [string]$Python = "py -3.11",
-    [switch]$SkipTorch
+    [switch]$SkipTorch,
+    [ValidateSet("cpu", "cuda")]
+    [string]$TorchBackend = "cpu",
+    [string]$TorchVersion = "2.2.0",
+    [string]$TorchCpuIndexUrl = "https://download.pytorch.org/whl/cpu",
+    [string]$TorchCudaIndexUrl = "https://download.pytorch.org/whl/cu121"
 )
 
 $ErrorActionPreference = "Stop"
@@ -51,14 +56,19 @@ Invoke-VenvPython -Arguments @("-m", "pip", "install", "--upgrade", "pip")
 Invoke-VenvPython -Arguments @("-m", "pip", "install", "-r", "requirements-serving.txt")
 
 if (-not $SkipTorch) {
-    Write-Host "Installing PyTorch CPU wheel..."
-    Invoke-VenvPython -Arguments @("-m", "pip", "install", "torch==2.2.0", "--index-url", "https://download.pytorch.org/whl/cpu")
+    if ($TorchBackend -eq "cuda") {
+        Write-Host "Installing PyTorch CUDA wheel..."
+        Invoke-VenvPython -Arguments @("-m", "pip", "install", "torch==$TorchVersion", "--index-url", $TorchCudaIndexUrl)
+    } else {
+        Write-Host "Installing PyTorch CPU wheel..."
+        Invoke-VenvPython -Arguments @("-m", "pip", "install", "torch==$TorchVersion", "--index-url", $TorchCpuIndexUrl)
+    }
 }
 
 Write-Host "Verifying runtime imports..."
 Invoke-VenvPython -Arguments @("-c", "import fastapi, uvicorn, joblib, numpy, sklearn; print('api/classical deps ok')")
 if (-not $SkipTorch) {
-    Invoke-VenvPython -Arguments @("-c", "import torch; print('torch ok', torch.__version__)")
+    Invoke-VenvPython -Arguments @("-c", "import torch; print('torch ok', torch.__version__); print('cuda available', torch.cuda.is_available()); print('cuda device', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'none')")
 }
 
 Write-Host "Checking package consistency..."

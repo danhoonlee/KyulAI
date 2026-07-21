@@ -147,6 +147,9 @@ DEEP_RESPONSE_MODEL_KEYS = {
     "response_goint_physics",
     "response_goint_physics_v2",
     "response_goint_physics_nn_v2",
+    "response_distilled_v1",
+    "response_distilled_grid_v1",
+    "response_distilled_grid_conf_v1",
 }
 
 

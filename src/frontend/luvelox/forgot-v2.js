@@ -6,13 +6,13 @@ const TEXT = {
     error: "Enter your name, email, and a new password with at least 8 characters.",
     failed: "We could not verify that name and email. Check the account details.",
     success: "Password reset. Opening the workspace...",
-    workspaceUrl: "https://ai.luvelox.com/index.html",
+    workspaceUrl: "https://ai.imperialax.com/index.html",
   },
   ko: {
     error: "이름, 이메일, 8자 이상의 새 비밀번호를 입력하세요.",
     failed: "이름과 이메일을 확인할 수 없습니다. 계정 정보를 다시 확인하세요.",
     success: "비밀번호가 재설정되었습니다. 워크스페이스를 여는 중입니다...",
-    workspaceUrl: "https://ai.luvelox.com/index.ko.html",
+    workspaceUrl: "https://ai.imperialax.com/index.ko.html",
   },
 };
 

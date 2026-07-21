@@ -91,7 +91,7 @@ final class DDLaminateCoreTests: XCTestCase {
                 label: "u3 Forecast - Machine Learning",
                 description: "fixture u3 tree model",
                 inputMode: "u3_pt",
-                path: "models/dd_laminate_u3_forecast_physics_v3/u3_forecast.joblib",
+                path: "models/dd_laminate_u3_forecast_physics_abd_v1/u3_forecast.joblib",
                 available: true
             ),
             ModelInfo(
@@ -99,7 +99,7 @@ final class DDLaminateCoreTests: XCTestCase {
                 label: "u3 Forecast - Deep Learning",
                 description: "fixture u3 neural model",
                 inputMode: "u3_pt",
-                path: "models/dd_laminate_u3_forecast_physics_v3/u3_forecast_goint.pt",
+                path: "models/dd_laminate_u3_forecast_physics_abd_v1/u3_forecast_goint.pt",
                 available: true
             ),
         ]
@@ -202,7 +202,7 @@ final class DDLaminateCoreTests: XCTestCase {
             label: "u3 Forecast - Machine Learning",
             description: "fixture u3 model",
             inputMode: "u3_pt",
-            path: "models/dd_laminate_u3_forecast_physics_v3/u3_forecast.joblib",
+            path: "models/dd_laminate_u3_forecast_physics_abd_v1/u3_forecast.joblib",
             available: true
         )
         let u3Response = U3PtPredictionResult(
@@ -220,7 +220,8 @@ final class DDLaminateCoreTests: XCTestCase {
             inputs: ["theta1": .double(30), "theta2": .double(-30), "case": .string("Case2")],
             notes: [],
             metrics: [:],
-            xai: nil
+            xai: nil,
+            uncertainty: nil
         )
         let client = MockAPIClient(
             healthResponse: HealthResponse(status: "ok"),

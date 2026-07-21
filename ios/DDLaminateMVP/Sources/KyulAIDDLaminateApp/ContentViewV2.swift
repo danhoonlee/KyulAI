@@ -105,6 +105,12 @@ struct ContentViewV2: View {
             return "적층 예측 - Machine Learning"
         case "Laminate Forecast - Deep Learning":
             return "적층 예측 - Deep Learning"
+        case "Laminate Forecast - Distilled NN":
+            return "적층 예측 - Distilled NN"
+        case "Laminate Forecast - Distilled NN v2":
+            return "적층 예측 - Distilled NN v2"
+        case "Laminate Forecast - Distilled NN v3":
+            return "적층 예측 - Distilled NN v3"
         case "u3 Forecast - Machine Learning":
             return "u3 예측 - Machine Learning"
         case "u3 Forecast - Deep Learning":

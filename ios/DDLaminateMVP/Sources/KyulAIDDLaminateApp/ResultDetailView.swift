@@ -84,6 +84,9 @@ struct ResultDetailView: View {
             VStack(alignment: .leading, spacing: 16) {
                 heroCard
                 metricsGrid
+                if let uncertainty = result.uncertainty {
+                    PredictionUncertaintyCard(uncertainty: uncertainty)
+                }
                 curveCard
                 interpretationCard
                 probabilityCard
@@ -354,6 +357,9 @@ struct U3PtResultDetailView: View {
             VStack(alignment: .leading, spacing: 16) {
                 heroCard
                 metricsGrid
+                if let uncertainty = result.uncertainty {
+                    PredictionUncertaintyCard(uncertainty: uncertainty)
+                }
                 curveCard
                 if let xai = result.xai {
                     XAIExplanationCard(xai: xai)
@@ -1458,6 +1464,120 @@ private struct DesignSpaceMapView: View {
     }
 }
 
+struct PredictionUncertaintyCard: View {
+    let uncertainty: PredictionUncertainty
+
+    private func localText(en: String, ko: String) -> String {
+        let languageCode = UserDefaults.standard.string(forKey: "kyulai.ddLaminate.languageCode")
+            ?? (Locale.current.language.languageCode?.identifier == "ko" ? "ko" : "en")
+        return languageCode == "ko" ? ko : en
+    }
+
+    private var badgeText: String {
+        switch uncertainty.confidenceLabel {
+        case "high": return localText(en: "High confidence", ko: "높은 신뢰")
+        case "medium": return localText(en: "Medium confidence", ko: "중간 신뢰")
+        default: return localText(en: "Use caution", ko: "주의 필요")
+        }
+    }
+
+    private var coverageText: String {
+        switch uncertainty.interpolationLabel {
+        case "interpolation": return localText(en: "Interpolation", ko: "보간 영역")
+        case "near-edge": return localText(en: "Near edge", ko: "경계 근처")
+        default: return localText(en: "Extrapolation", ko: "외삽 주의")
+        }
+    }
+
+    var body: some View {
+        ResultDetailCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(localText(en: "Confidence", ko: "신뢰도"))
+                            .font(.caption.weight(.black))
+                            .foregroundStyle(ResultDetailTheme.primary)
+                            .textCase(.uppercase)
+                        Text(localText(en: "Prediction reliability", ko: "예측 안정성"))
+                            .font(.headline.weight(.black))
+                            .foregroundStyle(ResultDetailTheme.ink)
+                    }
+                    Spacer()
+                    Text(badgeText)
+                        .font(.caption.weight(.black))
+                        .foregroundStyle(badgeColor)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 7)
+                        .background(badgeColor.opacity(0.14), in: Capsule())
+                }
+
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                    uncertaintyMetric(localText(en: "Reliability", ko: "종합 신뢰도"), Optional(uncertainty.reliabilityScore).percentText)
+                    uncertaintyMetric(localText(en: "Pt range", ko: "Pt 예상 범위"), ptRangeText)
+                    uncertaintyMetric(localText(en: "Coverage", ko: "커버리지"), coverageText)
+                    uncertaintyMetric(localText(en: "Type agreement", ko: "Type 일치도"), uncertainty.typeConsistency.percentText)
+                }
+
+                ForEach(uncertainty.notes.prefix(2), id: \.self) { note in
+                    Text(localizedNote(note))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(ResultDetailTheme.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+
+    private var badgeColor: Color {
+        switch uncertainty.confidenceLabel {
+        case "high": return ResultDetailTheme.success
+        case "medium": return ResultDetailTheme.warning
+        default: return ResultDetailTheme.danger
+        }
+    }
+
+    private var ptRangeText: String {
+        guard let low = uncertainty.ptIntervalLow, let high = uncertainty.ptIntervalHigh else { return "-" }
+        return "\(low.metricText(digits: 0)) - \(high.metricText(digits: 0))"
+    }
+
+    private func uncertaintyMetric(_ title: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(title)
+                .font(.caption.weight(.black))
+                .foregroundStyle(ResultDetailTheme.muted)
+            Text(value)
+                .font(.subheadline.monospacedDigit().weight(.black))
+                .foregroundStyle(ResultDetailTheme.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(11)
+        .background(ResultDetailTheme.field, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(ResultDetailTheme.line, lineWidth: 1)
+        )
+    }
+
+    private func localizedNote(_ note: String) -> String {
+        let map = [
+            "Reliability combines model confidence, distance to nearby curated simulations, and local Type agreement.":
+                localText(en: note, ko: "종합 신뢰도는 모델 확률, 가까운 curated 해석 데이터와의 거리, 주변 Type 일치도를 함께 반영합니다."),
+            "Pt interval is a screening band from nearby Pt scatter, not a formal statistical confidence interval.":
+                localText(en: note, ko: "Pt 범위는 주변 Pt 산포 기반의 screening band이며, 엄밀한 통계적 신뢰구간은 아닙니다."),
+            "This theta/case input is within a well-covered region of the observed design space.":
+                localText(en: note, ko: "현재 θ/Case 입력은 관측된 설계 공간 안에서 비교적 잘 커버된 영역에 있습니다."),
+            "This theta/case input is close to the edge of the observed design space.":
+                localText(en: note, ko: "현재 θ/Case 입력은 관측된 설계 공간의 경계에 가까운 편입니다."),
+            "This theta/case input is far from nearby curated simulations; validate before treating the recommendation as stable.":
+                localText(en: note, ko: "현재 θ/Case 입력은 가까운 curated 해석 데이터에서 멀어, 안정적인 추천으로 보기 전에 검증이 필요합니다."),
+        ]
+        return map[note] ?? note
+    }
+}
+
 struct XAIExplanationCard: View {
     let xai: XAIExplanation
     @State private var isShowingAllFeatures = false
@@ -1605,12 +1725,16 @@ struct XAIExplanationCard: View {
                 "Laminate Forecast GointMLP + Physics XAI 모델의 설명입니다. 물리 feature를 하나씩 가리고 neural Type, Pt, max value, curve head가 얼마나 움직이는지 측정합니다.",
             "This explanation uses the Laminate Forecast Machine Learning model. It keeps the strongest θ, Case, CLT stiffness, coupling, anisotropy, and stack-shape features.":
                 "Laminate Forecast Machine Learning 모델의 설명입니다. θ, Case, CLT 강성, coupling, anisotropy, 적층 형상 feature 중 영향이 큰 항목을 사용합니다.",
+            "This explanation uses the Laminate Forecast Machine Learning model. It keeps the strongest θ, Case, normalized CLT stiffness, coupling, anisotropy, and stack-shape features.":
+                "Laminate Forecast Machine Learning 모델의 설명입니다. θ, Case, 정규화된 CLT 강성, coupling, anisotropy, 적층 형상 feature 중 영향이 큰 항목을 사용합니다.",
             "This explanation uses the Laminate Forecast Deep Learning model. It keeps physics descriptors and selected basis terms that improved the neural multi-task surrogate.":
                 "Laminate Forecast Deep Learning 모델의 설명입니다. neural multi-task surrogate에 도움이 된 물리 descriptor와 선택된 basis 항목을 사용합니다.",
             "This explanation uses the Laminate Forecast Deep Learning model. It masks one physics feature at a time for the current θ/Case input.":
                 "Laminate Forecast Deep Learning 모델의 설명입니다. 현재 θ/Case 입력에서 물리 feature를 하나씩 가려 민감도를 확인합니다.",
             "This explanation uses the u3 Forecast Machine Learning model. It keeps θ periodicity, CLT stiffness, coupling, anisotropy, and stack-shape features.":
                 "u3 Forecast Machine Learning 모델의 설명입니다. θ 주기성, CLT 강성, coupling, anisotropy, 적층 형상 feature를 사용합니다.",
+            "This explanation uses the u3 Forecast Machine Learning model. It keeps θ periodicity, normalized CLT stiffness, coupling, anisotropy, and stack-shape features.":
+                "u3 Forecast Machine Learning 모델의 설명입니다. θ 주기성, 정규화된 CLT 강성, coupling, anisotropy, 적층 형상 feature를 사용합니다.",
             "This explanation uses the u3 Forecast Deep Learning model. It masks one physics feature at a time and measures how much the neural Pt, max-value, and curve heads move for the current θ/Case input.":
                 "u3 Forecast Deep Learning 모델의 설명입니다. 현재 θ/Case 입력에서 물리 feature를 하나씩 가리고 neural Pt, max value, curve head 변화량을 측정합니다.",
             "This explanation uses the GointMLP theta/case model. It masks one theta feature at a time and measures how much the neural Pt, max-value, and curve heads move.":

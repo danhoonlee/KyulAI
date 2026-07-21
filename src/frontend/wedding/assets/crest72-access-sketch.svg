@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 470" role="img" aria-labelledby="title desc">
+  <title id="title">크레스트72 약도</title>
+  <desc id="desc">동대입구역 6번 출구, 국립극장, 반얀트리 호텔, 크레스트72 글라스홀 위치를 단순화한 약도</desc>
+  <defs>
+    <style>
+      .bg{fill:#fffdf8}
+      .paper{fill:#f4efe7}
+      .road{fill:none;stroke:#1f1f1c;stroke-width:16;stroke-linecap:round;stroke-linejoin:round;opacity:.8}
+      .road2{fill:none;stroke:#1f1f1c;stroke-width:8;stroke-linecap:round;stroke-linejoin:round;opacity:.34}
+      .path{fill:none;stroke:#6f675b;stroke-width:5;stroke-dasharray:9 10;stroke-linecap:round}
+      .shuttle{fill:none;stroke:#1f1f1c;stroke-width:5;stroke-dasharray:14 9;stroke-linecap:round}
+      .label{font-family:"Apple SD Gothic Neo","Noto Sans KR",sans-serif;font-size:22px;font-weight:700;fill:#1f1f1c}
+      .small{font-family:"Apple SD Gothic Neo","Noto Sans KR",sans-serif;font-size:16px;font-weight:600;fill:#6f675b}
+      .tiny{font-family:"Apple SD Gothic Neo","Noto Sans KR",sans-serif;font-size:14px;font-weight:600;fill:#777168}
+      .pin{fill:#161614}
+      .pinText{font-family:"Cormorant Garamond",Georgia,serif;font-size:22px;font-weight:700;fill:#fffdf8}
+      .station{fill:#fffdf8;stroke:#161614;stroke-width:4}
+      .landmark{fill:#fffdf8;stroke:#1f1f1c;stroke-width:3}
+      .soft{fill:#ebe4da}
+    </style>
+  </defs>
+  <rect class="bg" width="720" height="470" rx="32"/>
+  <path class="soft" d="M504 36c84 22 141 86 141 160 0 113-113 205-253 205-82 0-153-26-197-67 55 21 137 16 209-19 100-48 154-139 121-203-8-17-21-30-39-42 6-13 12-24 18-34z" opacity=".55"/>
+  <path class="road" d="M76 360 C182 310 248 240 318 183 C382 130 457 104 625 84"/>
+  <path class="road2" d="M124 130 C224 160 320 190 430 205 C518 217 584 212 650 188"/>
+  <path class="road2" d="M266 420 C310 336 352 250 391 118"/>
+  <path class="path" d="M214 342 C270 318 318 286 363 243"/>
+  <path class="shuttle" d="M214 342 C286 294 358 246 473 184"/>
+  <g transform="translate(164 310)">
+    <circle class="station" cx="50" cy="32" r="30"/>
+    <text class="label" x="50" y="40" text-anchor="middle">3</text>
+    <text class="label" x="0" y="92">동대입구역</text>
+    <text class="small" x="0" y="118">6번 출구 · 도보 약 15분</text>
+    <text class="tiny" x="0" y="141">셔틀버스 약 15분 간격</text>
+  </g>
+  <g transform="translate(418 142)">
+    <path class="pin" d="M42 0c23 0 42 18 42 41 0 31-42 72-42 72S0 72 0 41C0 18 19 0 42 0z"/>
+    <circle cx="42" cy="40" r="20" fill="#fffdf8"/>
+    <text class="pinText" x="42" y="48" text-anchor="middle" fill="#161614">72</text>
+    <text class="label" x="-18" y="144">크레스트72</text>
+    <text class="small" x="-18" y="170">글라스홀</text>
+  </g>
+  <g transform="translate(470 62)">
+    <rect class="landmark" x="0" y="0" width="136" height="50" rx="14"/>
+    <text class="small" x="68" y="31" text-anchor="middle">반얀트리 호텔</text>
+  </g>
+  <g transform="translate(482 224)">
+    <rect class="landmark" x="0" y="0" width="128" height="50" rx="14"/>
+    <text class="small" x="64" y="31" text-anchor="middle">국립극장</text>
+  </g>
+  <g transform="translate(74 50)">
+    <text class="small" x="0" y="0">약도</text>
+    <text class="label" x="0" y="34">오시는 길 한눈에 보기</text>
+  </g>
+  <g transform="translate(76 404)">
+    <circle cx="0" cy="-5" r="5" fill="#6f675b"/>
+    <text class="tiny" x="14" y="0">점선: 도보 / 셔틀 이동 방향</text>
+  </g>
+</svg>

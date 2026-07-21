@@ -6,13 +6,13 @@ const TEXT = {
     error: "Enter every field and use a password with at least 8 characters.",
     failed: "Could not create this account. Try another email or password.",
     success: "Account created. Opening the workspace...",
-    workspaceUrl: "https://ai.luvelox.com/index.html",
+    workspaceUrl: "https://ai.imperialax.com/index.html",
   },
   ko: {
     error: "모든 항목을 입력하고 비밀번호는 8자 이상으로 설정하세요.",
     failed: "계정을 만들 수 없습니다. 다른 이메일이나 비밀번호를 사용해보세요.",
     success: "계정이 생성되었습니다. 워크스페이스를 여는 중입니다...",
-    workspaceUrl: "https://ai.luvelox.com/index.ko.html",
+    workspaceUrl: "https://ai.imperialax.com/index.ko.html",
   },
 };
 

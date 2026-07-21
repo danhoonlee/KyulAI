@@ -135,6 +135,12 @@ def _case_stack(case: str, theta1: float, theta2: float) -> list[float]:
     raise ValueError(f"Unsupported DD laminate case: {case}")
 
 
+def case_stack(case: str, theta1: float, theta2: float) -> list[float]:
+    """Return the built-in case stack used by trained model feature builders."""
+
+    return _case_stack(case, theta1, theta2)
+
+
 def _reduced_stiffness(material: MaterialProperties) -> np.ndarray:
     nu21 = material.nu12 * material.e22_msi / material.e11_msi
     denom = 1.0 - material.nu12 * nu21
@@ -201,6 +207,87 @@ def abd_matrices(
     return a, b, d, stack
 
 
+def abd_matrices_from_stack(
+    stack: list[float] | tuple[float, ...],
+    material: MaterialProperties = DEFAULT_MATERIAL,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, list[float]]:
+    """Return ABD matrices for an explicit ply-angle stack.
+
+    This is intentionally separate from :func:`abd_matrices` so new candidate
+    patterns such as a future Case5 can be studied without changing the
+    feature schema used by already-trained Case2/3/4 models.
+    """
+
+    explicit_stack = [float(angle) for angle in stack]
+    if not explicit_stack:
+        raise ValueError("Ply stack must contain at least one angle.")
+    if any(not np.isfinite(angle) for angle in explicit_stack):
+        raise ValueError("Ply stack contains a non-finite angle.")
+    if any(abs(angle) > 90.0 for angle in explicit_stack):
+        raise ValueError("Ply angles must stay within -90 to 90 degrees.")
+
+    ply_t = material.ply_thickness_in
+    total_h = ply_t * len(explicit_stack)
+    z_edges = np.linspace(-total_h / 2.0, total_h / 2.0, len(explicit_stack) + 1)
+    q = _reduced_stiffness(material)
+    a = np.zeros((3, 3), dtype=float)
+    b = np.zeros((3, 3), dtype=float)
+    d = np.zeros((3, 3), dtype=float)
+
+    for idx, angle in enumerate(explicit_stack):
+        z0 = z_edges[idx]
+        z1 = z_edges[idx + 1]
+        qbar = _qbar(angle, q)
+        a += qbar * (z1 - z0)
+        b += 0.5 * qbar * (z1**2 - z0**2)
+        d += (1.0 / 3.0) * qbar * (z1**3 - z0**3)
+    return a, b, d, explicit_stack
+
+
+def stack_physics_summary(
+    stack: list[float] | tuple[float, ...],
+    material: MaterialProperties = DEFAULT_MATERIAL,
+) -> dict[str, float]:
+    """Return compact CLT descriptors for an explicit ply-angle stack."""
+
+    a, b, d, explicit_stack = abd_matrices_from_stack(stack, material)
+    h = material.ply_thickness_in * len(explicit_stack)
+    eps = 1e-9
+    a_norm = a / max(h, 1e-12)
+    b_norm = 2.0 * b / max(h**2, 1e-12)
+    d_norm = 12.0 * d / max(h**3, 1e-12)
+    stack_arr = np.asarray(explicit_stack, dtype=float)
+    mirror = stack_arr[::-1]
+    radians_2 = np.deg2rad(2.0 * stack_arr)
+    return {
+        "ply_count": float(len(explicit_stack)),
+        "total_thickness_in": float(h),
+        "a11": float(a_norm[0, 0]),
+        "a22": float(a_norm[1, 1]),
+        "a12": float(a_norm[0, 1]),
+        "a66": float(a_norm[2, 2]),
+        "d11": float(d_norm[0, 0]),
+        "d22": float(d_norm[1, 1]),
+        "d12": float(d_norm[0, 1]),
+        "d66": float(d_norm[2, 2]),
+        "a11_a22_ratio": float(a_norm[0, 0] / max(abs(a_norm[1, 1]), eps)),
+        "d11_d22_ratio": float(d_norm[0, 0] / max(abs(d_norm[1, 1]), eps)),
+        "a_coupling_norm": float((abs(a_norm[0, 2]) + abs(a_norm[1, 2])) / max(abs(a_norm[0, 0]) + abs(a_norm[1, 1]), eps)),
+        "b_coupling_norm": float((abs(b_norm[0, 2]) + abs(b_norm[1, 2])) / max(abs(a_norm[0, 0]) + abs(a_norm[1, 1]), eps)),
+        "d_coupling_norm": float((abs(d_norm[0, 2]) + abs(d_norm[1, 2])) / max(abs(d_norm[0, 0]) + abs(d_norm[1, 1]), eps)),
+        "membrane_anisotropy": float((a[0, 0] - a[1, 1]) / max(abs(a[0, 0]) + abs(a[1, 1]), eps)),
+        "bending_anisotropy": float((d[0, 0] - d[1, 1]) / max(abs(d[0, 0]) + abs(d[1, 1]), eps)),
+        "angle_mean": float(np.mean(stack_arr)),
+        "angle_abs_mean": float(np.mean(np.abs(stack_arr))),
+        "angle_abs_std": float(np.std(np.abs(stack_arr))),
+        "angle_min_abs": float(np.min(np.abs(stack_arr))),
+        "angle_max_abs": float(np.max(np.abs(stack_arr))),
+        "stack_symmetry_mismatch": float(np.mean(np.abs(stack_arr - mirror)) / 180.0),
+        "stack_balance_sin_sum": float(np.sum(np.sin(radians_2)) / len(stack_arr)),
+        "stack_balance_cos_sum": float(np.sum(np.cos(radians_2)) / len(stack_arr)),
+    }
+
+
 def physics_feature_vector(
     case: str,
     theta1: float,
@@ -210,8 +297,8 @@ def physics_feature_vector(
     a, b, d, stack = abd_matrices(case, theta1, theta2, material)
     h = material.ply_thickness_in * len(stack)
     a_norm = a / max(h, 1e-12)
-    b_norm = b / max(h**2, 1e-12)
-    d_norm = d / max(h**3, 1e-12)
+    b_norm = 2.0 * b / max(h**2, 1e-12)
+    d_norm = 12.0 * d / max(h**3, 1e-12)
     eps = 1e-9
     values = [
         a_norm[0, 0],
@@ -260,8 +347,8 @@ def extended_physics_feature_vector(
     base = physics_feature_vector(case, theta1, theta2, material)
     a, b, d, stack = abd_matrices(case, theta1, theta2, material)
     h = material.ply_thickness_in * len(stack)
-    b_norm = b / max(h**2, 1e-12)
-    d_norm = d / max(h**3, 1e-12)
+    b_norm = 2.0 * b / max(h**2, 1e-12)
+    d_norm = 12.0 * d / max(h**3, 1e-12)
     eps = 1e-9
     stack_arr = np.asarray(stack, dtype=float)
     mirror = stack_arr[::-1]
@@ -344,8 +431,11 @@ __all__ = [
     "PHYSICS_FEATURE_COLUMNS",
     "MaterialProperties",
     "abd_matrices",
+    "abd_matrices_from_stack",
+    "case_stack",
     "compact_physics_feature_vector",
     "extended_physics_feature_vector",
     "nn_friendly_physics_feature_vector",
     "physics_feature_vector",
+    "stack_physics_summary",
 ]

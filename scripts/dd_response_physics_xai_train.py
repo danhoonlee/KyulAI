@@ -295,7 +295,7 @@ def main() -> None:
     parser.add_argument("--device", choices=["cpu", "mps", "cuda"], default="cpu")
     parser.add_argument(
         "--feature-set",
-        choices=["theta_physics", "theta_physics_v2", "theta_physics_nn_v2"],
+        choices=["theta_physics", "theta_physics_v2", "theta_physics_nn_v2", "theta_physics_geometry_v1"],
         default="theta_physics",
     )
     parser.add_argument("--skip-tree", action="store_true")

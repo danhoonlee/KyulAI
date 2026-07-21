@@ -1,4 +1,4 @@
-"""Luvelox module catalog and entitlement API routes.
+"""ImperialAX module catalog and entitlement API routes.
 
 The unified app should learn which prediction modules exist from the server,
 instead of hardcoding a growing list of standalone apps.
@@ -37,6 +37,10 @@ ModuleStatus = Literal["active", "preview", "planned"]
 ModuleAccess = Literal["granted", "locked", "hidden"]
 ADMIN_ENTITLEMENT = "module.admin"
 DEFAULT_ADMIN_EMAILS = ("danlee@luvelox.com", "dannylee9295@gmail.com")
+DEMO_EMAIL_ALIASES = {
+    "demo@imperialax.com": "demo@luvelox.com",
+    "danlee@imperialax.com": "danlee@luvelox.com",
+}
 
 
 class ModuleRoute(BaseModel):
@@ -64,7 +68,7 @@ class ModuleDefinition(BaseModel):
 
 
 class ModuleCatalogResponse(BaseModel):
-    brand: str = "Luvelox"
+    brand: str = "ImperialAX"
     catalog_version: str = "2026.06.11"
     modules: list[ModuleDefinition]
 
@@ -84,7 +88,7 @@ class AccountUser(BaseModel):
 
 
 class UserModulesResponse(BaseModel):
-    brand: str = "Luvelox"
+    brand: str = "ImperialAX"
     license_mode: Literal["demo", "entitled"] = "demo"
     user: AccountUser | None = None
     modules: list[UserModule]
@@ -176,7 +180,7 @@ class AdminModuleOption(BaseModel):
 
 
 class AdminUsersResponse(BaseModel):
-    brand: str = "Luvelox"
+    brand: str = "ImperialAX"
     user_count: int
     users: list[AdminUser]
     modules: list[AdminModuleOption]
@@ -218,8 +222,8 @@ MODULE_CATALOG: tuple[ModuleDefinition, ...] = (
         tags=["Double-Double", "Pt", "Force-displacement"],
         capabilities=["response_prediction", "curve_chart", "history", "comparison", "share_report"],
         route=ModuleRoute(
-            base_url="https://laminate.luvelox.com",
-            web_url="https://laminate.luvelox.com",
+            base_url="https://laminate.imperialax.com",
+            web_url="https://laminate.imperialax.com",
             api_prefix="/api/v1/dd-laminate",
             models_path="/api/v1/dd-laminate/models",
             primary_predict_path="/api/v1/dd-laminate/predict/response",
@@ -238,8 +242,8 @@ MODULE_CATALOG: tuple[ModuleDefinition, ...] = (
         tags=["Moldex3D", "Sprue pressure", "Filling pressure"],
         capabilities=["sprue_pressure", "filling_histogram", "filling_animation", "history", "share_report"],
         route=ModuleRoute(
-            base_url="https://injection.luvelox.com",
-            web_url="https://injection.luvelox.com",
+            base_url="https://injection.imperialax.com",
+            web_url="https://injection.imperialax.com",
             api_prefix="/api/v1/simple-injection",
             models_path="/api/v1/simple-injection/models",
             primary_predict_path="/api/v1/simple-injection/predict/sprue-pressure",
@@ -258,8 +262,8 @@ MODULE_CATALOG: tuple[ModuleDefinition, ...] = (
         tags=["DOE", "Ranking", "Design space"],
         capabilities=["candidate_ranking", "batch_prediction"],
         route=ModuleRoute(
-            base_url="https://ai.luvelox.com",
-            web_url="https://ai.luvelox.com/optimization.html",
+            base_url="https://ai.imperialax.com",
+            web_url="https://ai.imperialax.com/optimization.html",
             api_prefix="/api/v1/optimization",
             models_path="/api/v1/optimization/models",
             primary_predict_path="/api/v1/optimization/search",
@@ -272,7 +276,7 @@ ADMIN_MODULE = ModuleDefinition(
     name="Admin",
     short_name="Admin",
     category="Account",
-    summary="Manage Luvelox users, passwords, and module access.",
+    summary="Manage ImperialAX users, passwords, and module access.",
     icon="shield",
     status="active",
     entitlement_key=ADMIN_ENTITLEMENT,
@@ -280,8 +284,8 @@ ADMIN_MODULE = ModuleDefinition(
     tags=["Users", "Access", "Admin"],
     capabilities=["user_management", "module_access", "password_reset"],
     route=ModuleRoute(
-        base_url="https://ai.luvelox.com",
-        web_url="https://ai.luvelox.com/admin.html",
+        base_url="https://ai.imperialax.com",
+        web_url="https://ai.imperialax.com/admin.html",
         api_prefix="/api/v1/modules/admin",
         models_path="/api/v1/modules/admin/users",
         primary_predict_path="/api/v1/modules/admin/users",
@@ -310,6 +314,27 @@ def _bearer_token(authorization: str | None) -> str | None:
     return token.strip()
 
 
+def _canonical_email(email: str) -> str:
+    normalized = email.strip().lower()
+    return DEMO_EMAIL_ALIASES.get(normalized, normalized)
+
+
+def _display_email(email: str) -> str:
+    if email == "demo@luvelox.com":
+        return "demo@imperialax.com"
+    if email == "danlee@luvelox.com":
+        return "danlee@imperialax.com"
+    return email
+
+
+def _display_company(email: str, company: str | None) -> str | None:
+    if email == "demo@luvelox.com":
+        return "ImperialAX Demo"
+    if email == "danlee@luvelox.com" and company == "Luvelox":
+        return "ImperialAX"
+    return company
+
+
 def _session_is_admin(session: AuthSession | None) -> bool:
     if not session:
         return False
@@ -331,10 +356,10 @@ def _require_admin_token(x_luvelox_admin_token: str | None, authorization: str |
     if _session_is_admin(session_from_token(x_luvelox_admin_token)):
         return
     if not expected:
-        raise HTTPException(status_code=503, detail="Luvelox admin token is not configured.")
+        raise HTTPException(status_code=503, detail="ImperialAX admin token is not configured.")
     candidates = [x_luvelox_admin_token, _bearer_token(authorization)]
     if not any(candidate and hmac.compare_digest(candidate, expected) for candidate in candidates):
-        raise HTTPException(status_code=401, detail="Invalid Luvelox admin token.")
+        raise HTTPException(status_code=401, detail="Invalid ImperialAX admin token.")
 
 
 def _account_for_request(authorization: str | None) -> tuple[AccountUser | None, set[str]]:
@@ -348,9 +373,9 @@ def _account_for_request(authorization: str | None) -> tuple[AccountUser | None,
 def _account_user(session: AuthSession) -> AccountUser:
     return AccountUser(
         id=session.user.id,
-        email=session.user.email,
+        email=_display_email(session.user.email),
         name=session.user.name,
-        company=session.user.company,
+        company=_display_company(session.user.email, session.user.company),
         location=session.user.location,
         mobile=session.user.mobile,
     )
@@ -373,10 +398,10 @@ def _module_access(
     if module.entitlement_key in entitlements or module.id in entitlements:
         return "granted", "Granted by account entitlement."
     if allow_default_enabled and module.default_enabled and module.status == "active":
-        return "granted", "Enabled for the current Luvelox MVP workspace."
+        return "granted", "Enabled for the current ImperialAX workspace."
     if module.status == "planned":
         return "locked", "Planned module; not available in this workspace yet."
-    return "locked", "Requires a Luvelox module license."
+    return "locked", "Requires an ImperialAX module license."
 
 
 def _admin_module_options() -> list[AdminModuleOption]:
@@ -401,7 +426,7 @@ def _validate_admin_entitlements(entitlements: list[str]) -> tuple[str, ...]:
     return tuple(entitlements)
 
 
-@router.get("", response_model=ModuleCatalogResponse, summary="List Luvelox prediction modules")
+@router.get("", response_model=ModuleCatalogResponse, summary="List ImperialAX prediction modules")
 async def list_modules() -> ModuleCatalogResponse:
     return ModuleCatalogResponse(modules=list(MODULE_CATALOG))
 
@@ -425,7 +450,7 @@ async def list_my_modules(
             UserModule(
                 **ADMIN_MODULE.model_dump(),
                 access="granted",
-                access_reason="Visible only to Luvelox admin accounts.",
+                access_reason="Visible only to ImperialAX admin accounts.",
             )
         )
     return UserModulesResponse(
@@ -435,7 +460,7 @@ async def list_my_modules(
     )
 
 
-@router.get("/admin/users", response_model=AdminUsersResponse, summary="List Luvelox account users")
+@router.get("/admin/users", response_model=AdminUsersResponse, summary="List ImperialAX account users")
 async def admin_users(
     x_luvelox_admin_token: str | None = Header(default=None, alias="X-Luvelox-Admin-Token"),
     authorization: str | None = Header(default=None, alias="Authorization"),
@@ -463,7 +488,7 @@ async def admin_users(
     "/admin/users",
     response_model=AdminAccountCreateResponse,
     status_code=201,
-    summary="Create a Luvelox account as an admin",
+    summary="Create an ImperialAX account as an admin",
 )
 async def admin_create_user(
     payload: AdminAccountCreateRequest,
@@ -503,7 +528,7 @@ async def admin_create_user(
 @router.put(
     "/admin/users/{user_id}/profile",
     response_model=AdminAccountUpdateResponse,
-    summary="Update a Luvelox account profile as an admin",
+    summary="Update an ImperialAX account profile as an admin",
 )
 async def admin_update_profile(
     user_id: str,
@@ -539,7 +564,7 @@ async def admin_update_profile(
 @router.post(
     "/admin/users/{user_id}/password",
     response_model=AdminPasswordResetResponse,
-    summary="Reset a Luvelox account password as an admin",
+    summary="Reset an ImperialAX account password as an admin",
 )
 async def admin_reset_password(
     user_id: str,
@@ -569,7 +594,7 @@ async def admin_reset_password(
 @router.put(
     "/admin/users/{user_id}/entitlements",
     response_model=AdminEntitlementUpdateResponse,
-    summary="Update Luvelox module entitlements for a user",
+    summary="Update ImperialAX module entitlements for a user",
 )
 async def admin_update_entitlements(
     user_id: str,
@@ -586,16 +611,16 @@ async def admin_update_entitlements(
     return AdminEntitlementUpdateResponse(user_id=user_id, entitlements=list(entitlements))
 
 
-@router.post("/auth/login", response_model=LoginResponse, summary="Sign in to a Luvelox account")
+@router.post("/auth/login", response_model=LoginResponse, summary="Sign in to an ImperialAX account")
 async def account_login(payload: LoginRequest) -> LoginResponse:
-    normalized_email = payload.email.strip().lower()
+    normalized_email = _canonical_email(payload.email)
     try:
         return _login_response(login(email=normalized_email, password=payload.password))
     except InvalidCredentialsError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
 
 
-@router.post("/auth/signup", response_model=LoginResponse, summary="Create a Luvelox account")
+@router.post("/auth/signup", response_model=LoginResponse, summary="Create an ImperialAX account")
 async def signup(payload: SignupRequest) -> LoginResponse:
     try:
         session = create_account(
@@ -613,7 +638,7 @@ async def signup(payload: SignupRequest) -> LoginResponse:
     return _login_response(session)
 
 
-@router.post("/auth/forgot-password", response_model=LoginResponse, summary="Reset a Luvelox account password")
+@router.post("/auth/forgot-password", response_model=LoginResponse, summary="Reset an ImperialAX account password")
 async def forgot_password(payload: PasswordRecoveryRequest) -> LoginResponse:
     try:
         session = reset_password_by_identity(
@@ -628,11 +653,13 @@ async def forgot_password(payload: PasswordRecoveryRequest) -> LoginResponse:
     return _login_response(session)
 
 
-@router.post("/auth/demo-login", response_model=LoginResponse, summary="Create a demo Luvelox account session")
+@router.post("/auth/demo-login", response_model=LoginResponse, summary="Create a demo ImperialAX account session")
 async def demo_login(payload: LoginRequest) -> LoginResponse:
-    normalized_email = payload.email.strip().lower() or "demo@luvelox.com"
+    if os.getenv("LUVELOX_DISABLE_DEMO_LOGIN", "").strip().lower() in {"1", "true", "yes", "on"}:
+        raise HTTPException(status_code=403, detail="Demo login is disabled for this build.")
+    normalized_email = _canonical_email(payload.email or "demo@imperialax.com")
     if normalized_email not in {"demo@luvelox.com", "danlee@luvelox.com"}:
-        raise HTTPException(status_code=401, detail="Unknown Luvelox demo account.")
+        raise HTTPException(status_code=401, detail="Unknown ImperialAX demo account.")
     token = "danlee-token" if normalized_email == "danlee@luvelox.com" else "demo-token"
     session = session_from_token(token)
     if session is None:
@@ -640,14 +667,14 @@ async def demo_login(payload: LoginRequest) -> LoginResponse:
     return _login_response(session)
 
 
-@router.post("/request-access", response_model=AccessRequestResponse, summary="Request access to a Luvelox module")
+@router.post("/request-access", response_model=AccessRequestResponse, summary="Request access to an ImperialAX module")
 async def request_module_access(
     payload: AccessRequest,
     authorization: str | None = Header(default=None, alias="Authorization"),
 ) -> AccessRequestResponse:
     module_ids = {module.id for module in MODULE_CATALOG}
     if payload.module_id not in module_ids:
-        raise HTTPException(status_code=404, detail="Unknown Luvelox module.")
+        raise HTTPException(status_code=404, detail="Unknown ImperialAX module.")
     user, _ = _account_for_request(authorization)
     record_access_request(
         user_id=user.id if user else None,
@@ -656,6 +683,6 @@ async def request_module_access(
     )
     return AccessRequestResponse(
         module_id=payload.module_id,
-        message="Access request received. The Luvelox team will review the requested module.",
+        message="Access request received. The ImperialAX team will review the requested module.",
         user=user,
     )

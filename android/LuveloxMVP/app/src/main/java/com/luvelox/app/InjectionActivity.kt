@@ -372,6 +372,33 @@ class InjectionActivity : Activity() {
         features.take(5).forEach { feature ->
             addView(xaiFeatureRow(feature), margin(top = 10))
         }
+        val hiddenFeatures = features.drop(5)
+        if (hiddenFeatures.isNotEmpty()) {
+            val hiddenContainer = LinearLayout(this@InjectionActivity).apply {
+                orientation = LinearLayout.VERTICAL
+                visibility = View.GONE
+                hiddenFeatures.forEach { feature ->
+                    addView(xaiFeatureRow(feature), margin(top = 10))
+                }
+            }
+            val toggle = Button(this@InjectionActivity).apply {
+                text = if (isKoreanUi()) "나머지 ${hiddenFeatures.size}개 feature 더보기" else "Show ${hiddenFeatures.size} more features"
+                isAllCaps = false
+                setTextColor(color(0x0B77BD))
+                setBackgroundColor(Color.TRANSPARENT)
+                setOnClickListener {
+                    val shouldExpand = hiddenContainer.visibility != View.VISIBLE
+                    hiddenContainer.visibility = if (shouldExpand) View.VISIBLE else View.GONE
+                    text = if (shouldExpand) {
+                        if (isKoreanUi()) "추가 feature 숨기기" else "Hide extra features"
+                    } else {
+                        if (isKoreanUi()) "나머지 ${hiddenFeatures.size}개 feature 더보기" else "Show ${hiddenFeatures.size} more features"
+                    }
+                }
+            }
+            addView(toggle, margin(top = 8))
+            addView(hiddenContainer)
+        }
     }
 
     private fun xaiFeatureRow(feature: InjectionXaiFeature): LinearLayout = LinearLayout(this).apply {

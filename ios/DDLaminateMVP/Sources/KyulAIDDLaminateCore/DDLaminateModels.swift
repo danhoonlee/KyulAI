@@ -239,6 +239,34 @@ public struct XAIExplanation: Codable, Equatable, Hashable, Sendable {
     }
 }
 
+public struct PredictionUncertainty: Codable, Equatable, Hashable, Sendable {
+    public let reliabilityScore: Double
+    public let confidenceLabel: String
+    public let interpolationScore: Double
+    public let interpolationLabel: String
+    public let nearestDistance: Double?
+    public let nearestCount: Int
+    public let localPtStd: Double?
+    public let ptIntervalLow: Double?
+    public let ptIntervalHigh: Double?
+    public let typeConsistency: Double?
+    public let notes: [String]
+
+    enum CodingKeys: String, CodingKey {
+        case reliabilityScore = "reliability_score"
+        case confidenceLabel = "confidence_label"
+        case interpolationScore = "interpolation_score"
+        case interpolationLabel = "interpolation_label"
+        case nearestDistance = "nearest_distance"
+        case nearestCount = "nearest_count"
+        case localPtStd = "local_pt_std"
+        case ptIntervalLow = "pt_interval_low"
+        case ptIntervalHigh = "pt_interval_high"
+        case typeConsistency = "type_consistency"
+        case notes
+    }
+}
+
 public struct DesignSpaceScoreBreakdown: Codable, Equatable, Hashable, Sendable {
     public let pt: Double
     public let type: Double
@@ -428,6 +456,7 @@ public struct ResponsePredictionResult: Codable, Equatable, Hashable, Sendable {
     public let curveFit: ResponseCurveFit?
     public let metrics: [String: JSONValue]
     public var xai: XAIExplanation?
+    public let uncertainty: PredictionUncertainty?
 
     public var sortedProbabilities: [(label: String, value: Double)] {
         (probabilities ?? [:]).sorted { $0.key < $1.key }.map { ($0.key, $0.value) }
@@ -452,6 +481,7 @@ public struct ResponsePredictionResult: Codable, Equatable, Hashable, Sendable {
         case curveFit = "curve_fit"
         case metrics
         case xai
+        case uncertainty
     }
 }
 
@@ -471,6 +501,7 @@ public struct U3PtPredictionResult: Codable, Equatable, Hashable, Sendable {
     public let notes: [String]
     public let metrics: [String: JSONValue]
     public var xai: XAIExplanation?
+    public let uncertainty: PredictionUncertainty?
 
     public var displayModelLabel: String { DDLaminateModelDisplayLabel.clean(modelLabel) }
 
@@ -490,6 +521,7 @@ public struct U3PtPredictionResult: Codable, Equatable, Hashable, Sendable {
         case notes
         case metrics
         case xai
+        case uncertainty
     }
 }
 
@@ -590,6 +622,7 @@ public enum DDLaminateDefaults {
     public static let responseModelKeys = [
         "response_surrogate_physics_v2",
         "response_goint_physics_nn_v2",
+        "response_distilled_grid_conf_v1",
     ]
     public static let u3PtModelKey = "u3_forecast_physics_v2"
     public static let u3PtModelKeys = [
@@ -642,6 +675,9 @@ enum DDLaminateModelDisplayLabel {
         "laminate forecast - gointmlp + nn-friendly physics xai": "Laminate Forecast - Deep Learning",
         "laminate forecast - gointmlp + compact physics xai": "Laminate Forecast - Deep Learning",
         "laminate forecast - deep learning": "Laminate Forecast - Deep Learning",
+        "laminate forecast - distilled nn v3": "Laminate Forecast - Distilled NN v3",
+        "laminate forecast - distilled nn v2": "Laminate Forecast - Distilled NN v2",
+        "laminate forecast - distilled nn": "Laminate Forecast - Distilled NN",
     ]
 
     private static let keyAliases: [String: String] = [
@@ -651,6 +687,9 @@ enum DDLaminateModelDisplayLabel {
         "response_surrogate_physics_v2": "Laminate Forecast - Machine Learning",
         "response_goint_physics": "Laminate Forecast - Deep Learning",
         "response_goint_physics_nn_v2": "Laminate Forecast - Deep Learning",
+        "response_distilled_grid_conf_v1": "Laminate Forecast - Distilled NN v3",
+        "response_distilled_grid_v1": "Laminate Forecast - Distilled NN v2",
+        "response_distilled_v1": "Laminate Forecast - Distilled NN",
         "theta_classical": "RandomForest",
         "theta_goint": "GointMLP NN",
         "curve_classical": "ExtraTrees",

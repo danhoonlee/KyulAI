@@ -3,7 +3,7 @@ const LOCALE = document.documentElement.lang.toLowerCase().startsWith("ko") ? "k
 
 const TEXT = {
   en: {
-    accessManaged: "Module access is managed by your Luvelox account.",
+    accessManaged: "Module access is managed by your ImperialAX account.",
     accountWorkspace: "Account workspace",
     available: "Available",
     createAccount: "Create account",
@@ -17,10 +17,10 @@ const TEXT = {
     open: "Open",
     passwordHint: "Use at least 8 characters to create an account.",
     requestAccess: "Request access",
-    requestFailed: "Request saved locally. We could not reach the Luvelox server right now.",
-    requestMessage: "Requested from Luvelox web app.",
+    requestFailed: "Request saved locally. We could not reach the ImperialAX server right now.",
+    requestMessage: "Requested from ImperialAX web app.",
     requestSuccess: "Access request received.",
-    requiresLicense: "This module requires a Luvelox license.",
+    requiresLicense: "This module requires an ImperialAX license.",
     refresh: "Refresh",
     refreshLoading: "Refreshing...",
     refreshOffline: "Offline fallback shown",
@@ -33,7 +33,7 @@ const TEXT = {
     signupMode: "Create account",
   },
   ko: {
-    accessManaged: "모듈 접근 권한은 Luvelox 계정 기준으로 관리됩니다.",
+    accessManaged: "모듈 접근 권한은 ImperialAX 계정 기준으로 관리됩니다.",
     accountWorkspace: "계정 워크스페이스",
     available: "사용 가능",
     createAccount: "계정 만들기",
@@ -47,10 +47,10 @@ const TEXT = {
     open: "열기",
     passwordHint: "계정을 만들려면 비밀번호 8자 이상을 입력하세요.",
     requestAccess: "접근 권한 요청",
-    requestFailed: "요청을 로컬에 저장했습니다. 현재 Luvelox 서버에 연결할 수 없습니다.",
-    requestMessage: "Luvelox 웹 앱에서 접근 권한을 요청했습니다.",
+    requestFailed: "요청을 로컬에 저장했습니다. 현재 ImperialAX 서버에 연결할 수 없습니다.",
+    requestMessage: "ImperialAX 웹 앱에서 접근 권한을 요청했습니다.",
     requestSuccess: "접근 권한 요청이 접수되었습니다.",
-    requiresLicense: "이 모듈은 Luvelox 라이선스가 필요합니다.",
+    requiresLicense: "이 모듈은 ImperialAX 라이선스가 필요합니다.",
     refresh: "새로고침",
     refreshLoading: "업데이트 중...",
     refreshOffline: "오프라인 목록 표시 중",
@@ -72,7 +72,7 @@ const MODULE_COPY = {
       category: "Composite",
       summary: "Predict Type, Pt, and response curve.",
       tags: ["Double-Double", "Pt", "Force-displacement"],
-      access_reason: "Available in the Luvelox MVP workspace.",
+      access_reason: "Available in the ImperialAX workspace.",
     },
     injection: {
       name: "Injection",
@@ -80,7 +80,7 @@ const MODULE_COPY = {
       category: "Molding",
       summary: "Predict sprue and filling pressure.",
       tags: ["Moldex3D", "Sprue pressure", "Filling pressure"],
-      access_reason: "Available in the Luvelox MVP workspace.",
+      access_reason: "Available in the ImperialAX workspace.",
     },
     optimization: {
       name: "Optimization",
@@ -98,7 +98,7 @@ const MODULE_COPY = {
       category: "복합재",
       summary: "Type, Pt, 응답 곡선을 예측합니다.",
       tags: ["Double-Double", "Pt", "힘-변위"],
-      access_reason: "현재 Luvelox MVP 워크스페이스에서 사용할 수 있습니다.",
+      access_reason: "현재 ImperialAX 워크스페이스에서 사용할 수 있습니다.",
     },
     injection: {
       name: "Injection",
@@ -106,7 +106,7 @@ const MODULE_COPY = {
       category: "성형",
       summary: "Sprue와 충전 압력을 예측합니다.",
       tags: ["Moldex3D", "Sprue 압력", "충전 압력"],
-      access_reason: "현재 Luvelox MVP 워크스페이스에서 사용할 수 있습니다.",
+      access_reason: "현재 ImperialAX 워크스페이스에서 사용할 수 있습니다.",
     },
     optimization: {
       name: "Optimization",
@@ -145,10 +145,10 @@ const FALLBACK_MODULES = [
     status: "active",
     entitlement_key: "module.laminate",
     access: "granted",
-    access_reason: "Available in the Luvelox MVP workspace.",
+    access_reason: "Available in the ImperialAX workspace.",
     tags: ["Double-Double", "Pt", "Force-displacement"],
     capabilities: ["response_prediction", "curve_chart", "history", "comparison"],
-    route: { web_url: "https://laminate.luvelox.com", api_prefix: "/api/v1/dd-laminate" },
+    route: { web_url: "https://laminate.imperialax.com", api_prefix: "/api/v1/dd-laminate" },
   },
   {
     id: "injection",
@@ -160,10 +160,10 @@ const FALLBACK_MODULES = [
     status: "active",
     entitlement_key: "module.injection",
     access: "granted",
-    access_reason: "Available in the Luvelox MVP workspace.",
+    access_reason: "Available in the ImperialAX workspace.",
     tags: ["Moldex3D", "Sprue pressure", "Filling pressure"],
     capabilities: ["sprue_pressure", "filling_histogram", "animation", "history"],
-    route: { web_url: "https://injection.luvelox.com", api_prefix: "/api/v1/simple-injection" },
+    route: { web_url: "https://injection.imperialax.com", api_prefix: "/api/v1/simple-injection" },
   },
   {
     id: "optimization",
@@ -178,11 +178,22 @@ const FALLBACK_MODULES = [
     access_reason: "Requires Optimization module access.",
     tags: ["DOE", "Ranking", "Design space"],
     capabilities: ["candidate_ranking", "batch_prediction"],
-    route: { web_url: "https://ai.luvelox.com/optimization.html", api_prefix: "/api/v1/optimization" },
+    route: { web_url: "https://ai.imperialax.com/optimization.html", api_prefix: "/api/v1/optimization" },
   },
 ];
 
 const LOCAL_SESSIONS = {
+  "demo@imperialax.com": {
+    access_token: "demo-token",
+    token_type: "bearer",
+    user: {
+      id: "demo-user",
+      email: "demo@imperialax.com",
+      name: "Demo Account",
+      company: "ImperialAX Demo",
+    },
+    entitlements: ["module.injection", "module.laminate"],
+  },
   "demo@luvelox.com": {
     access_token: "demo-token",
     token_type: "bearer",
@@ -190,7 +201,7 @@ const LOCAL_SESSIONS = {
       id: "demo-user",
       email: "demo@luvelox.com",
       name: "Demo Account",
-      company: "Luvelox MVP",
+      company: "ImperialAX Demo",
     },
     entitlements: ["module.injection", "module.laminate"],
   },
@@ -201,7 +212,7 @@ const LOCAL_SESSIONS = {
       id: "danlee",
       email: "danlee@luvelox.com",
       name: "Dan Lee",
-      company: "Luvelox",
+      company: "ImperialAX",
     },
     entitlements: ["module.injection", "module.laminate", "module.optimization"],
   },
@@ -401,13 +412,13 @@ function renderModules(modules) {
 
 function moduleUrl(module) {
   if (module.id === "optimization" && LOCALE === "ko") {
-    return "https://ai.luvelox.com/optimization.ko.html";
+    return "https://ai.imperialax.com/optimization.ko.html";
   }
   return module.route.web_url;
 }
 
 async function signIn(email, password) {
-  const normalizedEmail = normalizeEmail(email) || "demo@luvelox.com";
+  const normalizedEmail = normalizeEmail(email) || "demo@imperialax.com";
   loginError.textContent = "";
   setBusy(true);
   try {
@@ -429,7 +440,7 @@ async function signIn(email, password) {
 }
 
 async function demoLogin() {
-  const normalizedEmail = normalizeEmail(emailInput.value) || "demo@luvelox.com";
+  const normalizedEmail = normalizeEmail(emailInput.value) || "demo@imperialax.com";
   loginError.textContent = "";
   setBusy(true);
   try {
@@ -481,7 +492,7 @@ async function loadModules() {
       renderShell();
       renderModules(state.modules);
     } catch (error) {
-      console.error("Could not render Luvelox modules", error);
+      console.error("Could not render ImperialAX modules", error);
     } finally {
       setRefreshState(usedFallback ? "offline" : "updated");
       setBusy(false);
@@ -517,7 +528,7 @@ function openAccessDialog(module) {
 
 function openAccountDialog() {
   const user = state.session?.user || {};
-  document.querySelector("#account-dialog-name").textContent = user.name || "Luvelox Account";
+  document.querySelector("#account-dialog-name").textContent = user.name || "ImperialAX Account";
   document.querySelector("#account-dialog-email").textContent = user.email || "";
   const accessList = document.querySelector("#account-access-list");
   accessList.replaceChildren();

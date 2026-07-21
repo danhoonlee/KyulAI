@@ -45,6 +45,7 @@ const TEXT = {
   historyLatest: IS_KO ? "최신" : "Latest",
   historyEmpty: IS_KO ? "예측을 실행하면 최근 Injection 기록이 여기에 표시됩니다." : "Run an Injection forecast and recent runs will appear here.",
   historyClear: IS_KO ? "기록 삭제" : "Clear history",
+  xaiMore: (count) => IS_KO ? `나머지 ${count}개 feature 더보기` : `Show ${count} more features`,
 };
 
 const CUSTOM_GEOMETRY_ID = "manual";
@@ -172,6 +173,7 @@ let latestPredictionData = null;
 let hasBlockingValidation = false;
 let THREE = null;
 let shapeEnginePromise = null;
+let shapeEngineUnavailable = false;
 let shapePreviewState = null;
 let shapeAnimationFrame = 0;
 let activePredictionFlowData = null;
@@ -565,6 +567,9 @@ function initShapeEngine() {
 }
 
 function ensureShapeEngine() {
+  if (shapeEngineUnavailable) {
+    return Promise.resolve();
+  }
   if (shapeEnginePromise) {
     return shapeEnginePromise;
   }
@@ -577,6 +582,7 @@ function ensureShapeEngine() {
       setShapePreviewStatus("", false);
     })
     .catch(() => {
+      shapeEngineUnavailable = true;
       shapePreviewState = null;
       shapeVisual.innerHTML = shapeSvg(payloadFromForm(), activePredictionFlowData);
       setShapePreviewStatus("", false);
@@ -970,7 +976,11 @@ function updatePredictionFlowAnimation(now) {
 
 function renderParametricShape(payload, predictionData = null) {
   if (!shapePreviewState) {
-    shapeVisual.innerHTML = shapeSvg(payload, predictionData);
+    if (shapeEngineUnavailable) {
+      shapeVisual.innerHTML = shapeSvg(payload, predictionData);
+      return;
+    }
+    shapeVisual.innerHTML = "";
     ensureShapeEngine();
     return;
   }
@@ -1529,11 +1539,27 @@ function renderXai(xai) {
   xaiCard.classList.remove("hidden");
   xaiMethod.textContent = IS_KO ? XAI_KO_COPY.method : (xai.feature_set || xai.method || "Local sensitivity");
   xaiSummary.textContent = IS_KO ? XAI_KO_COPY.summary : (xai.summary || TEXT.xaiUnavailable);
-  const topFeatures = xai.top_features.slice(0, 10);
+  const topFeatures = [...xai.top_features]
+    .sort((left, right) => (Number(right.importance) || 0) - (Number(left.importance) || 0));
   const totalImportance = topFeatures.reduce((sum, feature) => sum + Math.max(Number(feature.importance) || 0, 0), 0);
-  topFeatures.forEach((feature) => {
+  const visibleFeatures = topFeatures.slice(0, 5);
+  const extraFeatures = topFeatures.slice(5);
+  visibleFeatures.forEach((feature) => {
     xaiFeatureList.appendChild(renderXaiFeature(feature, totalImportance));
   });
+  if (extraFeatures.length) {
+    const details = document.createElement("details");
+    details.className = "xai-more";
+    const summary = document.createElement("summary");
+    summary.textContent = TEXT.xaiMore(extraFeatures.length);
+    const list = document.createElement("div");
+    list.className = "xai-more-list";
+    extraFeatures.forEach((feature) => {
+      list.appendChild(renderXaiFeature(feature, totalImportance));
+    });
+    details.append(summary, list);
+    xaiFeatureList.appendChild(details);
+  }
   (IS_KO ? XAI_KO_COPY.notes : (xai.notes || [])).forEach((note) => {
     const li = document.createElement("li");
     li.textContent = note;

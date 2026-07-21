@@ -7,7 +7,7 @@ This MVP provides native iPhone and Android clients for the Simple Injection API
 Default base URL:
 
 ```text
-https://injection.luvelox.com
+https://injection.imperialax.com
 ```
 
 Endpoints used by both apps:
@@ -71,6 +71,6 @@ Completed locally:
 - `swift test` in `ios/InjectionMVP`
 - `xcodebuild -project ios/InjectionMVPApp/InjectionMVPHost.xcodeproj -scheme InjectionMVPHost -destination generic/platform=iOS\ Simulator build`
 - `xmllint --noout android/InjectionMVP/app/src/main/AndroidManifest.xml`
-- Public API smoke test against `https://injection.luvelox.com`
+- Public API smoke test against `https://injection.imperialax.com`
 
 Android APK build was not run locally because this machine does not currently expose `gradle`, `gradlew`, or `kotlinc`.

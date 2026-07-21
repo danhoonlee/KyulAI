@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f7f3ec" />
+  <meta name="description" content="이동훈 · 신세연 결혼식 버스 탑승을 신청해 주세요." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://cafedecafe.co.kr/wedding/bus" />
+  <meta property="og:title" content="이동훈 · 신세연 결혼식 버스 탑승 신청" />
+  <meta property="og:description" content="세종-서울 왕복, 전주-서울 왕복 버스 탑승 신청" />
+  <meta property="og:image" content="https://cafedecafe.co.kr/wedding/assets/og-classic-v2.png" />
+  <title>이동훈 · 신세연 결혼식 버스 탑승 신청</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f3efe7;
+      --paper: #fffdf8;
+      --ink: #1f1f1c;
+      --muted: #706b63;
+      --accent: #161614;
+      --line: rgba(31, 31, 28, .16);
+      --soft: rgba(22, 22, 20, .08);
+      --font-serif: "Gowun Batang", "AppleMyungjo", "Nanum Myeongjo", serif;
+      --font-latin: "Cormorant Garamond", Georgia, serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100svh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 18% 8%, rgba(211, 195, 172, .32) 0, transparent 28%),
+        linear-gradient(180deg, #faf7f1 0%, var(--bg) 62%, #e8dfd3 100%);
+      font-family: var(--font-serif);
+      line-height: 1.65;
+      word-break: keep-all;
+    }
+
+    main {
+      width: min(100%, 520px);
+      min-height: 100svh;
+      margin: 0 auto;
+      padding: 34px 18px max(34px, env(safe-area-inset-bottom));
+      background: rgba(255, 253, 248, .76);
+      box-shadow: 0 0 0 1px rgba(31, 31, 28, .08), 0 26px 70px rgba(31, 31, 28, .12);
+    }
+
+    .top {
+      padding: 22px 0 20px;
+      text-align: center;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .label {
+      font-family: var(--font-latin);
+      text-transform: uppercase;
+      letter-spacing: .22em;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    h1 {
+      margin: 12px 0 10px;
+      font-family: var(--font-serif);
+      font-size: clamp(25px, 7vw, 34px);
+      font-weight: 500;
+      letter-spacing: .02em;
+    }
+
+    .meta {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .route-note {
+      margin: 22px 0 0;
+      padding: 15px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .42);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .route-note b {
+      display: block;
+      color: var(--ink);
+      font-size: 14px;
+      margin-bottom: 5px;
+    }
+
+    .form {
+      display: grid;
+      gap: 18px;
+      padding-top: 28px;
+    }
+
+    .field { display: grid; gap: 8px; }
+    label { font-size: 14px; font-weight: 650; }
+
+    input, select, textarea {
+      width: 100%;
+      min-height: 50px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px 13px;
+      background: rgba(255, 255, 255, .64);
+      color: var(--ink);
+      font-size: 16px;
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+
+    .two {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .actions {
+      display: grid;
+      gap: 10px;
+      padding-top: 6px;
+    }
+
+    button, .back {
+      min-height: 52px;
+      border: 0;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    button {
+      background: var(--accent);
+      color: #fffdf8;
+    }
+
+    .back {
+      background: var(--soft);
+      color: var(--accent);
+    }
+
+    .notice {
+      margin: 22px 0 0;
+      padding: 15px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(22px + env(safe-area-inset-bottom));
+      transform: translateX(-50%) translateY(18px);
+      width: min(calc(100% - 36px), 360px);
+      padding: 13px 16px;
+      border-radius: 999px;
+      background: rgba(31, 31, 28, .92);
+      color: #fffdf8;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: .2s ease;
+      font-size: 14px;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (max-width: 420px) {
+      main { padding-inline: 16px; }
+      .two { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="top">
+      <div class="label">Shuttle Bus</div>
+      <h1>버스 탑승 신청</h1>
+      <p class="meta">세종-서울 왕복 · 전주-서울 왕복<br />2026년 10월 10일 토요일</p>
+    </header>
+
+    <div class="route-note">
+      <b>신청 가능 노선</b>
+      세종-서울 왕복 / 전주-서울 왕복 중 희망 노선을 선택해 주세요.
+    </div>
+
+    <form class="form" id="busForm">
+      <div class="two">
+        <div class="field">
+          <label for="busName">성함</label>
+          <input id="busName" name="name" autocomplete="name" required placeholder="홍길동" />
+        </div>
+        <div class="field">
+          <label for="busPhone">연락처</label>
+          <input id="busPhone" name="phone" inputmode="tel" autocomplete="tel" required placeholder="010-0000-0000" />
+        </div>
+      </div>
+
+      <div class="two">
+        <div class="field">
+          <label for="busSide">구분</label>
+          <select id="busSide" name="side" required>
+            <option value="신랑측">신랑측</option>
+            <option value="신부측">신부측</option>
+            <option value="공통/기타">공통/기타</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="busCount">탑승 인원</label>
+          <select id="busCount" name="count">
+            <option>1명</option>
+            <option>2명</option>
+            <option>3명</option>
+            <option>4명</option>
+            <option>5명 이상</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="busRoute">노선</label>
+        <select id="busRoute" name="route" required>
+          <option value="세종-서울 왕복">세종-서울 왕복</option>
+          <option value="전주-서울 왕복">전주-서울 왕복</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="boardingPlace">희망 탑승 장소</label>
+        <input id="boardingPlace" name="boardingPlace" placeholder="예: 세종청사 / 전주월드컵경기장" />
+      </div>
+
+      <div class="field">
+        <label for="busMemo">메모</label>
+        <textarea id="busMemo" name="memo" placeholder="동행자 성함, 요청사항 등을 남겨주세요."></textarea>
+      </div>
+
+      <div class="actions">
+        <button type="submit">신청하기</button>
+        <a class="back" href="/">모바일 청첩장 보기</a>
+      </div>
+    </form>
+
+    <p class="notice">입력하신 내용은 신랑·신부가 확인할 수 있도록 안전하게 저장됩니다.</p>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const CONFIG = {
+      title: '이동훈 · 신세연 결혼식에 초대합니다',
+      rsvpEndpoint: './api/rsvp.php'
+    };
+
+    const form = document.getElementById('busForm');
+    const toast = document.getElementById('toast');
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => toast.classList.remove('show'), 2400);
+    }
+
+    function formDataToObject(targetForm) {
+      return Object.fromEntries(new FormData(targetForm).entries());
+    }
+
+    function buildMessage(targetForm) {
+      const data = new FormData(targetForm);
+      return [
+        '[결혼식 버스 탑승 신청]',
+        `성함: ${data.get('name')}`,
+        `연락처: ${data.get('phone')}`,
+        `구분: ${data.get('side')}`,
+        `노선: ${data.get('route')}`,
+        `탑승 인원: ${data.get('count')}`,
+        `희망 탑승 장소: ${data.get('boardingPlace') || '-'}`,
+        `메모: ${data.get('memo') || '-'}`
+      ].join('\n');
+    }
+
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      if (!form.reportValidity()) return;
+      const button = form.querySelector('button[type="submit"]');
+      const message = buildMessage(form);
+      button.disabled = true;
+      button.textContent = '신청 중입니다';
+      try {
+        const response = await fetch(CONFIG.rsvpEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json;charset=utf-8' },
+          body: JSON.stringify({
+            type: 'bus',
+            submittedAt: new Date().toISOString(),
+            wedding: CONFIG.title,
+            data: formDataToObject(form),
+            message
+          })
+        });
+        if (!response.ok) throw new Error('submit failed');
+        form.reset();
+        showToast('버스 탑승 신청이 저장되었습니다');
+      } catch (error) {
+        console.warn(error);
+        showToast('저장에 실패했습니다. 잠시 후 다시 시도해 주세요');
+      } finally {
+        button.disabled = false;
+        button.textContent = '신청하기';
+      }
+    });
+  </script>
+</body>
+</html>

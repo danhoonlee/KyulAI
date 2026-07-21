@@ -171,6 +171,10 @@ class LaminateResultActivity : Activity() {
             card.addView(row, margin(top = 10))
         }
 
+        result.uncertainty?.let {
+            card.addView(uncertaintySection(it), margin(top = 14))
+        }
+
         if (result.curve.size >= 2) {
             card.addView(responseCurveSection(result), margin(top = 18))
         }
@@ -181,9 +185,11 @@ class LaminateResultActivity : Activity() {
         }
 
         result.xai?.let { xai ->
-            card.addView(label("Why this prediction?", LaminateV2.ink, 18f, Typeface.BOLD), margin(top = 18))
-            card.addView(paragraph(xai.summary), margin(top = 6))
-            card.addView(label("Method: ${xai.method} - ${xai.featureSet}", LaminateV2.blue, 12f, Typeface.BOLD), margin(top = 8))
+            card.addView(label(localText("Why this prediction?", "왜 이런 예측이 나왔나요?"), LaminateV2.ink, 18f, Typeface.BOLD), margin(top = 18))
+            card.addView(paragraph(LaminateXaiText.text(this, xai.summary)), margin(top = 6))
+            val methodLabel = localText("Method", "방법")
+            val featureSetLabel = localText("Feature set", "특징 세트")
+            card.addView(label("$methodLabel: ${LaminateXaiText.text(this, xai.method)} - $featureSetLabel: ${LaminateXaiText.featureSet(this, xai.featureSet)}", LaminateV2.blue, 12f, Typeface.BOLD), margin(top = 8))
             xai.topFeatures.take(5).forEach { feature ->
                 card.addView(xaiFeatureRow(feature), margin(top = 6))
             }
@@ -197,7 +203,7 @@ class LaminateResultActivity : Activity() {
                     }
                 }
                 val toggle = Button(this).apply {
-                    text = "Show ${hiddenFeatures.size} more features"
+                    text = localText("Show ${hiddenFeatures.size} more features", "나머지 ${hiddenFeatures.size}개 feature 보기")
                     textSize = 13f
                     setTextColor(LaminateV2.blue)
                     useAppFont(Typeface.BOLD)
@@ -205,7 +211,11 @@ class LaminateResultActivity : Activity() {
                     setOnClickListener {
                         val shouldExpand = hiddenList.visibility != View.VISIBLE
                         hiddenList.visibility = if (shouldExpand) View.VISIBLE else View.GONE
-                        text = if (shouldExpand) "Hide extra features" else "Show ${hiddenFeatures.size} more features"
+                        text = if (shouldExpand) {
+                            localText("Hide extra features", "추가 feature 숨기기")
+                        } else {
+                            localText("Show ${hiddenFeatures.size} more features", "나머지 ${hiddenFeatures.size}개 feature 보기")
+                        }
                     }
                 }
                 card.addView(toggle, margin(top = 8))
@@ -213,6 +223,68 @@ class LaminateResultActivity : Activity() {
             }
         }
         return card
+    }
+
+    private fun uncertaintySection(uncertainty: LaminateUncertainty): LinearLayout {
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(12), dp(12), dp(12), dp(12))
+            background = strokedRounded(LaminateV2.field, LaminateV2.line, dp(8))
+        }
+        val labelText = when (uncertainty.confidenceLabel) {
+            "high" -> "High confidence"
+            "medium" -> "Medium confidence"
+            else -> "Use caution"
+        }
+        box.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(label("Prediction reliability", LaminateV2.ink, 18f, Typeface.BOLD), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            addView(label(labelText, uncertaintyBadgeColor(uncertainty.confidenceLabel), 12f, Typeface.BOLD).apply {
+                setPadding(dp(10), dp(6), dp(10), dp(6))
+                background = rounded(uncertaintyBadgeBackground(uncertainty.confidenceLabel), dp(999))
+            })
+        })
+        val range = if (uncertainty.ptIntervalLow != null && uncertainty.ptIntervalHigh != null) {
+            "${formatMetric(uncertainty.ptIntervalLow, 0)} - ${formatMetric(uncertainty.ptIntervalHigh, 0)}"
+        } else {
+            "-"
+        }
+        val coverage = when (uncertainty.interpolationLabel) {
+            "interpolation" -> "Interpolation"
+            "near-edge" -> "Near edge"
+            else -> "Extrapolation"
+        }
+        listOf(
+            "Reliability" to formatPercent(uncertainty.reliabilityScore),
+            "Pt range" to range,
+            "Coverage" to coverage,
+            "Type agreement" to formatPercent(uncertainty.typeConsistency),
+        ).chunked(2).forEach { rowItems ->
+            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            rowItems.forEachIndexed { index, item ->
+                row.addView(metricBox(item.first, item.second), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    if (index == 0) marginEnd = dp(8)
+                })
+            }
+            box.addView(row, margin(top = 10))
+        }
+        uncertainty.notes.take(2).forEach { note ->
+            box.addView(paragraph(note), margin(top = 8))
+        }
+        return box
+    }
+
+    private fun uncertaintyBadgeColor(label: String): Int = when (label) {
+        "high" -> LaminateV2.green
+        "medium" -> LaminateV2.amber
+        else -> LaminateV2.red
+    }
+
+    private fun uncertaintyBadgeBackground(label: String): Int = when (label) {
+        "high" -> Color.rgb(220, 252, 231)
+        "medium" -> Color.rgb(254, 243, 199)
+        else -> Color.rgb(254, 226, 226)
     }
 
     private fun assistantCard(result: LaminateResult): LinearLayout {
@@ -679,10 +751,10 @@ class LaminateResultActivity : Activity() {
         addView(LinearLayout(this@LaminateResultActivity).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            addView(label(feature.label, LaminateV2.ink, 12f, Typeface.BOLD).apply {
+            addView(label(LaminateXaiText.text(this@LaminateResultActivity, feature.label), LaminateV2.ink, 12f, Typeface.BOLD).apply {
                 maxLines = 1
             }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-            addView(label(feature.category, LaminateV2.blue, 10f, Typeface.BOLD).apply {
+            addView(label(LaminateXaiText.category(this@LaminateResultActivity, feature.category), LaminateV2.blue, 10f, Typeface.BOLD).apply {
                 setPadding(dp(6), dp(2), dp(6), dp(2))
                 background = blueSoftBackground()
             })
@@ -708,8 +780,11 @@ class LaminateResultActivity : Activity() {
                 gravity = Gravity.END
             }, LinearLayout.LayoutParams(dp(56), LinearLayout.LayoutParams.WRAP_CONTENT))
         }, margin(top = 4))
-        addView(label(feature.explanation, LaminateV2.muted, 11f, Typeface.NORMAL), margin(top = 3))
+        addView(label(LaminateXaiText.text(this@LaminateResultActivity, feature.explanation), LaminateV2.muted, 11f, Typeface.NORMAL), margin(top = 3))
     }
+
+    private fun localText(en: String, ko: String): String =
+        if (LaminateXaiText.isKoreanUi(this)) ko else en
 
     private fun summaryPill(text: String): TextView = label(text, LaminateV2.blue, 12f, Typeface.BOLD).apply {
         gravity = Gravity.CENTER

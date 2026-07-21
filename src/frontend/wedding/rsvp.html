@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f7f3ec" />
+  <meta name="description" content="이동훈 · 신세연 결혼식 참석 여부를 전달해 주세요." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://cafedecafe.co.kr/wedding/rsvp" />
+  <meta property="og:title" content="이동훈 · 신세연 결혼식 참석 여부" />
+  <meta property="og:description" content="2026년 10월 10일 토요일 오후 12시 · 크레스트 72 글라스홀" />
+  <meta property="og:image" content="https://cafedecafe.co.kr/wedding/assets/og-classic-v2.png" />
+  <title>이동훈 · 신세연 결혼식 참석 여부</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f3efe7;
+      --paper: #fffdf8;
+      --ink: #1f1f1c;
+      --muted: #706b63;
+      --accent: #161614;
+      --line: rgba(31, 31, 28, .16);
+      --soft: rgba(22, 22, 20, .08);
+      --font-serif: "Gowun Batang", "AppleMyungjo", "Nanum Myeongjo", serif;
+      --font-latin: "Cormorant Garamond", Georgia, serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100svh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 18% 8%, rgba(211, 195, 172, .32) 0, transparent 28%),
+        linear-gradient(180deg, #faf7f1 0%, var(--bg) 62%, #e8dfd3 100%);
+      font-family: var(--font-serif);
+      line-height: 1.65;
+      word-break: keep-all;
+    }
+
+    main {
+      width: min(100%, 520px);
+      min-height: 100svh;
+      margin: 0 auto;
+      padding: 34px 18px max(34px, env(safe-area-inset-bottom));
+      background: rgba(255, 253, 248, .76);
+      box-shadow: 0 0 0 1px rgba(31, 31, 28, .08), 0 26px 70px rgba(31, 31, 28, .12);
+    }
+
+    .top {
+      padding: 22px 0 20px;
+      text-align: center;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .label {
+      font-family: var(--font-latin);
+      text-transform: uppercase;
+      letter-spacing: .22em;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    h1 {
+      margin: 12px 0 10px;
+      font-family: var(--font-serif);
+      font-size: clamp(25px, 7vw, 34px);
+      font-weight: 500;
+      letter-spacing: .02em;
+    }
+
+    .meta {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .form {
+      display: grid;
+      gap: 18px;
+      padding-top: 28px;
+    }
+
+    .field { display: grid; gap: 8px; }
+    label { font-size: 14px; font-weight: 650; }
+
+    input, select, textarea {
+      width: 100%;
+      min-height: 50px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px 13px;
+      background: rgba(255, 255, 255, .64);
+      color: var(--ink);
+      font-size: 16px;
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+
+    .two {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .choice {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .choice input { position: absolute; opacity: 0; pointer-events: none; }
+
+    .choice label {
+      min-height: 48px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .56);
+      font-weight: 600;
+    }
+
+    .choice input:checked + label {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fffdf8;
+    }
+
+    .actions {
+      display: grid;
+      gap: 10px;
+      padding-top: 6px;
+    }
+
+    button, .back {
+      min-height: 52px;
+      border: 0;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    button {
+      background: var(--accent);
+      color: #fffdf8;
+    }
+
+    .back {
+      background: var(--soft);
+      color: var(--accent);
+    }
+
+    .notice {
+      margin: 22px 0 0;
+      padding: 15px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(22px + env(safe-area-inset-bottom));
+      transform: translateX(-50%) translateY(18px);
+      width: min(calc(100% - 36px), 360px);
+      padding: 13px 16px;
+      border-radius: 999px;
+      background: rgba(31, 31, 28, .92);
+      color: #fffdf8;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: .2s ease;
+      font-size: 14px;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (max-width: 420px) {
+      main { padding-inline: 16px; }
+      .two { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="top">
+      <div class="label">RSVP</div>
+      <h1>참석 여부 전달</h1>
+      <p class="meta">2026년 10월 10일 토요일 오후 12시<br />크레스트 72 글라스홀</p>
+    </header>
+
+    <form class="form" id="rsvpForm">
+      <div class="field">
+        <label>참석 여부</label>
+        <div class="choice">
+          <input id="attendYes" name="attendance" type="radio" value="참석" checked />
+          <label for="attendYes">참석</label>
+          <input id="attendNo" name="attendance" type="radio" value="불참" />
+          <label for="attendNo">불참</label>
+        </div>
+      </div>
+
+      <div class="two">
+        <div class="field">
+          <label for="rsvpName">성함</label>
+          <input id="rsvpName" name="name" autocomplete="name" required placeholder="홍길동" />
+        </div>
+        <div class="field">
+          <label for="rsvpPhone">연락처</label>
+          <input id="rsvpPhone" name="phone" inputmode="tel" autocomplete="tel" placeholder="010-0000-0000" />
+        </div>
+      </div>
+
+      <div class="two">
+        <div class="field">
+          <label for="rsvpSide">구분</label>
+          <select id="rsvpSide" name="side" required>
+            <option value="신랑측">신랑측</option>
+            <option value="신부측">신부측</option>
+            <option value="공통/기타">공통/기타</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="rsvpGuests">참석 인원</label>
+          <select id="rsvpGuests" name="guests">
+            <option>1명</option>
+            <option>2명</option>
+            <option>3명</option>
+            <option>4명</option>
+            <option>5명 이상</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="rsvpMeal">식사 여부</label>
+        <select id="rsvpMeal" name="meal">
+          <option>식사 예정</option>
+          <option>식사 안 함</option>
+          <option>미정</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="rsvpMessage">전하실 말씀</label>
+        <textarea id="rsvpMessage" name="message" placeholder="축하 메시지를 남겨주세요."></textarea>
+      </div>
+
+      <div class="actions">
+        <button type="submit">제출하기</button>
+        <a class="back" href="/">모바일 청첩장 보기</a>
+      </div>
+    </form>
+
+    <p class="notice">입력하신 내용은 신랑·신부가 확인할 수 있도록 안전하게 저장됩니다.</p>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const CONFIG = {
+      title: '이동훈 · 신세연 결혼식에 초대합니다',
+      rsvpEndpoint: './api/rsvp.php'
+    };
+
+    const form = document.getElementById('rsvpForm');
+    const toast = document.getElementById('toast');
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => toast.classList.remove('show'), 2400);
+    }
+
+    function formDataToObject(targetForm) {
+      return Object.fromEntries(new FormData(targetForm).entries());
+    }
+
+    function buildMessage(targetForm) {
+      const data = new FormData(targetForm);
+      return [
+        '[결혼식 참석 여부]',
+        `참석 여부: ${data.get('attendance')}`,
+        `성함: ${data.get('name')}`,
+        `연락처: ${data.get('phone') || '-'}`,
+        `구분: ${data.get('side')}`,
+        `참석 인원: ${data.get('guests')}`,
+        `식사 여부: ${data.get('meal')}`,
+        `메시지: ${data.get('message') || '-'}`
+      ].join('\n');
+    }
+
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      if (!form.reportValidity()) return;
+      const button = form.querySelector('button[type="submit"]');
+      const message = buildMessage(form);
+      button.disabled = true;
+      button.textContent = '제출 중입니다';
+      try {
+        const response = await fetch(CONFIG.rsvpEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json;charset=utf-8' },
+          body: JSON.stringify({
+            type: 'rsvp',
+            submittedAt: new Date().toISOString(),
+            wedding: CONFIG.title,
+            data: formDataToObject(form),
+            message
+          })
+        });
+        if (!response.ok) throw new Error('submit failed');
+        form.reset();
+        showToast('참석 여부가 저장되었습니다');
+      } catch (error) {
+        console.warn(error);
+        showToast('저장에 실패했습니다. 잠시 후 다시 시도해 주세요');
+      } finally {
+        button.disabled = false;
+        button.textContent = '제출하기';
+      }
+    });
+  </script>
+</body>
+</html>

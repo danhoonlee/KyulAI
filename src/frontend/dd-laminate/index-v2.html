@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>C2ES Laminate Forecast</title>
-    <link rel="stylesheet" href="./styles-v2.css?v=20260626-case-formula-symbols" />
+    <title>ImperialAX Laminate Forecast</title>
+    <link rel="stylesheet" href="./styles-v2.css?v=20260720-curve-readable-v2" />
   </head>
   <body>
     <main class="shell shell-v2">
@@ -12,14 +12,14 @@
         <header class="topbar">
           <div class="brand-lockup">
             <p class="eyebrow">Composite Laminate AI</p>
-            <h1 id="app-title"><span>C2ES</span> <span>Laminate Forecast</span></h1>
+            <h1 id="app-title"><span>ImperialAX</span> <span>Laminate Forecast</span></h1>
             <p class="hero-copy">
               Forecast laminate Type, Pt, and response curve from case and theta inputs.
             </p>
           </div>
           <div class="top-actions">
             <div class="status-pill" id="api-status">Checking</div>
-            <a class="language-link" href="https://ai.luvelox.com/index.html">Modules</a>
+            <a class="language-link" href="https://ai.imperialax.com/index.html">Modules</a>
             <a class="language-link" href="./index-v2.ko.html">한국어</a>
           </div>
         </header>
@@ -112,6 +112,7 @@
         <div class="mode-switch" role="tablist" aria-label="Prediction mode">
           <button class="mode-button active" type="button" data-mode="response">Response Forecast</button>
           <button class="mode-button" type="button" data-mode="u3">u3 Forecast</button>
+          <button class="mode-button" type="button" data-mode="stack">Stack Lab</button>
           <button class="mode-button" type="button" data-mode="curve">Curve CSV</button>
         </div>
 
@@ -163,8 +164,18 @@
 
               <label class="file-box">
                 Force-displacement CSV
-                <input id="curve-file" name="file" type="file" accept=".csv,text/csv" required />
+                <input id="curve-file" name="file" type="file" accept=".csv,text/csv" multiple required />
               </label>
+
+              <label class="file-box">
+                Batch metadata CSV
+                <input id="curve-metadata-file" name="metadata_file" type="file" accept=".csv,text/csv" />
+              </label>
+              <p class="form-hint">
+                Batch metadata format: filename, test_id, theta1, theta2, pt, case.
+                The filename must match the selected CSV file, such as force_disp_Test_001.csv.
+                Without metadata, the inputs above are reused for every selected CSV.
+              </p>
 
               <div class="case-guide" aria-label="Case formulas">
                 <p><strong>Case 2</strong> [[±θ₁]/[±θ₂]]₄</p>
@@ -173,6 +184,8 @@
               </div>
 
               <button class="primary" type="submit">Predict Type</button>
+
+              <div id="curve-batch-results" class="batch-results hidden" aria-live="polite"></div>
             </form>
 
             <form id="u3-pt-form" class="form">
@@ -284,6 +297,17 @@
                 </select>
               </label>
 
+              <div class="panel-size-grid" aria-label="Panel size controls">
+                <label>
+                  Panel length a (in)
+                  <input name="panel_a_in" type="number" min="0.1" step="0.1" value="6" required />
+                </label>
+                <label>
+                  Panel width b (in)
+                  <input name="panel_b_in" type="number" min="0.1" step="0.1" value="4" required />
+                </label>
+              </div>
+
               <div class="case-guide" aria-label="Case formulas">
                 <p><strong>Case 2</strong> [[±θ₁]/[±θ₂]]₄</p>
                 <p><strong>Case 3</strong> [[±θ₁]/[±θ₂]/[∓θ₁]/[∓θ₂]]₂</p>
@@ -291,6 +315,78 @@
               </div>
 
               <button class="primary" type="submit">Run Forecast</button>
+            </form>
+
+            <form id="stack-preview-form" class="form">
+              <div class="form-header">
+                <p class="eyebrow">Stack Lab</p>
+                <h2>Custom Stack Preview</h2>
+                <p>Test a new laminate expression before adding it to the trained forecast models.</p>
+              </div>
+
+              <div class="angle-grid" aria-label="Angle controls">
+                <label class="angle-control">
+                  <span class="angle-control-head">
+                    <span>Theta 1</span>
+                    <strong data-theta-readout="theta1">+30°</strong>
+                  </span>
+                  <span class="angle-number-wrap">
+                    <input name="theta1" type="number" min="-90" max="90" step="1" value="30" required />
+                    <span>deg</span>
+                  </span>
+                  <input type="range" min="-90" max="90" step="1" value="30" data-theta-range="theta1" aria-label="Theta 1 slider" />
+                </label>
+                <label class="angle-control">
+                  <span class="angle-control-head">
+                    <span>Theta 2</span>
+                    <strong data-theta-readout="theta2">-60°</strong>
+                  </span>
+                  <span class="angle-number-wrap">
+                    <input name="theta2" type="number" min="-90" max="90" step="1" value="-60" required />
+                    <span>deg</span>
+                  </span>
+                  <input type="range" min="-90" max="90" step="1" value="-60" data-theta-range="theta2" aria-label="Theta 2 slider" />
+                </label>
+              </div>
+
+              <label>
+                Case
+                <select name="case">
+                  <option value="Case5" selected>Case 5</option>
+                  <option value="Custom">Custom</option>
+                </select>
+              </label>
+
+              <div class="case-guide stack-formula-guide" aria-label="Case 5 formula">
+                <p><strong>Case 5</strong> [[±θ₁]/[±θ₂]/[∓θ₂]/[∓θ₁]]₂</p>
+                <p><strong>Custom</strong> Build a sequence with the formula buttons below, then adjust the expression if needed.</p>
+              </div>
+
+              <label>
+                Stack formula
+                <textarea name="formula" rows="3" placeholder="Example: [[±θ₁]/[±θ₂]/[∓θ₂]/[∓θ₁]]₂">[[±θ₁]/[±θ₂]/[∓θ₂]/[∓θ₁]]₂</textarea>
+              </label>
+
+              <div class="formula-toolbar" aria-label="Formula token buttons">
+                <button type="button" data-formula-token="±θ₁">±θ₁</button>
+                <button type="button" data-formula-token="±θ₂">±θ₂</button>
+                <button type="button" data-formula-token="∓θ₁">∓θ₁</button>
+                <button type="button" data-formula-token="∓θ₂">∓θ₂</button>
+                <button type="button" data-formula-token="[">[</button>
+                <button type="button" data-formula-token="]">]</button>
+                <button type="button" data-formula-token="/">/</button>
+                <button type="button" data-formula-token="₂">₂</button>
+                <button type="button" data-formula-token="₄">₄</button>
+              </div>
+
+              <label>
+                Generated ply sequence
+                <textarea name="ply_sequence" rows="5" required>30,-30,-60,60,60,-60,-30,30,30,-30,-60,60,60,-60,-30,30</textarea>
+              </label>
+
+              <p class="form-hint">Supported now: ±θ₁, ±θ₂, ∓θ₁, ∓θ₂, brackets, and repeat counts such as ₂ or 4. If the formula cannot be parsed, edit the sequence manually.</p>
+
+              <button class="primary" type="submit">Preview Stack Physics</button>
             </form>
           </section>
 
@@ -373,6 +469,17 @@
               </div>
 
               <div class="bars" id="probability-bars"></div>
+              <section class="uncertainty-panel hidden" id="uncertainty-panel" aria-label="Prediction confidence and uncertainty">
+                <div class="uncertainty-head">
+                  <div>
+                    <p class="eyebrow">Confidence</p>
+                    <h3>Prediction reliability</h3>
+                  </div>
+                  <strong id="uncertainty-label">-</strong>
+                </div>
+                <div class="uncertainty-grid" id="uncertainty-grid"></div>
+                <ul class="uncertainty-notes" id="uncertainty-notes"></ul>
+              </section>
 
               <dl class="meta">
                 <div>
@@ -408,7 +515,16 @@
                   </div>
                 </div>
 
-                <canvas id="response-curve-canvas" width="720" height="432"></canvas>
+                <div class="curve-viewer-head">
+                  <span>Curve view</span>
+                  <div class="curve-tools" aria-label="Curve zoom controls">
+                    <button type="button" data-curve-zoom="out" title="Zoom out">−</button>
+                    <output id="response-curve-zoom-label">100%</output>
+                    <button type="button" data-curve-zoom="in" title="Zoom in">+</button>
+                    <button type="button" data-curve-zoom="reset" title="Reset view">Reset</button>
+                  </div>
+                </div>
+                <canvas id="response-curve-canvas" width="1080" height="648"></canvas>
                 <div class="curve-legend" aria-label="Response curve legend">
                   <span><i class="legend-swatch curve"></i>Predicted curve</span>
                   <span><i class="legend-swatch guide"></i>Linear fits</span>
@@ -473,12 +589,36 @@
               <ul class="notes" id="notes"></ul>
             </div>
 
+            <div class="stack-preview-result hidden" id="stack-preview-result">
+              <div class="preview-head">
+                <div>
+                  <p class="eyebrow">Stack Lab</p>
+                  <h2 id="stack-preview-title">Custom stack physics</h2>
+                </div>
+              </div>
+
+              <div class="preview-stats stack-preview-metrics" id="stack-preview-metrics"></div>
+
+              <section class="stack-preview-section">
+                <p class="eyebrow">Expanded ply sequence</p>
+                <div class="stack-sequence-chips" id="stack-preview-sequence"></div>
+              </section>
+
+              <section class="stack-preview-section">
+                <p class="eyebrow">Physics descriptors</p>
+                <div class="stack-physics-grid" id="stack-preview-physics"></div>
+              </section>
+
+              <ul class="notes" id="stack-preview-notes"></ul>
+            </div>
+
             <div class="error hidden" id="error"></div>
           </section>
         </div>
       </section>
     </main>
 
-    <script src="./app-v2.js?v=20260626-case-formula-symbols"></script>
+    <script src="./auth-gate.js?v=20260715-license-gate"></script>
+    <script src="./app-v2.js?v=20260720-curve-readable-v2"></script>
   </body>
 </html>

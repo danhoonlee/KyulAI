@@ -932,7 +932,11 @@ def main() -> None:
     parser.add_argument("--report-dir", default="reports/dd_response_dl_challengers_v1")
     parser.add_argument("--baseline-tree-metrics", default="models/dd_laminate_response_physics_xai_v2/response_surrogate_metrics.json")
     parser.add_argument("--baseline-goint-metrics", default="models/dd_laminate_response_goint_physics_nn_v2/response_goint_metrics.json")
-    parser.add_argument("--feature-set", choices=["theta_physics", "theta_physics_v2", "theta_physics_nn_v2"], default="theta_physics_nn_v2")
+    parser.add_argument(
+        "--feature-set",
+        choices=["theta_physics", "theta_physics_v2", "theta_physics_nn_v2", "theta_physics_geometry_v1"],
+        default="theta_physics_nn_v2",
+    )
     parser.add_argument("--seq-len", type=int, default=CURVE_GRID_LEN)
     parser.add_argument("--splits", type=int, default=5)
     parser.add_argument("--epochs", type=int, default=90)

@@ -1,0 +1,74 @@
+{
+  "metrics": {
+    "n_samples": 900,
+    "seq_len": 128,
+    "input_dim": 35,
+    "feature_builder": "theta_physics_v2",
+    "cv_accuracy_mean": 0.9422222222222223,
+    "cv_accuracy_std": 0.015555555555555543,
+    "cv_macro_f1_mean": 0.9371500424169266,
+    "cv_macro_f1_std": 0.015371846470501944,
+    "cv_pt_mae_mean": 438.1149768532684,
+    "cv_pt_mae_std": 75.3214765454048,
+    "cv_max_displacement_mae_mean": 0.0005039404012749786,
+    "cv_max_displacement_mae_std": 0.00024079646909605854,
+    "cv_max_force_mae_mean": 338.9090737869521,
+    "cv_max_force_mae_std": 23.181630499125223,
+    "cv_curve_norm_rmse_mean": 0.006967805311686635,
+    "cv_curve_norm_rmse_std": 0.0014966668038372307,
+    "cv_curve_force_rmse_mean": 479.69357282720966,
+    "cv_curve_force_rmse_std": 118.46429173877766
+  },
+  "fold_metrics": [
+    {
+      "fold": 1,
+      "accuracy": 0.9388888888888889,
+      "macro_f1": 0.9437383203520903,
+      "pt_mae": 378.06147192373044,
+      "max_displacement_mae": 0.0005824499457490205,
+      "max_force_mae": 374.53263734785685,
+      "curve_norm_rmse": 0.007779079819682864,
+      "curve_force_rmse": 536.7194805496315
+    },
+    {
+      "fold": 2,
+      "accuracy": 0.9722222222222222,
+      "macro_f1": 0.9616917129852011,
+      "pt_mae": 459.3376987282908,
+      "max_displacement_mae": 0.0008013776843162144,
+      "max_force_mae": 357.1686810195296,
+      "curve_norm_rmse": 0.009426249015422042,
+      "curve_force_rmse": 675.8049009269241
+    },
+    {
+      "fold": 3,
+      "accuracy": 0.9388888888888889,
+      "macro_f1": 0.930290825813214,
+      "pt_mae": 325.8151179298858,
+      "max_displacement_mae": 0.0005744788099104669,
+      "max_force_mae": 327.5298575804816,
+      "curve_norm_rmse": 0.006201628931401948,
+      "curve_force_rmse": 463.6359379655311
+    },
+    {
+      "fold": 4,
+      "accuracy": 0.9333333333333333,
+      "macro_f1": 0.9348682609224778,
+      "pt_mae": 501.88404885671827,
+      "max_displacement_mae": 6.782245397372954e-05,
+      "max_force_mae": 312.57237493356354,
+      "curve_norm_rmse": 0.005092713154478297,
+      "curve_force_rmse": 354.22128750692536
+    },
+    {
+      "fold": 5,
+      "accuracy": 0.9277777777777778,
+      "macro_f1": 0.9151610920116506,
+      "pt_mae": 525.4765468277167,
+      "max_displacement_mae": 0.000493573112425461,
+      "max_force_mae": 322.74181805332904,
+      "curve_norm_rmse": 0.00633935563744803,
+      "curve_force_rmse": 368.0862571870363
+    }
+  ]
+}

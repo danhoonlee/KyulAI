@@ -40,9 +40,11 @@ def predict_response(
     theta1: float,
     theta2: float,
     case: str,
+    panel_a_in: float = 6.0,
+    panel_b_in: float = 4.0,
 ) -> dict:
     bundle = joblib.load(model_path)
-    return predict_response_from_bundle(bundle, theta1, theta2, case)
+    return predict_response_from_bundle(bundle, theta1, theta2, case, panel_a_in, panel_b_in)
 
 
 def predict_response_from_bundle(
@@ -50,13 +52,15 @@ def predict_response_from_bundle(
     theta1: float,
     theta2: float,
     case: str,
+    panel_a_in: float = 6.0,
+    panel_b_in: float = 4.0,
 ) -> dict:
     feature_columns = bundle.get("feature_columns", [])
     feature_builder = str(bundle.get("feature_builder") or "")
     if feature_builder:
-        x = prediction_feature_matrix(theta1, theta2, case, feature_builder)
+        x = prediction_feature_matrix(theta1, theta2, case, feature_builder, panel_a_in, panel_b_in)
     elif "case_case2" in feature_columns:
-        x = prediction_feature_matrix(theta1, theta2, case, feature_set_from_columns(feature_columns))
+        x = prediction_feature_matrix(theta1, theta2, case, feature_set_from_columns(feature_columns), panel_a_in, panel_b_in)
     else:
         record = DDCurveRecord(
             case=case,

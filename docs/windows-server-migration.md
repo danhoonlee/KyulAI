@@ -6,13 +6,13 @@ Mac to a Windows server PC.
 ## What Runs On The Server
 
 The public setup has three long-running processes. Port `8000` is host-routed:
-`ai.luvelox.com` serves the C2ES App login/module workspace, while
-`laminate.luvelox.com` serves the Laminate forecast UI.
+`ai.imperialax.com` serves the C2ES App login/module workspace, while
+`laminate.imperialax.com` serves the Laminate forecast UI.
 
 | Process | Local URL | Public URL |
 |---|---|---|
-| C2ES App + DD Laminate | `http://127.0.0.1:8000` | `https://ai.luvelox.com`, `https://laminate.luvelox.com` |
-| Simple Injection | `http://127.0.0.1:8010` | `https://injection.luvelox.com` |
+| C2ES App + DD Laminate | `http://127.0.0.1:8000` | `https://ai.imperialax.com`, `https://laminate.imperialax.com` |
+| Simple Injection | `http://127.0.0.1:8010` | `https://injection.imperialax.com` |
 | Cloudflare Tunnel | routes hostnames | Cloudflare edge |
 
 No inbound firewall port needs to be opened if Cloudflare Tunnel is used.
@@ -75,7 +75,7 @@ C:\KyulAI_codex
 ```
 
 The bundle includes the runtime code, current models, DD curated data, Simple
-Injection data needed by the UI, the Luvelox/C2ES shell UI, Windows scripts,
+Injection data needed by the UI, the ImperialAX/C2ES shell UI, Windows scripts,
 and docs. It intentionally does not include `.venv`, `.git`, local logs, or
 secrets.
 
@@ -117,9 +117,19 @@ The setup script:
 
 - creates `.venv`
 - installs `requirements-serving.txt`
-- installs the PyTorch CPU wheel
+- installs the PyTorch CPU wheel by default
 - verifies the main runtime imports
 - prints a DD/Injection model readiness summary
+
+For an NVIDIA GPU training PC, use:
+
+```powershell
+.\scripts\windows\Setup-WindowsServing.ps1 -TorchBackend cuda
+```
+
+The setup output should show `cuda available True` and the GPU name. The
+Laminate distillation training script uses `--device auto`, so it will choose
+CUDA when PyTorch can see the GPU.
 
 ## Local Secrets
 
@@ -152,8 +162,9 @@ kclab-composite-ai
 
 The primary DNS routes point to this tunnel:
 
-- `laminate.luvelox.com`
-- `injection.luvelox.com`
+- `ai.imperialax.com`
+- `laminate.imperialax.com`
+- `injection.imperialax.com`
 
 Legacy DNS routes should remain available during the migration:
 
@@ -328,10 +339,17 @@ Run:
 
 PyTorch is probably not installed in `.venv`.
 
-Run:
+For CPU serving, run:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install torch==2.2.0 --index-url https://download.pytorch.org/whl/cpu
+```
+
+For NVIDIA GPU training, prefer rerunning setup with CUDA PyTorch:
+
+```powershell
+.\scripts\windows\Setup-WindowsServing.ps1 -TorchBackend cuda
+.\scripts\windows\Train-LaminateDistillationGPU.ps1
 ```
 
 Then check:

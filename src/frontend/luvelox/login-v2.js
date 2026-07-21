@@ -15,7 +15,7 @@ const TEXT = {
     passwordHint: "Use at least 8 characters to create an account.",
     showPassword: "Show",
     hidePassword: "Hide",
-    workspaceUrl: "https://ai.luvelox.com/index.html",
+    workspaceUrl: "https://ai.imperialax.com/index.html",
   },
   ko: {
     locked: "잠김",
@@ -30,11 +30,22 @@ const TEXT = {
     passwordHint: "계정을 만들려면 비밀번호 8자 이상을 입력하세요.",
     showPassword: "보기",
     hidePassword: "숨기기",
-    workspaceUrl: "https://ai.luvelox.com/index.ko.html",
+    workspaceUrl: "https://ai.imperialax.com/index.ko.html",
   },
 };
 
 const LOCAL_SESSIONS = {
+  "demo@imperialax.com": {
+    access_token: "demo-token",
+    token_type: "bearer",
+    user: {
+      id: "demo-user",
+      email: "demo@imperialax.com",
+      name: "Demo Account",
+      company: "ImperialAX Demo",
+    },
+    entitlements: ["module.injection", "module.laminate"],
+  },
   "demo@luvelox.com": {
     access_token: "demo-token",
     token_type: "bearer",
@@ -42,7 +53,7 @@ const LOCAL_SESSIONS = {
       id: "demo-user",
       email: "demo@luvelox.com",
       name: "Demo Account",
-      company: "Luvelox MVP",
+      company: "ImperialAX Demo",
     },
     entitlements: ["module.injection", "module.laminate"],
   },
@@ -53,7 +64,7 @@ const LOCAL_SESSIONS = {
       id: "danlee",
       email: "danlee@luvelox.com",
       name: "Dan Lee",
-      company: "Luvelox",
+      company: "ImperialAX",
     },
     entitlements: ["module.injection", "module.laminate", "module.optimization"],
   },
@@ -96,8 +107,8 @@ function saveSession(session) {
 }
 
 function previewAccount() {
-  const email = normalizeEmail(emailInput.value) || "demo@luvelox.com";
-  const session = LOCAL_SESSIONS[email] || LOCAL_SESSIONS["demo@luvelox.com"];
+  const email = normalizeEmail(emailInput.value) || "demo@imperialax.com";
+  const session = LOCAL_SESSIONS[email] || LOCAL_SESSIONS["demo@imperialax.com"];
   const hasOptimization = session.entitlements.includes("module.optimization");
 
   accountName.textContent = session.user.name;
@@ -108,7 +119,7 @@ function previewAccount() {
 }
 
 async function signIn(email, password) {
-  const normalizedEmail = normalizeEmail(email) || "demo@luvelox.com";
+  const normalizedEmail = normalizeEmail(email) || "demo@imperialax.com";
   setMessage("");
   setBusy(true);
 
@@ -133,7 +144,7 @@ async function signIn(email, password) {
 }
 
 async function demoLogin() {
-  const normalizedEmail = normalizeEmail(emailInput.value) || "demo@luvelox.com";
+  const normalizedEmail = normalizeEmail(emailInput.value) || "demo@imperialax.com";
   setMessage("");
   setBusy(true);
   try {

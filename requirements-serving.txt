@@ -13,3 +13,5 @@ scikit-learn==1.7.2
 
 # Install torch separately on Windows with the CPU wheel index:
 #   python -m pip install torch==2.2.0 --index-url https://download.pytorch.org/whl/cpu
+# For CUDA/GPU training on a Windows NVIDIA PC, use the Windows setup script:
+#   .\scripts\windows\Setup-WindowsServing.ps1 -TorchBackend cuda

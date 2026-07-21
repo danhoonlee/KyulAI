@@ -1,0 +1,529 @@
+<style>
+/* =========================================================
+   C2ES Laminate Forecast – AniForm/m3d 스타일 기반
+   - 1100px wrap
+   - 빨간 dot 리스트
+   - 아코디언(details/summary)
+   - 제품소개 페이지 HTML 붙여넣기용
+   ========================================================= */
+
+/* Base */
+.m3d, .m3d * { box-sizing: border-box; }
+
+/* Layout */
+.m3d-wrap{
+  max-width:1100px;
+  width:100%;
+  margin:0;
+  padding:0 16px;
+}
+
+/* Sections */
+.m3d-section{ padding:48px 0; }
+
+/* Typography */
+.m3d-h1{
+  font-size: clamp(26px, 2.6vw, 40px);
+  margin:0 0 12px;
+  line-height:1.15;
+}
+.m3d-lead{
+  line-height:1.75;
+  margin:0 0 14px;
+  color:#374151;
+  opacity:.92;
+}
+.m3d-muted{ color:#6b7280; }
+
+/* Red dot list */
+.m3d-list{ list-style:none; padding:0; margin:10px 0 0; }
+.m3d-list li{
+  position:relative;
+  padding-left:18px;
+  line-height:1.8;
+  color:#374151;
+}
+.m3d-list li::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:.65em;
+  width:6px;
+  height:6px;
+  background:#d6001c;
+  border-radius:50%;
+}
+
+/* Grid */
+.m3d-grid--3{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:18px;
+  width:100%;
+  margin-top:14px;
+}
+
+.m3d-grid--2{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:18px;
+  width:100%;
+  margin-top:14px;
+}
+
+/* Card */
+.m3d-card{
+  border-radius:14px;
+  overflow:hidden;
+  background:#fff;
+  border:1px solid #e6e6e9;
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
+.m3d-card__media{
+  margin:0;
+  width:100%;
+  aspect-ratio:16/9;
+  background:#f3f4f6;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.m3d-card__media img{
+  width:100%;
+  height:100%;
+  display:block;
+  object-fit:cover;
+}
+.m3d-card__body{ padding:16px; }
+.m3d-h3{ font-size:16px; margin:0 0 10px; line-height:1.25; }
+
+/* Highlight blocks */
+.m3d-note{
+  border:1px solid #e6e6e9;
+  border-left:4px solid #d6001c;
+  border-radius:14px;
+  padding:16px 18px;
+  background:#fff;
+  margin-top:16px;
+}
+.m3d-kv{
+  display:grid;
+  grid-template-columns:160px 1fr;
+  gap:10px 18px;
+  margin-top:12px;
+  color:#374151;
+  line-height:1.65;
+}
+.m3d-kv dt{ font-weight:900; color:#111827; }
+.m3d-kv dd{ margin:0; }
+
+/* Accordion */
+.af-acc{
+  border:1px solid #e6e6e9;
+  border-radius:16px;
+  background:#fff;
+  overflow:hidden;
+}
+.af-acc + .af-acc{ margin-top:14px; }
+
+.af-acc summary{
+  list-style:none;
+  cursor:pointer;
+  padding:16px 18px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  user-select:none;
+  background:#fafafa;
+  border-bottom:1px solid #eef0f2;
+}
+.af-acc summary::-webkit-details-marker{ display:none; }
+
+.af-accTitle{
+  font-weight:900;
+  color:#111827;
+  font-size:16px;
+}
+.af-accHint{
+  font-size:13px;
+  color:#6b7280;
+  font-weight:700;
+}
+
+.af-chevron{
+  width:10px; height:10px;
+  border-right:2px solid #6b7280;
+  border-bottom:2px solid #6b7280;
+  transform: rotate(45deg);
+  transition: transform .18s ease;
+  flex: 0 0 auto;
+}
+.af-acc[open] .af-chevron{ transform: rotate(-135deg); }
+
+.af-accBody{ padding:16px 18px 18px; }
+.af-intro{ max-width:920px; margin:0 0 12px; }
+
+/* Responsive */
+@media (max-width:980px){
+  .m3d-grid--3{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
+  .m3d-grid--2{ grid-template-columns:1fr; }
+}
+@media (max-width:520px){
+  .m3d-grid--3{ grid-template-columns:1fr; }
+  .m3d-kv{ grid-template-columns:1fr; }
+}
+</style>
+
+<main class="m3d" id="content">
+  <div class="m3d-wrap">
+
+    <!-- =========================
+         Page Intro
+         ========================= -->
+    <section class="m3d-section" id="c2es-laminate-forecast">
+      <h1 class="m3d-h1">C2ES Laminate Forecast</h1>
+
+      <div style="max-width:920px;">
+        <p class="m3d-lead">
+          C2ES Laminate Forecast는 복합재 적층 구조, 특히 Double-Double Laminate의
+          Type, 전이하중 Pt, Force-Displacement 응답 곡선, u3 거동을 빠르게 예측하기 위한
+          AI 기반 설계 지원 솔루션입니다.
+        </p>
+        <p class="m3d-lead">
+          사용자는 적층 Case와 두 개의 각도 값 θ₁, θ₂를 입력하는 것만으로 상세 CAE 해석 전에
+          유망한 적층 후보를 선별하고, Physics XAI를 통해 왜 이런 예측이 나왔는지까지 함께 검토할 수 있습니다.
+        </p>
+      </div>
+
+      <div class="m3d-note">
+        <strong>Positioning</strong>
+        <p class="m3d-lead" style="margin-top:8px;">
+          본 솔루션은 최종 구조 검증을 대체하는 도구가 아니라, 많은 적층 후보 중 상세 해석으로 넘길 대상을
+          빠르게 압축하는 AI/CAE 선별 도구입니다. 유망 후보는 반드시 상세 CAE 해석 및 실험 검증과 함께 판단해야 합니다.
+        </p>
+      </div>
+    </section>
+
+    <!-- =====================================================
+         1) AI-based laminate screening
+         ===================================================== -->
+    <details class="af-acc" open>
+      <summary>
+        <div>
+          <div class="af-accTitle">AI-based laminate screening</div>
+          <div class="af-accHint">Case와 θ 입력만으로 적층 후보를 빠르게 선별</div>
+        </div>
+        <span class="af-chevron" aria-hidden="true"></span>
+      </summary>
+
+      <div class="af-accBody">
+        <div class="af-intro">
+          <p class="m3d-lead">
+            기존 복합재 적층 설계에서는 각도와 적층 순서 조합이 많아 반복 해석 비용이 커집니다.
+            C2ES Laminate Forecast는 축적된 해석 데이터와 물리 기반 feature를 활용해,
+            상세 해석 전에 유망 후보를 빠르게 좁히는 워크플로우를 제공합니다.
+          </p>
+        </div>
+
+        <div class="m3d-grid--3">
+          <article class="m3d-card">
+            <figure class="m3d-card__media"><img src="images/laminate-01-overview.png" alt="C2ES Laminate Forecast overview"></figure>
+            <div class="m3d-card__body">
+              <h3 class="m3d-h3">Integrated forecast workspace</h3>
+              <ul class="m3d-list">
+                <li>연구 목적, 입력 설정, 예측 결과, XAI, Assistant를 하나의 화면에서 확인</li>
+                <li>Case와 θ₁, θ₂를 입력해 Type, Pt, 곡선, u3 거동을 빠르게 검토</li>
+                <li>웹 기반 화면으로 연구자와 엔지니어가 같은 결과를 공유 가능</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="m3d-card">
+            <figure class="m3d-card__media"><img src="images/laminate-02-input-panel.png" alt="Laminate Forecast input panel"></figure>
+            <div class="m3d-card__body">
+              <h3 class="m3d-h3">Simple Case and angle input</h3>
+              <ul class="m3d-list">
+                <li>Case 2, Case 3, Case 4 적층 패턴 선택</li>
+                <li>θ₁, θ₂ 각도를 입력하거나 슬라이더로 조정</li>
+                <li>Machine Learning과 Deep Learning 모델을 비교 검토</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="m3d-card">
+            <figure class="m3d-card__media"><img src="images/laminate-03-result-top.png" alt="Laminate Forecast prediction result"></figure>
+            <div class="m3d-card__body">
+              <h3 class="m3d-h3">Prediction summary</h3>
+              <ul class="m3d-list">
+                <li>Type 1, Type 2, Type 3 확률과 최종 예측 Type 표시</li>
+                <li>입력값, 모델명, 예측 신뢰도, 주요 결과를 한 번에 확인</li>
+                <li>제품 데모나 연구 회의에서 바로 공유 가능한 결과 화면 제공</li>
+              </ul>
+            </div>
+          </article>
+        </div>
+      </div>
+    </details>
+
+    <!-- =====================================================
+         2) Response and Pt prediction
+         ===================================================== -->
+    <details class="af-acc" open>
+      <summary>
+        <div>
+          <div class="af-accTitle">Response curve and transition load prediction</div>
+          <div class="af-accHint">Force-Displacement 곡선과 Pt를 예측</div>
+        </div>
+        <span class="af-chevron" aria-hidden="true"></span>
+      </summary>
+
+      <div class="af-accBody">
+        <div class="af-intro">
+          <p class="m3d-lead">
+            Laminate Forecast는 단순히 Type만 분류하지 않고, 응답 곡선과 전이하중 Pt를 함께 예측합니다.
+            Pt는 곡선의 knee 또는 transition point를 의미하며, 적층 구조의 안정성 변화가 시작되는 하중 수준을
+            후보별로 비교하는 데 활용됩니다.
+          </p>
+        </div>
+
+        <div class="m3d-grid--2">
+          <article class="m3d-card">
+            <figure class="m3d-card__media"><img src="images/laminate-04-response-curve.png" alt="Predicted force-displacement curve and Pt"></figure>
+            <div class="m3d-card__body">
+              <h3 class="m3d-h3">Predicted curve with Pt</h3>
+              <ul class="m3d-list">
+                <li>Force-Displacement 예측 곡선 표시</li>
+                <li>bilinear fitting line과 예측 Pt를 함께 시각화</li>
+                <li>최대 하중, 최대 변위, Pt 값을 카드 형태로 정리</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="m3d-card">
+            <div class="m3d-card__body">
+              <h3 class="m3d-h3">Supported stacking cases</h3>
+              <dl class="m3d-kv">
+                <dt>Case 2</dt>
+                <dd>[[±θ₁]/[±θ₂]]₄</dd>
+                <dt>Case 3</dt>
+                <dd>[[±θ₁]/ [±θ₂]/ [&#8723;θ₂]/ [&#8723;θ₂]]₂</dd>
+                <dt>Case 4</dt>
+                <dd>[([±θ₁]/ [±θ₂])₂ / ([&#8723;θ₁]/ [&#8723;θ₂])₂]</dd>
+              </dl>
+              <ul class="m3d-list">
+                <li>현재 학습/검증 데이터는 Case 2, Case 3, Case 4를 중심으로 구성</li>
+                <li>새로운 적층 패턴은 실제 ply sequence로 전개 후 물리 feature 계산을 통해 확장 가능</li>
+                <li>후보 적층은 최종 설계 전 상세 CAE 해석으로 재검증 권장</li>
+              </ul>
+            </div>
+          </article>
+        </div>
+      </div>
+    </details>
+
+    <!-- =====================================================
+         3) Physics XAI
+         ===================================================== -->
+    <details class="af-acc" open>
+      <summary>
+        <div>
+          <div class="af-accTitle">Physics XAI</div>
+          <div class="af-accHint">D11, A11, A12, D66 등 물리 feature 기반 설명</div>
+        </div>
+        <span class="af-chevron" aria-hidden="true"></span>
+      </summary>
+
+      <div class="af-accBody">
+        <div class="af-intro">
+          <p class="m3d-lead">
+            AI 예측 결과는 값만으로는 설계 판단에 충분하지 않습니다. C2ES Laminate Forecast는
+            Classical Laminate Theory 기반 feature와 XAI를 결합하여, 어떤 물리 인자가 현재 예측에 크게 작용했는지 보여줍니다.
+          </p>
+        </div>
+
+        <div class="m3d-grid--2">
+          <article class="m3d-card">
+            <figure class="m3d-card__media"><img src="images/laminate-05-xai.png" alt="Laminate Forecast Physics XAI feature importance"></figure>
+            <div class="m3d-card__body">
+              <h3 class="m3d-h3">Feature influence</h3>
+              <ul class="m3d-list">
+                <li>D11 굽힘 강성, A11 막 강성, D66 비틀림 강성 등 주요 feature 영향도 표시</li>
+                <li>각 feature가 무엇을 의미하는지 한국어 설명 제공</li>
+                <li>현재 입력값 기준 local sensitivity와 feature masking 결과를 함께 제공</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="m3d-card">
+            <div class="m3d-card__body">
+              <h3 class="m3d-h3">CLT-based descriptors</h3>
+              <ul class="m3d-list">
+                <li>입력된 Case와 θ₁, θ₂를 실제 ply sequence로 전개</li>
+                <li>T800/3900S 재료 물성과 ply thickness를 바탕으로 ABD matrix 계산</li>
+                <li>A/h, 2B/h², 12D/h³ 기준 normalized ABD feature 사용</li>
+                <li>membrane stiffness, bending stiffness, bend-twist coupling, anisotropy descriptor 포함</li>
+              </ul>
+            </div>
+          </article>
+        </div>
+      </div>
+    </details>
+
+    <!-- =====================================================
+         4) Design-space insight
+         ===================================================== -->
+    <details class="af-acc">
+      <summary>
+        <div>
+          <div class="af-accTitle">Design-space insight and recommendation</div>
+          <div class="af-accHint">현재 입력 위치, Case별 영역, 추천 후보를 함께 검토</div>
+        </div>
+        <span class="af-chevron" aria-hidden="true"></span>
+      </summary>
+
+      <div class="af-accBody">
+        <div class="af-intro">
+          <p class="m3d-lead">
+            Design-space map은 기존 해석 데이터 공간에서 현재 입력값이 어디에 위치하는지 보여줍니다.
+            이를 통해 예측 결과의 신뢰도, 가까운 해석 데이터, Type 분포, 추천 후보를 함께 검토할 수 있습니다.
+          </p>
+        </div>
+
+        <div class="m3d-grid--2">
+          <article class="m3d-card">
+            <figure class="m3d-card__media"><img src="images/laminate-06-design-space.png" alt="Laminate Forecast design-space insight"></figure>
+            <div class="m3d-card__body">
+              <h3 class="m3d-h3">Design-space map</h3>
+              <ul class="m3d-list">
+                <li>Type별 데이터 포인트와 현재 입력 위치 표시</li>
+                <li>가까운 기존 해석 데이터와 추천 후보 확인</li>
+                <li>Case별 상위 Pt Type 1 영역과 위험도 정보를 함께 제공</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="m3d-card">
+            <div class="m3d-card__body">
+              <h3 class="m3d-h3">Engineering decision support</h3>
+              <ul class="m3d-list">
+                <li>현재 후보와 추천 후보의 Pt, Type, Case 위험도를 비교</li>
+                <li>해석 데이터 coverage와 interpolation/extrapolation 상태를 검토</li>
+                <li>상세 해석으로 넘길 후보를 빠르게 선정하는 의사결정 보조</li>
+              </ul>
+            </div>
+          </article>
+        </div>
+      </div>
+    </details>
+
+    <!-- =====================================================
+         5) u3 forecast
+         ===================================================== -->
+    <details class="af-acc">
+      <summary>
+        <div>
+          <div class="af-accTitle">u3 Forecast</div>
+          <div class="af-accHint">u3 변위 관점의 Pt와 곡선 거동 예측</div>
+        </div>
+        <span class="af-chevron" aria-hidden="true"></span>
+      </summary>
+
+      <div class="af-accBody">
+        <div class="af-intro">
+          <p class="m3d-lead">
+            Type 2와 Type 3처럼 knee 이후 곡률이 커지는 경우에는 force-displacement 응답만으로 판단하기 어려울 수 있습니다.
+            u3 Forecast는 변위 기반 거동을 추가로 예측하여 적층 후보를 다른 관점에서 검토할 수 있게 합니다.
+          </p>
+        </div>
+
+        <div class="m3d-grid--2">
+          <article class="m3d-card">
+            <figure class="m3d-card__media"><img src="images/laminate-07-u3-result.png" alt="u3 Forecast result"></figure>
+            <div class="m3d-card__body">
+              <h3 class="m3d-h3">u3 result summary</h3>
+              <ul class="m3d-list">
+                <li>u3 Type, Pt, 최대 변위/하중을 예측</li>
+                <li>Laminate Forecast와 별도 모델로 변위 거동을 검토</li>
+                <li>ML/DL 모델을 함께 운용하여 비교 가능</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="m3d-card">
+            <figure class="m3d-card__media"><img src="images/laminate-08-u3-curve.png" alt="u3 Forecast curve"></figure>
+            <div class="m3d-card__body">
+              <h3 class="m3d-h3">u3 curve visualization</h3>
+              <ul class="m3d-list">
+                <li>u3 기반 곡선과 transition point 표시</li>
+                <li>응답 곡선과 함께 적층 안정성 변화를 비교</li>
+                <li>복합재 패널의 변위 민감 후보를 사전에 확인</li>
+              </ul>
+            </div>
+          </article>
+        </div>
+      </div>
+    </details>
+
+    <!-- =====================================================
+         6) AI Assistant and workflow
+         ===================================================== -->
+    <details class="af-acc">
+      <summary>
+        <div>
+          <div class="af-accTitle">AI Assistant and knowledge base</div>
+          <div class="af-accHint">연구 자료, XAI, 복합재 지식을 연결한 설명 기능</div>
+        </div>
+        <span class="af-chevron" aria-hidden="true"></span>
+      </summary>
+
+      <div class="af-accBody">
+        <div class="af-intro">
+          <p class="m3d-lead">
+            Laminate AI Assistant는 내부 연구 문서, PPT/PDF 노트, XAI 결과, 복합재 관련 지식 기반을 함께 검색하여
+            예측 결과에 대한 질문과 설명을 제공합니다.
+          </p>
+        </div>
+
+        <div class="m3d-grid--3">
+          <article class="m3d-card">
+            <div class="m3d-card__body">
+              <h3 class="m3d-h3">Prediction-aware answers</h3>
+              <ul class="m3d-list">
+                <li>현재 예측의 Type, Pt, Case, θ 조합, XAI feature를 질문 context로 활용</li>
+                <li>D11, A12, B16/B26, anisotropy 등 feature 의미 설명</li>
+                <li>예측값과 물리적 해석을 연결하는 설명 제공</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="m3d-card">
+            <div class="m3d-card__body">
+              <h3 class="m3d-h3">Research basis</h3>
+              <ul class="m3d-list">
+                <li>Double-Double Laminate 연구 PPT 및 내부 리포트 기반</li>
+                <li>TAC vs DD 비교 자료 및 Case별 설계 관점 반영</li>
+                <li>근거 citation과 함께 답변을 표시하는 RAG 구조</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="m3d-card">
+            <div class="m3d-card__body">
+              <h3 class="m3d-h3">Recommended workflow</h3>
+              <ul class="m3d-list">
+                <li>Case와 θ 후보 입력</li>
+                <li>Type, Pt, curve, u3 결과 확인</li>
+                <li>XAI/Assistant로 원인 검토 후 상세 CAE 해석 후보 선정</li>
+              </ul>
+            </div>
+          </article>
+        </div>
+      </div>
+    </details>
+
+  </div>
+</main>

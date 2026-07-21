@@ -1,0 +1,16 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Wedding Invitation//Donghoon Seyeon//KO
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:이동훈 · 신세연 결혼식
+BEGIN:VEVENT
+UID:donghoon-seyeon-wedding-20261010@cafedecafe.co.kr
+DTSTAMP:20260701T000000Z
+DTSTART:20261010T030000Z
+DTEND:20261010T050000Z
+SUMMARY:이동훈 · 신세연 결혼식
+LOCATION:크레스트 72 글라스홀 (서울특별시 중구 장충단로 72)
+DESCRIPTION:이동훈 · 신세연 결혼식에 초대합니다\n크레스트 72 글라스홀\n서울특별시 중구 장충단로 72
+END:VEVENT
+END:VCALENDAR

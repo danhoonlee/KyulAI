@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>이동훈 · 신세연 RSVP 관리자</title>
+  <style>
+    :root {
+      --bg: #efebe5;
+      --paper: #fbf8f1;
+      --paper-2: #f7f3ec;
+      --ink: #292623;
+      --muted: #746f68;
+      --line: rgba(41, 38, 35, .14);
+      --accent: #4b4745;
+      --groom: #7186aa;
+      --bride: #c99093;
+      --danger: #a24135;
+      --shadow: 0 20px 54px rgba(41, 38, 35, .12);
+      --font-sans: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font-sans);
+      line-height: 1.55;
+      word-break: keep-all;
+    }
+
+    main {
+      width: min(980px, 100%);
+      margin: 0 auto;
+      padding: 34px 18px 80px;
+    }
+
+    header {
+      padding: 18px 0 24px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 6vw, 44px);
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: .02em;
+      text-transform: uppercase;
+    }
+
+    .sub {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .panel {
+      background: rgba(251, 248, 241, .9);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+
+    .login {
+      display: grid;
+      gap: 12px;
+      max-width: 520px;
+      margin: 18px auto 0;
+    }
+
+    label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    input, select {
+      width: 100%;
+      min-height: 48px;
+      padding: 0 14px;
+      border: 1px solid rgba(41, 38, 35, .18);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, .72);
+      color: var(--ink);
+      font-size: 15px;
+      outline: none;
+    }
+
+    input:focus, select:focus {
+      border-color: rgba(41, 38, 35, .42);
+      box-shadow: 0 0 0 4px rgba(41, 38, 35, .06);
+    }
+
+    button {
+      border: 0;
+      min-height: 46px;
+      padding: 0 18px;
+      border-radius: 10px;
+      color: #fffaf2;
+      background: var(--accent);
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      color: var(--ink);
+      background: rgba(255, 255, 255, .58);
+      border: 1px solid var(--line);
+    }
+
+    button.danger {
+      color: var(--danger);
+      background: rgba(162, 65, 53, .08);
+      border: 1px solid rgba(162, 65, 53, .2);
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 8px 0 34px;
+    }
+
+    .tabs button {
+      min-height: 58px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, .5);
+      color: var(--muted);
+      font-size: 16px;
+      text-transform: uppercase;
+    }
+
+    .tabs button.active {
+      background: var(--accent);
+      color: #fffaf2;
+      border-color: var(--accent);
+    }
+
+    .summary-table {
+      display: grid;
+      grid-template-columns: 1fr repeat(3, minmax(70px, 1fr));
+      align-items: stretch;
+      overflow: hidden;
+      border-radius: 6px;
+    }
+
+    .summary-cell {
+      min-height: 82px;
+      display: grid;
+      place-items: center;
+      padding: 12px 8px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, .48);
+      text-align: center;
+      font-weight: 900;
+    }
+
+    .summary-cell.head {
+      min-height: 58px;
+      color: var(--muted);
+      background: transparent;
+      font-size: 14px;
+    }
+
+    .summary-cell.label {
+      justify-items: start;
+      padding-left: 16px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .summary-cell.value {
+      font-size: 25px;
+    }
+
+    .summary-pill {
+      width: 100%;
+      min-height: 44px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fffaf2;
+    }
+
+    .summary-pill.groom { background: var(--groom); }
+    .summary-pill.bride { background: var(--bride); }
+
+    .note {
+      margin: 24px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .list-toolbar {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) 48px 48px;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .list-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    table {
+      width: 100%;
+      min-width: 760px;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th {
+      height: 58px;
+      padding: 12px 10px;
+      color: var(--ink);
+      text-align: center;
+      font-weight: 900;
+      white-space: nowrap;
+      border-bottom: 1px solid var(--line);
+    }
+
+    td {
+      height: 70px;
+      padding: 12px 10px;
+      text-align: center;
+      border-bottom: 1px solid rgba(41, 38, 35, .08);
+      vertical-align: middle;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    .person-cell {
+      min-width: 150px;
+      text-align: left;
+    }
+
+    .name-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-weight: 900;
+    }
+
+    .side-badge {
+      display: inline-grid;
+      place-items: center;
+      min-width: 38px;
+      min-height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      color: #fffaf2;
+      background: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .side-badge.groom { background: var(--groom); }
+    .side-badge.bride { background: var(--bride); }
+    .side-badge.bus { background: #85663c; }
+    .side-badge.guestbook { background: #3f4a3c; }
+
+    .time {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .mark {
+      font-size: 26px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .mark.yes { color: var(--groom); }
+    .mark.no { color: var(--bride); }
+
+    .row-delete {
+      width: 34px;
+      min-height: 34px;
+      padding: 0;
+      border-radius: 50%;
+      color: var(--danger);
+      background: rgba(162, 65, 53, .06);
+      border: 1px solid rgba(162, 65, 53, .16);
+    }
+
+    .status {
+      padding: 22px 10px;
+      color: var(--muted);
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 560px) {
+      main { padding: 28px 14px 70px; }
+      .panel { padding: 22px; }
+      .tabs { margin-bottom: 30px; }
+      .summary-table { grid-template-columns: 1.05fr repeat(3, 1fr); }
+      .summary-cell { min-height: 74px; }
+      .summary-cell.label { padding-left: 10px; font-size: 13px; }
+      .summary-cell.value { font-size: 22px; }
+      .list-actions { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Response List</h1>
+      <p class="sub">참석 여부, 식사, 버스 탑승, 방명록을 확인합니다.</p>
+    </header>
+
+    <section class="panel login" id="loginPanel">
+      <label for="tokenInput">관리자 비밀번호</label>
+      <input id="tokenInput" type="password" autocomplete="current-password" placeholder="admin-token.txt의 값을 입력" />
+      <button type="button" id="loginButton">확인하기</button>
+      <p class="sub">비밀번호는 서버의 <b>runtime/wedding/admin-token.txt</b>에 저장되어 있습니다.</p>
+    </section>
+
+    <section class="panel hidden" id="adminPanel">
+      <div class="tabs" role="tablist" aria-label="관리 화면">
+        <button class="active" type="button" data-view="summary">Summary</button>
+        <button type="button" data-view="list">List</button>
+      </div>
+
+      <section id="summaryView">
+        <div class="summary-table" aria-label="응답 요약">
+          <div class="summary-cell head">구분</div>
+          <div class="summary-cell head"><div class="summary-pill">Total</div></div>
+          <div class="summary-cell head"><div class="summary-pill groom">신랑측</div></div>
+          <div class="summary-cell head"><div class="summary-pill bride">신부측</div></div>
+
+          <div class="summary-cell label">참석 인원</div>
+          <div class="summary-cell value" id="sumAttendTotal">0</div>
+          <div class="summary-cell value" id="sumAttendGroom">0</div>
+          <div class="summary-cell value" id="sumAttendBride">0</div>
+
+          <div class="summary-cell label">식사 인원</div>
+          <div class="summary-cell value" id="sumMealTotal">0</div>
+          <div class="summary-cell value" id="sumMealGroom">0</div>
+          <div class="summary-cell value" id="sumMealBride">0</div>
+
+          <div class="summary-cell label">버스 탑승</div>
+          <div class="summary-cell value" id="sumBusTotal">0</div>
+          <div class="summary-cell value" id="sumBusGroom">0</div>
+          <div class="summary-cell value" id="sumBusBride">0</div>
+
+          <div class="summary-cell label">총 응답 수</div>
+          <div class="summary-cell value" id="sumResponseTotal">0</div>
+          <div class="summary-cell value" id="sumResponseGroom">0</div>
+          <div class="summary-cell value" id="sumResponseBride">0</div>
+        </div>
+        <p class="note">* 참석/식사/버스 인원은 동반인을 포함한 입력 인원 기준입니다.</p>
+      </section>
+
+      <section id="listView" class="hidden">
+        <div class="list-toolbar">
+          <input id="searchInput" type="search" placeholder="SEARCH" autocomplete="off" />
+          <button class="secondary" type="button" id="refreshButton" aria-label="새로고침">↻</button>
+          <button class="danger" type="button" id="logoutButton" aria-label="잠금">잠금</button>
+        </div>
+        <div class="list-actions">
+          <select id="filterSelect" aria-label="필터">
+            <option value="all">전체보기</option>
+            <option value="rsvp">참석 여부</option>
+            <option value="bus">버스 탑승</option>
+            <option value="guestbook">방명록</option>
+          </select>
+          <button class="secondary" type="button" id="csvButton">엑셀 다운로드</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>구분 및 성함</th>
+                <th>참석의사</th>
+                <th>참석인원</th>
+                <th>식사여부</th>
+                <th>전세버스</th>
+                <th>메모</th>
+                <th>삭제</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <div class="status" id="status">불러오는 중입니다.</div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = 'donghoon-seyeon-admin-token';
+    const state = {
+      token: localStorage.getItem(STORAGE_KEY) || '',
+      items: [],
+      view: 'summary',
+      filter: 'all',
+      search: ''
+    };
+
+    const $ = selector => document.querySelector(selector);
+    const $$ = selector => Array.from(document.querySelectorAll(selector));
+
+    function value(data, key) {
+      const raw = data && data[key];
+      return raw === undefined || raw === null || raw === '' ? '-' : String(raw);
+    }
+
+    function normalizeSide(side) {
+      if (side === '신랑측') return 'groom';
+      if (side === '신부측') return 'bride';
+      return 'other';
+    }
+
+    function sideLabel(item) {
+      const data = item.data || {};
+      if (item.type === 'bus') return value(data, 'side');
+      if (item.type === 'guestbook') return value(data, 'side');
+      return value(data, 'side');
+    }
+
+    function typeLabel(item) {
+      if (item.type === 'bus') return '버스';
+      if (item.type === 'guestbook') return '방명록';
+      return sideLabel(item) === '신부측' ? '신부' : sideLabel(item) === '신랑측' ? '신랑' : '기타';
+    }
+
+    function badgeClass(item) {
+      if (item.type === 'bus') return 'bus';
+      if (item.type === 'guestbook') return 'guestbook';
+      const side = normalizeSide(sideLabel(item));
+      return side === 'bride' ? 'bride' : side === 'groom' ? 'groom' : '';
+    }
+
+    function formatDate(value) {
+      if (!value) return '-';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+      return new Intl.DateTimeFormat('ko-KR', {
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Asia/Seoul'
+      }).format(date).replace(/\./g, '/').replace(/\s/g, ' ');
+    }
+
+    function parseCount(text) {
+      const match = String(text || '').match(/\d+/);
+      return match ? Number(match[0]) : 0;
+    }
+
+    function isAttendYes(item) {
+      return item.type === 'rsvp' && value(item.data || {}, 'attendance') === '참석';
+    }
+
+    function isMealYes(item) {
+      return item.type === 'rsvp' && value(item.data || {}, 'meal') === '식사 예정';
+    }
+
+    function escapeHtml(text) {
+      return String(text).replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[char]));
+    }
+
+    function excelText(data, key) {
+      const text = value(data, key);
+      return text === '-' ? '' : `="${text}"`;
+    }
+
+    function summaryTotals() {
+      const totals = {
+        attend: { total: 0, groom: 0, bride: 0 },
+        meal: { total: 0, groom: 0, bride: 0 },
+        bus: { total: 0, groom: 0, bride: 0 },
+        response: { total: 0, groom: 0, bride: 0 }
+      };
+
+      for (const item of state.items) {
+        const data = item.data || {};
+        const side = normalizeSide(value(data, 'side'));
+        const responseCountable = item.type === 'rsvp';
+
+        if (responseCountable) {
+          totals.response.total += 1;
+          if (side === 'groom') totals.response.groom += 1;
+          if (side === 'bride') totals.response.bride += 1;
+        }
+
+        if (isAttendYes(item)) {
+          const count = parseCount(value(data, 'guests')) || 1;
+          totals.attend.total += count;
+          if (side === 'groom') totals.attend.groom += count;
+          if (side === 'bride') totals.attend.bride += count;
+        }
+
+        if (isMealYes(item)) {
+          const count = parseCount(value(data, 'guests')) || 1;
+          totals.meal.total += count;
+          if (side === 'groom') totals.meal.groom += count;
+          if (side === 'bride') totals.meal.bride += count;
+        }
+
+        if (item.type === 'bus') {
+          const count = parseCount(value(data, 'count')) || 1;
+          totals.bus.total += count;
+          if (side === 'groom') totals.bus.groom += count;
+          if (side === 'bride') totals.bus.bride += count;
+        }
+      }
+
+      return totals;
+    }
+
+    function renderSummary() {
+      const totals = summaryTotals();
+      $('#sumAttendTotal').textContent = totals.attend.total;
+      $('#sumAttendGroom').textContent = totals.attend.groom;
+      $('#sumAttendBride').textContent = totals.attend.bride;
+      $('#sumMealTotal').textContent = totals.meal.total;
+      $('#sumMealGroom').textContent = totals.meal.groom;
+      $('#sumMealBride').textContent = totals.meal.bride;
+      $('#sumBusTotal').textContent = totals.bus.total;
+      $('#sumBusGroom').textContent = totals.bus.groom;
+      $('#sumBusBride').textContent = totals.bus.bride;
+      $('#sumResponseTotal').textContent = totals.response.total;
+      $('#sumResponseGroom').textContent = totals.response.groom;
+      $('#sumResponseBride').textContent = totals.response.bride;
+    }
+
+    function filteredItems() {
+      const query = state.search.trim().toLowerCase();
+      return state.items.filter(item => {
+        if (state.filter !== 'all' && item.type !== state.filter) return false;
+        if (!query) return true;
+        const data = item.data || {};
+        return [
+          item.type,
+          value(data, 'name'),
+          value(data, 'phone'),
+          value(data, 'side'),
+          value(data, 'attendance'),
+          value(data, 'meal'),
+          value(data, 'route'),
+          value(data, 'memo'),
+          value(data, 'message')
+        ].join(' ').toLowerCase().includes(query);
+      });
+    }
+
+    function mark(value) {
+      if (value === 'yes') return '<span class="mark yes">O</span>';
+      if (value === 'no') return '<span class="mark no">X</span>';
+      return '-';
+    }
+
+    function rowFor(item) {
+      const data = item.data || {};
+      const attend = item.type === 'rsvp'
+        ? mark(value(data, 'attendance') === '참석' ? 'yes' : 'no')
+        : '-';
+      const guests = item.type === 'rsvp' ? escapeHtml(value(data, 'guests')) : item.type === 'bus' ? '-' : '-';
+      const meal = item.type === 'rsvp'
+        ? mark(value(data, 'meal') === '식사 예정' ? 'yes' : value(data, 'meal') === '식사 안 함' ? 'no' : '')
+        : '-';
+      const bus = item.type === 'bus'
+        ? `${escapeHtml(value(data, 'route'))}<br>${escapeHtml(value(data, 'count'))}`
+        : '-';
+      const memo = item.type === 'guestbook'
+        ? value(data, 'message')
+        : item.type === 'bus'
+          ? [value(data, 'boardingPlace'), value(data, 'memo')].filter(text => text !== '-').join(' / ') || '-'
+          : value(data, 'message');
+
+      return `
+        <tr>
+          <td class="person-cell">
+            <div class="name-row">
+              <span class="side-badge ${badgeClass(item)}">${escapeHtml(typeLabel(item))}</span>
+              <span>${escapeHtml(value(data, 'name'))}</span>
+            </div>
+            <div class="time">${escapeHtml(formatDate(item.submittedAt))}</div>
+          </td>
+          <td>${attend}</td>
+          <td>${guests}</td>
+          <td>${meal}</td>
+          <td>${bus}</td>
+          <td>${escapeHtml(memo)}</td>
+          <td><button class="row-delete" type="button" data-line="${escapeHtml(item._line || '')}">×</button></td>
+        </tr>
+      `;
+    }
+
+    function renderList() {
+      const items = filteredItems();
+      $('#tableBody').innerHTML = items.map(rowFor).join('');
+      $('#status').classList.toggle('hidden', items.length > 0);
+      $('#status').textContent = state.items.length ? '선택한 항목이 없습니다.' : '아직 제출된 내용이 없습니다.';
+    }
+
+    function render() {
+      renderSummary();
+      renderList();
+    }
+
+    async function loadSubmissions() {
+      $('#status').classList.remove('hidden');
+      $('#status').textContent = '불러오는 중입니다.';
+      const response = await fetch('/wedding/api/admin/submissions', {
+        headers: { 'X-Wedding-Admin-Token': state.token }
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || '관리자 비밀번호를 확인해 주세요.');
+      }
+      state.items = payload.items || [];
+      render();
+    }
+
+    async function deleteSubmission(lineNumber) {
+      if (!lineNumber) return;
+      if (!confirm('이 항목을 삭제할까요? 삭제 후에는 되돌릴 수 없습니다.')) return;
+      const response = await fetch(`/wedding/api/admin/submissions/${encodeURIComponent(lineNumber)}`, {
+        method: 'DELETE',
+        headers: { 'X-Wedding-Admin-Token': state.token }
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || '삭제에 실패했습니다.');
+      }
+      await loadSubmissions();
+    }
+
+    async function login() {
+      state.token = $('#tokenInput').value.trim();
+      localStorage.setItem(STORAGE_KEY, state.token);
+      try {
+        await loadSubmissions();
+        $('#loginPanel').classList.add('hidden');
+        $('#adminPanel').classList.remove('hidden');
+      } catch (error) {
+        localStorage.removeItem(STORAGE_KEY);
+        alert(error.message);
+      }
+    }
+
+    function downloadCsv() {
+      const rows = [['type', 'submittedAt', 'name', 'phone', 'side', 'attendance', 'guests', 'meal', 'route', 'count', 'boardingPlace', 'memo', 'message']];
+      for (const item of state.items) {
+        const data = item.data || {};
+        rows.push([
+          item.type || '',
+          item.submittedAt || '',
+          value(data, 'name'),
+          excelText(data, 'phone'),
+          value(data, 'side'),
+          value(data, 'attendance'),
+          value(data, 'guests'),
+          value(data, 'meal'),
+          value(data, 'route'),
+          value(data, 'count'),
+          value(data, 'boardingPlace'),
+          value(data, 'memo'),
+          value(data, 'message')
+        ]);
+      }
+      const csv = rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `wedding-rsvp-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    function setView(view) {
+      state.view = view;
+      $('#summaryView').classList.toggle('hidden', view !== 'summary');
+      $('#listView').classList.toggle('hidden', view !== 'list');
+      $$('.tabs button').forEach(button => {
+        button.classList.toggle('active', button.dataset.view === view);
+      });
+    }
+
+    $('#loginButton').addEventListener('click', login);
+    $('#tokenInput').addEventListener('keydown', event => {
+      if (event.key === 'Enter') login();
+    });
+    $('#refreshButton').addEventListener('click', () => loadSubmissions().catch(error => alert(error.message)));
+    $('#csvButton').addEventListener('click', downloadCsv);
+    $('#logoutButton').addEventListener('click', () => {
+      localStorage.removeItem(STORAGE_KEY);
+      location.reload();
+    });
+    $('#filterSelect').addEventListener('change', event => {
+      state.filter = event.target.value;
+      renderList();
+    });
+    $('#searchInput').addEventListener('input', event => {
+      state.search = event.target.value;
+      renderList();
+    });
+    $('#tableBody').addEventListener('click', event => {
+      const button = event.target.closest('.row-delete');
+      if (!button) return;
+      deleteSubmission(button.dataset.line).catch(error => alert(error.message));
+    });
+    $$('.tabs button').forEach(button => {
+      button.addEventListener('click', () => setView(button.dataset.view));
+    });
+
+    if (state.token) {
+      $('#tokenInput').value = state.token;
+      login();
+    }
+  </script>
+</body>
+</html>

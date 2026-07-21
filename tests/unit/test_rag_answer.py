@@ -277,7 +277,7 @@ def test_compact_prediction_context_includes_current_d11_physics() -> None:
     assert "Case2 = [[±θ₁]/[±θ₂]]₄" in context
     assert "Expanded stack" in context
     assert "D11 calculation basis" in context
-    assert "normalized d11=1.06895" in context
+    assert "normalized d11=12.8274" in context
     assert "surrogate forecast" in context
     assert "Type definitions used by this project" in context
     assert "Type 2: initial branch is nearly linear" in context

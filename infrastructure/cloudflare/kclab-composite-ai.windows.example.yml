@@ -10,7 +10,25 @@ tunnel: 02b4b689-84ef-4459-91cd-48c81ea549ae
 credentials-file: C:\Users\YOUR_WINDOWS_USER\.cloudflared\02b4b689-84ef-4459-91cd-48c81ea549ae.json
 
 ingress:
+  - hostname: imperialax.com
+    service: http://127.0.0.1:8000
+  - hostname: www.imperialax.com
+    service: http://127.0.0.1:8000
+  - hostname: ai.imperialax.com
+    service: http://127.0.0.1:8000
+  - hostname: app.imperialax.com
+    service: http://127.0.0.1:8000
+  - hostname: laminate.imperialax.com
+    service: http://127.0.0.1:8000
+  - hostname: dd.imperialax.com
+    service: http://127.0.0.1:8000
+  - hostname: injection.imperialax.com
+    service: http://127.0.0.1:8010
   - hostname: ai.luvelox.com
+    service: http://127.0.0.1:8000
+  - hostname: luvelox.com
+    service: http://127.0.0.1:8000
+  - hostname: www.luvelox.com
     service: http://127.0.0.1:8000
   - hostname: laminate.luvelox.com
     service: http://127.0.0.1:8000

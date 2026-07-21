@@ -94,7 +94,7 @@ POST /slack/commands
 Use this request URL in Slack:
 
 ```text
-https://laminate.luvelox.com/slack/commands
+https://laminate.imperialax.com/slack/commands
 ```
 
 Recommended Slash Command:

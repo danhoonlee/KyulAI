@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <defs>
+    <linearGradient id="axBlue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#17c9ef"/>
+      <stop offset="0.55" stop-color="#1467ff"/>
+      <stop offset="1" stop-color="#003fb7"/>
+    </linearGradient>
+    <linearGradient id="navy" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#061b45"/>
+      <stop offset="1" stop-color="#0d3b8e"/>
+    </linearGradient>
+    <style>
+      .label { font-family: Inter, Avenir Next, Arial, sans-serif; fill: #7a8495; font-size: 22px; font-weight: 700; letter-spacing: 4px; }
+      .word { font-family: Avenir Next, Inter, Arial, sans-serif; font-size: 88px; font-weight: 500; letter-spacing: 1px; }
+      .tag { font-family: Inter, Avenir Next, Arial, sans-serif; fill: #0a1740; font-size: 23px; font-weight: 700; letter-spacing: 13px; }
+      .smallWord { font-family: Avenir Next, Inter, Arial, sans-serif; font-size: 54px; font-weight: 500; letter-spacing: 0; }
+      .smallTag { font-family: Inter, Avenir Next, Arial, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 5px; }
+      .darkWord { font-family: Avenir Next, Inter, Arial, sans-serif; font-size: 54px; font-weight: 500; letter-spacing: 0; }
+      .darkTag { font-family: Inter, Avenir Next, Arial, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 5px; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="1000" fill="#f7f9fc"/>
+  <text x="64" y="66" class="label">REFINED CONCEPT / IMPERIALAX</text>
+  <line x1="64" y1="92" x2="1536" y2="92" stroke="#ccd3dd" stroke-width="2"/>
+
+  <!-- Primary mark: wider spacing, a clearer A crossbar, and a separated X accent. -->
+  <g transform="translate(446 154) scale(1.18)">
+    <rect x="0" y="0" width="44" height="178" rx="2" fill="url(#navy)"/>
+    <polygon points="104,178 190,0 238,0 152,178" fill="url(#navy)"/>
+    <polygon points="246,0 334,178 286,178 198,0" fill="url(#navy)"/>
+    <rect x="183" y="112" width="82" height="25" rx="3" fill="#0a2e70"/>
+    <polygon points="404,0 458,0 533,77 505,107" fill="url(#navy)"/>
+    <polygon points="402,178 505,71 534,101 456,178" fill="url(#navy)"/>
+    <polygon points="559,2 610,2 548,66 510,66" fill="url(#axBlue)"/>
+    <polygon points="510,112 548,112 610,176 559,176" fill="url(#axBlue)"/>
+  </g>
+
+  <text x="470" y="455" class="word" fill="#08183c">Imperial<tspan fill="#1264f4" font-weight="600">AX</tspan></text>
+  <text x="472" y="512" class="tag">AI · ENGINEERING · INTELLIGENCE</text>
+
+  <line x1="64" y1="610" x2="1536" y2="610" stroke="#ccd3dd" stroke-width="2"/>
+
+  <text x="64" y="665" class="label">WEB HEADER LOCKUP</text>
+  <g transform="translate(78 716) scale(.48)">
+    <rect x="0" y="0" width="44" height="178" rx="2" fill="url(#navy)"/>
+    <polygon points="104,178 190,0 238,0 152,178" fill="url(#navy)"/>
+    <polygon points="246,0 334,178 286,178 198,0" fill="url(#navy)"/>
+    <rect x="183" y="112" width="82" height="25" rx="3" fill="#0a2e70"/>
+    <polygon points="404,0 458,0 533,77 505,107" fill="url(#navy)"/>
+    <polygon points="402,178 505,71 534,101 456,178" fill="url(#navy)"/>
+    <polygon points="559,2 610,2 548,66 510,66" fill="url(#axBlue)"/>
+    <polygon points="510,112 548,112 610,176 559,176" fill="url(#axBlue)"/>
+  </g>
+  <line x1="400" y1="724" x2="400" y2="807" stroke="#9aa6b8" stroke-width="2"/>
+  <text x="438" y="775" class="smallWord" fill="#08183c">Imperial<tspan fill="#1264f4" font-weight="600">AX</tspan></text>
+  <text x="441" y="812" class="smallTag" fill="#0a1740">AI · ENGINEERING · INTELLIGENCE</text>
+
+  <text x="962" y="665" class="label">APP / FAVICON</text>
+  <rect x="1014" y="704" width="162" height="162" rx="34" fill="#061832"/>
+  <g transform="translate(1042 756) scale(.18)">
+    <rect x="0" y="0" width="44" height="178" rx="2" fill="#ffffff"/>
+    <polygon points="104,178 190,0 238,0 152,178" fill="#ffffff"/>
+    <polygon points="246,0 334,178 286,178 198,0" fill="#ffffff"/>
+    <rect x="183" y="112" width="82" height="25" rx="3" fill="#e9f3ff"/>
+    <polygon points="404,0 458,0 533,77 505,107" fill="#ffffff"/>
+    <polygon points="402,178 505,71 534,101 456,178" fill="#ffffff"/>
+    <polygon points="559,2 610,2 548,66 510,66" fill="url(#axBlue)"/>
+    <polygon points="510,112 548,112 610,176 559,176" fill="url(#axBlue)"/>
+  </g>
+
+  <rect x="0" y="900" width="1600" height="100" fill="#061832"/>
+  <g transform="translate(84 924) scale(.24)">
+    <rect x="0" y="0" width="44" height="178" rx="2" fill="#ffffff"/>
+    <polygon points="104,178 190,0 238,0 152,178" fill="#ffffff"/>
+    <polygon points="246,0 334,178 286,178 198,0" fill="#ffffff"/>
+    <rect x="183" y="112" width="82" height="25" rx="3" fill="#e9f3ff"/>
+    <polygon points="404,0 458,0 533,77 505,107" fill="#ffffff"/>
+    <polygon points="402,178 505,71 534,101 456,178" fill="#ffffff"/>
+    <polygon points="559,2 610,2 548,66 510,66" fill="url(#axBlue)"/>
+    <polygon points="510,112 548,112 610,176 559,176" fill="url(#axBlue)"/>
+  </g>
+  <line x1="270" y1="925" x2="270" y2="976" stroke="#7a8495" stroke-width="2"/>
+  <text x="302" y="961" class="darkWord" fill="#ffffff">Imperial<tspan fill="#2e7bff" font-weight="600">AX</tspan></text>
+  <text x="621" y="961" class="darkTag" fill="#dbe7ff">AI · ENGINEERING · INTELLIGENCE</text>
+</svg>

@@ -50,6 +50,23 @@ The setup script creates `.venv`, installs serving dependencies, installs the
 CPU PyTorch wheel, checks the main imports, and prints a model readiness
 summary.
 
+For an NVIDIA GPU machine that will run Laminate distillation training, install
+the CUDA PyTorch wheel instead:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\scripts\windows\Setup-WindowsServing.ps1 -TorchBackend cuda
+```
+
+After setup, this should print `cuda available True` and the GPU name. If it
+prints `False`, the script can still run, but training will fall back to CPU.
+
+To launch the heavier GPU distillation pass:
+
+```powershell
+.\scripts\windows\Train-LaminateDistillationGPU.ps1
+```
+
 ## 4. Create Local Environment File
 
 ```powershell

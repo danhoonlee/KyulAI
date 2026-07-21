@@ -61,13 +61,13 @@ http://127.0.0.1:8000
 
 The web C2ES App entry now lives at:
 
-- `https://ai.luvelox.com`
+- `https://ai.imperialax.com`
 
 Standalone module domains continue to run in parallel and are opened from the
 AI workspace:
 
-- `https://laminate.luvelox.com`
-- `https://injection.luvelox.com`
+- `https://laminate.imperialax.com`
+- `https://injection.imperialax.com`
 
 ## Native Shell MVP
 
@@ -88,13 +88,13 @@ Both apps currently:
 The catalog request currently points at:
 
 ```text
-https://laminate.luvelox.com/api/v1/modules/me
+https://laminate.imperialax.com/api/v1/modules/me
 ```
 
-Later, when `api.luvelox.com` is routed, this should move to:
+Later, when `api.imperialax.com` is routed, this should move to:
 
 ```text
-https://api.luvelox.com/api/v1/modules/me
+https://api.imperialax.com/api/v1/modules/me
 ```
 
 ### iOS
