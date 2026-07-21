@@ -127,6 +127,14 @@ const TEXT = {
   ptRange: IS_KO ? "Pt 예상 범위" : "Pt screening range",
   designCoverage: IS_KO ? "설계공간 커버리지" : "Design-space coverage",
   typeAgreement: IS_KO ? "주변 Type 일치도" : "Nearby Type agreement",
+  teacherStudentTitle: IS_KO ? "Tree vs Student 일치도" : "Tree vs Student agreement",
+  teacherStudentAgreement: IS_KO ? "모델 일치도" : "Agreement",
+  teacherStudentType: IS_KO ? "Type 비교" : "Type comparison",
+  teacherStudentPtDelta: IS_KO ? "Pt 차이" : "Pt delta",
+  teacherStudentCurveDelta: IS_KO ? "곡선 차이" : "Curve delta",
+  teacherStudentStudent: IS_KO ? "Student 예측" : "Student prediction",
+  teacherStudentMatch: IS_KO ? "일치" : "Match",
+  teacherStudentMismatch: IS_KO ? "불일치" : "Mismatch",
   interpolation: IS_KO ? "보간 영역" : "Interpolation",
   nearEdge: IS_KO ? "경계 근처" : "Near edge",
   extrapolation: IS_KO ? "외삽 주의" : "Extrapolation",
@@ -261,6 +269,11 @@ const uncertaintyPanel = document.querySelector("#uncertainty-panel");
 const uncertaintyLabel = document.querySelector("#uncertainty-label");
 const uncertaintyGrid = document.querySelector("#uncertainty-grid");
 const uncertaintyNotes = document.querySelector("#uncertainty-notes");
+const teacherStudentPanel = document.querySelector("#teacher-student-panel");
+const teacherStudentTitle = document.querySelector("#teacher-student-title");
+const teacherStudentLabel = document.querySelector("#teacher-student-label");
+const teacherStudentGrid = document.querySelector("#teacher-student-grid");
+const teacherStudentNotes = document.querySelector("#teacher-student-notes");
 const xaiPanel = document.querySelector("#xai-panel");
 const xaiTitle = document.querySelector("#xai-title");
 const xaiSummary = document.querySelector("#xai-summary");
@@ -1276,6 +1289,86 @@ function renderUncertainty(uncertainty) {
   });
 }
 
+function agreementLabelText(label) {
+  if (label === "high") return TEXT.reliabilityHigh;
+  if (label === "medium") return TEXT.reliabilityMedium;
+  return TEXT.reliabilityLow;
+}
+
+function translateTeacherStudentNote(note) {
+  const labels = {
+    "Teacher is the deployment Tree model; Student is the distilled Hybrid neural model.":
+      "Teacher는 배포 기본 Tree 모델이고, Student는 distillation 기반 Hybrid 신경망 모델입니다.",
+    "Agreement compares Type, Pt, max force, and response-curve shape for the same theta/case input.":
+      "같은 θ/Case 입력에 대해 Type, Pt, 최대 하중, 응답 곡선 형태가 얼마나 일치하는지 비교합니다.",
+    "Tree and Student disagree on Type, so validate this candidate before treating the classification as stable.":
+      "Tree와 Student의 Type 예측이 달라서, 이 후보는 안정적인 분류로 보기 전에 추가 검증이 필요합니다.",
+    "Type agrees, but Pt differs by more than 8%; treat the Pt estimate as a screening value.":
+      "Type은 일치하지만 Pt 차이가 8%를 넘어, Pt 값은 screening 용도로 해석하는 것이 좋습니다.",
+    "Tree and Student are locally consistent, which supports using this result as an early screening candidate.":
+      "Tree와 Student가 현재 입력 주변에서 일관된 결과를 보여, 초기 screening 후보로 활용하기에 비교적 안정적입니다.",
+    "Teacher/Student agreement is included as a deployment consistency check, not as a replacement for simulation validation.":
+      "Teacher/Student 일치도는 배포용 일관성 체크이며, 최종 해석 검증을 대체하지는 않습니다.",
+  };
+  return labels[note] || note;
+}
+
+function renderTeacherStudentAgreement(agreement) {
+  if (!teacherStudentPanel || !teacherStudentLabel || !teacherStudentGrid || !teacherStudentNotes) {
+    return;
+  }
+  if (!agreement) {
+    teacherStudentPanel.classList.add("hidden");
+    teacherStudentPanel.classList.remove("high", "medium", "low");
+    teacherStudentGrid.innerHTML = "";
+    teacherStudentNotes.innerHTML = "";
+    return;
+  }
+
+  const confidenceLabel = agreement.confidence_label || "low";
+  teacherStudentPanel.classList.remove("hidden", "high", "medium", "low");
+  teacherStudentPanel.classList.add(confidenceLabel);
+  if (teacherStudentTitle) {
+    teacherStudentTitle.textContent = TEXT.teacherStudentTitle;
+  }
+  teacherStudentLabel.textContent = agreementLabelText(confidenceLabel);
+
+  const typeText = agreement.type_agreement
+    ? `${TEXT.teacherStudentMatch} · Type ${agreement.teacher?.predicted_type ?? "-"}`
+    : `${TEXT.teacherStudentMismatch} · T${agreement.teacher?.predicted_type ?? "-"} / S${agreement.student?.predicted_type ?? "-"}`;
+  const curveText = agreement.curve_norm_rmse != null
+    ? `${formatMetric(agreement.curve_norm_rmse * 100, 2)}%`
+    : "-";
+  const studentText = agreement.student
+    ? `Type ${agreement.student.predicted_type}, Pt ${formatMetric(agreement.student.predicted_pt, 0)}`
+    : "-";
+  const cards = [
+    [TEXT.teacherStudentAgreement, percent(agreement.agreement_score)],
+    [TEXT.teacherStudentType, typeText],
+    [TEXT.teacherStudentPtDelta, `${formatMetric(agreement.pt_delta, 0)} (${percent(agreement.pt_delta_percent)})`],
+    [TEXT.teacherStudentCurveDelta, curveText],
+    [TEXT.teacherStudentStudent, studentText],
+  ];
+  teacherStudentGrid.innerHTML = "";
+  cards.forEach(([label, value]) => {
+    const card = document.createElement("div");
+    card.className = "uncertainty-card";
+    const labelEl = document.createElement("span");
+    labelEl.textContent = label;
+    const valueEl = document.createElement("strong");
+    valueEl.textContent = value;
+    card.append(labelEl, valueEl);
+    teacherStudentGrid.appendChild(card);
+  });
+
+  teacherStudentNotes.innerHTML = "";
+  (agreement.notes || []).slice(0, 3).forEach((note) => {
+    const item = document.createElement("li");
+    item.textContent = IS_KO ? translateTeacherStudentNote(note) : note;
+    teacherStudentNotes.appendChild(item);
+  });
+}
+
 function translateUncertaintyNote(note) {
   const labels = {
     "Reliability combines model confidence, distance to nearby curated simulations, and local Type agreement.":
@@ -1334,6 +1427,7 @@ function renderResult(data) {
   });
   renderProbabilities(data.probabilities);
   renderUncertainty(data.uncertainty);
+  renderTeacherStudentAgreement(data.teacher_student);
   responseEstimate.classList.add("hidden");
   xaiRequestSerial += 1;
   renderXai(null);
@@ -3810,6 +3904,7 @@ function renderU3PtResult(data) {
     probabilityBars.appendChild(summary);
   }
   renderUncertainty(data.uncertainty);
+  renderTeacherStudentAgreement(null);
 
   responseEstimate.classList.remove("hidden");
   responseCurveTitle.textContent = IS_KO ? "예측 u3 곡선과 Pt" : "Predicted u3 curve with Pt";
@@ -4678,11 +4773,18 @@ responseForm.addEventListener("submit", async (event) => {
   setLoading(responseForm, true);
   const formData = new FormData(responseForm);
   try {
-    const data = await postJson("/predict/response", {
+    const selectedModel = String(formData.get("model") || "response_geometry_tree_v1");
+    const useTeacherStudent = selectedModel === "response_geometry_tree_v1";
+    const data = await postJson(useTeacherStudent ? "/predict/response-ensemble" : "/predict/response", {
       theta1: clampStackAngle(formData.get("theta1")),
       theta2: clampStackAngle(formData.get("theta2")),
       case: formData.get("case"),
-      model: formData.get("model"),
+      ...(useTeacherStudent
+        ? {
+          teacher_model: "response_geometry_tree_v1",
+          student_model: "response_hybrid_student_deploy_quick_v1",
+        }
+        : { model: selectedModel }),
       panel_a_in: Number(formData.get("panel_a_in") || 6),
       panel_b_in: Number(formData.get("panel_b_in") || 4),
     });

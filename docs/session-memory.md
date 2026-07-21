@@ -14839,3 +14839,24 @@ Follow-up in same debugging pass:
   - `reports/dd_response_geometry_fixed_holdout_20260721_geometry_holdout_rtx_v1/fixed_holdout_metrics.json`.
   - `reports/dd_response_geometry_fixed_holdout_20260721_geometry_holdout_rtx_v1/fixed_holdout_manifest.csv`.
   - Updated `reports/dd_laminate_geometry_strict_leaderboard_20260721.md`.
+
+## 2026-07-21 - Added Laminate Tree/Student Ensemble Consistency Check
+- User preferred the `Teacher + Student Ensemble` direction over replacing the deployment model with the student.
+- Product decision:
+  - Keep `response_geometry_tree_v1` as the Laminate Forecast deployment/default prediction because strict CV and fixed holdout show the best Pt and curve regression.
+  - Use `response_hybrid_student_deploy_quick_v1` as a challenger/student that runs alongside the Tree model for consistency checking.
+- Backend changes:
+  - Added `/api/v1/dd-laminate/predict/response-ensemble`.
+  - The endpoint returns the normal Tree prediction plus a `teacher_student` block.
+  - Agreement compares Type match, Pt delta, max-force delta, and normalized curve RMSE between Tree and Hybrid Student for the same θ/Case/panel input.
+  - Agreement score weights: Type `45%`, Pt `35%`, curve shape `20%`.
+  - Confidence labels: high `>= 0.78`, medium `>= 0.58`, otherwise low.
+- Web changes:
+  - When the Laminate Forecast ML model (`response_geometry_tree_v1`) is selected, the web UI calls the new ensemble endpoint.
+  - The result page now shows a compact `Tree vs Student agreement` panel below prediction reliability.
+  - The panel is hidden for u3 and non-ensemble single-model predictions.
+- Smoke verification:
+  - Sample `θ₁=30`, `θ₂=-30`, `Case2`, `6x4` panel:
+    - Tree predicted Type `2`, Pt `17151.49`.
+    - Student predicted Type `2`, Pt `17299.25`.
+    - Agreement score `0.7623`, confidence label `medium`, Pt delta `147.76` kips.

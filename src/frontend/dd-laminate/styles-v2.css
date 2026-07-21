@@ -1583,7 +1583,8 @@ summary:focus-visible {
   gap: 10px;
 }
 
-.uncertainty-panel {
+.uncertainty-panel,
+.teacher-student-panel {
   display: grid;
   gap: 12px;
   padding: 14px;
@@ -1626,7 +1627,18 @@ summary:focus-visible {
   background: #fef3c7;
 }
 
-.uncertainty-grid {
+.teacher-student-panel.low .uncertainty-head strong {
+  color: #7f1d1d;
+  background: #fee2e2;
+}
+
+.teacher-student-panel.medium .uncertainty-head strong {
+  color: #78350f;
+  background: #fef3c7;
+}
+
+.uncertainty-grid,
+.teacher-student-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 8px;

@@ -50,6 +50,17 @@ OPTIMAL_U3_FORECAST_MODEL_KEYS = (
     "u3_forecast_physics_v2",
     "u3_forecast_goint_physics_v2",
 )
+RESPONSE_DEEP_MODEL_KEYS = {
+    "response_goint",
+    "response_goint_physics",
+    "response_goint_physics_v2",
+    "response_goint_physics_nn_v2",
+    "response_geometry_goint_v1",
+    "response_distilled_v1",
+    "response_distilled_grid_v1",
+    "response_distilled_grid_conf_v1",
+    "response_hybrid_student_deploy_quick_v1",
+}
 U3ForecastModelKey = Literal[
     "u3_forecast",
     "u3_forecast_goint",
@@ -92,6 +103,16 @@ class ResponsePredictionRequest(BaseModel):
     theta2: float = Field(..., ge=-90, le=90)
     case: CaseKey
     model: ResponseModelKey = "response_geometry_tree_v1"
+    panel_a_in: float = Field(6.0, gt=0)
+    panel_b_in: float = Field(4.0, gt=0)
+
+
+class ResponseEnsemblePredictionRequest(BaseModel):
+    theta1: float = Field(..., ge=-90, le=90)
+    theta2: float = Field(..., ge=-90, le=90)
+    case: CaseKey
+    teacher_model: ResponseModelKey = "response_geometry_tree_v1"
+    student_model: ResponseModelKey = "response_hybrid_student_deploy_quick_v1"
     panel_a_in: float = Field(6.0, gt=0)
     panel_b_in: float = Field(4.0, gt=0)
 
@@ -213,6 +234,28 @@ class PredictionUncertainty(BaseModel):
     notes: list[str] = []
 
 
+class ResponseModelSnapshot(BaseModel):
+    model_key: str
+    model_label: str
+    predicted_type: int
+    confidence: float | None
+    predicted_pt: float
+    predicted_max_force: float
+
+
+class TeacherStudentAgreement(BaseModel):
+    teacher: ResponseModelSnapshot
+    student: ResponseModelSnapshot
+    type_agreement: bool
+    pt_delta: float
+    pt_delta_percent: float
+    max_force_delta: float
+    curve_norm_rmse: float | None = None
+    agreement_score: float
+    confidence_label: Literal["high", "medium", "low"]
+    notes: list[str] = []
+
+
 class StackPreviewResponse(BaseModel):
     case: StackPreviewCaseKey
     formula: str | None = None
@@ -235,6 +278,7 @@ class ResponseSurrogateResponse(PredictionResponse):
     metrics: dict[str, float | int | str] = {}
     xai: XAIExplanation | None = None
     uncertainty: PredictionUncertainty | None = None
+    teacher_student: TeacherStudentAgreement | None = None
 
 
 class U3PtPredictionResponse(BaseModel):
@@ -2101,20 +2145,14 @@ async def predict_from_theta(payload: ThetaPredictionRequest) -> PredictionRespo
     summary="Estimate Type, Pt, and force-displacement curve from theta/case",
 )
 async def predict_estimated_response(payload: ResponsePredictionRequest) -> ResponseSurrogateResponse:
+    return _predict_estimated_response(payload)
+
+
+def _predict_estimated_response(payload: ResponsePredictionRequest) -> ResponseSurrogateResponse:
     meta = _ensure_available(payload.model, RESPONSE_MODELS)
     model_path = _model_path(meta)
     try:
-        if payload.model in {
-            "response_goint",
-            "response_goint_physics",
-            "response_goint_physics_v2",
-            "response_goint_physics_nn_v2",
-            "response_geometry_goint_v1",
-            "response_distilled_v1",
-            "response_distilled_grid_v1",
-            "response_distilled_grid_conf_v1",
-            "response_hybrid_student_deploy_quick_v1",
-        }:
+        if payload.model in RESPONSE_DEEP_MODEL_KEYS:
             from src.ml.dd_laminate.predict_response_deep_surrogate import (
                 predict_response_deep_from_artifacts,
             )
@@ -2181,6 +2219,118 @@ async def predict_estimated_response(payload: ResponsePredictionRequest) -> Resp
             confidence=confidence,
         ),
     )
+
+
+def _response_snapshot(prediction: ResponseSurrogateResponse) -> ResponseModelSnapshot:
+    return ResponseModelSnapshot(
+        model_key=prediction.model_key,
+        model_label=prediction.model_label,
+        predicted_type=prediction.predicted_type,
+        confidence=prediction.confidence,
+        predicted_pt=prediction.predicted_pt,
+        predicted_max_force=prediction.predicted_max_force,
+    )
+
+
+def _curve_norm_rmse_between(
+    teacher_curve: list[ResponseCurvePoint],
+    student_curve: list[ResponseCurvePoint],
+) -> float | None:
+    if not teacher_curve or not student_curve:
+        return None
+    n = min(len(teacher_curve), len(student_curve))
+    if n == 0:
+        return None
+    scale = max(
+        max(abs(point.force) for point in teacher_curve[:n]),
+        max(abs(point.force) for point in student_curve[:n]),
+        1.0,
+    )
+    mse = sum(
+        ((teacher_curve[index].force - student_curve[index].force) / scale) ** 2
+        for index in range(n)
+    ) / n
+    return math.sqrt(mse)
+
+
+def _teacher_student_agreement(
+    teacher: ResponseSurrogateResponse,
+    student: ResponseSurrogateResponse,
+) -> TeacherStudentAgreement:
+    type_agreement = teacher.predicted_type == student.predicted_type
+    pt_delta = abs(teacher.predicted_pt - student.predicted_pt)
+    pt_delta_percent = pt_delta / max(abs(teacher.predicted_pt), 1.0)
+    max_force_delta = abs(teacher.predicted_max_force - student.predicted_max_force)
+    curve_norm_rmse = _curve_norm_rmse_between(teacher.curve, student.curve)
+
+    pt_score = max(0.0, 1.0 - pt_delta_percent / 0.08)
+    curve_score = 1.0 if curve_norm_rmse is None else max(0.0, 1.0 - curve_norm_rmse / 0.05)
+    type_score = 1.0 if type_agreement else 0.0
+    agreement_score = max(0.0, min(1.0, 0.45 * type_score + 0.35 * pt_score + 0.20 * curve_score))
+    if agreement_score >= 0.78:
+        confidence_label: Literal["high", "medium", "low"] = "high"
+    elif agreement_score >= 0.58:
+        confidence_label = "medium"
+    else:
+        confidence_label = "low"
+
+    notes = [
+        "Teacher is the deployment Tree model; Student is the distilled Hybrid neural model.",
+        "Agreement compares Type, Pt, max force, and response-curve shape for the same theta/case input.",
+    ]
+    if not type_agreement:
+        notes.append("Tree and Student disagree on Type, so validate this candidate before treating the classification as stable.")
+    elif pt_delta_percent > 0.08:
+        notes.append("Type agrees, but Pt differs by more than 8%; treat the Pt estimate as a screening value.")
+    else:
+        notes.append("Tree and Student are locally consistent, which supports using this result as an early screening candidate.")
+
+    return TeacherStudentAgreement(
+        teacher=_response_snapshot(teacher),
+        student=_response_snapshot(student),
+        type_agreement=type_agreement,
+        pt_delta=pt_delta,
+        pt_delta_percent=pt_delta_percent,
+        max_force_delta=max_force_delta,
+        curve_norm_rmse=curve_norm_rmse,
+        agreement_score=agreement_score,
+        confidence_label=confidence_label,
+        notes=notes,
+    )
+
+
+@router.post(
+    "/predict/response-ensemble",
+    response_model=ResponseSurrogateResponse,
+    summary="Estimate response with Tree teacher and Hybrid Student agreement",
+)
+async def predict_estimated_response_ensemble(
+    payload: ResponseEnsemblePredictionRequest,
+) -> ResponseSurrogateResponse:
+    teacher_payload = ResponsePredictionRequest(
+        theta1=payload.theta1,
+        theta2=payload.theta2,
+        case=payload.case,
+        model=payload.teacher_model,
+        panel_a_in=payload.panel_a_in,
+        panel_b_in=payload.panel_b_in,
+    )
+    student_payload = ResponsePredictionRequest(
+        theta1=payload.theta1,
+        theta2=payload.theta2,
+        case=payload.case,
+        model=payload.student_model,
+        panel_a_in=payload.panel_a_in,
+        panel_b_in=payload.panel_b_in,
+    )
+    teacher = _predict_estimated_response(teacher_payload)
+    student = _predict_estimated_response(student_payload)
+    teacher.teacher_student = _teacher_student_agreement(teacher, student)
+    teacher.notes = [
+        *teacher.notes,
+        "Teacher/Student agreement is included as a deployment consistency check, not as a replacement for simulation validation.",
+    ]
+    return teacher
 
 
 @router.post("/predict/curve", response_model=PredictionResponse, summary="Predict Type from force-displacement CSV")
