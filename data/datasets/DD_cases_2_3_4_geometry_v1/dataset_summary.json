@@ -1,0 +1,41 @@
+{
+  "curated_root": "data/datasets/DD_cases_2_3_4_curated_v1",
+  "new_manifest": "data/New_Data/classified_curve_csv_v1/classification_manifest.csv",
+  "output_root": "data/datasets/DD_cases_2_3_4_geometry_v1",
+  "cases": {
+    "Case2": {
+      "rows": 600,
+      "panel_sizes": [
+        "6.0x4.0",
+        "6.0x8.0"
+      ],
+      "source_counts": {
+        "6x4_curated_v1": 300,
+        "6x8_new_data_curve_classifier_v1": 300
+      }
+    },
+    "Case3": {
+      "rows": 600,
+      "panel_sizes": [
+        "6.0x4.0",
+        "6.0x8.0"
+      ],
+      "source_counts": {
+        "6x4_curated_v1": 300,
+        "6x8_new_data_curve_classifier_v1": 300
+      }
+    },
+    "Case4": {
+      "rows": 600,
+      "panel_sizes": [
+        "6.0x4.0",
+        "6.0x8.0"
+      ],
+      "source_counts": {
+        "6x4_curated_v1": 300,
+        "6x8_new_data_curve_classifier_v1": 300
+      }
+    }
+  },
+  "total_rows": 1800
+}

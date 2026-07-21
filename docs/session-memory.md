@@ -14607,3 +14607,17 @@ Follow-up in same debugging pass:
   - Created commit `f555ab3` on `codex/dd-laminate-ui-api`.
   - Uploaded three LFS model objects separately, then pushed `codex/dd-laminate-ui-api` to GitHub.
   - Remote branch advanced from `a33c2a2` to `f555ab3`.
+
+## 2026-07-21 - Added remaining portable handoff assets
+- User clarified that non-Laminate parts also need to be available from Git.
+- Checked repository state:
+  - Injection web/app code and Simple Injection models/data were already tracked and pushed in the prior handoff snapshot.
+  - Remaining ignored files were mostly local caches/build outputs (`dist/`, `.venv/`, Gradle/Xcode build folders), OS metadata, local auth DB, logs, and historical APK variants.
+- Added the useful remaining portable assets:
+  - `data/datasets/DD_cases_2_3_4_geometry_v1/` with geometry response manifest and Case2/Case3/Case4 transition-load CSV summaries.
+  - `artifacts/android/C2ES-debug-latest.apk` as the current Android debug APK alias.
+- Deliberately left out:
+  - `dist/` bundles (~8.6GB), because they are generated copies and include old packaged artifacts.
+  - `.env.local` and `data/luvelox_auth.sqlite3`, because they contain local secrets/runtime state.
+  - Build caches and OS metadata.
+  - Untracked `random_forest.joblib` / `extra_trees.joblib` challenger artifacts, because they are large local experiment outputs and not current deployment models.
