@@ -113,6 +113,21 @@ def set_seed(seed: int) -> None:
         torch.cuda.manual_seed_all(seed)
 
 
+def parse_panel_sizes(value: str) -> list[tuple[float, float]]:
+    sizes: list[tuple[float, float]] = []
+    for chunk in value.split(","):
+        token = chunk.strip().lower().replace(" ", "")
+        if not token:
+            continue
+        if "x" not in token:
+            raise ValueError(f"Invalid panel size {chunk!r}; expected format like 6x4 or 6x8.")
+        a_text, b_text = token.split("x", 1)
+        sizes.append((float(a_text), float(b_text)))
+    if not sizes:
+        raise ValueError("At least one synthetic panel size is required.")
+    return sizes
+
+
 def resolve_device(device: str) -> torch.device:
     if device == "auto":
         if torch.cuda.is_available():
@@ -372,6 +387,7 @@ def make_synthetic_raw_arrays(
     *,
     teacher: dict,
     feature_set: str,
+    panel_sizes: list[tuple[float, float]],
     theta_min: float,
     theta_max: float,
     grid_step: float,
@@ -383,7 +399,8 @@ def make_synthetic_raw_arrays(
         return None
     theta_values = np.arange(theta_min, theta_max + 1e-9, grid_step, dtype=float)
     synthetic_records = [
-        ResponseFeatureRecord(case=case, theta1=float(theta1), theta2=float(theta2))
+        ResponseFeatureRecord(case=case, theta1=float(theta1), theta2=float(theta2), panel_a_in=panel_a, panel_b_in=panel_b)
+        for panel_a, panel_b in panel_sizes
         for case in CASES
         for theta1 in theta_values
         for theta2 in theta_values
@@ -479,6 +496,7 @@ def train_strict_cv(
             synthetic_raw = make_synthetic_raw_arrays(
                 teacher=fold_teacher,
                 feature_set=args.feature_set,
+                panel_sizes=args.synthetic_panel_size_values,
                 theta_min=args.synthetic_theta_min,
                 theta_max=args.synthetic_theta_max,
                 grid_step=args.synthetic_grid_step,
@@ -635,6 +653,7 @@ def summarize_metrics(rows: list[dict[str, float]], *, n_samples: int, input_dim
         "dropout": float(args.dropout),
         "temperature": float(args.temperature),
         "synthetic_grid_step": float(args.synthetic_grid_step),
+        "synthetic_panel_sizes": str(args.synthetic_panel_sizes),
         "synthetic_weight": float(args.synthetic_weight),
         "synthetic_confidence_power": float(args.synthetic_confidence_power),
         "synthetic_min_confidence_weight": float(args.synthetic_min_confidence_weight),
@@ -676,6 +695,7 @@ def write_report(output_dir: Path, metrics: dict[str, float | int | str], fold_r
         f"- Hidden dim: {metrics['hidden_dim']}",
         f"- Branches: {metrics['branches']}",
         f"- Synthetic grid step: {metrics['synthetic_grid_step']}",
+        f"- Synthetic panel sizes: `{metrics.get('synthetic_panel_sizes', '6x4')}`",
         f"- Synthetic base weight: {metrics['synthetic_weight']}",
         f"- Synthetic confidence power: {metrics['synthetic_confidence_power']}",
         f"- Synthetic effective weight mean: {metrics['synthetic_effective_weight_mean']:.4f}",
@@ -761,6 +781,11 @@ def main() -> None:
     parser.add_argument("--synthetic-grid-step", type=float, default=0.0, help="Theta grid step in degrees. Use 0 to disable synthetic grid distillation.")
     parser.add_argument("--synthetic-theta-min", type=float, default=-90.0)
     parser.add_argument("--synthetic-theta-max", type=float, default=90.0)
+    parser.add_argument(
+        "--synthetic-panel-sizes",
+        default="6x4",
+        help="Comma-separated panel sizes for synthetic grid records, e.g. '6x4' or '6x4,6x8'.",
+    )
     parser.add_argument("--synthetic-weight", type=float, default=0.35)
     parser.add_argument(
         "--synthetic-confidence-power",
@@ -776,6 +801,7 @@ def main() -> None:
     )
     args = parser.parse_args()
     args.device_torch = resolve_device(args.device)
+    args.synthetic_panel_size_values = parse_panel_sizes(args.synthetic_panel_sizes)
     print(f"Using device: {describe_device(args.device_torch)}")
     set_seed(args.seed)
 
@@ -796,7 +822,8 @@ def main() -> None:
     if args.synthetic_grid_step and args.synthetic_grid_step > 0:
         theta_values = np.arange(args.synthetic_theta_min, args.synthetic_theta_max + 1e-9, args.synthetic_grid_step, dtype=float)
         synthetic_records = [
-            ResponseFeatureRecord(case=case, theta1=float(theta1), theta2=float(theta2))
+            ResponseFeatureRecord(case=case, theta1=float(theta1), theta2=float(theta2), panel_a_in=panel_a, panel_b_in=panel_b)
+            for panel_a, panel_b in args.synthetic_panel_size_values
             for case in CASES
             for theta1 in theta_values
             for theta2 in theta_values
@@ -882,6 +909,7 @@ def main() -> None:
             "dropout": float(args.dropout),
             "temperature": float(args.temperature),
             "synthetic_grid_step": float(args.synthetic_grid_step),
+            "synthetic_panel_sizes": str(args.synthetic_panel_sizes),
             "synthetic_weight": float(args.synthetic_weight),
             "synthetic_confidence_power": float(args.synthetic_confidence_power),
             "synthetic_min_confidence_weight": float(args.synthetic_min_confidence_weight),
