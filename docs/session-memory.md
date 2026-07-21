@@ -14789,3 +14789,53 @@ Follow-up in same debugging pass:
   - `reports/dd_response_hybrid_geometry_strict_cv_20260721_geometry_strict_rtx_v2/distillation_report.md`.
   - `reports/dd_response_hybrid_geometry_strict_cv_20260721_geometry_strict_rtx_v2/response_distilled_metrics.json`.
   - `reports/dd_laminate_geometry_strict_leaderboard_20260721.md`.
+
+## 2026-07-21 - Added Fixed Holdout Gate for Geometry-Aware Laminate Forecast
+- User pointed out that the fixed external holdout should have been run together with the strict CV leaderboard.
+- Added `scripts/dd_response_geometry_holdout_eval.py`.
+- Split policy:
+  - Deterministic seed `42`.
+  - Holdout ratio `0.2`.
+  - Group key: `Case + theta1 + theta2`.
+  - No identical case/theta pair appears in both train and holdout.
+  - Stratification target: `Case + Type`.
+  - The resulting holdout also preserves panel/source coverage exactly: `182` rows from `6x4` and `182` rows from `6x8`.
+- Local Tree-only smoke:
+  - Confirmed split generation and report writing.
+  - System `/usr/bin/python3` lacked numpy, so the project `.venv` was used for local smoke.
+- RTX full holdout run:
+  - Run id: `20260721_geometry_holdout_rtx_v1`.
+  - Device: `NVIDIA GeForce RTX 5070`.
+  - Train rows: `1436`.
+  - Holdout rows: `364`.
+  - Train groups: `718`.
+  - Holdout groups: `182`.
+- Fixed holdout results:
+  - Geometry Tree + Physics XAI:
+    - Type accuracy `0.9451`.
+    - Macro F1 `0.9456`.
+    - Pt MAE `247.39` kips.
+    - Curve normalized RMSE `0.00293`.
+    - Curve force RMSE `227.99` kips.
+  - Geometry GointMLP + Physics XAI:
+    - Type accuracy `0.9203`.
+    - Macro F1 `0.9247`.
+    - Pt MAE `675.61` kips.
+    - Curve normalized RMSE `0.01838`.
+    - Curve force RMSE `1035.00` kips.
+  - Geometry Hybrid Student:
+    - Type accuracy `0.9451`.
+    - Macro F1 `0.9444`.
+    - Teacher Type agreement `0.9863`.
+    - Pt MAE `361.05` kips.
+    - Curve normalized RMSE `0.00576`.
+    - Curve force RMSE `425.69` kips.
+- Interpretation:
+  - Fixed holdout confirms the same product decision as strict grouped CV.
+  - Geometry Tree remains the deployment default because Pt and curve errors are best.
+  - Hybrid Student remains a strong Type/challenger model but is not yet the better all-around forecast model.
+- Local artifacts:
+  - `reports/dd_response_geometry_fixed_holdout_20260721_geometry_holdout_rtx_v1/fixed_holdout_report.md`.
+  - `reports/dd_response_geometry_fixed_holdout_20260721_geometry_holdout_rtx_v1/fixed_holdout_metrics.json`.
+  - `reports/dd_response_geometry_fixed_holdout_20260721_geometry_holdout_rtx_v1/fixed_holdout_manifest.csv`.
+  - Updated `reports/dd_laminate_geometry_strict_leaderboard_20260721.md`.
