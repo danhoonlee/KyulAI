@@ -767,7 +767,7 @@ public enum DDLaminateDefaults {
         "u3_forecast_physics_v2",
         "u3_forecast_goint_physics_v2",
     ]
-    public static let fallbackBaseURL = "https://laminate.luvelox.com"
+    public static let fallbackBaseURL = "https://laminate.imperialax.com"
 }
 
 enum DDLaminateModelDisplayLabel {

@@ -27,7 +27,7 @@ import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
 
-private const val INJECTION_BASE_URL = "https://injection.luvelox.com"
+private const val INJECTION_BASE_URL = "https://injection.imperialax.com"
 private const val DEFAULT_SPRUE_MODEL = "sprue_classical"
 private const val DEFAULT_FILLING_MODEL = "filling_classical"
 private const val INJECTION_HISTORY_PREFS = "injection_history"
@@ -64,7 +64,7 @@ class InjectionActivity : Activity() {
 
         root.addView(label("INJECTION MODULE", color(0x0BA7C9), 12f, Typeface.BOLD))
         root.addView(label("Sprue Pressure Forecast", color(0x101215), 32f, Typeface.BOLD))
-        root.addView(paragraph("Run Moldex3D-style sprue pressure and filling pressure prediction directly inside C2ES."), margin(top = 8, bottom = 16))
+        root.addView(paragraph("Run Moldex3D-style sprue pressure and filling pressure prediction directly inside ImperialAX."), margin(top = 8, bottom = 16))
 
         val inputCard = card()
         val header = LinearLayout(this).apply {

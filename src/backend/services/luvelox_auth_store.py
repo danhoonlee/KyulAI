@@ -1,4 +1,4 @@
-"""Small SQLite-backed account store for the Luvelox MVP workspace."""
+"""Small SQLite-backed account store for the ImperialAX MVP workspace."""
 
 from __future__ import annotations
 
@@ -24,6 +24,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_DB_PATH = PROJECT_ROOT / "data" / "luvelox_auth.sqlite3"
 DEFAULT_ENTITLEMENTS = ("module.laminate", "module.injection")
 DEMO_ENTITLEMENTS = {
+    "demo@imperialax.com": ("module.laminate", "module.injection"),
+    "danlee@imperialax.com": ("module.laminate", "module.injection", "module.optimization"),
     "demo@luvelox.com": ("module.laminate", "module.injection"),
     "danlee@luvelox.com": ("module.laminate", "module.injection", "module.optimization"),
 }
@@ -168,8 +170,8 @@ def _ensure_user_profile_columns(connection: sqlite3.Connection) -> None:
 
 def _seed_demo_accounts(connection: sqlite3.Connection) -> None:
     demo_accounts = (
-        ("demo-user", "demo@luvelox.com", "Demo Account", "Luvelox MVP", ""),
-        ("danlee", "danlee@luvelox.com", "Dan Lee", "Luvelox", ""),
+        ("demo-user", "demo@imperialax.com", "Demo Account", "ImperialAX MVP", ""),
+        ("danlee", "danlee@imperialax.com", "Dan Lee", "ImperialAX", ""),
     )
     for user_id, email, name, company, password in demo_accounts:
         existing = connection.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
@@ -193,8 +195,8 @@ def _seed_demo_accounts(connection: sqlite3.Connection) -> None:
                 (email, entitlement),
             )
     legacy_sessions = (
-        ("demo-token", "demo@luvelox.com"),
-        ("danlee-token", "danlee@luvelox.com"),
+        ("demo-token", "demo@imperialax.com"),
+        ("danlee-token", "danlee@imperialax.com"),
     )
     for token, email in legacy_sessions:
         connection.execute(

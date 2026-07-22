@@ -8,7 +8,7 @@ final class LuveloxAppTests: XCTestCase {
     func testModuleContractDecodesServerShape() throws {
         let json = """
         {
-          "brand": "C2ES",
+          "brand": "ImperialAX",
           "license_mode": "demo",
           "user": null,
           "modules": [
@@ -25,8 +25,8 @@ final class LuveloxAppTests: XCTestCase {
               "tags": ["Pt"],
               "capabilities": ["curve_chart"],
               "route": {
-                "base_url": "https://laminate.luvelox.com",
-                "web_url": "https://laminate.luvelox.com",
+                "base_url": "https://laminate.imperialax.com",
+                "web_url": "https://laminate.imperialax.com",
                 "api_prefix": "/api/v1/dd-laminate",
                 "health_path": "/health",
                 "models_path": "/api/v1/dd-laminate/models",
@@ -41,7 +41,7 @@ final class LuveloxAppTests: XCTestCase {
 
         let response = try JSONDecoder().decode(LuveloxUserModulesResponse.self, from: json)
 
-        XCTAssertEqual(response.brand, "C2ES")
+        XCTAssertEqual(response.brand, "ImperialAX")
         XCTAssertEqual(response.licenseMode, "demo")
         XCTAssertNil(response.user)
         XCTAssertEqual(response.modules.first?.id, "laminate")
@@ -56,9 +56,9 @@ final class LuveloxAppTests: XCTestCase {
           "token_type": "bearer",
           "user": {
             "id": "demo-user",
-            "email": "demo@luvelox.com",
+            "email": "demo@imperialax.com",
             "name": "Demo Account",
-            "company": "C2ES MVP"
+            "company": "ImperialAX MVP"
           },
           "entitlements": ["module.laminate", "module.injection"]
         }
@@ -68,7 +68,7 @@ final class LuveloxAppTests: XCTestCase {
 
         XCTAssertEqual(session.accessToken, "demo-token")
         XCTAssertEqual(session.tokenType, "bearer")
-        XCTAssertEqual(session.user.email, "demo@luvelox.com")
+        XCTAssertEqual(session.user.email, "demo@imperialax.com")
         XCTAssertEqual(session.entitlements.count, 2)
     }
 
@@ -114,9 +114,9 @@ final class LuveloxAppTests: XCTestCase {
           "message": "Access request received.",
           "user": {
             "id": "demo-user",
-            "email": "demo@luvelox.com",
+            "email": "demo@imperialax.com",
             "name": "Demo Account",
-            "company": "C2ES MVP"
+            "company": "ImperialAX MVP"
           }
         }
         """.data(using: .utf8)!
@@ -125,16 +125,16 @@ final class LuveloxAppTests: XCTestCase {
 
         XCTAssertEqual(response.status, "received")
         XCTAssertEqual(response.moduleId, "optimization")
-        XCTAssertEqual(response.user?.email, "demo@luvelox.com")
+        XCTAssertEqual(response.user?.email, "demo@imperialax.com")
     }
 
     func testCatalogEndpointBuildsStableURL() {
         let url = ModuleCatalogClient.endpoint(
-            baseURL: URL(string: "https://laminate.luvelox.com/anything")!,
+            baseURL: URL(string: "https://laminate.imperialax.com/anything")!,
             path: "/api/v1/modules/me"
         )
 
-        XCTAssertEqual(url.absoluteString, "https://laminate.luvelox.com/api/v1/modules/me")
+        XCTAssertEqual(url.absoluteString, "https://laminate.imperialax.com/api/v1/modules/me")
     }
 
     private func makeIsolatedUserDefaults() throws -> UserDefaults {

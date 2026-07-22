@@ -1,4 +1,4 @@
-"""Luvelox design-space search API.
+"""ImperialAX design-space search API.
 
 The first optimization surface deliberately stays close to the available
 surrogate models: generate candidate laminate angle/case combinations, run the

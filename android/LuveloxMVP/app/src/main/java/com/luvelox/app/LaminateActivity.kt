@@ -33,7 +33,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.math.roundToInt
 
-private const val LAMINATE_BASE_URL = "https://laminate.luvelox.com"
+private const val LAMINATE_BASE_URL = "https://laminate.imperialax.com"
 private const val DEFAULT_RESPONSE_MODEL = "response_geometry_tree_v1"
 private const val DEEP_RESPONSE_MODEL = "response_geometry_goint_v1"
 private const val DISTILLED_RESPONSE_MODEL = "response_hybrid_student_deploy_quick_v1"
@@ -112,7 +112,7 @@ class LaminateActivity : Activity() {
         setContentView(scroll)
 
         root.addView(label("COMPOSITE LAMINATE AI", LaminateV2.blue, 12f, Typeface.BOLD))
-        root.addView(label("C2ES Laminate Forecast", LaminateV2.ink, 28f, Typeface.BOLD).apply {
+        root.addView(label("ImperialAX Laminate Forecast", LaminateV2.ink, 28f, Typeface.BOLD).apply {
             includeFontPadding = false
             maxLines = 1
         }, margin(top = 8))

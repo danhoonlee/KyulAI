@@ -194,23 +194,23 @@ const LOCAL_SESSIONS = {
     },
     entitlements: ["module.injection", "module.laminate"],
   },
-  "demo@luvelox.com": {
+  "demo@imperialax.com": {
     access_token: "demo-token",
     token_type: "bearer",
     user: {
       id: "demo-user",
-      email: "demo@luvelox.com",
+      email: "demo@imperialax.com",
       name: "Demo Account",
       company: "ImperialAX Demo",
     },
     entitlements: ["module.injection", "module.laminate"],
   },
-  "danlee@luvelox.com": {
+  "danlee@imperialax.com": {
     access_token: "danlee-token",
     token_type: "bearer",
     user: {
       id: "danlee",
-      email: "danlee@luvelox.com",
+      email: "danlee@imperialax.com",
       name: "Dan Lee",
       company: "ImperialAX",
     },

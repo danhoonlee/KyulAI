@@ -17,7 +17,7 @@ rebuilding the app from scratch.
 
 ## License/login behavior
 
-The Laminate page now has a license login gate. It uses the existing Luvelox
+The Laminate page now has a license login gate. It uses the existing ImperialAX
 auth API:
 
 - Login endpoint: `/api/v1/modules/auth/login`
@@ -107,7 +107,7 @@ This is local account/entitlement gating, suitable for controlled demos and
 limited internal distribution. For stronger commercial licensing, add one of
 these later:
 
-- server-side license activation against a C2ES license API
+- server-side license activation against an ImperialAX license API
 - signed offline license files bound to machine ID
 - time-limited trial license and periodic revalidation
 - installer-level code signing and tamper checks

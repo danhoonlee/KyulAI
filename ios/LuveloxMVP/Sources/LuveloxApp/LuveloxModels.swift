@@ -95,9 +95,9 @@ public struct LuveloxAuthSession: Codable, Equatable, Sendable {
         tokenType: "bearer",
         user: LuveloxAccountUser(
             id: "demo-user",
-            email: "demo@luvelox.com",
+            email: "demo@imperialax.com",
             name: "Demo Account",
-            company: "Luvelox MVP"
+            company: "ImperialAX MVP"
         ),
         entitlements: ["module.laminate", "module.injection"]
     )
@@ -107,9 +107,9 @@ public struct LuveloxAuthSession: Codable, Equatable, Sendable {
         tokenType: "bearer",
         user: LuveloxAccountUser(
             id: "danlee",
-            email: "danlee@luvelox.com",
+            email: "danlee@imperialax.com",
             name: "Dan Lee",
-            company: "Luvelox"
+            company: "ImperialAX"
         ),
         entitlements: ["module.laminate", "module.injection", "module.optimization", "module.admin"]
     )
@@ -161,15 +161,15 @@ public enum LuveloxFallbackCatalog {
             tags: ["Double-Double", "Pt", "Force-displacement"],
             capabilities: ["response_prediction", "curve_chart", "history", "comparison"],
             route: LuveloxModuleRoute(
-                baseURL: URL(string: "https://laminate.luvelox.com")!,
-                webURL: URL(string: "https://laminate.luvelox.com")!,
+                baseURL: URL(string: "https://laminate.imperialax.com")!,
+                webURL: URL(string: "https://laminate.imperialax.com")!,
                 apiPrefix: "/api/v1/dd-laminate",
                 healthPath: "/health",
                 modelsPath: "/api/v1/dd-laminate/models",
                 primaryPredictPath: "/api/v1/dd-laminate/predict/response"
             ),
             access: "granted",
-            accessReason: "Available in the Luvelox MVP workspace."
+            accessReason: "Available in the ImperialAX MVP workspace."
         ),
         LuveloxModule(
             id: "injection",
@@ -184,15 +184,15 @@ public enum LuveloxFallbackCatalog {
             tags: ["Moldex3D", "Sprue pressure", "Filling pressure"],
             capabilities: ["sprue_pressure", "filling_histogram", "filling_animation", "history"],
             route: LuveloxModuleRoute(
-                baseURL: URL(string: "https://injection.luvelox.com")!,
-                webURL: URL(string: "https://injection.luvelox.com")!,
+                baseURL: URL(string: "https://injection.imperialax.com")!,
+                webURL: URL(string: "https://injection.imperialax.com")!,
                 apiPrefix: "/api/v1/simple-injection",
                 healthPath: "/health",
                 modelsPath: "/api/v1/simple-injection/models",
                 primaryPredictPath: "/api/v1/simple-injection/predict/sprue-pressure"
             ),
             access: "granted",
-            accessReason: "Available in the Luvelox MVP workspace."
+            accessReason: "Available in the ImperialAX MVP workspace."
         ),
         LuveloxModule(
             id: "optimization",
@@ -207,8 +207,8 @@ public enum LuveloxFallbackCatalog {
             tags: ["DOE", "Ranking", "Design space"],
             capabilities: ["candidate_ranking", "batch_prediction"],
             route: LuveloxModuleRoute(
-                baseURL: URL(string: "https://ai.luvelox.com")!,
-                webURL: URL(string: "https://ai.luvelox.com/optimization.html")!,
+                baseURL: URL(string: "https://ai.imperialax.com")!,
+                webURL: URL(string: "https://ai.imperialax.com/optimization.html")!,
                 apiPrefix: "/api/v1/optimization",
                 healthPath: "/health",
                 modelsPath: "/api/v1/optimization/models",

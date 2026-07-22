@@ -4,7 +4,7 @@ Date: 2026-06-18
 
 ## Purpose
 
-This is a discussion artifact for Version A of the from-scratch C2ES Laminate
+This is a discussion artifact for Version A of the from-scratch ImperialAX Laminate
 product direction. It does not replace Classic or Wanted v2. It compares the
 same guided single-candidate Decision Studio concept as a mobile-first wizard
 and as a desktop-centered cockpit.

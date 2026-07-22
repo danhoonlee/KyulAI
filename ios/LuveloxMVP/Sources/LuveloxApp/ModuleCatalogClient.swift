@@ -5,7 +5,7 @@ public struct ModuleCatalogClient: Sendable {
     public let session: URLSession
 
     public init(
-        baseURL: URL = URL(string: "https://laminate.luvelox.com")!,
+        baseURL: URL = URL(string: "https://laminate.imperialax.com")!,
         session: URLSession = .shared
     ) {
         self.baseURL = baseURL

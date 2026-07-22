@@ -14887,3 +14887,15 @@ Follow-up in same debugging pass:
   - Android `:app:compileDebugKotlin` passed with `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home`.
 - Note:
   - The Mac has Homebrew `openjdk@17`, but system `/usr/bin/java` is not linked. Use the explicit `JAVA_HOME` above for Android builds.
+
+## 2026-07-22 - ImperialAX Public Rebrand Pass
+- User requested removing user-facing `Luvelox` and `C2ES` naming and replacing it with `ImperialAX`.
+- Scope decision:
+  - Updated visible product text, account text, URLs, test expectations, and app display names to `ImperialAX`.
+  - Kept internal package/file/type identifiers such as `LuveloxApp`, `com.luvelox.app`, and `src/frontend/luvelox` for compatibility and to avoid unnecessary bundle/package churn.
+  - Kept legacy `*.luvelox.com` redirects so older links route to the new `imperialax.com` hosts.
+- Backend compatibility:
+  - Module catalog brand is now `ImperialAX`.
+  - Admin API accepts both `X-ImperialAX-Admin-Token` / `IMPERIALAX_ADMIN_TOKEN` and legacy `X-Luvelox-Admin-Token` / `LUVELOX_ADMIN_TOKEN`.
+  - Entitlement override accepts both `X-ImperialAX-Entitlements` and legacy `X-Luvelox-Entitlements`.
+  - Legacy demo/admin emails under `@luvelox.com` are canonicalized to `@imperialax.com`.

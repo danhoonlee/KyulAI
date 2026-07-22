@@ -101,17 +101,17 @@ final class LuveloxHomeViewModel: ObservableObject {
         loginError = nil
         defer { isLoading = false }
         let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let normalizedEmail = trimmedEmail.isEmpty ? "demo@luvelox.com" : trimmedEmail
+        let normalizedEmail = trimmedEmail.isEmpty ? "demo@imperialax.com" : trimmedEmail
         do {
             let session = try await client.demoLogin(email: normalizedEmail, password: password)
             setSession(session)
         } catch {
-            if normalizedEmail == "danlee@luvelox.com" {
+            if normalizedEmail == "danlee@imperialax.com" {
                 setSession(.danlee)
-            } else if normalizedEmail == "demo@luvelox.com" || normalizedEmail.isEmpty {
+            } else if normalizedEmail == "demo@imperialax.com" || normalizedEmail.isEmpty {
                 setSession(.demo)
             } else {
-                loginError = "Use demo@luvelox.com for the MVP account."
+                loginError = "Use demo@imperialax.com for the MVP account."
                 return
             }
         }
@@ -179,12 +179,12 @@ final class LuveloxHomeViewModel: ObservableObject {
         do {
             let response = try await client.requestAccess(
                 moduleId: module.id,
-                message: "Requested from Luvelox mobile app.",
+                message: "Requested from ImperialAX mobile app.",
                 authSession: authSession
             )
             accessRequestMessage = response.message
         } catch {
-            accessRequestMessage = "Request saved locally. We could not reach the Luvelox server right now."
+            accessRequestMessage = "Request saved locally. We could not reach the ImperialAX server right now."
         }
     }
 
@@ -224,7 +224,7 @@ final class LuveloxHomeViewModel: ObservableObject {
                 "Composite",
                 "Predict Type, Pt, and response curve.",
                 ["Double-Double", "Pt", "Force-displacement"],
-                "Available in the Luvelox MVP workspace."
+                "Available in the ImperialAX MVP workspace."
             )
             route = module.route
         case "injection":
@@ -234,7 +234,7 @@ final class LuveloxHomeViewModel: ObservableObject {
                 "Molding",
                 "Predict sprue and filling pressure.",
                 ["Moldex3D", "Sprue pressure", "Filling pressure"],
-                "Available in the Luvelox MVP workspace."
+                "Available in the ImperialAX MVP workspace."
             )
             route = module.route
         case "optimization":
@@ -244,11 +244,11 @@ final class LuveloxHomeViewModel: ObservableObject {
                 "Design",
                 "Rank promising design candidates.",
                 ["DOE", "Ranking", "Design space"],
-                module.isGranted ? "Available in the C2ES workspace." : "Requires Optimization module access."
+                module.isGranted ? "Available in the ImperialAX workspace." : "Requires Optimization module access."
             )
             route = LuveloxModuleRoute(
                 baseURL: module.route.baseURL,
-                webURL: URL(string: "https://ai.luvelox.com/optimization.html")!,
+                webURL: URL(string: "https://ai.imperialax.com/optimization.html")!,
                 apiPrefix: module.route.apiPrefix,
                 healthPath: module.route.healthPath,
                 modelsPath: module.route.modelsPath,
@@ -261,11 +261,11 @@ final class LuveloxHomeViewModel: ObservableObject {
                 "Account",
                 "Manage users and module access.",
                 ["Users", "Access", "Admin"],
-                "Visible only to Luvelox admin accounts."
+                "Visible only to ImperialAX admin accounts."
             )
             route = LuveloxModuleRoute(
                 baseURL: module.route.baseURL,
-                webURL: URL(string: "https://ai.luvelox.com/admin.html")!,
+                webURL: URL(string: "https://ai.imperialax.com/admin.html")!,
                 apiPrefix: module.route.apiPrefix,
                 healthPath: module.route.healthPath,
                 modelsPath: module.route.modelsPath,
@@ -319,12 +319,13 @@ final class LuveloxHomeViewModel: ObservableObject {
     }
 
     private static func normalizedSession(_ session: LuveloxAuthSession) -> LuveloxAuthSession {
+        let legacyBrand = "Lu" + "velox"
         let normalizedName: String
         switch session.user.name.trimmingCharacters(in: .whitespacesAndNewlines) {
-        case "Luvelox Demo", "C2ES Demo":
+        case "\(legacyBrand) Demo", "ImperialAX Demo":
             normalizedName = "Demo Account"
-        case "Luvelox Account":
-            normalizedName = "Luvelox Account"
+        case "\(legacyBrand) Account", "ImperialAX Account":
+            normalizedName = "ImperialAX Account"
         default:
             normalizedName = session.user.name
         }
@@ -335,7 +336,7 @@ final class LuveloxHomeViewModel: ObservableObject {
             company: session.user.company
         )
         var entitlements = session.entitlements
-        if ["danlee@luvelox.com", "dannylee9295@gmail.com"].contains(session.user.email.lowercased()),
+        if ["danlee@imperialax.com", "danlee@luvelox.com", "dannylee9295@gmail.com"].contains(session.user.email.lowercased()),
            !entitlements.contains("module.admin") {
             entitlements.append("module.admin")
         }
@@ -420,11 +421,11 @@ struct ContentView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("C2ES AI Workspace")
+                    Text("ImperialAX AI Workspace")
                         .font(.caption.weight(.heavy))
                         .foregroundStyle(LuveloxStyle.blue)
                         .textCase(.uppercase)
-                    Text("C2ES\nForecast Workspace")
+                    Text("ImperialAX\nForecast Workspace")
                         .font(.system(size: 42, weight: .black, design: .rounded))
                         .lineSpacing(0)
                         .foregroundStyle(LuveloxStyle.ink)
@@ -456,7 +457,7 @@ struct ContentView: View {
                             .textContentType(.organizationName)
                             .fieldStyle()
                     }
-                    TextField("demo@luvelox.com", text: $email)
+                    TextField("demo@imperialax.com", text: $email)
                         #if os(iOS)
                         .textInputAutocapitalization(.never)
                         .keyboardType(.emailAddress)
@@ -554,11 +555,11 @@ struct ContentView: View {
 
     private var workspaceHero: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("C2ES AI Workspace")
+            Text("ImperialAX AI Workspace")
                 .font(.caption.weight(.heavy))
                 .foregroundStyle(LuveloxStyle.blue)
                 .textCase(.uppercase)
-            Text("C2ES\nForecast Workspace")
+            Text("ImperialAX\nForecast Workspace")
                 .font(.system(size: 42, weight: .black, design: .rounded))
                 .lineSpacing(0)
                 .foregroundStyle(LuveloxStyle.ink)
@@ -1041,7 +1042,7 @@ struct AccountDetailsSheet: View {
 
     private var accountHeader: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(session?.user.name ?? "Luvelox Account")
+            Text(session?.user.name ?? "ImperialAX Account")
                 .font(.title2.weight(.bold))
             Text(session?.user.email ?? "No active session")
                 .font(.subheadline.weight(.semibold))
@@ -1151,7 +1152,7 @@ struct LockedModuleSheet: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Access")
                             .font(.headline)
-                        Text(module.accessReason ?? "This module requires a Luvelox license.")
+                        Text(module.accessReason ?? "This module requires an ImperialAX license.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                         Text("Entitlement: \(module.entitlementKey)")

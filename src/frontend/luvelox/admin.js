@@ -79,7 +79,7 @@ function optionalInputValue(selector) {
 }
 
 function tokenHeaders(extra = {}) {
-  return { ...extra, "X-Luvelox-Admin-Token": tokenInput.value.trim() };
+  return { ...extra, "X-ImperialAX-Admin-Token": tokenInput.value.trim() };
 }
 
 function selectedCreateEntitlements() {
@@ -196,7 +196,7 @@ async function loadUsers() {
   setStatus("");
   try {
     const response = await fetch("/api/v1/modules/admin/users", {
-      headers: { "X-Luvelox-Admin-Token": token },
+      headers: { "X-ImperialAX-Admin-Token": token },
     });
     if (!response.ok) throw new Error(`Admin users failed: ${response.status}`);
     const data = await response.json();

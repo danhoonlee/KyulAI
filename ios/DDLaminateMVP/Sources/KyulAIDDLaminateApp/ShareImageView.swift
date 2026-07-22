@@ -117,13 +117,13 @@ struct LaminateShareImageReportView: View {
 
     private var reportHeader: some View {
         HStack(alignment: .center, spacing: 18) {
-            Text("C2ES")
+            Text("ImperialAX")
                 .font(.system(size: 24, weight: .black, design: .rounded))
                 .foregroundStyle(.white)
                 .frame(width: 86, height: 86)
                 .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             VStack(alignment: .leading, spacing: 5) {
-                Text("C2ES Laminate Forecast")
+                Text("ImperialAX Laminate Forecast")
                     .font(.system(size: 34, weight: .black, design: .rounded))
                     .foregroundStyle(AppTheme.ink)
                 Text("Generated result summary")

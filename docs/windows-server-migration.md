@@ -6,12 +6,12 @@ Mac to a Windows server PC.
 ## What Runs On The Server
 
 The public setup has three long-running processes. Port `8000` is host-routed:
-`ai.imperialax.com` serves the C2ES App login/module workspace, while
+`ai.imperialax.com` serves the ImperialAX App login/module workspace, while
 `laminate.imperialax.com` serves the Laminate forecast UI.
 
 | Process | Local URL | Public URL |
 |---|---|---|
-| C2ES App + DD Laminate | `http://127.0.0.1:8000` | `https://ai.imperialax.com`, `https://laminate.imperialax.com` |
+| ImperialAX App + DD Laminate | `http://127.0.0.1:8000` | `https://ai.imperialax.com`, `https://laminate.imperialax.com` |
 | Simple Injection | `http://127.0.0.1:8010` | `https://injection.imperialax.com` |
 | Cloudflare Tunnel | routes hostnames | Cloudflare edge |
 
@@ -75,7 +75,7 @@ C:\KyulAI_codex
 ```
 
 The bundle includes the runtime code, current models, DD curated data, Simple
-Injection data needed by the UI, the ImperialAX/C2ES shell UI, Windows scripts,
+Injection data needed by the UI, the ImperialAX/ImperialAX shell UI, Windows scripts,
 and docs. It intentionally does not include `.venv`, `.git`, local logs, or
 secrets.
 

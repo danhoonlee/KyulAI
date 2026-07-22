@@ -487,7 +487,7 @@ struct ResultDetailView: View {
 extension SpruePressurePredictionResult {
     var shareSummaryText: String {
         var lines = [
-            "C2ES Injection Forecast",
+            "ImperialAX Injection Forecast",
             "",
             "MODEL",
             "• Sprue: \(displayModelLabel)",

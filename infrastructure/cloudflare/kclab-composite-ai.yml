@@ -16,15 +16,15 @@ ingress:
     service: http://127.0.0.1:8000
   - hostname: injection.imperialax.com
     service: http://127.0.0.1:8010
-  - hostname: ai.luvelox.com
+  - hostname: ai.imperialax.com
     service: http://127.0.0.1:8000
-  - hostname: luvelox.com
+  - hostname: imperialax.com
     service: http://127.0.0.1:8000
-  - hostname: www.luvelox.com
+  - hostname: www.imperialax.com
     service: http://127.0.0.1:8000
-  - hostname: laminate.luvelox.com
+  - hostname: laminate.imperialax.com
     service: http://127.0.0.1:8000
-  - hostname: injection.luvelox.com
+  - hostname: injection.imperialax.com
     service: http://127.0.0.1:8010
   - hostname: cafedecafe.co.kr
     service: http://127.0.0.1:8000

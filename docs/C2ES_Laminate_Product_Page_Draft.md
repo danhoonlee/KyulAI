@@ -1,4 +1,4 @@
-# C2ES Laminate Forecast 제품소개 초안
+# ImperialAX Laminate Forecast 제품소개 초안
 
 작성일: 2026-07-10
 
@@ -6,15 +6,15 @@
 
 ## 제품명 후보
 
-- C2ES Laminate Forecast
-- C2ES Composite Laminate AI
+- ImperialAX Laminate Forecast
+- ImperialAX Composite Laminate AI
 - Double-Double Laminate Forecast AI
-- C2ES AI Laminate Design Assistant
+- ImperialAX AI Laminate Design Assistant
 
 추천 표기:
 
 ```html
-<h2>C2ES Laminate Forecast</h2>
+<h2>ImperialAX Laminate Forecast</h2>
 <p><strong>AI 기반 복합재 적층 구조 예측 및 설계 지원 솔루션</strong></p>
 ```
 
@@ -22,11 +22,11 @@
 
 ```html
 <section class="product-detail">
-  <h2>C2ES Laminate Forecast</h2>
+  <h2>ImperialAX Laminate Forecast</h2>
   <p><strong>AI 기반 복합재 적층 구조 예측 및 설계 지원 솔루션</strong></p>
 
   <p>
-    C2ES Laminate Forecast는 복합재 적층 구조, 특히 Double-Double Laminate 연구 및 설계 과정에서
+    ImperialAX Laminate Forecast는 복합재 적층 구조, 특히 Double-Double Laminate 연구 및 설계 과정에서
     반복적인 해석 작업을 줄이고 유망한 적층 후보를 빠르게 선별하기 위해 개발된 AI 기반 예측 솔루션입니다.
     사용자는 적층 Case와 두 개의 각도 값 θ₁, θ₂를 입력하는 것만으로 Type, 전이하중 Pt,
     Force-Displacement 응답 곡선, u3 기반 변위 거동, 주요 영향 인자(XAI)를 확인할 수 있습니다.
@@ -34,7 +34,7 @@
 
   <p>
     기존 복합재 설계에서는 적층 순서와 각도 조합에 따라 해석 결과가 크게 달라지기 때문에,
-    많은 수의 후보를 Abaqus와 같은 구조해석으로 반복 검토해야 했습니다. C2ES Laminate Forecast는
+    많은 수의 후보를 Abaqus와 같은 구조해석으로 반복 검토해야 했습니다. ImperialAX Laminate Forecast는
     축적된 해석 데이터와 Classical Laminate Theory 기반 물리 feature를 결합하여,
     본격적인 상세 해석 전에 후보군을 빠르게 줄이고 설계 방향을 판단할 수 있도록 지원합니다.
   </p>
@@ -120,7 +120,7 @@
 
   <h3>기술 구성</h3>
   <p>
-    C2ES Laminate Forecast는 해석 데이터 기반 Machine Learning / Deep Learning surrogate model과
+    ImperialAX Laminate Forecast는 해석 데이터 기반 Machine Learning / Deep Learning surrogate model과
     복합재 적층 이론 기반 feature engineering을 결합합니다. 입력된 θ₁, θ₂, Case 정보는 실제 ply sequence로 전개되며,
     T800/3900S 재료 물성과 ply thickness를 기준으로 ABD matrix 및 normalized stiffness feature가 계산됩니다.
     이후 예측 모델은 Type, Pt, 최대 Force, 최대 Displacement, 곡선 형상 및 u3 응답을 예측합니다.
@@ -147,7 +147,7 @@
 ## 짧은 제품 카드용 문안
 
 ```html
-<h3>C2ES Laminate Forecast</h3>
+<h3>ImperialAX Laminate Forecast</h3>
 <p>
   Double-Double 복합재 적층 구조의 Type, 전이하중 Pt, Force-Displacement 곡선,
   u3 거동을 θ₁, θ₂, Case 입력만으로 예측하는 AI 기반 설계 지원 솔루션입니다.
@@ -160,7 +160,7 @@
 
 ```html
 <p>
-  C2ES Laminate Forecast는 복합재 Double-Double 적층 구조의 Type, Pt, 응답 곡선, u3 거동을
+  ImperialAX Laminate Forecast는 복합재 Double-Double 적층 구조의 Type, Pt, 응답 곡선, u3 거동을
   AI와 물리 feature 기반으로 예측하는 CAE 설계 지원 도구입니다.
 </p>
 ```
@@ -193,7 +193,7 @@
 웹 제품소개 페이지에서 방문자가 1분 안에 다음을 이해하게 하는 것:
 
 1. 복합재 적층 설계는 각도/Case 조합이 많아 해석 반복 비용이 크다.
-2. C2ES Laminate Forecast는 θ₁, θ₂, Case만 입력해 Type, Pt, 곡선, XAI를 빠르게 보여준다.
+2. ImperialAX Laminate Forecast는 θ₁, θ₂, Case만 입력해 Type, Pt, 곡선, XAI를 빠르게 보여준다.
 3. 최종 해석을 대체하기보다, 상세 CAE 해석 전에 후보를 선별하고 설계 방향을 잡는 도구다.
 
 ### 권장 영상 길이
@@ -208,11 +208,11 @@
 | --- | --- | --- |
 | 0-5초 | 복합재 적층 구조/패널 이미지, 여러 각도 조합이 펼쳐지는 장면 | “복합재 적층 설계에서는 각도와 적층 순서에 따라 구조 응답이 크게 달라집니다.” |
 | 5-12초 | Abaqus/CAE 해석 결과 여러 개, 그래프가 반복 표시 | “모든 후보를 상세 해석으로 검토하면 많은 시간과 비용이 필요합니다.” |
-| 12-20초 | C2ES Laminate Forecast 화면, Case와 θ₁/θ₂ 입력 | “C2ES Laminate Forecast는 Case와 두 개의 각도만으로 주요 응답을 예측합니다.” |
+| 12-20초 | ImperialAX Laminate Forecast 화면, Case와 θ₁/θ₂ 입력 | “ImperialAX Laminate Forecast는 Case와 두 개의 각도만으로 주요 응답을 예측합니다.” |
 | 20-32초 | Type, Pt, Force-Displacement 곡선, u3 Forecast 결과 표시 | “Type, 전이하중 Pt, 응답 곡선, u3 거동을 빠르게 확인할 수 있습니다.” |
 | 32-45초 | XAI feature bar, D11/A11/B16 등 영향 인자 표시 | “Physics XAI는 D11 굽힘 강성, 막-굽힘 커플링, 적층 이방성 등 예측에 영향을 준 인자를 설명합니다.” |
 | 45-55초 | Design-space map, 후보 추천, 현재 입력 위치 표시 | “기존 해석 데이터 공간에서 현재 후보의 위치와 개선 가능성을 함께 검토합니다.” |
-| 55-60초 | C2ES 로고와 데모 URL | “AI와 CAE를 연결하는 복합재 설계 지원 솔루션, C2ES Laminate Forecast.” |
+| 55-60초 | ImperialAX 로고와 데모 URL | “AI와 CAE를 연결하는 복합재 설계 지원 솔루션, ImperialAX Laminate Forecast.” |
 
 ### 필요한 영상 소재
 
@@ -228,7 +228,7 @@
   - 복합재 패널 또는 탄소섬유 이미지
   - Force-Displacement 그래프
   - u3 displacement 그래프
-  - C2ES 로고
+  - ImperialAX 로고
 - 선택 자료:
   - PPT에 있는 연구 목적/적층 구조 이미지
   - Abaqus ply stack 또는 해석 결과 이미지
@@ -249,7 +249,7 @@
 
 ### 추천 제작 방향
 
-처음에는 “실제 UI 녹화 + 간단한 모션 자막 + C2ES 로고” 방식이 가장 좋다.
+처음에는 “실제 UI 녹화 + 간단한 모션 자막 + ImperialAX 로고” 방식이 가장 좋다.
 제품이 아직 발전 중이므로 과하게 광고 영상처럼 만들기보다, 실제로 입력하고 결과가 나오는 장면을 보여주는 편이 설득력이 높다.
 
 ## 영상 내레이션 초안
@@ -258,7 +258,7 @@
 복합재 적층 구조는 각도와 적층 순서에 따라 강성, 전이하중, 변위 응답이 크게 달라집니다.
 하지만 모든 후보를 상세 CAE 해석으로 검토하는 것은 많은 시간과 비용이 필요합니다.
 
-C2ES Laminate Forecast는 Double-Double 적층 구조 연구를 위해 개발된 AI 기반 예측 도구입니다.
+ImperialAX Laminate Forecast는 Double-Double 적층 구조 연구를 위해 개발된 AI 기반 예측 도구입니다.
 Case와 θ₁, θ₂ 값을 입력하면 Type, 전이하중 Pt, Force-Displacement 응답 곡선,
 그리고 u3 기반 변위 거동을 빠르게 예측합니다.
 
@@ -269,5 +269,5 @@ Case와 θ₁, θ₂ 값을 입력하면 Type, 전이하중 Pt, Force-Displaceme
 왜 특정 적층 조합이 더 좋은 응답을 보이는지 설계 관점에서 검토할 수 있습니다.
 
 AI와 CAE를 연결하는 복합재 설계 지원 솔루션,
-C2ES Laminate Forecast.
+ImperialAX Laminate Forecast.
 ```

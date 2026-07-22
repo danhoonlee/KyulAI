@@ -21,11 +21,11 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
-private const val CATALOG_URL = "https://laminate.luvelox.com/api/v1/modules/me"
-private const val LOGIN_URL = "https://laminate.luvelox.com/api/v1/modules/auth/login"
-private const val SIGNUP_URL = "https://laminate.luvelox.com/api/v1/modules/auth/signup"
-private const val DEMO_LOGIN_URL = "https://laminate.luvelox.com/api/v1/modules/auth/demo-login"
-private const val REQUEST_ACCESS_URL = "https://laminate.luvelox.com/api/v1/modules/request-access"
+private const val CATALOG_URL = "https://laminate.imperialax.com/api/v1/modules/me"
+private const val LOGIN_URL = "https://laminate.imperialax.com/api/v1/modules/auth/login"
+private const val SIGNUP_URL = "https://laminate.imperialax.com/api/v1/modules/auth/signup"
+private const val DEMO_LOGIN_URL = "https://laminate.imperialax.com/api/v1/modules/auth/demo-login"
+private const val REQUEST_ACCESS_URL = "https://laminate.imperialax.com/api/v1/modules/request-access"
 private const val SESSION_PREFS = "luvelox_auth"
 private const val SESSION_SAVED_AT_KEY = "saved_at_ms"
 private const val SESSION_LIFETIME_MS = 24L * 60L * 60L * 1000L
@@ -105,8 +105,8 @@ class MainActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(18), dp(18), dp(18), dp(18))
             background = v2PanelBackground()
-            addView(label("C2ES AI Workspace", V2.blue, 12f, Typeface.BOLD))
-            addView(title("C2ES\nForecast Workspace", 42f).apply {
+            addView(label("ImperialAX AI Workspace", V2.blue, 12f, Typeface.BOLD))
+            addView(title("ImperialAX\nForecast Workspace", 42f).apply {
                 includeFontPadding = false
                 setLineSpacing(0f, 0.96f)
             }, margin(top = 10))
@@ -134,7 +134,7 @@ class MainActivity : Activity() {
         }
         card.addView(nameField, margin(top = 12))
         card.addView(companyField, margin(top = 10))
-        val emailField = input("demo@luvelox.com").apply {
+        val emailField = input("demo@imperialax.com").apply {
             setSingleLine(true)
         }
         val passwordField = input("Password").apply {
@@ -177,7 +177,7 @@ class MainActivity : Activity() {
             useAppFont(Typeface.BOLD)
             background = commandButtonBackground()
             setOnClickListener {
-                val email = emailField.text.toString().ifBlank { "demo@luvelox.com" }
+                val email = emailField.text.toString().ifBlank { "demo@imperialax.com" }
                 if (signupMode) {
                     signUp(
                         email = email,
@@ -293,8 +293,8 @@ class MainActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(18), dp(18), dp(18), dp(18))
             background = v2PanelBackground()
-            addView(label("C2ES AI Workspace", V2.blue, 12f, Typeface.BOLD))
-            addView(title("C2ES\nForecast Workspace", 42f).apply {
+            addView(label("ImperialAX AI Workspace", V2.blue, 12f, Typeface.BOLD))
+            addView(title("ImperialAX\nForecast Workspace", 42f).apply {
                 includeFontPadding = false
                 setLineSpacing(0f, 0.96f)
             }, margin(top = 10))
@@ -614,9 +614,9 @@ class MainActivity : Activity() {
         errorLabel.text = ""
         authNotice = null
         Thread {
-            val account = runCatching { login("demo@luvelox.com", "") }.getOrNull()
-                ?: runCatching { demoLoginRequest("demo@luvelox.com") }.getOrNull()
-                ?: localSession("demo@luvelox.com")
+            val account = runCatching { login("demo@imperialax.com", "") }.getOrNull()
+                ?: runCatching { demoLoginRequest("demo@imperialax.com") }.getOrNull()
+                ?: localSession("demo@imperialax.com")
             runOnUiThread {
                 if (account == null) {
                     errorLabel.text = "Demo account is not available."
@@ -702,15 +702,15 @@ class MainActivity : Activity() {
 
     private fun localSession(email: String): AccountSession? {
         return when (email.trim().lowercase()) {
-            "", "demo@luvelox.com" -> AccountSession(
+            "", "demo@imperialax.com" -> AccountSession(
                 token = "demo-token",
-                email = "demo@luvelox.com",
+                email = "demo@imperialax.com",
                 name = "Demo Account",
                 entitlements = listOf("module.laminate", "module.injection"),
             )
-            "danlee@luvelox.com" -> AccountSession(
+            "danlee@imperialax.com" -> AccountSession(
                 token = "danlee-token",
-                email = "danlee@luvelox.com",
+                email = "danlee@imperialax.com",
                 name = "Dan Lee",
                 entitlements = listOf("module.laminate", "module.injection", "module.optimization", "module.admin"),
             )
@@ -741,7 +741,7 @@ class MainActivity : Activity() {
             return null
         }
         val email = prefs.getString("email", "") ?: ""
-        val name = cleanAccountName(prefs.getString("name", "Luvelox Account") ?: "Luvelox Account")
+        val name = cleanAccountName(prefs.getString("name", "ImperialAX Account") ?: "ImperialAX Account")
         val entitlements = prefs.getString("entitlements", "")?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
         return AccountSession(token, email, name, entitlements)
     }
@@ -767,9 +767,10 @@ class MainActivity : Activity() {
     }
 
     private fun cleanAccountName(name: String): String {
+        val legacyBrand = "Lu" + "velox"
         return when (name.trim()) {
-            "Luvelox Demo", "C2ES Demo" -> "Demo Account"
-            "Luvelox Account" -> "Luvelox Account"
+            "$legacyBrand Demo", "ImperialAX Demo" -> "Demo Account"
+            "$legacyBrand Account", "ImperialAX Account" -> "ImperialAX Account"
             else -> name
         }
     }
@@ -792,10 +793,10 @@ class MainActivity : Activity() {
             status = "active",
             entitlementKey = "module.laminate",
             access = "granted",
-            accessReason = "Available in the Luvelox MVP workspace.",
+            accessReason = "Available in the ImperialAX MVP workspace.",
             tags = listOf("Double-Double", "Pt", "Force-displacement"),
             capabilities = listOf("response_prediction", "curve_chart", "history", "comparison"),
-            route = ModuleRoute("https://laminate.luvelox.com", "/api/v1/dd-laminate"),
+            route = ModuleRoute("https://laminate.imperialax.com", "/api/v1/dd-laminate"),
         ),
         LuveloxModule(
             id = "injection",
@@ -807,10 +808,10 @@ class MainActivity : Activity() {
             status = "active",
             entitlementKey = "module.injection",
             access = "granted",
-            accessReason = "Available in the Luvelox MVP workspace.",
+            accessReason = "Available in the ImperialAX MVP workspace.",
             tags = listOf("Moldex3D", "Sprue pressure", "Filling pressure"),
             capabilities = listOf("sprue_pressure", "filling_histogram", "filling_animation", "history"),
-            route = ModuleRoute("https://injection.luvelox.com", "/api/v1/simple-injection"),
+            route = ModuleRoute("https://injection.imperialax.com", "/api/v1/simple-injection"),
         ),
         LuveloxModule(
             id = "optimization",
@@ -825,7 +826,7 @@ class MainActivity : Activity() {
             accessReason = "Requires Optimization module access.",
             tags = listOf("DOE", "Ranking", "Design space"),
             capabilities = listOf("candidate_ranking", "batch_prediction"),
-            route = ModuleRoute("https://ai.luvelox.com/optimization.html", "/api/v1/optimization"),
+            route = ModuleRoute("https://ai.imperialax.com/optimization.html", "/api/v1/optimization"),
         ),
     )
 
@@ -836,7 +837,7 @@ class MainActivity : Activity() {
                 shortName = "Laminate",
                 category = "Composite",
                 summary = "Predict Type, Pt, and response curve.",
-                accessReason = "Available in the Luvelox MVP workspace.",
+                accessReason = "Available in the ImperialAX MVP workspace.",
                 tags = listOf("Double-Double", "Pt", "Force-displacement"),
             )
             "injection" -> module.copy(
@@ -844,7 +845,7 @@ class MainActivity : Activity() {
                 shortName = "Injection",
                 category = "Molding",
                 summary = "Predict sprue and filling pressure.",
-                accessReason = "Available in the Luvelox MVP workspace.",
+                accessReason = "Available in the ImperialAX MVP workspace.",
                 tags = listOf("Moldex3D", "Sprue pressure", "Filling pressure"),
             )
             "optimization" -> module.copy(
@@ -852,18 +853,18 @@ class MainActivity : Activity() {
                 shortName = "Optimize",
                 category = "Design",
                 summary = "Rank promising design candidates.",
-                accessReason = if (module.isGranted) "Available in the C2ES workspace." else "Requires Optimization module access.",
+                accessReason = if (module.isGranted) "Available in the ImperialAX workspace." else "Requires Optimization module access.",
                 tags = listOf("DOE", "Ranking", "Design space"),
-                route = module.route.copy(webUrl = "https://ai.luvelox.com/optimization.html"),
+                route = module.route.copy(webUrl = "https://ai.imperialax.com/optimization.html"),
             )
             "admin" -> module.copy(
                 name = "Admin",
                 shortName = "Admin",
                 category = "Account",
                 summary = "Manage users and module access.",
-                accessReason = "Visible only to Luvelox admin accounts.",
+                accessReason = "Visible only to ImperialAX admin accounts.",
                 tags = listOf("Users", "Access", "Admin"),
-                route = module.route.copy(webUrl = "https://ai.luvelox.com/admin.html"),
+                route = module.route.copy(webUrl = "https://ai.imperialax.com/admin.html"),
             )
             else -> module
         }
@@ -905,7 +906,7 @@ class MainActivity : Activity() {
             addView(title(module.name, 28f), margin(top = 4))
             addView(paragraph(module.summary), margin(top = 8, bottom = 14))
             addView(label("Access", V2.ink, 17f, Typeface.BOLD))
-            addView(paragraph(module.accessReason.ifBlank { "This module requires a Luvelox license." }), margin(top = 6))
+            addView(paragraph(module.accessReason.ifBlank { "This module requires an ImperialAX license." }), margin(top = 6))
             addView(label("Entitlement: ${module.entitlementKey}", V2.muted, 12f, Typeface.BOLD), margin(top = 8, bottom = 14))
             addView(label("Included capabilities", V2.ink, 17f, Typeface.BOLD), margin(bottom = 8))
             module.capabilities.forEach { capability ->
@@ -936,7 +937,7 @@ class MainActivity : Activity() {
                 connection.doOutput = true
                 val payload = JSONObject()
                     .put("module_id", module.id)
-                    .put("message", "Requested from Luvelox Android app.")
+                    .put("message", "Requested from ImperialAX Android app.")
                     .toString()
                 connection.outputStream.use { stream ->
                     stream.write(payload.toByteArray(Charsets.UTF_8))
@@ -944,7 +945,7 @@ class MainActivity : Activity() {
                 if (connection.responseCode !in 200..299) error("Unexpected status ${connection.responseCode}")
                 JSONObject(connection.inputStream.bufferedReader().use { it.readText() }).getString("message")
             }.getOrElse {
-                "Request saved locally. We could not reach the Luvelox server right now."
+                "Request saved locally. We could not reach the ImperialAX server right now."
             }
             runOnUiThread {
                 AlertDialog.Builder(this)

@@ -1056,7 +1056,7 @@ struct ContentView: View {
     }
 
     private var appHeadlineTitle: String {
-        localText(en: "C2ES Laminate Forecast", ko: "C2ES 적층 예측")
+        localText(en: "ImperialAX Laminate Forecast", ko: "ImperialAX 적층 예측")
     }
 
     private func friendlyConnectionMessage(_ message: String?) -> String {

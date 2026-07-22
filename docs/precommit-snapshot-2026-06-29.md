@@ -1,23 +1,23 @@
 # Pre-Commit Snapshot - 2026-06-29
 
 This snapshot records the current stabilization pass before committing the
-combined DD Laminate, Injection, Luvelox shell, Android, and RAG changes.
+combined DD Laminate, Injection, ImperialAX shell, Android, and RAG changes.
 
 ## Stabilized Scope
 
 - DD Laminate web/API/iOS contract tests
 - Injection web/API/iOS/Android surfaces
-- Luvelox workspace/login static routing
+- ImperialAX workspace/login static routing
 - Composite RAG unit and API behavior
 - Android debug build environment
 
 ## Cleanup Fixes Applied
 
 - Removed an invalid Android login-card click handler in
-  `android/LuveloxMVP/app/src/main/java/com/luvelox/app/MainActivity.kt`.
+  `android/ImperialAXMVP/app/src/main/java/com/luvelox/app/MainActivity.kt`.
   The handler referenced a `module` value outside its scope and broke
   Kotlin compilation.
-- Updated Luvelox web fallback account copy from `Luvelox Demo` to
+- Updated ImperialAX web fallback account copy from `ImperialAX Demo` to
   `Demo Account` in the login/workspace shell.
 - Updated stale backend contract tests so they match the current product
   direction:
@@ -46,11 +46,11 @@ python -m pytest \
 
 swift test # in ios/DDLaminateMVP
 swift test # in ios/InjectionMVP
-swift test # in ios/LuveloxMVP
+swift test # in ios/ImperialAXMVP
 
 JAVA_HOME=/opt/homebrew/opt/openjdk@17 \
 PATH="/opt/homebrew/opt/openjdk@17/bin:$PATH" \
-gradle :app:assembleDebug --no-daemon # in android/LuveloxMVP
+gradle :app:assembleDebug --no-daemon # in android/ImperialAXMVP
 
 git diff --check
 ```
@@ -60,7 +60,7 @@ git diff --check
 - Python backend/RAG tests: 71 passed
 - DD Laminate Swift tests: 11 passed
 - Injection Swift tests: 8 passed
-- Luvelox Swift tests: 6 passed
+- ImperialAX Swift tests: 6 passed
 - Android debug build: successful
 - JS syntax checks: passed
 - Whitespace check: passed

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_title">C2ES 사출 예측</string>
+    <string name="app_title">ImperialAX 사출 예측</string>
     <string name="app_subtitle">Moldex3D DOE 입력으로 스프루 압력과 충전 압력 요약을 예측합니다.</string>
     <string name="api_status_checking">API 상태: 확인 중</string>
     <string name="host_checked_auto">호스트는 자동으로 확인됩니다.</string>

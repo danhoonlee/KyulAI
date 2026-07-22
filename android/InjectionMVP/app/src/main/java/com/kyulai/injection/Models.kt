@@ -101,5 +101,5 @@ data class InjectionInput(
 object Defaults {
     const val SPRUE_MODEL_KEY = "sprue_classical"
     const val FILLING_MODEL_KEY = "filling_classical"
-    const val DEFAULT_BASE_URL = "https://injection.luvelox.com"
+    const val DEFAULT_BASE_URL = "https://injection.imperialax.com"
 }

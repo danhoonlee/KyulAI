@@ -1,4 +1,4 @@
-# C2ES Laminate Mobile MVP Install Notes
+# ImperialAX Laminate Mobile MVP Install Notes
 
 ## iPhone
 

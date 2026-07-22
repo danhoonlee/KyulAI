@@ -30,7 +30,7 @@
 "compare.interpretation.confidence.higher" = "The second result has higher model confidence.";
 "compare.interpretation.confidence.lower" = "The second result has lower model confidence, so compare it more cautiously.";
 "compare.interpretation.confidence.similar" = "Both results have similar model confidence.";
-"app.title" = "C2ES Laminate Forecast";
+"app.title" = "ImperialAX Laminate Forecast";
 "app.subtitle" = "Estimate laminate Type, Pt, and response curve from case and theta inputs.";
 "auto" = "Auto";
 "forecast.inputs" = "Forecast Inputs";
@@ -84,7 +84,7 @@
 "language.toggle" = "Switch language";
 "api.base.url" = "API base URL";
 "api.connected" = "Connected";
-"external.url.hint" = "Use https://laminate.luvelox.com for phones outside your local network.";
+"external.url.hint" = "Use https://laminate.imperialax.com for phones outside your local network.";
 "api.not.checked" = "API not checked";
 "checking.api" = "Checking API";
 "model.unavailable" = "Model unavailable";

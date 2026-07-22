@@ -1,11 +1,11 @@
-# Unified C2ES App Direction
+# Unified ImperialAX App Direction
 
-C2ES should move from one app per model to one account-based app with
+ImperialAX should move from one app per model to one account-based app with
 server-controlled modules.
 
 ## Target Product Shape
 
-- One app name: C2ES
+- One app name: ImperialAX
 - One module dashboard: Laminate, Injection, and future CAE-AI models
 - One login/account surface
 - Shared history, sharing, reports, language settings, and API status handling
@@ -25,7 +25,7 @@ For the MVP, Laminate and Injection are granted by default. Future modules can
 be unlocked in development with:
 
 ```text
-X-Luvelox-Entitlements: module.optimization
+X-ImperialAX-Entitlements: module.optimization
 ```
 
 or:
@@ -38,7 +38,7 @@ or:
 
 1. Keep the current Laminate and Injection apps stable.
 2. Use the new module API as the shared source of truth.
-3. Build a C2ES shell app with a module dashboard.
+3. Build an ImperialAX shell app with a module dashboard.
 4. Move Laminate into the shell as the first native module.
 5. Move Injection into the shell as the second native module.
 6. Add login and account/session tokens.
@@ -59,7 +59,7 @@ Then open:
 http://127.0.0.1:8000
 ```
 
-The web C2ES App entry now lives at:
+The web ImperialAX App entry now lives at:
 
 - `https://ai.imperialax.com`
 
@@ -73,17 +73,17 @@ AI workspace:
 
 The first native unified shell exists in:
 
-- `ios/LuveloxMVP`
-- `android/LuveloxMVP`
+- `ios/ImperialAXMVP`
+- `android/ImperialAXMVP`
 
 Both apps currently:
 
-- Show a C2ES module dashboard.
+- Show an ImperialAX module dashboard.
 - Fetch `GET /api/v1/modules/me`.
 - Fall back to built-in Laminate and Injection cards if the catalog request
   fails.
-- Open Laminate as a native module inside the C2ES shell.
-- Open Injection as a native module inside the C2ES shell.
+- Open Laminate as a native module inside the ImperialAX shell.
+- Open Injection as a native module inside the ImperialAX shell.
 
 The catalog request currently points at:
 
@@ -100,25 +100,25 @@ https://api.imperialax.com/api/v1/modules/me
 ### iOS
 
 ```bash
-cd ios/LuveloxMVP
+cd ios/ImperialAXMVP
 swift test
 swift build
 ```
 
-Open `ios/LuveloxMVP/Package.swift` in Xcode and run
-`LuveloxPreviewApp` to preview the shell.
+Open `ios/ImperialAXMVP/Package.swift` in Xcode and run
+`ImperialAXPreviewApp` to preview the shell.
 
 ### Android
 
 ```bash
-cd android/LuveloxMVP
+cd android/ImperialAXMVP
 JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug
 ```
 
 Debug APK:
 
 ```text
-artifacts/android/Luvelox-debug.apk
+artifacts/android/ImperialAX-debug.apk
 ```
 
 ## Native Modules
@@ -127,25 +127,25 @@ The first native module integrations are Laminate and Injection.
 
 iOS:
 
-- `ios/LuveloxMVP` depends on the existing `ios/DDLaminateMVP`
+- `ios/ImperialAXMVP` depends on the existing `ios/DDLaminateMVP`
   `KyulAIDDLaminateCore` product.
-- `ios/LuveloxMVP` also depends on the existing `ios/InjectionMVP`
+- `ios/ImperialAXMVP` also depends on the existing `ios/InjectionMVP`
   `KyulAIInjectionCore` product.
 - `LaminateForecastView` runs native case/theta/model selection and calls
   `POST /api/v1/dd-laminate/predict/response`.
 - `InjectionForecastView` runs native geometry/process/model selection and calls
   `POST /api/v1/simple-injection/predict/sprue-pressure`.
-- The C2ES Laminate and Injection cards navigate to native views.
+- The ImperialAX Laminate and Injection cards navigate to native views.
 
 Android:
 
-- `android/LuveloxMVP` includes `LaminateActivity`.
-- `android/LuveloxMVP` includes `InjectionActivity`.
-- The C2ES Laminate and Injection cards open native Activities instead of the
+- `android/ImperialAXMVP` includes `LaminateActivity`.
+- `android/ImperialAXMVP` includes `InjectionActivity`.
+- The ImperialAX Laminate and Injection cards open native Activities instead of the
   browser.
 - The Activity calls the same Laminate models and response prediction API.
 - The Injection Activity calls the same Simple Injection models, DOE catalog,
   and sprue/filling prediction API.
 
 The next migration step is to bring richer charts, recent history, and sharing
-from the standalone module apps into the unified C2ES native modules.
+from the standalone module apps into the unified ImperialAX native modules.

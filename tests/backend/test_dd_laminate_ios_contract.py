@@ -144,12 +144,12 @@ def test_public_root_serves_forecast_entry_for_cafedecafe(client: TestClient) ->
 
 
 def test_public_root_serves_v2_ui_for_luvelox(client: TestClient) -> None:
-    response = client.get("/", headers={"host": "laminate.luvelox.com"})
+    response = client.get("/", headers={"host": "laminate.imperialax.com"})
 
     assert response.status_code == 200
     assert "Composite Laminate AI" in response.text
     assert "./app-v2.js" in response.text
-    assert 'href="https://ai.luvelox.com/index.html">Modules</a>' in response.text
+    assert 'href="https://ai.imperialax.com/index.html">Modules</a>' in response.text
 
 
 def test_laminate_pages_link_back_to_luvelox_user_page(client: TestClient) -> None:
@@ -162,41 +162,41 @@ def test_laminate_pages_link_back_to_luvelox_user_page(client: TestClient) -> No
     assert korean_v2.status_code == 200
     assert english_classic.status_code == 200
     assert korean_classic.status_code == 200
-    assert 'href="https://ai.luvelox.com/index.html">Modules</a>' in english_v2.text
-    assert 'href="https://ai.luvelox.com/index.ko.html">모듈 선택</a>' in korean_v2.text
+    assert 'href="https://ai.imperialax.com/index.html">Modules</a>' in english_v2.text
+    assert 'href="https://ai.imperialax.com/index.ko.html">모듈 선택</a>' in korean_v2.text
     assert "./index-v2.html" in english_classic.text
     assert "./index-v2.ko.html" in korean_classic.text
 
 
 def test_ai_luvelox_root_serves_c2es_login_entry_from_public_app(client: TestClient) -> None:
-    response = client.get("/", headers={"host": "ai.luvelox.com"})
+    response = client.get("/", headers={"host": "ai.imperialax.com"})
 
     assert response.status_code == 200
-    assert "C2ES Account Access" in response.text
+    assert "ImperialAX Account Access" in response.text
     assert "./login-v2.js" in response.text
 
 
 def test_ai_luvelox_workspace_static_files_are_host_routed(client: TestClient) -> None:
-    index_response = client.get("/index.html", headers={"host": "ai.luvelox.com"})
-    ko_index_response = client.get("/index.ko.html", headers={"host": "ai.luvelox.com"})
-    app_response = client.get("/app.js", headers={"host": "ai.luvelox.com"})
-    styles_response = client.get("/styles.css", headers={"host": "ai.luvelox.com"})
+    index_response = client.get("/index.html", headers={"host": "ai.imperialax.com"})
+    ko_index_response = client.get("/index.ko.html", headers={"host": "ai.imperialax.com"})
+    app_response = client.get("/app.js", headers={"host": "ai.imperialax.com"})
+    styles_response = client.get("/styles.css", headers={"host": "ai.imperialax.com"})
 
     assert index_response.status_code == 200
     assert ko_index_response.status_code == 200
-    assert "C2ES AI Workspace" in index_response.text
-    assert "C2ES 예측 워크스페이스" in ko_index_response.text
+    assert "ImperialAX AI Workspace" in index_response.text
+    assert "ImperialAX 예측 워크스페이스" in ko_index_response.text
     assert "Demo Account" in app_response.text
     assert ".login-view" in styles_response.text
 
 
 def test_ai_luvelox_signup_static_files_are_served_from_public_app(client: TestClient) -> None:
-    signup_response = client.get("/signup-v2.html", headers={"host": "ai.luvelox.com"})
-    ko_signup_response = client.get("/signup-v2.ko.html", headers={"host": "ai.luvelox.com"})
-    forgot_response = client.get("/forgot-v2.html", headers={"host": "ai.luvelox.com"})
-    ko_forgot_response = client.get("/forgot-v2.ko.html", headers={"host": "ai.luvelox.com"})
-    script_response = client.get("/signup-v2.js", headers={"host": "ai.luvelox.com"})
-    forgot_script_response = client.get("/forgot-v2.js", headers={"host": "ai.luvelox.com"})
+    signup_response = client.get("/signup-v2.html", headers={"host": "ai.imperialax.com"})
+    ko_signup_response = client.get("/signup-v2.ko.html", headers={"host": "ai.imperialax.com"})
+    forgot_response = client.get("/forgot-v2.html", headers={"host": "ai.imperialax.com"})
+    ko_forgot_response = client.get("/forgot-v2.ko.html", headers={"host": "ai.imperialax.com"})
+    script_response = client.get("/signup-v2.js", headers={"host": "ai.imperialax.com"})
+    forgot_script_response = client.get("/forgot-v2.js", headers={"host": "ai.imperialax.com"})
 
     assert signup_response.status_code == 200
     assert ko_signup_response.status_code == 200
@@ -204,31 +204,31 @@ def test_ai_luvelox_signup_static_files_are_served_from_public_app(client: TestC
     assert ko_forgot_response.status_code == 200
     assert script_response.status_code == 200
     assert forgot_script_response.status_code == 200
-    assert "Create Luvelox Account" in signup_response.text
-    assert "Luvelox 계정 만들기" in ko_signup_response.text
-    assert "Reset Luvelox Password" in forgot_response.text
-    assert "Luvelox 비밀번호 재설정" in ko_forgot_response.text
+    assert "Create ImperialAX Account" in signup_response.text
+    assert "ImperialAX 계정 만들기" in ko_signup_response.text
+    assert "Reset ImperialAX Password" in forgot_response.text
+    assert "ImperialAX 비밀번호 재설정" in ko_forgot_response.text
     assert "/api/v1/modules/auth/signup" in script_response.text
     assert "/api/v1/modules/auth/forgot-password" in forgot_script_response.text
 
 
 def test_ai_luvelox_admin_static_files_are_served_from_public_app(client: TestClient) -> None:
-    admin_response = client.get("/admin.html", headers={"host": "ai.luvelox.com"})
-    admin_ko_response = client.get("/admin.ko.html", headers={"host": "ai.luvelox.com"})
-    script_response = client.get("/admin.js", headers={"host": "ai.luvelox.com"})
+    admin_response = client.get("/admin.html", headers={"host": "ai.imperialax.com"})
+    admin_ko_response = client.get("/admin.ko.html", headers={"host": "ai.imperialax.com"})
+    script_response = client.get("/admin.js", headers={"host": "ai.imperialax.com"})
 
     assert admin_response.status_code == 200
     assert admin_ko_response.status_code == 200
     assert script_response.status_code == 200
-    assert "Luvelox Admin" in admin_response.text
-    assert "Luvelox 관리자" in admin_ko_response.text
+    assert "ImperialAX Admin" in admin_response.text
+    assert "ImperialAX 관리자" in admin_ko_response.text
     assert "/api/v1/modules/admin/users" in script_response.text
 
 
 def test_ai_luvelox_optimization_static_files_are_served_from_public_app(client: TestClient) -> None:
-    optimization_response = client.get("/optimization.html", headers={"host": "ai.luvelox.com"})
-    optimization_ko_response = client.get("/optimization.ko.html", headers={"host": "ai.luvelox.com"})
-    script_response = client.get("/optimization.js", headers={"host": "ai.luvelox.com"})
+    optimization_response = client.get("/optimization.html", headers={"host": "ai.imperialax.com"})
+    optimization_ko_response = client.get("/optimization.ko.html", headers={"host": "ai.imperialax.com"})
+    script_response = client.get("/optimization.js", headers={"host": "ai.imperialax.com"})
 
     assert optimization_response.status_code == 200
     assert optimization_ko_response.status_code == 200
@@ -252,7 +252,7 @@ def test_v2_korean_page_serves_translated_current_ui(client: TestClient) -> None
     assert response.status_code == 200
     assert 'lang="ko"' in response.text
     assert "복합재 적층 AI" in response.text
-    assert "C2ES 적층 예측" in response.text
+    assert "ImperialAX 적층 예측" in response.text
     assert "응답 예측" in response.text
     assert "./app-v2.js" in response.text
 

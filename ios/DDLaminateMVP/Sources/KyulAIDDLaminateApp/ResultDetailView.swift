@@ -2090,7 +2090,7 @@ extension ResponsePredictionResult {
 
     var shareSummaryText: String {
         let modelLines = [
-            "C2ES Laminate Forecast",
+            "ImperialAX Laminate Forecast",
             "",
             "MODEL",
             "• Model: \(displayModelLabel)",

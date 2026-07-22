@@ -45,7 +45,7 @@ def test_simple_injection_pages_link_back_to_luvelox_user_page() -> None:
     assert korean_v2.status_code == 200
     assert english_classic.status_code == 200
     assert korean_classic.status_code == 200
-    assert 'href="https://ai.luvelox.com/index.html">Modules</a>' in english_v2.text
-    assert 'href="https://ai.luvelox.com/index.ko.html">모듈 선택</a>' in korean_v2.text
-    assert 'href="https://ai.luvelox.com/index.html">Modules</a>' in english_classic.text
-    assert 'href="https://ai.luvelox.com/index.ko.html">모듈 선택</a>' in korean_classic.text
+    assert 'href="https://ai.imperialax.com/index.html">Modules</a>' in english_v2.text
+    assert 'href="https://ai.imperialax.com/index.ko.html">모듈 선택</a>' in korean_v2.text
+    assert 'href="https://ai.imperialax.com/index.html">Modules</a>' in english_classic.text
+    assert 'href="https://ai.imperialax.com/index.ko.html">모듈 선택</a>' in korean_classic.text

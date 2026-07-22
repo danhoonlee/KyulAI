@@ -971,7 +971,7 @@ class MainActivity : Activity() {
 
         return (
             listOf(
-                "C2ES Laminate Forecast",
+                "ImperialAX Laminate Forecast",
                 "",
                 "MODEL",
                 "• Model: ${result.displayModelLabel}",
@@ -1003,7 +1003,7 @@ class MainActivity : Activity() {
     private fun shareResultImage(result: ForecastResult) {
         val reportView = buildLaminateShareReport(result)
         val bitmap = renderReportBitmap(reportView)
-        val uri = saveBitmapToPictures(bitmap, "C2ES_Laminate_Forecast_${System.currentTimeMillis()}.png") ?: return
+        val uri = saveBitmapToPictures(bitmap, "ImperialAX_Laminate_Forecast_${System.currentTimeMillis()}.png") ?: return
         shareImage(uri)
     }
 
@@ -1016,7 +1016,7 @@ class MainActivity : Activity() {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
                 addView(TextView(context).apply {
-                    text = "C2ES"
+                    text = "ImperialAX"
                     textSize = 20f
                     typeface = Typeface.DEFAULT_BOLD
                     gravity = Gravity.CENTER
@@ -1027,7 +1027,7 @@ class MainActivity : Activity() {
                     }
                 }, LinearLayout.LayoutParams(dp(76), dp(76)))
                 addView(vertical(spacing = 4).apply {
-                    addView(title("C2ES Laminate Forecast", 24))
+                    addView(title("ImperialAX Laminate Forecast", 24))
                     addView(caption("Generated result summary"))
                 }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
                     leftMargin = dp(14)
@@ -1200,7 +1200,7 @@ class MainActivity : Activity() {
             put(MediaStore.Images.Media.DISPLAY_NAME, displayName)
             put(MediaStore.Images.Media.MIME_TYPE, "image/png")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/C2ES")
+                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/ImperialAX")
                 put(MediaStore.Images.Media.IS_PENDING, 1)
             }
         }

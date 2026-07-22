@@ -3,15 +3,15 @@ import XCTest
 
 final class InjectionCoreTests: XCTestCase {
     func testEndpointComposition() throws {
-        let baseURL = try XCTUnwrap(URL(string: "https://injection.luvelox.com/"))
+        let baseURL = try XCTUnwrap(URL(string: "https://injection.imperialax.com/"))
 
         XCTAssertEqual(
             InjectionAPIClient.endpoint(baseURL: baseURL, path: "/api/v1/simple-injection/models").absoluteString,
-            "https://injection.luvelox.com/api/v1/simple-injection/models"
+            "https://injection.imperialax.com/api/v1/simple-injection/models"
         )
         XCTAssertEqual(
             InjectionAPIClient.endpoint(baseURL: baseURL, path: "/api/v1/simple-injection/predict/sprue-pressure").absoluteString,
-            "https://injection.luvelox.com/api/v1/simple-injection/predict/sprue-pressure"
+            "https://injection.imperialax.com/api/v1/simple-injection/predict/sprue-pressure"
         )
     }
 

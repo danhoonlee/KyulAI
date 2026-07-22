@@ -8,7 +8,7 @@ import android.webkit.WebViewClient
 class AdminWebActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val targetUrl = intent.getStringExtra("url") ?: "https://ai.luvelox.com/admin.html"
+        val targetUrl = intent.getStringExtra("url") ?: "https://ai.imperialax.com/admin.html"
         val webView = WebView(this).apply {
             webViewClient = WebViewClient()
             settings.javaScriptEnabled = true

@@ -31,7 +31,7 @@ import java.net.URL
 import kotlin.math.abs
 import kotlin.math.hypot
 
-private const val LAMINATE_RAG_BASE_URL = "https://laminate.luvelox.com"
+private const val LAMINATE_RAG_BASE_URL = "https://laminate.imperialax.com"
 
 class LaminateResultActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {

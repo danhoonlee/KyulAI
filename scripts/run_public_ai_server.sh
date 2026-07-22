@@ -11,8 +11,14 @@ if [[ -f .env.local ]]; then
   echo ".env.local loaded" >&2
 fi
 
-export LUVELOX_ADMIN_TOKEN="${LUVELOX_ADMIN_TOKEN:-$(cat .omx/state/luvelox-admin-token.txt)}"
-echo "LUVELOX_ADMIN_TOKEN configured length: ${#LUVELOX_ADMIN_TOKEN}" >&2
+if [[ -z "${IMPERIALAX_ADMIN_TOKEN:-}" ]]; then
+  if [[ -n "${LUVELOX_ADMIN_TOKEN:-}" ]]; then
+    export IMPERIALAX_ADMIN_TOKEN="${LUVELOX_ADMIN_TOKEN}"
+  else
+    export IMPERIALAX_ADMIN_TOKEN="$(cat .omx/state/luvelox-admin-token.txt)"
+  fi
+fi
+echo "IMPERIALAX_ADMIN_TOKEN configured length: ${#IMPERIALAX_ADMIN_TOKEN}" >&2
 if [[ -n "${OPENAI_API_KEY:-}" ]]; then
   echo "OPENAI_API_KEY configured length: ${#OPENAI_API_KEY}" >&2
 else
