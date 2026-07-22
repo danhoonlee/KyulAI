@@ -143,7 +143,7 @@ def test_public_root_serves_forecast_entry_for_cafedecafe(client: TestClient) ->
         assert "./index-v2.html" in response.text
 
 
-def test_public_root_serves_v2_ui_for_luvelox(client: TestClient) -> None:
+def test_public_root_serves_v2_ui_for_imperialax(client: TestClient) -> None:
     response = client.get("/", headers={"host": "laminate.imperialax.com"})
 
     assert response.status_code == 200
@@ -152,7 +152,7 @@ def test_public_root_serves_v2_ui_for_luvelox(client: TestClient) -> None:
     assert 'href="https://ai.imperialax.com/index.html">Modules</a>' in response.text
 
 
-def test_laminate_pages_link_back_to_luvelox_user_page(client: TestClient) -> None:
+def test_laminate_pages_link_back_to_imperialax_user_page(client: TestClient) -> None:
     english_v2 = client.get("/dd-laminate-v2")
     korean_v2 = client.get("/dd-laminate-v2-ko")
     english_classic = client.get("/index.html")
@@ -168,7 +168,7 @@ def test_laminate_pages_link_back_to_luvelox_user_page(client: TestClient) -> No
     assert "./index-v2.ko.html" in korean_classic.text
 
 
-def test_ai_luvelox_root_serves_c2es_login_entry_from_public_app(client: TestClient) -> None:
+def test_ai_imperialax_root_serves_imperialax_login_entry_from_public_app(client: TestClient) -> None:
     response = client.get("/", headers={"host": "ai.imperialax.com"})
 
     assert response.status_code == 200
@@ -176,7 +176,7 @@ def test_ai_luvelox_root_serves_c2es_login_entry_from_public_app(client: TestCli
     assert "./login-v2.js" in response.text
 
 
-def test_ai_luvelox_workspace_static_files_are_host_routed(client: TestClient) -> None:
+def test_ai_imperialax_workspace_static_files_are_host_routed(client: TestClient) -> None:
     index_response = client.get("/index.html", headers={"host": "ai.imperialax.com"})
     ko_index_response = client.get("/index.ko.html", headers={"host": "ai.imperialax.com"})
     app_response = client.get("/app.js", headers={"host": "ai.imperialax.com"})
@@ -190,7 +190,7 @@ def test_ai_luvelox_workspace_static_files_are_host_routed(client: TestClient) -
     assert ".login-view" in styles_response.text
 
 
-def test_ai_luvelox_signup_static_files_are_served_from_public_app(client: TestClient) -> None:
+def test_ai_imperialax_signup_static_files_are_served_from_public_app(client: TestClient) -> None:
     signup_response = client.get("/signup-v2.html", headers={"host": "ai.imperialax.com"})
     ko_signup_response = client.get("/signup-v2.ko.html", headers={"host": "ai.imperialax.com"})
     forgot_response = client.get("/forgot-v2.html", headers={"host": "ai.imperialax.com"})
@@ -212,7 +212,7 @@ def test_ai_luvelox_signup_static_files_are_served_from_public_app(client: TestC
     assert "/api/v1/modules/auth/forgot-password" in forgot_script_response.text
 
 
-def test_ai_luvelox_admin_static_files_are_served_from_public_app(client: TestClient) -> None:
+def test_ai_imperialax_admin_static_files_are_served_from_public_app(client: TestClient) -> None:
     admin_response = client.get("/admin.html", headers={"host": "ai.imperialax.com"})
     admin_ko_response = client.get("/admin.ko.html", headers={"host": "ai.imperialax.com"})
     script_response = client.get("/admin.js", headers={"host": "ai.imperialax.com"})
@@ -225,7 +225,7 @@ def test_ai_luvelox_admin_static_files_are_served_from_public_app(client: TestCl
     assert "/api/v1/modules/admin/users" in script_response.text
 
 
-def test_ai_luvelox_optimization_static_files_are_served_from_public_app(client: TestClient) -> None:
+def test_ai_imperialax_optimization_static_files_are_served_from_public_app(client: TestClient) -> None:
     optimization_response = client.get("/optimization.html", headers={"host": "ai.imperialax.com"})
     optimization_ko_response = client.get("/optimization.ko.html", headers={"host": "ai.imperialax.com"})
     script_response = client.get("/optimization.js", headers={"host": "ai.imperialax.com"})

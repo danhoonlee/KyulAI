@@ -7,14 +7,14 @@ This app avoids the platform database startup path so the research UI can be
 used immediately on a local machine.
 """
 
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
-from datetime import datetime, timezone
 import hmac
 import json
 import os
-from pathlib import Path
 import secrets
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from datetime import UTC, datetime
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,12 +27,12 @@ from src.backend.api.v1.modules import router as modules_router
 from src.backend.api.v1.optimization import router as optimization_router
 from src.backend.api.v1.rag import router as rag_router
 from src.backend.api.v1.slack_commands import router as slack_commands_router
-from src.backend.services.luvelox_auth_store import session_from_token
+from src.backend.services.imperialax_auth_store import session_from_token
 
 PROJECT_ROOT = Path(os.getenv("KYULAI_PROJECT_ROOT", Path(__file__).resolve().parents[2])).resolve()
 FRONTEND_DIR = Path(os.getenv("LAMINATE_FRONTEND_DIR", PROJECT_ROOT / "src" / "frontend" / "dd-laminate")).resolve()
-LUVELOX_FRONTEND_DIR = Path(
-    os.getenv("LUVELOX_FRONTEND_DIR", PROJECT_ROOT / "src" / "frontend" / "luvelox")
+IMPERIALAX_FRONTEND_DIR = Path(
+    os.getenv("IMPERIALAX_FRONTEND_DIR", PROJECT_ROOT / "src" / "frontend" / "imperialax")
 ).resolve()
 WEDDING_FRONTEND_DIR = Path(os.getenv("WEDDING_FRONTEND_DIR", PROJECT_ROOT / "src" / "frontend" / "wedding")).resolve()
 WEDDING_DATA_DIR = Path(os.getenv("WEDDING_DATA_DIR", PROJECT_ROOT / "runtime" / "wedding")).resolve()
@@ -40,12 +40,6 @@ AI_ROOT_HOSTS = {"ai.imperialax.com", "app.imperialax.com"}
 AI_REDIRECT_HOSTS = {
     "imperialax.com": "https://ai.imperialax.com",
     "www.imperialax.com": "https://ai.imperialax.com",
-}
-LUVELOX_TO_IMPERIALAX_REDIRECTS = {
-    "ai.luvelox.com": "https://ai.imperialax.com",
-    "luvelox.com": "https://ai.imperialax.com",
-    "www.luvelox.com": "https://ai.imperialax.com",
-    "laminate.luvelox.com": "https://laminate.imperialax.com",
 }
 V2_ROOT_HOSTS = {"laminate.imperialax.com", "dd.imperialax.com"}
 WEDDING_ROOT_HOSTS = {"ds-wedding.cafedecafe.co.kr"}
@@ -70,7 +64,7 @@ def _bearer_token(request: Request) -> str | None:
     scheme, _, token = authorization.partition(" ")
     if scheme.lower() == "bearer" and token.strip():
         return token.strip()
-    return request.query_params.get("session_token") or request.cookies.get("luvelox_session")
+    return request.query_params.get("session_token") or request.cookies.get("imperialax_session")
 
 
 def _has_laminate_entitlement(request: Request) -> bool:
@@ -84,7 +78,7 @@ def _root_file_for_host(host: str) -> Path:
     if host in WEDDING_ROOT_HOSTS:
         return WEDDING_FRONTEND_DIR / "index.html"
     if host in AI_ROOT_HOSTS:
-        return LUVELOX_FRONTEND_DIR / "login-v2.html"
+        return IMPERIALAX_FRONTEND_DIR / "login-v2.html"
     index_file = "index-v2.html" if host in V2_ROOT_HOSTS else "index.html"
     return FRONTEND_DIR / index_file
 
@@ -93,13 +87,13 @@ def _frontend_dir_for_host(host: str) -> Path:
     if host in WEDDING_ROOT_HOSTS:
         return WEDDING_FRONTEND_DIR
     if host in AI_ROOT_HOSTS:
-        return LUVELOX_FRONTEND_DIR
+        return IMPERIALAX_FRONTEND_DIR
     return FRONTEND_DIR
 
 
-def _luvelox_or_laminate_file(request: Request, filename: str) -> Path:
+def _imperialax_or_laminate_file(request: Request, filename: str) -> Path:
     if _request_host(request) in AI_ROOT_HOSTS:
-        return LUVELOX_FRONTEND_DIR / filename
+        return IMPERIALAX_FRONTEND_DIR / filename
     return FRONTEND_DIR / filename
 
 
@@ -110,17 +104,6 @@ def _redirect_to_wedding(path: str = "/") -> Response:
 def _redirect_to_ai_workspace(host: str, path: str = "/") -> Response:
     base_url = AI_REDIRECT_HOSTS.get(host, IMPERIALAX_AI_PUBLIC_BASE_URL)
     return Response(status_code=308, headers={"Location": f"{base_url}{path}"})
-
-
-def _redirect_legacy_luvelox(host: str, path: str, query: str) -> Response | None:
-    base_url = LUVELOX_TO_IMPERIALAX_REDIRECTS.get(host)
-    if not base_url:
-        return None
-    suffix = path or "/"
-    location = f"{base_url}{suffix}"
-    if query:
-        location = f"{location}?{query}"
-    return Response(status_code=308, headers={"Location": location})
 
 
 def _no_cache_file(path: Path) -> FileResponse:
@@ -242,9 +225,6 @@ app.add_middleware(
 
 @app.middleware("http")
 async def laminate_license_middleware(request: Request, call_next):
-    legacy_redirect = _redirect_legacy_luvelox(_request_host(request), request.url.path, request.url.query)
-    if legacy_redirect is not None:
-        return legacy_redirect
     if (
         _env_flag("LAMINATE_REQUIRE_AUTH")
         and request.method.upper() != "OPTIONS"
@@ -301,22 +281,22 @@ async def assets(request: Request, asset_path: str) -> FileResponse:
 
 @app.get("/index.html")
 async def index_html(request: Request) -> FileResponse:
-    return _no_cache_file(_luvelox_or_laminate_file(request, "index.html"))
+    return _no_cache_file(_imperialax_or_laminate_file(request, "index.html"))
 
 
 @app.get("/index.ko.html")
 async def index_ko_html(request: Request) -> FileResponse:
-    return _no_cache_file(_luvelox_or_laminate_file(request, "index.ko.html"))
+    return _no_cache_file(_imperialax_or_laminate_file(request, "index.ko.html"))
 
 
 @app.get("/styles.css")
 async def styles_css(request: Request) -> FileResponse:
-    return _no_cache_file(_luvelox_or_laminate_file(request, "styles.css"))
+    return _no_cache_file(_imperialax_or_laminate_file(request, "styles.css"))
 
 
 @app.get("/app.js")
 async def app_js(request: Request) -> FileResponse:
-    return _no_cache_file(_luvelox_or_laminate_file(request, "app.js"))
+    return _no_cache_file(_imperialax_or_laminate_file(request, "app.js"))
 
 
 @app.get("/index-v2.html")
@@ -346,82 +326,82 @@ async def auth_gate_js() -> FileResponse:
 
 @app.get("/login-v2.html")
 async def login_v2_html() -> FileResponse:
-    return FileResponse(LUVELOX_FRONTEND_DIR / "login-v2.html")
+    return FileResponse(IMPERIALAX_FRONTEND_DIR / "login-v2.html")
 
 
 @app.get("/login-v2.ko.html")
 async def login_v2_ko_html() -> FileResponse:
-    return FileResponse(LUVELOX_FRONTEND_DIR / "login-v2.ko.html")
+    return FileResponse(IMPERIALAX_FRONTEND_DIR / "login-v2.ko.html")
 
 
 @app.get("/signup-v2.html")
 async def signup_v2_html() -> FileResponse:
-    return FileResponse(LUVELOX_FRONTEND_DIR / "signup-v2.html")
+    return FileResponse(IMPERIALAX_FRONTEND_DIR / "signup-v2.html")
 
 
 @app.get("/signup-v2.ko.html")
 async def signup_v2_ko_html() -> FileResponse:
-    return FileResponse(LUVELOX_FRONTEND_DIR / "signup-v2.ko.html")
+    return FileResponse(IMPERIALAX_FRONTEND_DIR / "signup-v2.ko.html")
 
 
 @app.get("/forgot-v2.html")
 async def forgot_v2_html() -> FileResponse:
-    return FileResponse(LUVELOX_FRONTEND_DIR / "forgot-v2.html")
+    return FileResponse(IMPERIALAX_FRONTEND_DIR / "forgot-v2.html")
 
 
 @app.get("/forgot-v2.ko.html")
 async def forgot_v2_ko_html() -> FileResponse:
-    return FileResponse(LUVELOX_FRONTEND_DIR / "forgot-v2.ko.html")
+    return FileResponse(IMPERIALAX_FRONTEND_DIR / "forgot-v2.ko.html")
 
 
 @app.get("/admin.html")
 async def admin_html() -> FileResponse:
-    return FileResponse(LUVELOX_FRONTEND_DIR / "admin.html")
+    return FileResponse(IMPERIALAX_FRONTEND_DIR / "admin.html")
 
 
 @app.get("/admin.ko.html")
 async def admin_ko_html() -> FileResponse:
-    return FileResponse(LUVELOX_FRONTEND_DIR / "admin.ko.html")
+    return FileResponse(IMPERIALAX_FRONTEND_DIR / "admin.ko.html")
 
 
 @app.get("/optimization.html")
 async def optimization_html() -> FileResponse:
-    return FileResponse(LUVELOX_FRONTEND_DIR / "optimization.html")
+    return FileResponse(IMPERIALAX_FRONTEND_DIR / "optimization.html")
 
 
 @app.get("/optimization.ko.html")
 async def optimization_ko_html() -> FileResponse:
-    return FileResponse(LUVELOX_FRONTEND_DIR / "optimization.ko.html")
+    return FileResponse(IMPERIALAX_FRONTEND_DIR / "optimization.ko.html")
 
 
 @app.get("/login-v2.css")
 async def login_v2_css() -> FileResponse:
-    return FileResponse(LUVELOX_FRONTEND_DIR / "login-v2.css")
+    return FileResponse(IMPERIALAX_FRONTEND_DIR / "login-v2.css")
 
 
 @app.get("/login-v2.js")
 async def login_v2_js() -> FileResponse:
-    return FileResponse(LUVELOX_FRONTEND_DIR / "login-v2.js")
+    return FileResponse(IMPERIALAX_FRONTEND_DIR / "login-v2.js")
 
 
 @app.get("/signup-v2.js")
 async def signup_v2_js() -> FileResponse:
-    return FileResponse(LUVELOX_FRONTEND_DIR / "signup-v2.js")
+    return FileResponse(IMPERIALAX_FRONTEND_DIR / "signup-v2.js")
 
 
 @app.get("/forgot-v2.js")
 async def forgot_v2_js() -> FileResponse:
-    return FileResponse(LUVELOX_FRONTEND_DIR / "forgot-v2.js")
+    return FileResponse(IMPERIALAX_FRONTEND_DIR / "forgot-v2.js")
 
 
 @app.get("/admin.js")
 async def admin_js() -> FileResponse:
-    return FileResponse(LUVELOX_FRONTEND_DIR / "admin.js")
+    return FileResponse(IMPERIALAX_FRONTEND_DIR / "admin.js")
 
 
 @app.get("/optimization.js")
 async def optimization_js() -> FileResponse:
-    return FileResponse(LUVELOX_FRONTEND_DIR / "optimization.js")
+    return FileResponse(IMPERIALAX_FRONTEND_DIR / "optimization.js")
 
 
 @app.get("/dd-laminate-ko")
@@ -542,7 +522,7 @@ async def wedding_rsvp(request: Request) -> Response:
         "message": str(payload.get("message") or ""),
         "submittedAt": str(
             payload.get("submittedAt")
-            or datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+            or datetime.now(UTC).isoformat().replace("+00:00", "Z")
         ),
         "ip": request.client.host if request.client else "",
     }

@@ -13,9 +13,9 @@ from typing import Literal
 from fastapi import APIRouter, Header, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from src.backend.services.luvelox_auth_store import (
-    AuthSession,
+from src.backend.services.imperialax_auth_store import (
     DEFAULT_ENTITLEMENTS,
+    AuthSession,
     DuplicateAccountError,
     InvalidCredentialsError,
     WeakPasswordError,
@@ -38,14 +38,11 @@ ModuleAccess = Literal["granted", "locked", "hidden"]
 ADMIN_ENTITLEMENT = "module.admin"
 DEFAULT_ADMIN_EMAILS = (
     "danlee@imperialax.com",
-    "danlee@luvelox.com",
     "dannylee9295@gmail.com",
 )
 DEMO_EMAIL_ALIASES = {
     "demo@imperialax.com": "demo@imperialax.com",
     "danlee@imperialax.com": "danlee@imperialax.com",
-    "demo@luvelox.com": "demo@imperialax.com",
-    "danlee@luvelox.com": "danlee@imperialax.com",
 }
 
 
@@ -300,7 +297,7 @@ ADMIN_MODULE = ModuleDefinition(
 
 
 def _admin_emails() -> set[str]:
-    configured = os.environ.get("IMPERIALAX_ADMIN_EMAILS") or os.environ.get("LUVELOX_ADMIN_EMAILS")
+    configured = os.environ.get("IMPERIALAX_ADMIN_EMAILS")
     values = configured.split(",") if configured else DEFAULT_ADMIN_EMAILS
     return {value.strip().lower() for value in values if value.strip()}
 
@@ -338,7 +335,7 @@ def _display_company(email: str, company: str | None) -> str | None:
     canonical = _canonical_email(email)
     if canonical == "demo@imperialax.com":
         return "ImperialAX Demo"
-    if canonical == "danlee@imperialax.com" and company in {"ImperialAX", "Luvelox"}:
+    if canonical == "danlee@imperialax.com" and company == "ImperialAX":
         return "ImperialAX"
     return company
 
@@ -360,20 +357,17 @@ def _effective_entitlements(session: AuthSession) -> set[str]:
 def _require_admin_token(
     *,
     x_imperialax_admin_token: str | None,
-    x_luvelox_admin_token: str | None,
     authorization: str | None,
 ) -> None:
-    expected = os.environ.get("IMPERIALAX_ADMIN_TOKEN") or os.environ.get("LUVELOX_ADMIN_TOKEN")
+    expected = os.environ.get("IMPERIALAX_ADMIN_TOKEN")
     bearer = _bearer_token(authorization)
     if _session_is_admin(session_from_token(bearer)):
         return
     if _session_is_admin(session_from_token(x_imperialax_admin_token)):
         return
-    if _session_is_admin(session_from_token(x_luvelox_admin_token)):
-        return
     if not expected:
         raise HTTPException(status_code=503, detail="ImperialAX admin token is not configured.")
-    candidates = [x_imperialax_admin_token, x_luvelox_admin_token, _bearer_token(authorization)]
+    candidates = [x_imperialax_admin_token, _bearer_token(authorization)]
     if not any(candidate and hmac.compare_digest(candidate, expected) for candidate in candidates):
         raise HTTPException(status_code=401, detail="Invalid ImperialAX admin token.")
 
@@ -451,14 +445,12 @@ async def list_modules() -> ModuleCatalogResponse:
 async def list_my_modules(
     authorization: str | None = Header(default=None, alias="Authorization"),
     x_imperialax_entitlements: str | None = Header(default=None, alias="X-ImperialAX-Entitlements"),
-    x_luvelox_entitlements: str | None = Header(default=None, alias="X-Luvelox-Entitlements"),
     entitlements: str | None = Query(default=None, description="Demo override: comma-separated entitlement keys."),
 ) -> UserModulesResponse:
     user, account_entitlements = _account_for_request(authorization)
     granted = (
         account_entitlements
         | _parse_entitlements(x_imperialax_entitlements)
-        | _parse_entitlements(x_luvelox_entitlements)
         | _parse_entitlements(entitlements)
     )
     user_modules = []
@@ -485,12 +477,10 @@ async def list_my_modules(
 @router.get("/admin/users", response_model=AdminUsersResponse, summary="List ImperialAX account users")
 async def admin_users(
     x_imperialax_admin_token: str | None = Header(default=None, alias="X-ImperialAX-Admin-Token"),
-    x_luvelox_admin_token: str | None = Header(default=None, alias="X-Luvelox-Admin-Token"),
     authorization: str | None = Header(default=None, alias="Authorization"),
 ) -> AdminUsersResponse:
     _require_admin_token(
         x_imperialax_admin_token=x_imperialax_admin_token,
-        x_luvelox_admin_token=x_luvelox_admin_token,
         authorization=authorization,
     )
     users = [
@@ -520,12 +510,10 @@ async def admin_users(
 async def admin_create_user(
     payload: AdminAccountCreateRequest,
     x_imperialax_admin_token: str | None = Header(default=None, alias="X-ImperialAX-Admin-Token"),
-    x_luvelox_admin_token: str | None = Header(default=None, alias="X-Luvelox-Admin-Token"),
     authorization: str | None = Header(default=None, alias="Authorization"),
 ) -> AdminAccountCreateResponse:
     _require_admin_token(
         x_imperialax_admin_token=x_imperialax_admin_token,
-        x_luvelox_admin_token=x_luvelox_admin_token,
         authorization=authorization,
     )
     raw_entitlements = payload.entitlements if payload.entitlements is not None else list(DEFAULT_ENTITLEMENTS)
@@ -566,12 +554,10 @@ async def admin_update_profile(
     user_id: str,
     payload: AdminAccountUpdateRequest,
     x_imperialax_admin_token: str | None = Header(default=None, alias="X-ImperialAX-Admin-Token"),
-    x_luvelox_admin_token: str | None = Header(default=None, alias="X-Luvelox-Admin-Token"),
     authorization: str | None = Header(default=None, alias="Authorization"),
 ) -> AdminAccountUpdateResponse:
     _require_admin_token(
         x_imperialax_admin_token=x_imperialax_admin_token,
-        x_luvelox_admin_token=x_luvelox_admin_token,
         authorization=authorization,
     )
     if not payload.name.strip():
@@ -607,12 +593,10 @@ async def admin_reset_password(
     user_id: str,
     payload: AdminPasswordResetRequest,
     x_imperialax_admin_token: str | None = Header(default=None, alias="X-ImperialAX-Admin-Token"),
-    x_luvelox_admin_token: str | None = Header(default=None, alias="X-Luvelox-Admin-Token"),
     authorization: str | None = Header(default=None, alias="Authorization"),
 ) -> AdminPasswordResetResponse:
     _require_admin_token(
         x_imperialax_admin_token=x_imperialax_admin_token,
-        x_luvelox_admin_token=x_luvelox_admin_token,
         authorization=authorization,
     )
     try:
@@ -642,12 +626,10 @@ async def admin_update_entitlements(
     user_id: str,
     payload: AdminEntitlementUpdateRequest,
     x_imperialax_admin_token: str | None = Header(default=None, alias="X-ImperialAX-Admin-Token"),
-    x_luvelox_admin_token: str | None = Header(default=None, alias="X-Luvelox-Admin-Token"),
     authorization: str | None = Header(default=None, alias="Authorization"),
 ) -> AdminEntitlementUpdateResponse:
     _require_admin_token(
         x_imperialax_admin_token=x_imperialax_admin_token,
-        x_luvelox_admin_token=x_luvelox_admin_token,
         authorization=authorization,
     )
     requested_entitlements = _validate_admin_entitlements(payload.entitlements)
@@ -702,7 +684,7 @@ async def forgot_password(payload: PasswordRecoveryRequest) -> LoginResponse:
 
 @router.post("/auth/demo-login", response_model=LoginResponse, summary="Create a demo ImperialAX account session")
 async def demo_login(payload: LoginRequest) -> LoginResponse:
-    if os.getenv("LUVELOX_DISABLE_DEMO_LOGIN", "").strip().lower() in {"1", "true", "yes", "on"}:
+    if os.getenv("IMPERIALAX_DISABLE_DEMO_LOGIN", "").strip().lower() in {"1", "true", "yes", "on"}:
         raise HTTPException(status_code=403, detail="Demo login is disabled for this build.")
     normalized_email = _canonical_email(payload.email or "demo@imperialax.com")
     if normalized_email not in {"demo@imperialax.com", "danlee@imperialax.com"}:

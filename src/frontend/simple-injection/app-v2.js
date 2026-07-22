@@ -180,7 +180,7 @@ let activePredictionFlowData = null;
 let applyingDoeValues = false;
 const PREDICTION_FLOW_DURATION_MS = 5200;
 const SHAPE_DEFAULT_ROTATION = { x: -0.82, z: -0.58 };
-const INJECTION_HISTORY_KEY = "c2es.injection.recentRuns.v1";
+const INJECTION_HISTORY_KEY = "imperialax.injection.recentRuns.v1";
 
 function formatMetric(value, digits = 2) {
   const numeric = Number(value);

@@ -1,5 +1,5 @@
 (() => {
-  const SESSION_KEY = "luvelox.auth.session.v1";
+  const SESSION_KEY = "imperialax.auth.session.v1";
   const LAMINATE_ENTITLEMENT = "module.laminate";
   const isKo = document.documentElement.lang.toLowerCase().startsWith("ko");
   const isLocalStaticHost = ["localhost", "127.0.0.1"].includes(window.location.hostname)

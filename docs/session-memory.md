@@ -176,7 +176,7 @@ surface.
 
 Implemented:
 
-- Android Luvelox/C2ES Laminate app now calls
+- Android ImperialAX/ImperialAX Laminate app now calls
   `/api/v1/dd-laminate/design-space` after a successful response forecast.
 - Android result screen now shows a compact Research Insight card with:
   - Top candidate
@@ -189,21 +189,21 @@ Implemented:
 - iOS `PredictionViewModel` lazily loads response design-space insight after
   successful Laminate Forecast prediction without blocking the prediction if
   insight loading fails.
-- iOS Luvelox Laminate forecast view shows compact Research Insight UI below
+- iOS ImperialAX Laminate forecast view shows compact Research Insight UI below
   class probabilities.
 
 Verification:
 
 - `swift test` in `ios/DDLaminateMVP` passed: 11 tests.
-- `swift build` in `ios/LuveloxMVP` passed.
+- `swift build` in `ios/ImperialAXMVP` passed.
 - Initial Android build failed because system Java was not configured.
 - Homebrew `openjdk@17` was available and used with:
   `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home`.
 - Android build passed with `gradle :app:assembleDebug`.
 - Latest debug APK:
-  `android/LuveloxMVP/app/build/outputs/apk/debug/app-debug.apk`.
+  `android/ImperialAXMVP/app/build/outputs/apk/debug/app-debug.apk`.
 - Convenience copy:
-  `artifacts/android/C2ES-debug-design-space.apk`.
+  `artifacts/android/ImperialAX-debug-design-space.apk`.
 
 ## 2026-06-24 Native Design-Space Map Follow-Up
 
@@ -312,12 +312,12 @@ Implemented:
 Verification:
 
 - `swift test` in `ios/DDLaminateMVP` passed: 11 tests.
-- `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+- `swift test` in `ios/ImperialAXMVP` passed: 6 tests.
 - Android debug build passed with:
   `JAVA_HOME=/Applications/PyCharm.app/Contents/jbr/Contents/Home gradle :app:assembleDebug`.
 - Latest Android APK copies:
-  `artifacts/android/C2ES-debug-design-space-map.apk` and
-  `artifacts/android/C2ES-debug-design-space-map-v2.apk`.
+  `artifacts/android/ImperialAX-debug-design-space-map.apk` and
+  `artifacts/android/ImperialAX-debug-design-space-map-v2.apk`.
 
 ## 2026-06-24 iOS Response Curve Zoom Update
 
@@ -338,8 +338,8 @@ Implemented:
 Verification:
 
 - `swift test` in `ios/DDLaminateMVP` passed: 11 tests.
-- `swift test` in `ios/LuveloxMVP` passed: 6 tests.
-- XcodeBuildMCP built and launched `LuveloxMVPHost` on the iPhone 17 simulator.
+- `swift test` in `ios/ImperialAXMVP` passed: 6 tests.
+- XcodeBuildMCP built and launched `ImperialAXMVPHost` on the iPhone 17 simulator.
 
 ## 2026-06-24 DD Laminate Classic Removal And iOS History Cards
 
@@ -365,7 +365,7 @@ Implemented:
 Verification:
 
 - `swift test` in `ios/DDLaminateMVP` passed: 11 tests.
-- `swift build` in `ios/LuveloxMVP` passed.
+- `swift build` in `ios/ImperialAXMVP` passed.
 - Repository search found no remaining visible `Classic`, `Wanted v2`,
   `Laminate v2`, or `적층 v2` strings in DD Laminate web/app surfaces.
 
@@ -391,13 +391,13 @@ Implemented:
   input form.
 - Tapping an Android history card restores Case, θ₁, θ₂, and model selection.
 - New Android debug APK copied to:
-  `artifacts/android/C2ES-debug-prediction-history.apk`.
+  `artifacts/android/ImperialAX-debug-prediction-history.apk`.
 
 Verification:
 
 - `node --check src/frontend/dd-laminate/app-v2.js` passed.
 - `JAVA_HOME=/Applications/PyCharm.app/Contents/jbr/Contents/Home gradle :app:assembleDebug`
-  in `android/LuveloxMVP` passed.
+  in `android/ImperialAXMVP` passed.
 - `git diff --check` on touched web/Android files passed.
 
 ## Current Code Status As Of Latest Review
@@ -3799,7 +3799,7 @@ User continued turning the DD Laminate mobile prototype into a more app-like
 iOS/Android experience. Important product direction:
 
 - App-facing name should remain user-friendly; backend/project naming may use
-  C2ES where appropriate.
+  ImperialAX where appropriate.
 - iOS and Android should feel like the same product. Android UI should not be a
   plain text-only version of the iOS app.
 - Default network flow should be quiet and app-like: users should not normally
@@ -3837,7 +3837,7 @@ Implemented/adjusted in the Laminate apps:
 - Android model selector was redesigned into iOS-like selectable cards with
   badges/tags/descriptions; theta inputs gained better padding.
 - Android APK is rebuilt to
-  `artifacts/android/Laminate-C2ES-debug.apk` after Android changes and verified
+  `artifacts/android/Laminate-ImperialAX-debug.apk` after Android changes and verified
   with `apksigner`.
 
 Important graph/metric decisions:
@@ -3858,7 +3858,7 @@ Verification from the latest Laminate app changes:
 - `swift test` in `ios/DDLaminateMVP` passed.
 - `xcodebuild -project ios/DDLaminateMVPApp/DDLaminateMVPHost.xcodeproj -scheme DDLaminateMVPHost -destination generic/platform=iOS\ Simulator build` passed after adding the new `PtDisplacement.swift` helper to the host Xcode project.
 - `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` passed.
-- `artifacts/android/Laminate-C2ES-debug.apk` was refreshed and verified with
+- `artifacts/android/Laminate-ImperialAX-debug.apk` was refreshed and verified with
   APK Signature Scheme v2.
 
 Memory hygiene note:
@@ -3869,24 +3869,24 @@ Memory hygiene note:
   conversational turn. Keep updating this file after meaningful decisions,
   implementation milestones, deployment changes, and unresolved risks.
 
-## 2026-06-11 Luvelox Domain Migration Started
+## 2026-06-11 ImperialAX Domain Migration Started
 
-User is preparing a new company/domain direction under `luvelox.com` and wants
+User is preparing a new company/domain direction under `imperialax.com` and wants
 to migrate public service URLs away from `cafedecafe.co.kr`.
 
 Domain/DNS state:
 
-- User bought `luvelox.com` at WHOIS and completed Cloudflare activation before
+- User bought `imperialax.com` at WHOIS and completed Cloudflare activation before
   asking Codex to continue.
-- `luvelox.com` nameservers now resolve to Cloudflare:
+- `imperialax.com` nameservers now resolve to Cloudflare:
   `weston.ns.cloudflare.com` and `tegan.ns.cloudflare.com`.
 - Existing `cafedecafe.co.kr` remains on Cloudflare:
   `sterling.ns.cloudflare.com` and `perla.ns.cloudflare.com`.
 
 Chosen public hostnames:
 
-- `https://laminate.luvelox.com` for DD Laminate.
-- `https://injection.luvelox.com` for Simple Injection.
+- `https://laminate.imperialax.com` for DD Laminate.
+- `https://injection.imperialax.com` for Simple Injection.
 - Legacy hostnames stay active during migration:
   `https://dd.cafedecafe.co.kr` and
   `https://injection.cafedecafe.co.kr`.
@@ -3896,36 +3896,36 @@ Cloudflare tunnel actions:
 - Existing named tunnel remains `kclab-composite-ai`
   (`02b4b689-84ef-4459-91cd-48c81ea549ae`).
 - `infrastructure/cloudflare/kclab-composite-ai.yml` was updated to add
-  `laminate.luvelox.com` -> `http://127.0.0.1:8000` and
-  `injection.luvelox.com` -> `http://127.0.0.1:8010`, keeping old cafedecafe
+  `laminate.imperialax.com` -> `http://127.0.0.1:8000` and
+  `injection.imperialax.com` -> `http://127.0.0.1:8010`, keeping old cafedecafe
   ingress entries.
 - The first `cloudflared tunnel route dns kclab-composite-ai
-  laminate.luvelox.com` attempt used the old cafedecafe Cloudflare cert and
-  incorrectly reported creating `laminate.luvelox.com.cafedecafe.co.kr`.
+  laminate.imperialax.com` attempt used the old cafedecafe Cloudflare cert and
+  incorrectly reported creating `laminate.imperialax.com.cafedecafe.co.kr`.
   If this appears in the Cloudflare cafedecafe DNS dashboard, delete it.
 - Backed up the old Cloudflare cert from
   `/Users/danlee/.cloudflared/cert.pem` to
   `/Users/danlee/.cloudflared/cert.cafedecafe-20260611.pem`.
 - Ran `cloudflared tunnel login`, selected/authorized the Cloudflare account for
-  `luvelox.com`, and received a new `/Users/danlee/.cloudflared/cert.pem`.
+  `imperialax.com`, and received a new `/Users/danlee/.cloudflared/cert.pem`.
 - Successfully created DNS routes:
-  - `laminate.luvelox.com`
-  - `injection.luvelox.com`
+  - `laminate.imperialax.com`
+  - `injection.imperialax.com`
 - Restarted local `cloudflared` with:
   `/opt/homebrew/bin/cloudflared --config /Users/danlee/KyulAI_codex/infrastructure/cloudflare/kclab-composite-ai.yml tunnel run kclab-composite-ai`
   New PID observed: `79529`.
 
 Code/config updates:
 
-- Laminate app defaults now use `https://laminate.luvelox.com`.
-- Injection app defaults now use `https://injection.luvelox.com`.
+- Laminate app defaults now use `https://laminate.imperialax.com`.
+- Injection app defaults now use `https://injection.imperialax.com`.
 - iOS app localized external URL hints were updated for both apps.
 - Android README/mobile docs were updated for the new domains.
-- `scripts/windows/Check-Health.ps1` now checks new Luvelox public URLs and
+- `scripts/windows/Check-Health.ps1` now checks new ImperialAX public URLs and
   legacy cafedecafe URLs.
 - `infrastructure/cloudflare/kclab-composite-ai.windows.example.yml` includes
-  new Luvelox hostnames plus legacy hostnames.
-- Slack command response links were changed to the Luvelox URLs.
+  new ImperialAX hostnames plus legacy hostnames.
+- Slack command response links were changed to the ImperialAX URLs.
 
 Verification:
 
@@ -3933,13 +3933,13 @@ Verification:
   - `https://dd.cafedecafe.co.kr/health` -> HTTP 200
   - `https://injection.cafedecafe.co.kr/health` -> HTTP 200
 - New Laminate endpoint works:
-  - `https://laminate.luvelox.com/health` -> HTTP 200
+  - `https://laminate.imperialax.com/health` -> HTTP 200
 - New Injection endpoint works through Cloudflare when resolving against
   Cloudflare IP directly:
-  - `curl --resolve injection.luvelox.com:443:104.21.31.122
-    https://injection.luvelox.com/health` -> HTTP 200
+  - `curl --resolve injection.imperialax.com:443:104.21.31.122
+    https://injection.imperialax.com/health` -> HTTP 200
 - Local default resolver briefly returned `Could not resolve host` for
-  `injection.luvelox.com`; `dig @1.1.1.1 injection.luvelox.com` already
+  `injection.imperialax.com`; `dig @1.1.1.1 injection.imperialax.com` already
   returned Cloudflare IPs. Treat this as local DNS/negative-cache propagation
   unless it persists.
 - `swift test` passed for `ios/DDLaminateMVP`.
@@ -3947,41 +3947,41 @@ Verification:
 - `gradle :app:assembleDebug` passed for Android Laminate and Android
   Injection.
 - Refreshed and verified APKs:
-  - `artifacts/android/Laminate-C2ES-debug.apk`
-  - `artifacts/android/Injection-C2ES-debug.apk`
+  - `artifacts/android/Laminate-ImperialAX-debug.apk`
+  - `artifacts/android/Injection-ImperialAX-debug.apk`
 
 Follow-up branding update:
 
-- User asked to remove `C2ES` from the apps and use `Luvelox` instead.
+- User asked to remove `ImperialAX` from the apps and use `ImperialAX` instead.
 - User-facing app titles now show:
-  - `Luvelox Laminate Forecast` / `Luvelox 적층 예측`
-  - `Luvelox Injection Forecast` / `Luvelox 사출 예측`
+  - `ImperialAX Laminate Forecast` / `ImperialAX 적층 예측`
+  - `ImperialAX Injection Forecast` / `ImperialAX 사출 예측`
 - Share text, share-image headers, generated image filenames, Android gallery
   folder names, iOS share file names, iOS local-network permission descriptions,
-  and mobile README titles were updated from C2ES/KyulAI-facing app branding to
-  Luvelox where user-visible.
+  and mobile README titles were updated from ImperialAX/KyulAI-facing app branding to
+  ImperialAX where user-visible.
 - Internal module names, package names, and bundle IDs such as
   `com.kyulai...` were intentionally left unchanged to avoid app identity and
   signing churn.
 - Android APKs were rebuilt and copied to both legacy artifact names and new
-  Luvelox artifact names:
-  - `artifacts/android/Luvelox-Laminate-debug.apk`
-  - `artifacts/android/Luvelox-Injection-debug.apk`
-  - `artifacts/android/Laminate-C2ES-debug.apk`
-  - `artifacts/android/Injection-C2ES-debug.apk`
+  ImperialAX artifact names:
+  - `artifacts/android/ImperialAX-Laminate-debug.apk`
+  - `artifacts/android/ImperialAX-Injection-debug.apk`
+  - `artifacts/android/Laminate-ImperialAX-debug.apk`
+  - `artifacts/android/Injection-ImperialAX-debug.apk`
 - Verification passed:
   - `swift test` in `ios/DDLaminateMVP`
   - `swift test` in `ios/InjectionMVP`
   - `gradle :app:assembleDebug` in `android/DDLaminateMVP`
   - `gradle :app:assembleDebug` in `android/InjectionMVP`
-  - `apksigner verify` for the two Luvelox APK artifacts
+  - `apksigner verify` for the two ImperialAX APK artifacts
 
-## 2026-06-11 Product Direction: Unified Luvelox App
+## 2026-06-11 Product Direction: Unified ImperialAX App
 
 User raised a strategic concern that making a separate app/web surface for
-every model will not scale as Luvelox adds more models. Proposed direction:
+every model will not scale as ImperialAX adds more models. Proposed direction:
 
-- Move toward one unified Luvelox app/web product where available models appear
+- Move toward one unified ImperialAX app/web product where available models appear
   as modules.
 - Module visibility should depend on what the user/account has purchased or
   been granted access to.
@@ -3995,7 +3995,7 @@ every model will not scale as Luvelox adds more models. Proposed direction:
 
 Initial product recommendation to discuss:
 
-- Build a unified "Luvelox" shell app with a module dashboard.
+- Build a unified "ImperialAX" shell app with a module dashboard.
 - Keep each model as a backend-declared module with its own schema, UI renderer,
   result renderer, and entitlement key.
 - Start with login + server-side entitlements, not separate app binaries.
@@ -4005,65 +4005,65 @@ Initial product recommendation to discuss:
 Implementation started:
 
 - Added `GET /api/v1/modules` and `GET /api/v1/modules/me`.
-- Added `src.backend.luvelox_app:app` as a standalone unified Luvelox shell.
-- Added `src/frontend/luvelox` as a module dashboard preview.
+- Added `src.backend.imperialax_app:app` as a standalone unified ImperialAX shell.
+- Added `src/frontend/imperialax` as a module dashboard preview.
 - Laminate and Injection are active/granted by default for the MVP.
 - Future modules can be represented as locked/planned catalog entries.
 
 Native shell MVP started:
 
-- Added `ios/LuveloxMVP`, a SwiftUI Luvelox module dashboard that reads
+- Added `ios/ImperialAXMVP`, a SwiftUI ImperialAX module dashboard that reads
   `/api/v1/modules/me` and falls back to local Laminate/Injection cards.
-- Added `android/LuveloxMVP`, a Kotlin Android Luvelox module dashboard with
+- Added `android/ImperialAXMVP`, a Kotlin Android ImperialAX module dashboard with
   the same module catalog behavior.
 - Both native shells currently open the existing module web apps rather than
   embedding the full native Laminate/Injection screens.
 - The current catalog source is
-  `https://laminate.luvelox.com/api/v1/modules/me` until a dedicated
-  `api.luvelox.com` route exists.
-- Android debug artifact: `artifacts/android/Luvelox-debug.apk`.
+  `https://laminate.imperialax.com/api/v1/modules/me` until a dedicated
+  `api.imperialax.com` route exists.
+- Android debug artifact: `artifacts/android/ImperialAX-debug.apk`.
 - Verification passed:
-  - `swift test` in `ios/LuveloxMVP`
+  - `swift test` in `ios/ImperialAXMVP`
   - `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` in
-    `android/LuveloxMVP`
-  - `apksigner verify --verbose artifacts/android/Luvelox-debug.apk`
+    `android/ImperialAXMVP`
+  - `apksigner verify --verbose artifacts/android/ImperialAX-debug.apk`
 
 Native Laminate module integration:
 
-- Luvelox iOS now depends on `ios/DDLaminateMVP`'s `KyulAIDDLaminateCore` and
+- ImperialAX iOS now depends on `ios/DDLaminateMVP`'s `KyulAIDDLaminateCore` and
   includes `LaminateForecastView`.
-- Tapping the Laminate card in the Luvelox iOS shell opens the native Laminate
+- Tapping the Laminate card in the ImperialAX iOS shell opens the native Laminate
   forecast screen instead of the web module.
-- Luvelox Android now includes `LaminateActivity`.
-- Tapping the Laminate card in the Luvelox Android shell opens the native
+- ImperialAX Android now includes `LaminateActivity`.
+- Tapping the Laminate card in the ImperialAX Android shell opens the native
   Laminate Activity instead of the browser.
 - The native Laminate screens support case/theta/model selection and call
   `POST /api/v1/dd-laminate/predict/response`.
 - Injection still opens the existing web module; native Injection migration is
   the next logical step.
 - Verification passed after this step:
-  - `swift test` and `swift build` in `ios/LuveloxMVP`
+  - `swift test` and `swift build` in `ios/ImperialAXMVP`
   - `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` in
-    `android/LuveloxMVP`
-  - refreshed and verified `artifacts/android/Luvelox-debug.apk`
+    `android/ImperialAXMVP`
+  - refreshed and verified `artifacts/android/ImperialAX-debug.apk`
 
 Native Injection module integration:
 
-- Luvelox iOS now also depends on `ios/InjectionMVP`'s
+- ImperialAX iOS now also depends on `ios/InjectionMVP`'s
   `KyulAIInjectionCore` and includes `InjectionForecastView`.
-- Tapping the Injection card in the Luvelox iOS shell opens the native Injection
+- Tapping the Injection card in the ImperialAX iOS shell opens the native Injection
   forecast screen instead of the web module.
-- Luvelox Android now includes `InjectionActivity`.
-- Tapping the Injection card in the Luvelox Android shell opens the native
+- ImperialAX Android now includes `InjectionActivity`.
+- Tapping the Injection card in the ImperialAX Android shell opens the native
   Injection Activity instead of the browser.
 - The native Injection screens support geometry/process selection, sprue model
   selection, filling model selection, DOE value preview, and
   `POST /api/v1/simple-injection/predict/sprue-pressure`.
 - Verification passed after this step:
-  - `swift test` and `swift build` in `ios/LuveloxMVP`
+  - `swift test` and `swift build` in `ios/ImperialAXMVP`
   - `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` in
-    `android/LuveloxMVP`
-  - refreshed and verified `artifacts/android/Luvelox-debug.apk`
+    `android/ImperialAXMVP`
+  - refreshed and verified `artifacts/android/ImperialAX-debug.apk`
 
 ## 2026-06-11 Session Memory Reminder
 
@@ -4083,9 +4083,9 @@ Latest Simple Injection reminder:
 - Proposed future DOE entries such as `G43+` and `P21+` should not appear in the
   web dropdown until corresponding training results exist.
 
-## Luvelox Native App Integration Update
+## ImperialAX Native App Integration Update
 
-As of 2026-06-11, the Luvelox iOS host no longer opens reduced Laminate and
+As of 2026-06-11, the ImperialAX iOS host no longer opens reduced Laminate and
 Injection screens.
 
 - `ios/DDLaminateMVP` now exposes a `KyulAIDDLaminateApp` library product.
@@ -4097,39 +4097,39 @@ Injection screens.
 - Public wrapper views were added:
   - `DDLaminateModuleView`
   - `InjectionModuleView`
-- `ios/LuveloxMVP` imports those app products and routes Laminate/Injection
+- `ios/ImperialAXMVP` imports those app products and routes Laminate/Injection
   cards to the full existing native app UI, preserving richer charts, history,
   sharing, interpretation, comparison, localization, and module-specific
   settings from the standalone apps.
-- `ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj` links both app products, not
+- `ios/ImperialAXMVPApp/ImperialAXMVPHost.xcodeproj` links both app products, not
   only the core products.
 
 Verification passed after this integration:
 
 - `swift test` in `ios/DDLaminateMVP`
 - `swift test` in `ios/InjectionMVP`
-- `swift test` in `ios/LuveloxMVP`
-- `xcodebuild -project ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj -scheme LuveloxMVPHost -destination 'generic/platform=iOS Simulator' build`
+- `swift test` in `ios/ImperialAXMVP`
+- `xcodebuild -project ios/ImperialAXMVPApp/ImperialAXMVPHost.xcodeproj -scheme ImperialAXMVPHost -destination 'generic/platform=iOS Simulator' build`
 
-Luvelox app icon update:
+ImperialAX app icon update:
 
-- Source brand board: `icons/luvelox/Luvelox_LOGO.png`.
-- Cropped reusable source icon: `icons/luvelox/Luvelox_AppIcon_Source.png`.
+- Source brand board: `icons/imperialax/ImperialAX_LOGO.png`.
+- Cropped reusable source icon: `icons/imperialax/ImperialAX_AppIcon_Source.png`.
 - iOS AppIcon asset set added under
-  `ios/LuveloxMVPApp/LuveloxMVPHost/Assets.xcassets/AppIcon.appiconset`.
-- `LuveloxMVPHost.xcodeproj` now sets
+  `ios/ImperialAXMVPApp/ImperialAXMVPHost/Assets.xcassets/AppIcon.appiconset`.
+- `ImperialAXMVPHost.xcodeproj` now sets
   `ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon`.
 - Android launcher icons were generated in the `mipmap-*` folders and
   connected through `android:icon` / `android:roundIcon`.
-- Updated Android APK artifact: `artifacts/android/Luvelox-debug.apk`.
+- Updated Android APK artifact: `artifacts/android/ImperialAX-debug.apk`.
 - Verification passed:
-  - `xcodebuild -project ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj -scheme LuveloxMVPHost -destination 'generic/platform=iOS Simulator' build`
+  - `xcodebuild -project ios/ImperialAXMVPApp/ImperialAXMVPHost.xcodeproj -scheme ImperialAXMVPHost -destination 'generic/platform=iOS Simulator' build`
   - `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug`
-  - `JAVA_HOME=/opt/homebrew/opt/openjdk@17 apksigner verify --verbose artifacts/android/Luvelox-debug.apk`
+  - `JAVA_HOME=/opt/homebrew/opt/openjdk@17 apksigner verify --verbose artifacts/android/ImperialAX-debug.apk`
 
-## 2026-06-12 Luvelox Account MVP
+## 2026-06-12 ImperialAX Account MVP
 
-Luvelox now has a first login/account MVP, intentionally implemented as a
+ImperialAX now has a first login/account MVP, intentionally implemented as a
 replaceable demo-auth layer before integrating Supabase/Firebase/Auth0 or a
 production identity provider.
 
@@ -4138,15 +4138,15 @@ Backend:
 - `src/backend/api/v1/modules.py` now exposes
   `POST /api/v1/modules/auth/demo-login`.
 - Demo users:
-  - `demo@luvelox.com` -> Laminate + Injection
-  - `danlee@luvelox.com` -> Laminate + Injection + Optimization
+  - `demo@imperialax.com` -> Laminate + Injection
+  - `danlee@imperialax.com` -> Laminate + Injection + Optimization
 - `GET /api/v1/modules/me` now accepts `Authorization: Bearer <token>` and
   includes a `user` object in the response when a demo token is present.
 
 iOS:
 
-- `ios/LuveloxMVP` now has a sign-in screen before the module workspace.
-- The auth session is stored in `UserDefaults` as `luvelox.auth.session.v1`.
+- `ios/ImperialAXMVP` now has a sign-in screen before the module workspace.
+- The auth session is stored in `UserDefaults` as `imperialax.auth.session.v1`.
 - Module catalog calls now send the bearer token.
 - The signed-in workspace shows an account band and a menu with refresh/sign
   out.
@@ -4155,33 +4155,33 @@ iOS:
 
 Android:
 
-- `android/LuveloxMVP` now has the same login-first flow.
+- `android/ImperialAXMVP` now has the same login-first flow.
 - The auth session is stored in `SharedPreferences`.
 - Module catalog calls send the bearer token.
-- `artifacts/android/Luvelox-debug.apk` was refreshed after the auth changes.
+- `artifacts/android/ImperialAX-debug.apk` was refreshed after the auth changes.
 
 Verification passed:
 
-- `.venv/bin/pytest tests/backend/test_luvelox_modules.py`
-- `swift test` in `ios/LuveloxMVP`
-- `xcodebuild -project ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj -scheme LuveloxMVPHost -destination 'generic/platform=iOS Simulator' build`
+- `.venv/bin/pytest tests/backend/test_imperialax_modules.py`
+- `swift test` in `ios/ImperialAXMVP`
+- `xcodebuild -project ios/ImperialAXMVPApp/ImperialAXMVPHost.xcodeproj -scheme ImperialAXMVPHost -destination 'generic/platform=iOS Simulator' build`
 - `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` in
-  `android/LuveloxMVP`
-- `JAVA_HOME=/opt/homebrew/opt/openjdk@17 /opt/homebrew/share/android-commandlinetools/build-tools/35.0.0/apksigner verify --verbose artifacts/android/Luvelox-debug.apk`
+  `android/ImperialAXMVP`
+- `JAVA_HOME=/opt/homebrew/opt/openjdk@17 /opt/homebrew/share/android-commandlinetools/build-tools/35.0.0/apksigner verify --verbose artifacts/android/ImperialAX-debug.apk`
 
-## 2026-06-12 Luvelox Account/Access UX
+## 2026-06-12 ImperialAX Account/Access UX
 
 Next account-layer step:
 
 - Backend now exposes `POST /api/v1/modules/request-access` for module access
   requests. It validates the module id and returns a structured `received`
   response with the current demo user when a bearer token is present.
-- iOS Luvelox app now has:
+- iOS ImperialAX app now has:
   - Account details sheet from the account menu/account band.
   - Module access list with granted/locked status and access reasons.
   - Locked module detail sheet with entitlement key, capabilities, and a
     request-access action.
-- Android Luvelox app now mirrors the same account/access flow with native
+- Android ImperialAX app now mirrors the same account/access flow with native
   dialogs and clickable locked-module request buttons.
 - Offline fallback catalog includes the planned Optimization module so the
   access UX can be tested without the module catalog server.
@@ -4264,28 +4264,28 @@ surfaces.
     - Goint: about `8438.75` kips for the same sample.
   - `swift test` in `ios/DDLaminateMVP`: 9 tests passed.
 
-## 2026-06-12 Luvelox App Icon Refresh
+## 2026-06-12 ImperialAX App Icon Refresh
 
-The Luvelox app icon was regenerated from the new logo file
-`icons/luvelox/Luvelox_LOGO_Fin.jpeg`.
+The ImperialAX app icon was regenerated from the new logo file
+`icons/imperialax/ImperialAX_LOGO_Fin.jpeg`.
 
-- Used the left-side Luvelox symbol: dark `L`, diagonal crossing orbit shape,
+- Used the left-side ImperialAX symbol: dark `L`, diagonal crossing orbit shape,
   and the red star at the orbit tip.
 - After review, regenerated the crop to keep the red star and mask only the
   leftover wordmark/tagline fragments at the right and bottom edges.
 - Regenerated the reusable source icon:
-  `icons/luvelox/Luvelox_AppIcon_Source.png`.
-- Updated iOS Luvelox app icon assets under
-  `ios/LuveloxMVPApp/LuveloxMVPHost/Assets.xcassets/AppIcon.appiconset`.
-- Updated Android Luvelox launcher icons under
-  `android/LuveloxMVP/app/src/main/res/mipmap-*`.
+  `icons/imperialax/ImperialAX_AppIcon_Source.png`.
+- Updated iOS ImperialAX app icon assets under
+  `ios/ImperialAXMVPApp/ImperialAXMVPHost/Assets.xcassets/AppIcon.appiconset`.
+- Updated Android ImperialAX launcher icons under
+  `android/ImperialAXMVP/app/src/main/res/mipmap-*`.
 - Refreshed Android debug APK artifacts:
-  - `artifacts/android/Luvelox-debug.apk`
-  - `artifacts/android/Luvelox-Laminate-debug.apk`
+  - `artifacts/android/ImperialAX-debug.apk`
+  - `artifacts/android/ImperialAX-Laminate-debug.apk`
 - Verification:
-  - `swift test` in `ios/LuveloxMVP`: 4 tests passed.
-  - `xcodebuild -project ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj -scheme LuveloxMVPHost -destination generic/platform=iOS Simulator build`: succeeded.
-  - `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` in `android/LuveloxMVP`: succeeded.
+  - `swift test` in `ios/ImperialAXMVP`: 4 tests passed.
+  - `xcodebuild -project ios/ImperialAXMVPApp/ImperialAXMVPHost.xcodeproj -scheme ImperialAXMVPHost -destination generic/platform=iOS Simulator build`: succeeded.
+  - `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` in `android/ImperialAXMVP`: succeeded.
 
 ## 2026-06-12 DD u3 Forecast Without CSV
 
@@ -4402,7 +4402,7 @@ narrow.
 
 ## 2026-06-12 DD App Laminate/u3 UX Cleanup
 
-The Luvelox/DD app Laminate screen was reorganized so users choose between the
+The ImperialAX/DD app Laminate screen was reorganized so users choose between the
 standard laminate forecast and u3 forecast instead of seeing both input cards
 stacked vertically.
 
@@ -4415,14 +4415,14 @@ stacked vertically.
 - Added `U3PtResultDetailView` with Pt, max force, max displacement, curve
   chart, and notes.
 - Removed the nested `NavigationStack` from the DD Laminate content view so
-  Luvelox navigation owns the stack. This keeps result-page back navigation
+  ImperialAX navigation owns the stack. This keeps result-page back navigation
   returning to the Laminate screen instead of the Laminate/Injection module
   picker.
 - Standalone DD preview app now wraps `DDLaminateModuleView` in its own
   `NavigationStack`.
 - Verification:
   - `swift test` in `ios/DDLaminateMVP`: 9 tests passed.
-  - `swift test` in `ios/LuveloxMVP`: 4 tests passed.
+  - `swift test` in `ios/ImperialAXMVP`: 4 tests passed.
 
 ## 2026-06-12 DD/u3 Bilinear Pt Marker Fix
 
@@ -4538,20 +4538,20 @@ Verification:
 - `node --check src/frontend/dd-laminate/app.js` passed.
 - `swift test` in `ios/DDLaminateMVP`: 9 tests passed.
 
-## 2026-06-15 C2ES Branding Pass
+## 2026-06-15 ImperialAX Branding Pass
 
-The user asked to change app-visible `Luvelox` branding back to `C2ES`, while
-keeping the option to return to `Luvelox` later.
+The user asked to change app-visible `ImperialAX` branding back to `ImperialAX`, while
+keeping the option to return to `ImperialAX` later.
 
 Implementation approach:
 
-- Changed user-visible product/app text to `C2ES`.
+- Changed user-visible product/app text to `ImperialAX`.
 - Kept internal package, folder, type, and route identifiers such as
-  `LuveloxMVP`, `LuveloxModule`, `com.luvelox.app`, and `luvelox.com` URLs
+  `ImperialAXMVP`, `ImperialAXModule`, `com.imperialax.app`, and `imperialax.com` URLs
   unchanged so the current builds, package IDs, and Cloudflare routes stay
   stable and the branding can be reversed later with a small text pass.
-- Updated the unified module catalog API brand response from `Luvelox` to
-  `C2ES`.
+- Updated the unified module catalog API brand response from `ImperialAX` to
+  `ImperialAX`.
 - Updated iOS/Android app titles, login/workspace headers, access messages,
   share/report titles, and report image filenames where they were visible to
   users.
@@ -4559,85 +4559,85 @@ Implementation approach:
 
 New Android debug APK artifacts:
 
-- `artifacts/android/C2ES-debug.apk`
-- `artifacts/android/C2ES-Laminate-debug.apk`
-- `artifacts/android/C2ES-Injection-debug.apk`
+- `artifacts/android/ImperialAX-debug.apk`
+- `artifacts/android/ImperialAX-Laminate-debug.apk`
+- `artifacts/android/ImperialAX-Injection-debug.apk`
 
 Verification:
 
-- `.venv/bin/pytest tests/backend/test_luvelox_modules.py`: 6 passed.
-- `swift test` in `ios/LuveloxMVP`: 4 passed.
+- `.venv/bin/pytest tests/backend/test_imperialax_modules.py`: 6 passed.
+- `swift test` in `ios/ImperialAXMVP`: 4 passed.
 - `swift test` in `ios/DDLaminateMVP`: 9 passed.
 - `swift test` in `ios/InjectionMVP`: 8 passed.
-- `gradle :app:assembleDebug` in `android/LuveloxMVP`: build successful.
+- `gradle :app:assembleDebug` in `android/ImperialAXMVP`: build successful.
 - `gradle :app:assembleDebug` in `android/DDLaminateMVP`: build successful.
 - `gradle :app:assembleDebug` in `android/InjectionMVP`: build successful.
-- `apksigner verify --verbose` passed for all three new `C2ES-*.apk`
+- `apksigner verify --verbose` passed for all three new `ImperialAX-*.apk`
   artifacts using APK Signature Scheme v2.
 
-## 2026-06-15 C2ES App Icon Refresh
+## 2026-06-15 ImperialAX App Icon Refresh
 
-The user added C2ES logo files under `icons/C2ES` and asked to use only the
+The user added ImperialAX logo files under `icons/ImperialAX` and asked to use only the
 left atom-like symbol as the app icon, without the text.
 
 Implementation:
 
-- Used `icons/C2ES/C2ES Logo(ssy).png` as the source because it has the highest
+- Used `icons/ImperialAX/ImperialAX Logo(ssy).png` as the source because it has the highest
   resolution.
 - Cropped the left atom-like symbol and removed the text block.
 - Flattened the icon to RGB/no-alpha PNG for iOS app icon compatibility.
 - Saved reusable source icon:
-  `icons/C2ES/C2ES_AppIcon_Source.png`.
+  `icons/ImperialAX/ImperialAX_AppIcon_Source.png`.
 - Updated the unified app icon assets:
-  - iOS: `ios/LuveloxMVPApp/LuveloxMVPHost/Assets.xcassets/AppIcon.appiconset`
-  - Android: `android/LuveloxMVP/app/src/main/res/mipmap-*`
+  - iOS: `ios/ImperialAXMVPApp/ImperialAXMVPHost/Assets.xcassets/AppIcon.appiconset`
+  - Android: `android/ImperialAXMVP/app/src/main/res/mipmap-*`
 - Refreshed Android APK artifacts:
-  - `artifacts/android/C2ES-debug.apk`
-  - `artifacts/android/Luvelox-debug.apk` kept as a compatibility filename
+  - `artifacts/android/ImperialAX-debug.apk`
+  - `artifacts/android/ImperialAX-debug.apk` kept as a compatibility filename
     with the same refreshed build.
 
 Verification:
 
 - `sips -g hasAlpha` confirmed the source, iOS 1024 icon, and Android xxxhdpi
   icon have no alpha channel.
-- `gradle :app:assembleDebug` in `android/LuveloxMVP`: build successful.
-- `xcodebuild -project ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj -scheme
-  LuveloxMVPHost -destination 'generic/platform=iOS Simulator' build`:
+- `gradle :app:assembleDebug` in `android/ImperialAXMVP`: build successful.
+- `xcodebuild -project ios/ImperialAXMVPApp/ImperialAXMVPHost.xcodeproj -scheme
+  ImperialAXMVPHost -destination 'generic/platform=iOS Simulator' build`:
   succeeded.
-- `apksigner verify --verbose artifacts/android/C2ES-debug.apk`: passed using
+- `apksigner verify --verbose artifacts/android/ImperialAX-debug.apk`: passed using
   APK Signature Scheme v2.
 
-## 2026-06-15 C2ES Demo Account Name Cleanup
+## 2026-06-15 ImperialAX Demo Account Name Cleanup
 
-The user noticed `Luvelox Demo` still appearing inside the C2ES app.
+The user noticed `ImperialAX Demo` still appearing inside the ImperialAX app.
 
 Root cause:
 
-- New code had already moved most visible branding to C2ES, but an installed
+- New code had already moved most visible branding to ImperialAX, but an installed
   app could still restore an older persisted auth session whose saved display
-  name was `Luvelox Demo`.
+  name was `ImperialAX Demo`.
 
 Implementation:
 
-- Changed demo account display name from `C2ES Demo` to the neutral
+- Changed demo account display name from `ImperialAX Demo` to the neutral
   `Demo Account`.
 - Updated backend demo-login response, iOS fallback session, Android fallback
   session, and iOS test fixtures.
 - Added session-name normalization/migration:
-  - iOS converts saved `Luvelox Demo` or `C2ES Demo` to `Demo Account` when
+  - iOS converts saved `ImperialAX Demo` or `ImperialAX Demo` to `Demo Account` when
     loading or saving sessions.
-  - Android converts saved/server `Luvelox Demo` or `C2ES Demo` to
+  - Android converts saved/server `ImperialAX Demo` or `ImperialAX Demo` to
     `Demo Account`.
-- The only remaining `Luvelox Demo` string is inside the migration mapping and
+- The only remaining `ImperialAX Demo` string is inside the migration mapping and
   should not be displayed.
 
 Verification:
 
-- `.venv/bin/pytest tests/backend/test_luvelox_modules.py`: 6 passed.
-- `swift test` in `ios/LuveloxMVP`: 4 passed.
-- `gradle :app:assembleDebug` in `android/LuveloxMVP`: build successful.
-- Refreshed `artifacts/android/C2ES-debug.apk`.
-- `apksigner verify --verbose artifacts/android/C2ES-debug.apk`: passed.
+- `.venv/bin/pytest tests/backend/test_imperialax_modules.py`: 6 passed.
+- `swift test` in `ios/ImperialAXMVP`: 4 passed.
+- `gradle :app:assembleDebug` in `android/ImperialAXMVP`: build successful.
+- Refreshed `artifacts/android/ImperialAX-debug.apk`.
+- `apksigner verify --verbose artifacts/android/ImperialAX-debug.apk`: passed.
 ## 2026-06-15 DD u3 XAI First Pass
 
 User asked whether XAI can be applied now and what information would help the
@@ -5190,41 +5190,41 @@ Verification:
 - Web `node --check src/frontend/dd-laminate/app.js` passed.
 - iOS `swift test` passed: 9 tests.
 
-## 2026-06-15 Luvelox Web Login
+## 2026-06-15 ImperialAX Web Login
 
-Luvelox unified web workspace now has a browser login flow aligned with the
+ImperialAX unified web workspace now has a browser login flow aligned with the
 iOS/Android account MVP.
 
 Implemented:
 
-- `src/frontend/luvelox/index.html`
-  - Login-first layout for Luvelox.
+- `src/frontend/imperialax/index.html`
+  - Login-first layout for ImperialAX.
   - Workspace is hidden until a session exists.
   - Account and module access dialogs were added.
-- `src/frontend/luvelox/app.js`
+- `src/frontend/imperialax/app.js`
   - Uses `POST /api/v1/modules/auth/demo-login`.
   - Stores the demo auth session in `localStorage` under
-    `luvelox.auth.session.v1`.
+    `imperialax.auth.session.v1`.
   - Sends `Authorization: Bearer <token>` to `GET /api/v1/modules/me`.
-  - Supports local fallback demo sessions for `demo@luvelox.com` and
-    `danlee@luvelox.com`.
+  - Supports local fallback demo sessions for `demo@imperialax.com` and
+    `danlee@imperialax.com`.
   - Adds request-access behavior through
     `POST /api/v1/modules/request-access`.
-- `src/frontend/luvelox/styles.css`
+- `src/frontend/imperialax/styles.css`
   - Added responsive login, account band, modal, and access-list styling.
 - `DESIGN.md`
-  - Updated source-of-truth surface list to include the Luvelox web workspace.
-- Backend Luvelox branding cleanup:
+  - Updated source-of-truth surface list to include the ImperialAX web workspace.
+- Backend ImperialAX branding cleanup:
   - `src/backend/api/v1/modules.py` response brand, demo user display names,
-    error messages, and access-request copy now say `Luvelox`.
-  - `src/backend/luvelox_app.py` FastAPI title/description now say
-    `Luvelox Platform API`.
+    error messages, and access-request copy now say `ImperialAX`.
+  - `src/backend/imperialax_app.py` FastAPI title/description now say
+    `ImperialAX Platform API`.
 
 Verification:
 
-- `node --check src/frontend/luvelox/app.js` passed.
-- `.venv/bin/pytest tests/backend/test_luvelox_modules.py` passed: 6 tests.
-- Local server on `http://127.0.0.1:8011` returned Luvelox-branded login,
+- `node --check src/frontend/imperialax/app.js` passed.
+- `.venv/bin/pytest tests/backend/test_imperialax_modules.py` passed: 6 tests.
+- Local server on `http://127.0.0.1:8011` returned ImperialAX-branded login,
   module, request-access, and health responses.
 
 ## 2026-06-15 - DD XAI list and tab-state cleanup
@@ -6184,22 +6184,22 @@ Verification:
   `Laminate Forecast - Tree (Theta)` while the test expects `ExtraTrees + PCA`.
   This failure appears unrelated to the Pt/curve consistency layer.
 
-## 2026-06-18 Luvelox/C2ES iOS Simulator Launch
+## 2026-06-18 ImperialAX/ImperialAX iOS Simulator Launch
 
 User asked to launch the current app with the Build iOS Apps plugin as
-Luvelox(C2ES) so they can inspect it.
+ImperialAX(ImperialAX) so they can inspect it.
 
 Executed with XcodeBuildMCP:
 
 - Discovered host project:
-  - `ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj`
+  - `ios/ImperialAXMVPApp/ImperialAXMVPHost.xcodeproj`
 - Confirmed scheme:
-  - `LuveloxMVPHost`
+  - `ImperialAXMVPHost`
 - Set session defaults profile:
-  - profile `luvelox-ios`
+  - profile `imperialax-ios`
   - simulator `iPhone 17`
   - simulator id `94D2DC55-5EAF-4A51-9760-5DFABB3CABF2`
-  - bundle id `com.luvelox.mvp`
+  - bundle id `com.imperialax.mvp`
 - Ran `build_run_sim`.
 
 Result:
@@ -6207,15 +6207,15 @@ Result:
 - Build/install/launch succeeded.
 - Running app process id: `19472`.
 - App path:
-  - `/Users/danlee/Library/Developer/XcodeBuildMCP/workspaces/KyulAI_codex-a12407ff8fad/DerivedData/LuveloxMVPHost-1ec0a496d51d/Build/Products/Debug-iphonesimulator/LuveloxMVPHost.app`
+  - `/Users/danlee/Library/Developer/XcodeBuildMCP/workspaces/KyulAI_codex-a12407ff8fad/DerivedData/ImperialAXMVPHost-1ec0a496d51d/Build/Products/Debug-iphonesimulator/ImperialAXMVPHost.app`
 - Build log:
   - `/Users/danlee/Library/Developer/XcodeBuildMCP/workspaces/KyulAI_codex-a12407ff8fad/logs/build_run_sim_2026-06-18T00-53-33-478Z_pid10865_faf0f189.log`
 - Runtime log:
-  - `/Users/danlee/Library/Developer/XcodeBuildMCP/workspaces/KyulAI_codex-a12407ff8fad/logs/com.luvelox.mvp_2026-06-18T00-54-20-160Z_helperpid19400_ownerpid10865_6ece1b7b.log`
-- Screenshot confirmed the C2ES sign-in screen is visible with
-  `demo@luvelox.com` prefilled.
+  - `/Users/danlee/Library/Developer/XcodeBuildMCP/workspaces/KyulAI_codex-a12407ff8fad/logs/com.imperialax.mvp_2026-06-18T00-54-20-160Z_helperpid19400_ownerpid10865_6ece1b7b.log`
+- Screenshot confirmed the ImperialAX sign-in screen is visible with
+  `demo@imperialax.com` prefilled.
 
-## 2026-06-18 Luvelox/C2ES Simulator Browser Mirror
+## 2026-06-18 ImperialAX/ImperialAX Simulator Browser Mirror
 
 User asked to show the current iOS Simulator in the Codex sidebar via
 `build-ios-apps:ios-simulator-browser`.
@@ -6224,19 +6224,19 @@ Simulator/browser details:
 
 - Simulator: `iPhone 17`
 - Simulator id: `94D2DC55-5EAF-4A51-9760-5DFABB3CABF2`
-- App bundle id: `com.luvelox.mvp`
+- App bundle id: `com.imperialax.mvp`
 - `serve-sim` URL: `http://localhost:3200`
 - Long-running `serve-sim` terminal session id in this Codex turn: `8443`
 
 Result:
 
 - Opened `http://localhost:3200` in the Codex in-app browser/sidebar.
-- Browser screenshot showed a live iPhone 17 frame with the C2ES workspace
+- Browser screenshot showed a live iPhone 17 frame with the ImperialAX workspace
   screen visible.
 - The mirrored app screen showed:
-  - `C2ES`
+  - `ImperialAX`
   - `Demo Account`
-  - `demo@luvelox.com`
+  - `demo@imperialax.com`
   - `Laminate`
   - `Open Laminate`
 - XcodeBuildMCP runtime snapshot also confirmed the same UI and exposed tap
@@ -6248,9 +6248,9 @@ Note:
   mirror. Stopping that terminal should run the scoped cleanup trap for this
   simulator.
 
-## 2026-06-18 C2ES Laminate Forecast Model List Trim
+## 2026-06-18 ImperialAX Laminate Forecast Model List Trim
 
-User asked to leave only two optimal models in the C2ES Laminate Forecast
+User asked to leave only two optimal models in the ImperialAX Laminate Forecast
 `Choose Model` list.
 
 Implemented:
@@ -6286,7 +6286,7 @@ Verification:
 - Direct TestClient check returned exactly:
   - `response_surrogate_physics_v2`
   - `response_goint_physics_nn_v2`
-- Rebuilt and relaunched Luvelox host on iPhone 17 simulator:
+- Rebuilt and relaunched ImperialAX host on iPhone 17 simulator:
   - process id `35568`
   - simulator id `94D2DC55-5EAF-4A51-9760-5DFABB3CABF2`
 - Runtime UI snapshot of the model selection sheet confirmed exactly two model
@@ -6318,7 +6318,7 @@ Implemented:
 Verification:
 
 - `swift test --package-path ios/DDLaminateMVP` passed: 10 tests.
-- Rebuilt and relaunched Luvelox host on iPhone 17 simulator:
+- Rebuilt and relaunched ImperialAX host on iPhone 17 simulator:
   - process id `17784`
   - simulator id `94D2DC55-5EAF-4A51-9760-5DFABB3CABF2`
 - Runtime UI snapshot confirmed u3 Forecast now shows:
@@ -6361,7 +6361,7 @@ Changed files:
 Verification:
 
 - `swift test --package-path ios/DDLaminateMVP` passed: 10 tests.
-- Rebuilt and relaunched Luvelox host on iPhone 17 simulator:
+- Rebuilt and relaunched ImperialAX host on iPhone 17 simulator:
   - process id `13053`
   - simulator id `94D2DC55-5EAF-4A51-9760-5DFABB3CABF2`
 - Runtime UI snapshot confirmed the Response Forecast card no longer shows the
@@ -6376,7 +6376,7 @@ Verification:
 
 ## 2026-06-18 Forecast Screen Header Cleanup
 
-User noted two UX issues in the C2ES Laminate Forecast screen:
+User noted two UX issues in the ImperialAX Laminate Forecast screen:
 
 - `u3 Pt Forecast` had an extra explanatory sentence under the tab header while
   `Response Forecast` did not.
@@ -6413,7 +6413,7 @@ Changed files:
 Verification:
 
 - `swift test --package-path ios/DDLaminateMVP` passed: 10 tests.
-- Rebuilt and relaunched Luvelox host on iPhone 17 simulator:
+- Rebuilt and relaunched ImperialAX host on iPhone 17 simulator:
   - process id `99555`
   - simulator id `94D2DC55-5EAF-4A51-9760-5DFABB3CABF2`
 - Runtime UI snapshot confirmed the main Laminate screen no longer has the
@@ -6476,7 +6476,7 @@ Verification:
     `Laminate Forecast - Deep Learning`
   - u3 models: `u3 Forecast - Machine Learning`,
     `u3 Forecast - Deep Learning`
-- Rebuilt and relaunched Luvelox host on iPhone 17 simulator:
+- Rebuilt and relaunched ImperialAX host on iPhone 17 simulator:
   - process id `86266`
   - simulator id `94D2DC55-5EAF-4A51-9760-5DFABB3CABF2`
 - Runtime UI snapshot confirmed Response Forecast shows:
@@ -6537,7 +6537,7 @@ Verification:
 - Direct FastAPI TestClient check returned exactly:
   - `u3_forecast_physics_v2`
   - `u3_forecast_goint_physics_v2`
-- Rebuilt and relaunched Luvelox host on iPhone 17 simulator:
+- Rebuilt and relaunched ImperialAX host on iPhone 17 simulator:
   - process id `67782`
   - simulator id `94D2DC55-5EAF-4A51-9760-5DFABB3CABF2`
 - Runtime UI snapshot confirmed the `u3 Forecast` tab defaults to
@@ -6589,7 +6589,7 @@ Verification:
 - Added test:
   - `testViewModelSeparatesRecentRunsByForecastTab`
   - verifies response and u3 predictions save into separate recent-run buckets.
-- Rebuilt and relaunched Luvelox host on iPhone 17 simulator:
+- Rebuilt and relaunched ImperialAX host on iPhone 17 simulator:
   - process id `57636`
   - simulator id `94D2DC55-5EAF-4A51-9760-5DFABB3CABF2`
 - Runtime UI snapshot confirmed segmented tabs now show:
@@ -6625,7 +6625,7 @@ Implemented:
 Verification:
 
 - `swift test --package-path ios/DDLaminateMVP` passed: 10 tests.
-- Rebuilt and relaunched Luvelox host on iPhone 17 simulator:
+- Rebuilt and relaunched ImperialAX host on iPhone 17 simulator:
   - process id `25316`
   - simulator id `94D2DC55-5EAF-4A51-9760-5DFABB3CABF2`
 - Runtime UI snapshot confirmed the u3 model button now shows the Response-style
@@ -6685,7 +6685,7 @@ Implemented web v2:
   - `http://127.0.0.1:8000/dd-laminate-v2`
 - Broadened standalone DD local CORS handling so alternate local static ports
   such as `3211` can call the API during design review.
-- Added a Luvelox unified-app static mount for the DD Laminate web surface:
+- Added a ImperialAX unified-app static mount for the DD Laminate web surface:
   - `http://127.0.0.1:8000/dd-laminate/index-v2.html`
 
 Implemented iOS app v2:
@@ -6744,16 +6744,16 @@ Verification:
   - API status text: `API: connected`
 - Standalone DD API CORS verification from origin `http://127.0.0.1:3211`
   returned `access-control-allow-origin: http://127.0.0.1:3211`.
-- `.venv/bin/pytest tests/backend/test_luvelox_modules.py tests/backend/test_dd_laminate_ios_contract.py`
+- `.venv/bin/pytest tests/backend/test_imperialax_modules.py tests/backend/test_dd_laminate_ios_contract.py`
   passed: 10 tests, 1 existing pytest config warning.
 - `swift test --package-path ios/DDLaminateMVP` passed: 10 tests.
-- Rebuilt and relaunched Luvelox host on iPhone 17 simulator:
+- Rebuilt and relaunched ImperialAX host on iPhone 17 simulator:
   - final process id `59701`
   - simulator id `94D2DC55-5EAF-4A51-9760-5DFABB3CABF2`
 - Runtime UI snapshot confirmed:
   - `Wanted v2` and `Classic` design switch are present.
   - `Wanted v2` is selected.
-  - `C2ES Laminate Forecast` header renders without truncation in the semantic
+  - `ImperialAX Laminate Forecast` header renders without truncation in the semantic
     snapshot.
   - workflow rows show `Set case`, `Pick model`, and `Review`.
   - Response Forecast model card shows `Laminate Forecast - Machine Learning`.
@@ -6784,7 +6784,7 @@ Implemented:
 Verification:
 
 - `swift test --package-path ios/DDLaminateMVP` passed: 9 tests.
-- Rebuilt and relaunched Luvelox host on iPhone 17 simulator:
+- Rebuilt and relaunched ImperialAX host on iPhone 17 simulator:
   - process id `44057`
   - simulator id `94D2DC55-5EAF-4A51-9760-5DFABB3CABF2`
 - Navigated to the Laminate module and confirmed the app launches with the new
@@ -7349,11 +7349,11 @@ Verification:
   - desktop Response + Case4: `/tmp/dd-laminate-web-v2-dynamic-stack-response.png`
   - mobile Response default: `/tmp/dd-laminate-web-v2-dynamic-stack-mobile.png`
 - `swift test --package-path ios/DDLaminateMVP` passed: 10 tests.
-- XcodeBuildMCP `build_run_sim` for Luvelox iOS host succeeded:
-  - project: `ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj`
-  - scheme: `LuveloxMVPHost`
+- XcodeBuildMCP `build_run_sim` for ImperialAX iOS host succeeded:
+  - project: `ios/ImperialAXMVPApp/ImperialAXMVPHost.xcodeproj`
+  - scheme: `ImperialAXMVPHost`
   - simulator: iPhone 17
-  - bundle id: `com.luvelox.mvp`
+  - bundle id: `com.imperialax.mvp`
   - process id: `24952`
 - iOS runtime snapshot confirmed the Wanted v2 Laminate screen contains:
   - `LIVE LAMINATE PREVIEW`
@@ -7364,7 +7364,7 @@ Verification:
 - iOS screenshot:
   - `/var/folders/7p/c3j_sb0j539805ngspmnb34r0000gn/T/screenshot_optimized_fcda07c8-6e9c-426d-9c7c-55b192f5fbf0.jpg`
 
-## 2026-06-18 Web v2 URL and Luvelox iOS Mirror
+## 2026-06-18 Web v2 URL and ImperialAX iOS Mirror
 
 User asked for the web page URL and to show the app in the side browser.
 
@@ -7376,18 +7376,18 @@ iOS app mirror:
 
 - Started `serve-sim` for simulator `94D2DC55-5EAF-4A51-9760-5DFABB3CABF2`.
 - Mirror URL: `http://localhost:3201/`
-- XcodeBuildMCP active profile: `luvelox-ios`
-  - project: `ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj`
-  - scheme: `LuveloxMVPHost`
+- XcodeBuildMCP active profile: `imperialax-ios`
+  - project: `ios/ImperialAXMVPApp/ImperialAXMVPHost.xcodeproj`
+  - scheme: `ImperialAXMVPHost`
   - simulator: `iPhone 17`
-  - bundle id: `com.luvelox.mvp`
+  - bundle id: `com.imperialax.mvp`
 - Relaunched the app with `launch_app_sim`; process id `38382`.
 - Opened the Laminate module via the `Open Laminate` button.
 
 Verification:
 
 - Browser mirror title: `Simulator - iPhone 17`.
-- Browser mirror shows the iPhone 17 frame and the Luvelox `Laminate v2`
+- Browser mirror shows the iPhone 17 frame and the ImperialAX `Laminate v2`
   screen with the Wanted v2 / Classic switch and Response Forecast controls.
 
 ## 2026-06-18 iOS Live Laminate Preview Angle Fix
@@ -7409,8 +7409,8 @@ Change:
 Verification:
 
 - `swift test --package-path ios/DDLaminateMVP` passed: 10 tests.
-- XcodeBuildMCP `build_run_sim` succeeded for Luvelox iOS host.
-- Opened `Luvelox > Laminate v2` in the simulator mirror and scrolled to
+- XcodeBuildMCP `build_run_sim` succeeded for ImperialAX iOS host.
+- Opened `ImperialAX > Laminate v2` in the simulator mirror and scrolled to
   `LIVE LAMINATE PREVIEW`.
 - Visual check confirmed the default `θ1=30`, `θ2=-30` hatch lines now render as
   shallow angle-aware diagonals rather than near-vertical lines.
@@ -7475,9 +7475,9 @@ Change:
 Verification:
 
 - `swift test --package-path ios/DDLaminateMVP` passed: 10 tests.
-- XcodeBuildMCP `build_run_sim` succeeded for Luvelox iOS host.
+- XcodeBuildMCP `build_run_sim` succeeded for ImperialAX iOS host.
 - Runtime snapshot confirmed `Theta 1`, `Theta 2`, `+30°/-30°`, and
-  `LIVE LAMINATE PREVIEW` are visible after opening `Luvelox > Laminate v2`.
+  `LIVE LAMINATE PREVIEW` are visible after opening `ImperialAX > Laminate v2`.
 - `wait_for_ui(identifier: "v2-theta1-slider")` found the slider with value
   `0.6666666865348816` at `+30°`.
 - After setting the theta text field to `45`, runtime snapshot confirmed the
@@ -7489,28 +7489,28 @@ Verification:
 - iOS screenshot:
   - `/var/folders/7p/c3j_sb0j539805ngspmnb34r0000gn/T/screenshot_optimized_b0067f35-1037-4675-a824-d0fa453f689b.jpg`
 
-## 2026-06-18 Luvelox App Icon Centering
+## 2026-06-18 ImperialAX App Icon Centering
 
 User reported that the app icon looked shifted to one side and asked to center
 it.
 
 Updated files:
 
-- `ios/LuveloxMVPApp/LuveloxMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png`
-- `ios/LuveloxMVPApp/LuveloxMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-20@2x.png`
-- `ios/LuveloxMVPApp/LuveloxMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-20@3x.png`
-- `ios/LuveloxMVPApp/LuveloxMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-29@2x.png`
-- `ios/LuveloxMVPApp/LuveloxMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-29@3x.png`
-- `ios/LuveloxMVPApp/LuveloxMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-40@2x.png`
-- `ios/LuveloxMVPApp/LuveloxMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-40@3x.png`
-- `ios/LuveloxMVPApp/LuveloxMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-60@2x.png`
-- `ios/LuveloxMVPApp/LuveloxMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-60@3x.png`
-- `ios/LuveloxMVPApp/LuveloxMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-76@2x.png`
-- `ios/LuveloxMVPApp/LuveloxMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-83.5@2x.png`
+- `ios/ImperialAXMVPApp/ImperialAXMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png`
+- `ios/ImperialAXMVPApp/ImperialAXMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-20@2x.png`
+- `ios/ImperialAXMVPApp/ImperialAXMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-20@3x.png`
+- `ios/ImperialAXMVPApp/ImperialAXMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-29@2x.png`
+- `ios/ImperialAXMVPApp/ImperialAXMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-29@3x.png`
+- `ios/ImperialAXMVPApp/ImperialAXMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-40@2x.png`
+- `ios/ImperialAXMVPApp/ImperialAXMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-40@3x.png`
+- `ios/ImperialAXMVPApp/ImperialAXMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-60@2x.png`
+- `ios/ImperialAXMVPApp/ImperialAXMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-60@3x.png`
+- `ios/ImperialAXMVPApp/ImperialAXMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-76@2x.png`
+- `ios/ImperialAXMVPApp/ImperialAXMVPHost/Assets.xcassets/AppIcon.appiconset/AppIcon-83.5@2x.png`
 
 Change:
 
-- Recentered the 1024px Luvelox app icon artwork on the white canvas by shifting
+- Recentered the 1024px ImperialAX app icon artwork on the white canvas by shifting
   the artwork about 61px left and 45px up.
 - Regenerated every app icon size from the recentered 1024px source.
 
@@ -7521,12 +7521,12 @@ Verification:
 - Post-fix non-white artwork center is about `(516, 503-519)`, close to canvas
   center while preserving the icon scale and shadow.
 - `sips` confirmed all app icon PNGs still have the expected dimensions.
-- XcodeBuildMCP `build_run_sim` for Luvelox iOS host succeeded.
+- XcodeBuildMCP `build_run_sim` for ImperialAX iOS host succeeded.
 
 ## 2026-06-18 Public Domain Routing
 
 User asked to connect the live sites so `cafedecafe.co.kr` keeps the existing
-DD laminate UI and `luvelox.com` serves the new v2 UI.
+DD laminate UI and `imperialax.com` serves the new v2 UI.
 
 Updated files:
 
@@ -7539,7 +7539,7 @@ Updated files:
 Change:
 
 - Added host-aware root routing in the standalone DD FastAPI app:
-  - `luvelox.com` and `www.luvelox.com` return `index-v2.html`.
+  - `imperialax.com` and `www.imperialax.com` return `index-v2.html`.
   - `cafedecafe.co.kr`, `www.cafedecafe.co.kr`, existing subdomains, and local
     default return the existing `index.html`.
 - Added root/www ingress entries for both domains to the Cloudflare tunnel
@@ -7554,8 +7554,8 @@ Production actions:
   to tunnel `kclab-composite-ai`:
   - `cafedecafe.co.kr`
   - `www.cafedecafe.co.kr`
-  - `luvelox.com`
-  - `www.luvelox.com`
+  - `imperialax.com`
+  - `www.imperialax.com`
 - Restarted local `cloudflared` with
   `infrastructure/cloudflare/kclab-composite-ai.yml`.
 - Restarted DD FastAPI/Uvicorn on port `8000` so it loaded the new host-aware
@@ -7569,19 +7569,19 @@ Verification:
   `infrastructure/cloudflare/kclab-composite-ai.yml`.
 - Local Host-header checks:
   - `cafedecafe.co.kr`, `www.cafedecafe.co.kr`, and `localhost`: legacy UI.
-  - `luvelox.com`, `www.luvelox.com`: v2 UI.
+  - `imperialax.com`, `www.imperialax.com`: v2 UI.
 - Public checks:
   - `https://cafedecafe.co.kr/` and `https://www.cafedecafe.co.kr/` return the
     legacy UI markers (`Double-Double Laminate Forecast`, `app.js`).
-  - `https://luvelox.com/` and `https://www.luvelox.com/` return the v2 UI
+  - `https://imperialax.com/` and `https://www.imperialax.com/` return the v2 UI
     markers (`Wanted UI Kit Adaptation`, `app-v2.js`).
   - `/health` returns `200 {"status":"ok"}` for root/www plus existing
-    `dd.cafedecafe.co.kr` and `laminate.luvelox.com`.
+    `dd.cafedecafe.co.kr` and `laminate.imperialax.com`.
 
 Note:
 
 - An initial `cafedecafe` DNS route attempt was run without the cafedecafe
-  origin cert and reported a relative luvelox-zone hostname. Public DNS lookup
+  origin cert and reported a relative imperialax-zone hostname. Public DNS lookup
   for that reported hostname returned no CNAME record, and it did not affect
   the intended public domain routes.
 
@@ -7590,7 +7590,7 @@ Note:
 User changed the desired live URLs:
 
 - v1 / existing UI: `https://laminate.cafedecafe.co.kr/`
-- v2 / new UI: `https://laminate.luvelox.com/`
+- v2 / new UI: `https://laminate.imperialax.com/`
 
 Updated files:
 
@@ -7602,14 +7602,14 @@ Updated files:
 
 Change:
 
-- Added `laminate.luvelox.com` to the FastAPI v2 root host set so the public
-  luvelox laminate subdomain serves `index-v2.html`.
+- Added `laminate.imperialax.com` to the FastAPI v2 root host set so the public
+  imperialax laminate subdomain serves `index-v2.html`.
 - Added `laminate.cafedecafe.co.kr` to Cloudflare tunnel ingress, mapped to the
   DD laminate service on port `8000`.
 - Added the cafedecafe laminate URL to the public health-check list.
 - Updated backend tests so the primary checked hosts are now:
   - `laminate.cafedecafe.co.kr`: legacy UI.
-  - `laminate.luvelox.com`: v2 UI.
+  - `laminate.imperialax.com`: v2 UI.
 
 Production actions:
 
@@ -7628,12 +7628,12 @@ Verification:
   `infrastructure/cloudflare/kclab-composite-ai.yml`.
 - Local Host-header checks:
   - `laminate.cafedecafe.co.kr`: legacy UI.
-  - `laminate.luvelox.com`: v2 UI.
+  - `laminate.imperialax.com`: v2 UI.
 - External browser fetch verified:
   - `https://laminate.cafedecafe.co.kr/` returns `Double-Double Laminate
     Forecast` / legacy UI.
-  - `https://laminate.luvelox.com/` returns `Wanted UI Kit Adaptation` / v2 UI.
-- `https://laminate.luvelox.com/health` returned `200 {"status":"ok"}`.
+  - `https://laminate.imperialax.com/` returns `Wanted UI Kit Adaptation` / v2 UI.
+- `https://laminate.imperialax.com/health` returned `200 {"status":"ok"}`.
 - Cloudflare IP `--resolve` checks for `https://laminate.cafedecafe.co.kr/`
   returned the legacy UI and `/health` returned `200 {"status":"ok"}`. The
   local macOS `curl` resolver still had a stale negative cache immediately
@@ -7664,9 +7664,9 @@ Verification:
 - `.venv/bin/python -m pytest tests/backend/test_dd_laminate_ios_contract.py -q`
   passed: 7 tests.
 - `swift test --package-path ios/DDLaminateMVP` passed: 10 tests.
-- XcodeBuildMCP `build_run_sim` for the Luvelox iOS host succeeded.
+- XcodeBuildMCP `build_run_sim` for the ImperialAX iOS host succeeded.
 - Runtime UI snapshot after opening Laminate showed `COMPOSITE LAMINATE AI`.
-- `https://laminate.luvelox.com/` returned `Composite Laminate AI` and no
+- `https://laminate.imperialax.com/` returned `Composite Laminate AI` and no
   longer returned `Wanted UI Kit Adaptation`.
 
 ## 2026-06-18 v2 Korean Version
@@ -7703,25 +7703,25 @@ Verification:
 
 - Browser check at `http://127.0.0.1:8000/index-v2.ko.html` confirmed:
   - `lang="ko"`
-  - header `복합재 적층 AI` / `C2ES 적층 예측`
+  - header `복합재 적층 AI` / `ImperialAX 적층 예측`
   - mode buttons `응답 예측`, `u3 예측`, `곡선 CSV`
   - response button `예측 실행`
   - language links to `Classic` and `English`.
 - Public checks:
-  - `https://laminate.luvelox.com/index-v2.ko.html`
-  - `https://laminate.luvelox.com/dd-laminate-v2-ko`
-  both returned Korean v2 markers including `복합재 적층 AI`, `C2ES 적층 예측`,
+  - `https://laminate.imperialax.com/index-v2.ko.html`
+  - `https://laminate.imperialax.com/dd-laminate-v2-ko`
+  both returned Korean v2 markers including `복합재 적층 AI`, `ImperialAX 적층 예측`,
   `응답 예측`, and `예측 실행`.
 - `.venv/bin/python -m pytest tests/backend/test_dd_laminate_ios_contract.py -q`
   passed: 8 tests.
 - `node --check src/frontend/dd-laminate/app-v2.js` passed.
 - `swift test --package-path ios/DDLaminateMVP` passed: 10 tests.
-- XcodeBuildMCP `build_run_sim` succeeded for the Luvelox host app.
+- XcodeBuildMCP `build_run_sim` succeeded for the ImperialAX host app.
 - Runtime UI snapshot after opening Laminate and tapping the language button
   showed Korean v2 text:
   - `복합재 적층 AI`
   - `API 준비됨`
-  - `C2ES 적층 예측`
+  - `ImperialAX 적층 예측`
   - `응답 예측`
   - `적층 예측 프로그램`
   - `적층 예측 - Machine Learning`
@@ -7761,7 +7761,7 @@ Verification:
 - `.venv/bin/python -m pytest tests/backend/test_dd_laminate_ios_contract.py -q`
   passed: 8 tests, 1 existing pytest config warning.
 - Static scan confirmed no `step="0.1"` remains in the DD laminate HTML pages.
-- XcodeBuildMCP `build_run_sim` succeeded for Luvelox iOS host app.
+- XcodeBuildMCP `build_run_sim` succeeded for ImperialAX iOS host app.
 - Runtime simulator snapshot after opening Laminate v2 and scrolling to inputs
   showed integer values/readouts:
   - text fields: `30`, `-30`
@@ -7785,7 +7785,7 @@ Change:
 Verification:
 
 - `swift test --package-path ios/DDLaminateMVP` passed: 11 tests.
-- XcodeBuildMCP `build_run_sim` succeeded for Luvelox iOS host app.
+- XcodeBuildMCP `build_run_sim` succeeded for ImperialAX iOS host app.
 - Runtime screenshot showed `적층 예측 - Machine Learning` on one line in the
   selected model card.
 
@@ -7798,9 +7798,9 @@ Current status:
 - Android projects exist:
   - `android/DDLaminateMVP`
   - `android/InjectionMVP`
-  - `android/LuveloxMVP`
+  - `android/ImperialAXMVP`
 - Earlier Android work was kept in sync for several major product areas:
-  - unified Luvelox/C2ES shell
+  - unified ImperialAX/ImperialAX shell
   - Laminate and Injection Android activities
   - Korean resources
   - model label simplification
@@ -7816,8 +7816,8 @@ Current status:
 Recommendation:
 
 - Treat Android as behind the current web/iOS v2 surface.
-- Next Android parity pass should update `android/LuveloxMVP` and/or
-  `android/DDLaminateMVP` depending on whether the target is the unified C2ES
+- Next Android parity pass should update `android/ImperialAXMVP` and/or
+  `android/DDLaminateMVP` depending on whether the target is the unified ImperialAX
   shell or standalone Laminate MVP.
 
 ## 2026-06-18 Android Laminate Parity Pass
@@ -7842,7 +7842,7 @@ Scope implemented:
     behind an expandable button.
   - English and Korean model descriptions and XAI expand/collapse strings were
     updated.
-- Updated unified Luvelox Android app `android/LuveloxMVP` Laminate activity:
+- Updated unified ImperialAX Android app `android/ImperialAXMVP` Laminate activity:
   - default response model is now `response_surrogate_physics_v2`.
   - model selector is limited to the Machine Learning / Deep Learning response
     families with legacy fallback.
@@ -7852,23 +7852,23 @@ Scope implemented:
   - old technical model labels are cleaned into user-facing Machine Learning /
     Deep Learning names.
 - Refreshed Android debug APK artifacts:
-  - `artifacts/android/C2ES-Laminate-debug.apk`
-  - `artifacts/android/Laminate-C2ES-debug.apk`
-  - `artifacts/android/C2ES-debug.apk`
-  - `artifacts/android/Luvelox-debug.apk`
+  - `artifacts/android/ImperialAX-Laminate-debug.apk`
+  - `artifacts/android/Laminate-ImperialAX-debug.apk`
+  - `artifacts/android/ImperialAX-debug.apk`
+  - `artifacts/android/ImperialAX-debug.apk`
 
 Verification:
 
 - `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` passed in
   `android/DDLaminateMVP`.
 - `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` passed in
-  `android/LuveloxMVP`.
+  `android/ImperialAXMVP`.
 - `git diff --check` passed for modified Android source/resource files.
 - APK signature verification with
   `/opt/homebrew/share/android-commandlinetools/build-tools/35.0.0/apksigner`
   passed for:
-  - `artifacts/android/C2ES-Laminate-debug.apk`
-  - `artifacts/android/C2ES-debug.apk`
+  - `artifacts/android/ImperialAX-Laminate-debug.apk`
+  - `artifacts/android/ImperialAX-debug.apk`
 
 Remaining Android parity gap:
 
@@ -7884,7 +7884,7 @@ Scope implemented:
 
 - Added Android native `PlyStackPreviewView` Canvas components to:
   - `android/DDLaminateMVP`
-  - `android/LuveloxMVP`
+  - `android/ImperialAXMVP`
 - The preview follows the same v2 ply sequence logic as web/iOS:
   - Case2: `[[+/-theta1]/[+/-theta2]] x 4`
   - Case3: `[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]] x 2`
@@ -7903,21 +7903,21 @@ Scope implemented:
 - Updated `DESIGN.md` component inventory to include Android live laminate
   preview.
 - Refreshed Android debug APK artifacts:
-  - `artifacts/android/C2ES-Laminate-debug.apk`
-  - `artifacts/android/Laminate-C2ES-debug.apk`
-  - `artifacts/android/C2ES-debug.apk`
-  - `artifacts/android/Luvelox-debug.apk`
+  - `artifacts/android/ImperialAX-Laminate-debug.apk`
+  - `artifacts/android/Laminate-ImperialAX-debug.apk`
+  - `artifacts/android/ImperialAX-debug.apk`
+  - `artifacts/android/ImperialAX-debug.apk`
 
 Verification:
 
 - `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` passed in
   `android/DDLaminateMVP`.
 - `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` passed in
-  `android/LuveloxMVP`.
+  `android/ImperialAXMVP`.
 - `git diff --check` passed for modified Android source/resource files.
 - APK signature verification passed for:
-  - `artifacts/android/C2ES-Laminate-debug.apk`
-  - `artifacts/android/C2ES-debug.apk`
+  - `artifacts/android/ImperialAX-Laminate-debug.apk`
+  - `artifacts/android/ImperialAX-debug.apk`
 - Runtime visual smoke test was not run in this turn because `adb` is not
   available on the current PATH.
 
@@ -7928,16 +7928,16 @@ Remaining Android UI gap:
   The current Android pass intentionally keeps native Kotlin Views and existing
   screen structure.
 
-## 2026-06-18 Android C2ES APK Clarification
+## 2026-06-18 Android ImperialAX APK Clarification
 
-User asked whether installing `C2ES-debug.apk` shows the same integrated version
+User asked whether installing `ImperialAX-debug.apk` shows the same integrated version
 as the iOS unified app.
 
 Clarification:
 
-- `artifacts/android/C2ES-debug.apk` is the unified Android C2ES/Luvelox shell
-  built from `android/LuveloxMVP`.
-- It should show the same product concept as the iOS unified app: a C2ES module
+- `artifacts/android/ImperialAX-debug.apk` is the unified Android ImperialAX/ImperialAX shell
+  built from `android/ImperialAXMVP`.
+- It should show the same product concept as the iOS unified app: a ImperialAX module
   workspace with access to the Laminate module and other module entries.
 - It is not pixel-for-pixel identical to the iOS unified UI. Android uses native
   Kotlin Views, while iOS uses SwiftUI.
@@ -7952,16 +7952,16 @@ functional parity updates.
 
 Scope implemented:
 
-- Restyled the unified Android C2ES/Luvelox shell in `android/LuveloxMVP` toward
+- Restyled the unified Android ImperialAX/ImperialAX shell in `android/ImperialAXMVP` toward
   the v2 visual direction:
   - white canvas
-  - larger C2ES hero treatment
+  - larger ImperialAX hero treatment
   - blue action accents
   - black command-style primary buttons
   - light bordered module panels
   - step/status strips closer to the web/iOS v2 structure
-- Restyled the Android Laminate screen in `android/LuveloxMVP`:
-  - `C2ES Laminate Forecast` hero
+- Restyled the Android Laminate screen in `android/ImperialAXMVP`:
+  - `ImperialAX Laminate Forecast` hero
   - response-forecast framing
   - v2-style input/result cards
   - blue and green status pills
@@ -7969,17 +7969,17 @@ Scope implemented:
   - v2-toned live laminate preview card
   - v2-toned XAI top-5 expansion controls
 - Refreshed Android debug APK artifacts:
-  - `artifacts/android/C2ES-debug.apk`
-  - `artifacts/android/Luvelox-debug.apk`
+  - `artifacts/android/ImperialAX-debug.apk`
+  - `artifacts/android/ImperialAX-debug.apk`
 
 Verification:
 
 - `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` passed in
-  `android/LuveloxMVP`.
+  `android/ImperialAXMVP`.
 - `git diff --check` passed for the modified Android source files.
 - APK signature verification passed for:
-  - `artifacts/android/C2ES-debug.apk`
-  - `artifacts/android/Luvelox-debug.apk`
+  - `artifacts/android/ImperialAX-debug.apk`
+  - `artifacts/android/ImperialAX-debug.apk`
 - Runtime emulator visual smoke test was not run because `adb` is unavailable on
   the current PATH.
 
@@ -7997,12 +7997,12 @@ iPhone.
 Action:
 
 - Opened the unified iOS host project:
-  - `ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj`
+  - `ios/ImperialAXMVPApp/ImperialAXMVPHost.xcodeproj`
 
 Install notes for the next step:
 
 - In Xcode, select the connected iPhone from the top device selector.
-- Select the Luvelox/C2ES host scheme if Xcode does not choose it
+- Select the ImperialAX/ImperialAX host scheme if Xcode does not choose it
   automatically.
 - If signing fails, set the Apple Developer Team under the target's
   `Signing & Capabilities` tab.
@@ -8012,10 +8012,10 @@ Install notes for the next step:
 
 User asked for Android prediction results to open as a separate result page
 instead of rendering below the input form. User also asked to move the Demo
-Account card and module entry cards into small icons near the top C2ES header,
+Account card and module entry cards into small icons near the top ImperialAX header,
 and to center the Android launcher icon.
 
-Scope implemented in `android/LuveloxMVP`:
+Scope implemented in `android/ImperialAXMVP`:
 
 - Added `LaminateResultActivity`.
 - Registered `LaminateResultActivity` in `AndroidManifest.xml`.
@@ -8030,13 +8030,13 @@ Scope implemented in `android/LuveloxMVP`:
   - class probabilities
   - XAI top 5 with expandable remaining features
 - Kept prediction errors on the input screen.
-- Changed the signed-in C2ES Android home screen:
-  - account access is now a compact `A` icon beside the C2ES header
+- Changed the signed-in ImperialAX Android home screen:
+  - account access is now a compact `A` icon beside the ImperialAX header
   - Laminate opens from a compact `L` icon
   - Injection opens from a compact `I` icon
   - the large account/module cards are no longer rendered as the main home
     content
-- Regenerated Android launcher PNGs from the iOS Luvelox icon source with the
+- Regenerated Android launcher PNGs from the iOS ImperialAX icon source with the
   foreground recentered for all density buckets:
   - mdpi
   - hdpi
@@ -8044,18 +8044,18 @@ Scope implemented in `android/LuveloxMVP`:
   - xxhdpi
   - xxxhdpi
 - Refreshed Android APK artifacts:
-  - `artifacts/android/C2ES-debug.apk`
-  - `artifacts/android/Luvelox-debug.apk`
+  - `artifacts/android/ImperialAX-debug.apk`
+  - `artifacts/android/ImperialAX-debug.apk`
 
 Verification:
 
 - `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` passed in
-  `android/LuveloxMVP`.
+  `android/ImperialAXMVP`.
 - `git diff --check` passed for modified Android source/manifest files and
   `docs/session-memory.md`.
 - APK signature verification passed for:
-  - `artifacts/android/C2ES-debug.apk`
-  - `artifacts/android/Luvelox-debug.apk`
+  - `artifacts/android/ImperialAX-debug.apk`
+  - `artifacts/android/ImperialAX-debug.apk`
 - Runtime emulator visual smoke test was not run because `adb` is unavailable on
   the current PATH.
 
@@ -8068,23 +8068,23 @@ modified APK to the Google Drive folder:
 
 Status:
 
-- Rechecked Android launcher icon foreground centering for all LuveloxMVP
+- Rechecked Android launcher icon foreground centering for all ImperialAXMVP
   density buckets.
 - Pixel bounding-box centers are within roughly `0.5px` of the canvas center
   across mdpi/hdpi/xhdpi/xxhdpi/xxxhdpi.
 - Latest APK is available at:
-  - `artifacts/android/C2ES-debug.apk`
-  - `artifacts/android/Luvelox-debug.apk`
-- Also copied the latest C2ES APK to:
-  - `/Users/danlee/Desktop/android/C2ES-debug.apk`
+  - `artifacts/android/ImperialAX-debug.apk`
+  - `artifacts/android/ImperialAX-debug.apk`
+- Also copied the latest ImperialAX APK to:
+  - `/Users/danlee/Desktop/android/ImperialAX-debug.apk`
 
 Drive upload attempt:
 
 - Opened the Drive folder in the in-app browser.
 - User logged in as `Danny Lee`; the folder `APP` became visible.
 - Existing files visible in the folder:
-  - `C2ES-debug.apk`
-  - `Laminate-C2ES-debug.apk`
+  - `ImperialAX-debug.apk`
+  - `Laminate-ImperialAX-debug.apk`
 - Opened Drive's `신규` menu and selected `파일 업로드`.
 - Automated file selection failed because macOS blocked `osascript` keystroke
   injection:
@@ -8095,33 +8095,33 @@ Drive upload attempt:
 Current blocker:
 
 - Upload is ready but not completed. User needs to manually select
-  `C2ES-debug.apk` in the open macOS file picker, or grant the app/terminal
+  `ImperialAX-debug.apk` in the open macOS file picker, or grant the app/terminal
   Accessibility permission for automated file picker control.
 - After the user selects the file, Codex can verify the Drive upload result from
   the Drive page.
 
 ## 2026-06-18 Android Home Quick Action Revision
 
-User clarified that only the account icon should remain beside the top C2ES
+User clarified that only the account icon should remain beside the top ImperialAX
 header. Laminate and Injection should appear as module cards as before.
 
-Scope implemented in `android/LuveloxMVP`:
+Scope implemented in `android/ImperialAXMVP`:
 
 - Updated `MainActivity` signed-in home layout:
-  - kept only the compact `A` account icon beside the C2ES header
+  - kept only the compact `A` account icon beside the ImperialAX header
   - removed compact `L` and `I` header shortcuts
   - restored the `MODULES` section below the workflow strip
   - restored the module card list so Laminate/Injection open from cards again
 - Refreshed Android APK artifacts:
-  - `artifacts/android/C2ES-debug.apk`
-  - `artifacts/android/Luvelox-debug.apk`
-  - `/Users/danlee/Desktop/android/C2ES-debug.apk`
+  - `artifacts/android/ImperialAX-debug.apk`
+  - `artifacts/android/ImperialAX-debug.apk`
+  - `/Users/danlee/Desktop/android/ImperialAX-debug.apk`
 
 Verification:
 
 - `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` passed in
-  `android/LuveloxMVP`.
-- APK signature verification passed for `artifacts/android/C2ES-debug.apk`.
+  `android/ImperialAXMVP`.
+- APK signature verification passed for `artifacts/android/ImperialAX-debug.apk`.
 - `git diff --check` passed for the modified Android source file and
   `docs/session-memory.md`.
 
@@ -8129,19 +8129,19 @@ Drive note:
 
 - The Drive folder remains open and logged in, but automatic file picker control
   is still blocked by macOS Accessibility permissions. The latest APK is ready
-  for manual selection from `/Users/danlee/Desktop/android/C2ES-debug.apk`.
+  for manual selection from `/Users/danlee/Desktop/android/ImperialAX-debug.apk`.
 
 ## 2026-06-19 Android Font and iOS Header Wrapping
 
 User asked to modernize the Android font and make long iOS titles avoid awkward
 single-line wrapping.
 
-Android LuveloxMVP changes:
+Android ImperialAXMVP changes:
 
 - Bundled Pretendard font files:
-  - `android/LuveloxMVP/app/src/main/res/font/pretendard_regular.otf`
-  - `android/LuveloxMVP/app/src/main/res/font/pretendard_semibold.otf`
-  - `android/LuveloxMVP/app/src/main/res/font/pretendard_bold.otf`
+  - `android/ImperialAXMVP/app/src/main/res/font/pretendard_regular.otf`
+  - `android/ImperialAXMVP/app/src/main/res/font/pretendard_semibold.otf`
+  - `android/ImperialAXMVP/app/src/main/res/font/pretendard_bold.otf`
 - Added `AppFonts.kt` to centralize app font loading.
 - Updated the app theme to use Pretendard regular as the default font family.
 - Updated key labels, buttons, quick-action icons, module cards, result pages,
@@ -8151,28 +8151,28 @@ Android LuveloxMVP changes:
 iOS title treatment:
 
 - `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/ContentViewV2.swift`
-  now renders the app headline as `C2ES` followed by `Laminate Forecast` on the
+  now renders the app headline as `ImperialAX` followed by `Laminate Forecast` on the
   next line, with two-line limits and scaling guards.
 - `ios/DDLaminateMVP/Sources/KyulAIDDLaminateApp/ContentView.swift`
-  uses the same `C2ES` / `Laminate Forecast` title treatment.
-- `ios/LuveloxMVP/Sources/LuveloxApp/LaminateForecastView.swift`
-  uses `C2ES` / `Laminate Forecast`.
-- `ios/LuveloxMVP/Sources/LuveloxApp/InjectionForecastView.swift`
-  uses `C2ES` / `Injection Forecast`.
+  uses the same `ImperialAX` / `Laminate Forecast` title treatment.
+- `ios/ImperialAXMVP/Sources/ImperialAXApp/LaminateForecastView.swift`
+  uses `ImperialAX` / `Laminate Forecast`.
+- `ios/ImperialAXMVP/Sources/ImperialAXApp/InjectionForecastView.swift`
+  uses `ImperialAX` / `Injection Forecast`.
 
 Verification:
 
 - `git diff --check` passed.
 - `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug` passed in
-  `android/LuveloxMVP`.
+  `android/ImperialAXMVP`.
 - APK signature verification passed for:
-  - `artifacts/android/C2ES-debug.apk`
-  - `artifacts/android/Luvelox-debug.apk`
+  - `artifacts/android/ImperialAX-debug.apk`
+  - `artifacts/android/ImperialAX-debug.apk`
 - Refreshed APK artifacts:
-  - `artifacts/android/C2ES-debug.apk`
-  - `artifacts/android/Luvelox-debug.apk`
-  - `/Users/danlee/Desktop/android/C2ES-debug.apk`
-- XcodeBuildMCP simulator build passed for `LuveloxMVPHost` on `iPhone 17`.
+  - `artifacts/android/ImperialAX-debug.apk`
+  - `artifacts/android/ImperialAX-debug.apk`
+  - `/Users/danlee/Desktop/android/ImperialAX-debug.apk`
+- XcodeBuildMCP simulator build passed for `ImperialAXMVPHost` on `iPhone 17`.
 - XcodeBuildMCP simulator build passed for the `KyulAIDDLaminateApp` target.
 
 Known note:
@@ -8198,33 +8198,33 @@ Finding:
 Fix:
 
 - Updated `ContentViewV2.swift` so the visible response input panel title is
-  also `C2ES` / `Laminate Forecast`.
-- Updated the u3 input panel title to `C2ES` / `u3 Pt Forecast`.
+  also `ImperialAX` / `Laminate Forecast`.
+- Updated the u3 input panel title to `ImperialAX` / `u3 Pt Forecast`.
 - Reworked the v2 header layout so the eyebrow/status badge occupy the first
-  row and the large `C2ES` / `Laminate Forecast` title uses the full card width.
+  row and the large `ImperialAX` / `Laminate Forecast` title uses the full card width.
 - Added two-line/scaling guards to panel titles.
 
 Verification:
 
-- Rebuilt and ran `LuveloxMVPHost` on the `iPhone 17` simulator with
+- Rebuilt and ran `ImperialAXMVPHost` on the `iPhone 17` simulator with
   XcodeBuildMCP.
 - Runtime UI snapshot confirmed:
-  - `C2ES Laminate Forecast`
-  - `C2ES u3 Pt Forecast`
+  - `ImperialAX Laminate Forecast`
+  - `ImperialAX u3 Pt Forecast`
 - Simulator screenshots confirmed that both the hero card and input panel show
-  `C2ES` on the first line and `Laminate Forecast` fully on the second line,
+  `ImperialAX` on the first line and `Laminate Forecast` fully on the second line,
   without ellipsis.
 - `git diff --check` passed.
 
 ## 2026-06-19 iOS Title Hierarchy Discussion
 
 User noticed that the top hero title and lower input panel title both repeat
-`C2ES Laminate Forecast`, which feels redundant.
+`ImperialAX Laminate Forecast`, which feels redundant.
 
 Recommendation captured for next UI pass:
 
 - Keep the top hero as the product/app identity:
-  - `C2ES`
+  - `ImperialAX`
   - `Laminate Forecast`
 - Make the lower active panel title task-specific instead of repeating the app
   name:
@@ -8233,7 +8233,7 @@ Recommendation captured for next UI pass:
 - Keep or remove the small blue eyebrow, but avoid showing `RESPONSE FORECAST`
   and `Response Forecast` directly together unless the title is changed to a
   more action-oriented phrase such as `Predict Response Curve`.
-- Best default direction: remove the duplicated lower `C2ES Laminate Forecast`
+- Best default direction: remove the duplicated lower `ImperialAX Laminate Forecast`
   and use task labels so the screen hierarchy reads as product -> workflow ->
   active task.
 
@@ -8244,19 +8244,19 @@ User asked to apply and show the title hierarchy recommendation.
 Applied in `ContentViewV2.swift`:
 
 - Kept the top hero as the product/app identity:
-  - `C2ES`
+  - `ImperialAX`
   - `Laminate Forecast`
 - Changed the lower active panel eyebrow to:
   - `Forecast Setup`
 - Changed the lower active panel title by tab:
   - Response tab: `Response Forecast`
   - u3 tab: `u3 Pt Forecast`
-- Removed the lower duplicate `C2ES Laminate Forecast` wording from the input
+- Removed the lower duplicate `ImperialAX Laminate Forecast` wording from the input
   panel.
 
 Verification:
 
-- Rebuilt and ran `LuveloxMVPHost` on the `iPhone 17` simulator with
+- Rebuilt and ran `ImperialAXMVPHost` on the `iPhone 17` simulator with
   XcodeBuildMCP.
 - Runtime UI snapshot confirmed:
   - `Forecast Setup`
@@ -8273,10 +8273,10 @@ to keep them moving together.
 
 Standing product rule:
 
-- Shared C2ES Laminate Forecast surfaces should be updated together across:
+- Shared ImperialAX Laminate Forecast surfaces should be updated together across:
   - Web v2 English/Korean
   - iOS v2
-  - Android Luvelox native app
+  - Android ImperialAX native app
 - When changing shared labels, hierarchy, model names, core layout, or primary
   forecast workflow UI, check the corresponding web and native app surfaces in
   the same pass.
@@ -8286,18 +8286,18 @@ Standing product rule:
 Applied alignment:
 
 - Web v2 English:
-  - hero title split into `C2ES` / `Laminate Forecast`
+  - hero title split into `ImperialAX` / `Laminate Forecast`
   - API badge changed to `API ready`
   - workflow step 03 changed to `Review` / `Pt, curve, XAI.`
   - response panel changed to `Forecast Setup` / `Response Forecast`
   - u3 panel changed to `Forecast Setup` / `u3 Pt Forecast`
 - Web v2 Korean:
-  - hero title split into `C2ES` / `적층 예측`
+  - hero title split into `ImperialAX` / `적층 예측`
   - API badge changed to `API 준비됨`
   - response panel changed to `예측 설정` / `응답 예측`
   - u3 panel changed to `예측 설정` / `u3 Pt 예측`
-- Android Luvelox Laminate:
-  - top title changed to `C2ES` / `Laminate Forecast`
+- Android ImperialAX Laminate:
+  - top title changed to `ImperialAX` / `Laminate Forecast`
   - input card changed to `FORECAST SETUP` / `Response Forecast`
   - workflow steps changed to `Set case`, `Pick model`, `Review`
 
@@ -8305,27 +8305,27 @@ Verification:
 
 - `git diff --check` passed.
 - Android `JAVA_HOME=/opt/homebrew/opt/openjdk@17 gradle :app:assembleDebug`
-  passed for `android/LuveloxMVP`.
+  passed for `android/ImperialAXMVP`.
 - Android APK artifacts refreshed and signature verification passed for
-  `artifacts/android/C2ES-debug.apk`.
-- XcodeBuildMCP `build_run_sim` passed for `LuveloxMVPHost`.
+  `artifacts/android/ImperialAX-debug.apk`.
+- XcodeBuildMCP `build_run_sim` passed for `ImperialAXMVPHost`.
 - Browser DOM checks passed for:
   - `http://127.0.0.1:8000/index-v2.html`
   - `http://127.0.0.1:8000/index-v2.ko.html`
 - Browser screenshot confirmed the English web v2 now matches the app title
   hierarchy.
 
-## 2026-06-19 Luvelox Web Login v2 Prototype
+## 2026-06-19 ImperialAX Web Login v2 Prototype
 
 User asked whether there was an existing web login page and requested a new
 example using the recently added Figma/Wanted UI Kit direction.
 
 Context found:
 
-- Existing Luvelox web login already lives in `src/frontend/luvelox/index.html`
+- Existing ImperialAX web login already lives in `src/frontend/imperialax/index.html`
   with `styles.css` and `app.js`.
 - It signs into the same local/session key flow:
-  `luvelox.auth.session.v1`.
+  `imperialax.auth.session.v1`.
 - The uploaded `design/Wanted Design System (Community).fig` is a zipped Figma
   package; `canvas.fig` is binary, so direct layer extraction was not available.
   Usable evidence was the package metadata, thumbnail, and the existing
@@ -8334,31 +8334,31 @@ Context found:
 Applied:
 
 - Added a separate reversible prototype instead of replacing the current login:
-  - `src/frontend/luvelox/login-v2.html`
-  - `src/frontend/luvelox/login-v2.css`
-  - `src/frontend/luvelox/login-v2.js`
-- The prototype uses a Wanted-inspired C2ES treatment:
+  - `src/frontend/imperialax/login-v2.html`
+  - `src/frontend/imperialax/login-v2.css`
+  - `src/frontend/imperialax/login-v2.js`
+- The prototype uses a Wanted-inspired ImperialAX treatment:
   - white/light grid canvas
   - black command/forecast preview surface
   - blue primary accents
   - green readiness/access states
   - compact 8px-radius panels
 - The login remains functional for MVP demo accounts:
-  - `demo@luvelox.com`
-  - `danlee@luvelox.com`
-- `Continue demo` stores the compatible Luvelox session and redirects to the
-  existing workspace at `src/frontend/luvelox/index.html`.
+  - `demo@imperialax.com`
+  - `danlee@imperialax.com`
+- `Continue demo` stores the compatible ImperialAX session and redirects to the
+  existing workspace at `src/frontend/imperialax/index.html`.
 - Mobile layout was adjusted so the sign-in panel appears before the larger
   workspace preview.
-- Updated `DESIGN.md` to record the Luvelox `login-v2` prototype.
+- Updated `DESIGN.md` to record the ImperialAX `login-v2` prototype.
 
 Verification:
 
 - `git diff --check` passed.
 - In-app browser rendered:
-  `http://127.0.0.1:8032/luvelox/login-v2.html`
+  `http://127.0.0.1:8032/imperialax/login-v2.html`
 - Desktop DOM check confirmed:
-  - `C2ES Account Access`
+  - `ImperialAX Account Access`
   - `Sign in`
   - `Demo ready`
   - Laminate, Injection, Optimization module rows
@@ -8367,47 +8367,47 @@ Verification:
   - no horizontal overflow
   - `.login-panel` appears before `.workspace-panel`
 - Demo login flow check confirmed:
-  - `Continue demo` navigates to `/luvelox/index.html`
+  - `Continue demo` navigates to `/imperialax/index.html`
   - workspace is visible
-  - account label shows `Luvelox Demo · 2 modules`
+  - account label shows `ImperialAX Demo · 2 modules`
 
-## 2026-06-19 Luvelox Domain IA Update
+## 2026-06-19 ImperialAX Domain IA Update
 
 User clarified the intended public domain split:
 
-- `ai.luvelox.com`: C2ES App entry point, including first login and module
+- `ai.imperialax.com`: ImperialAX App entry point, including first login and module
   selection for Laminate, Injection, and future Optimization.
-- `laminate.luvelox.com`: Laminate Forecast module reached from the C2ES AI
+- `laminate.imperialax.com`: Laminate Forecast module reached from the ImperialAX AI
   workspace.
-- `injection.luvelox.com`: Injection module remains a standalone module domain.
-- `luvelox.com`: reserved for the future official company/product homepage, not
+- `injection.imperialax.com`: Injection module remains a standalone module domain.
+- `imperialax.com`: reserved for the future official company/product homepage, not
   the current app.
 
 Applied:
 
-- Added `ai.luvelox.com` to Cloudflare tunnel ingress on port `8000`.
-- Removed `luvelox.com` and `www.luvelox.com` from the app ingress config so
+- Added `ai.imperialax.com` to Cloudflare tunnel ingress on port `8000`.
+- Removed `imperialax.com` and `www.imperialax.com` from the app ingress config so
   the official homepage domain is no longer used as the app surface.
 - Added the same ingress change to the Windows tunnel example.
 - Updated public `dd_laminate_app` host routing because port `8000` is the
   current public entry process:
-  - `ai.luvelox.com/` serves `src/frontend/luvelox/login-v2.html`.
-  - `ai.luvelox.com/index.html`, `/app.js`, and `/styles.css` serve the C2ES
+  - `ai.imperialax.com/` serves `src/frontend/imperialax/login-v2.html`.
+  - `ai.imperialax.com/index.html`, `/app.js`, and `/styles.css` serve the ImperialAX
     module workspace files.
-  - `laminate.luvelox.com/` continues to serve DD Laminate v2.
-- Updated standalone `luvelox_app` root routing so `ai.luvelox.com` also serves
+  - `laminate.imperialax.com/` continues to serve DD Laminate v2.
+- Updated standalone `imperialax_app` root routing so `ai.imperialax.com` also serves
   the login v2 entry when run directly.
-- Changed Optimization module URLs away from `https://luvelox.com` to
-  `https://ai.luvelox.com`.
-- Renamed the Luvelox web workspace visible shell to `C2ES App` /
-  `C2ES AI Workspace`.
+- Changed Optimization module URLs away from `https://imperialax.com` to
+  `https://ai.imperialax.com`.
+- Renamed the ImperialAX web workspace visible shell to `ImperialAX App` /
+  `ImperialAX AI Workspace`.
 - Updated migration docs to record that port `8000` is host-routed for both
-  the C2ES AI workspace and Laminate.
+  the ImperialAX AI workspace and Laminate.
 
 Deployment actions:
 
 - Ran:
-  `cloudflared tunnel route dns --overwrite-dns kclab-composite-ai ai.luvelox.com`
+  `cloudflared tunnel route dns --overwrite-dns kclab-composite-ai ai.imperialax.com`
 - Restarted the port `8000` `dd_laminate_app` uvicorn process.
 - Restarted `cloudflared` with
   `infrastructure/cloudflare/kclab-composite-ai.yml`.
@@ -8416,33 +8416,33 @@ Verification:
 
 - `cloudflared tunnel --config infrastructure/cloudflare/kclab-composite-ai.yml
   ingress validate` returned `OK`.
-- `.venv/bin/python -m pytest tests/backend/test_luvelox_modules.py
+- `.venv/bin/python -m pytest tests/backend/test_imperialax_modules.py
   tests/backend/test_dd_laminate_ios_contract.py -q` passed:
   `18 passed, 1 warning`.
 - `git diff --check` passed.
 - Public checks confirmed:
-  - `https://ai.luvelox.com/` returns `C2ES Account Access`.
-  - `https://ai.luvelox.com/index.html` returns `C2ES App` and
+  - `https://ai.imperialax.com/` returns `ImperialAX Account Access`.
+  - `https://ai.imperialax.com/index.html` returns `ImperialAX App` and
     `Prediction modules`.
-  - `https://ai.luvelox.com/api/v1/modules` lists Laminate and Injection module
-    URLs plus Optimization pointing to `https://ai.luvelox.com`.
-  - `https://laminate.luvelox.com/` returns `C2ES Laminate Forecast v2`.
-  - `https://luvelox.com/` returns HTTP `404`, leaving it free for the future
+  - `https://ai.imperialax.com/api/v1/modules` lists Laminate and Injection module
+    URLs plus Optimization pointing to `https://ai.imperialax.com`.
+  - `https://laminate.imperialax.com/` returns `ImperialAX Laminate Forecast v2`.
+  - `https://imperialax.com/` returns HTTP `404`, leaving it free for the future
     official homepage.
 
-## 2026-06-19 C2ES Login Module Icons
+## 2026-06-19 ImperialAX Login Module Icons
 
 User noticed that the small logo/icon boxes beside Laminate, Injection, and
 Optimization in the `SELECTED ACCOUNT` area looked empty.
 
 Applied:
 
-- Updated `src/frontend/luvelox/login-v2.html` so each module row uses an inline
+- Updated `src/frontend/imperialax/login-v2.html` so each module row uses an inline
   SVG icon instead of a placeholder letter:
   - Laminate: stacked ply/layer icon
   - Injection: injection/pressure icon
   - Optimization: target/search icon
-- Updated `src/frontend/luvelox/login-v2.css` with distinct icon colors:
+- Updated `src/frontend/imperialax/login-v2.css` with distinct icon colors:
   - Laminate blue
   - Injection teal
   - Optimization gray when locked, amber when enabled
@@ -8452,8 +8452,8 @@ Applied:
 Verification:
 
 - `git diff --check` passed.
-- `node --check src/frontend/luvelox/login-v2.js` passed.
-- Public checks confirmed `https://ai.luvelox.com/` serves the updated SVG
+- `node --check src/frontend/imperialax/login-v2.js` passed.
+- Public checks confirmed `https://ai.imperialax.com/` serves the updated SVG
   markup and CSS.
 - In-app browser DOM check confirmed all three `.module-icon` elements contain
   one SVG each.
@@ -8461,102 +8461,102 @@ Verification:
 
 ## 2026-06-19 Web Laminate Title Spacing
 
-User noticed the web Laminate v2 hero title read as `C2ESLaminate Forecast`
+User noticed the web Laminate v2 hero title read as `ImperialAXLaminate Forecast`
 without a space.
 
 Applied:
 
 - Updated `src/frontend/dd-laminate/index-v2.html` from
-  `<span>C2ES</span><span>Laminate Forecast</span>` to
-  `<span>C2ES</span> <span>Laminate Forecast</span>`.
+  `<span>ImperialAX</span><span>Laminate Forecast</span>` to
+  `<span>ImperialAX</span> <span>Laminate Forecast</span>`.
 - Updated `src/frontend/dd-laminate/index-v2.ko.html` similarly so its DOM text
-  reads `C2ES 적층 예측`.
+  reads `ImperialAX 적층 예측`.
 
 Verification:
 
 - `git diff --check` passed.
-- Public HTML check confirmed `https://laminate.luvelox.com/` contains the
+- Public HTML check confirmed `https://laminate.imperialax.com/` contains the
   inserted space.
 - In-app browser DOM check confirmed `#app-title.textContent` is exactly
-  `C2ES Laminate Forecast`.
+  `ImperialAX Laminate Forecast`.
 
-## 2026-06-19 Luvelox AI Workspace V2 Shell
+## 2026-06-19 ImperialAX AI Workspace V2 Shell
 
-User asked to remove the extra top navigation on `ai.luvelox.com` and leave
-only the logo, then make `ai.luvelox.com/index.html` feel more like the newer
+User asked to remove the extra top navigation on `ai.imperialax.com` and leave
+only the logo, then make `ai.imperialax.com/index.html` feel more like the newer
 Laminate v2 / Figma-derived direction instead of the older MVP shell.
 
 Applied:
 
-- Updated `src/frontend/luvelox/login-v2.html` and
-  `src/frontend/luvelox/login-v2.css` so the login page top area keeps only a
-  compact `C2ES` wordmark and removes the `Module workspace` / `Laminate v2`
+- Updated `src/frontend/imperialax/login-v2.html` and
+  `src/frontend/imperialax/login-v2.css` so the login page top area keeps only a
+  compact `ImperialAX` wordmark and removes the `Module workspace` / `Laminate v2`
   links.
-- Redesigned `src/frontend/luvelox/index.html` as a v2-style module workspace:
-  large `C2ES App` hero, clearer workspace copy, account/readiness chip,
+- Redesigned `src/frontend/imperialax/index.html` as a v2-style module workspace:
+  large `ImperialAX App` hero, clearer workspace copy, account/readiness chip,
   three-step flow strip, selected account band, dark module-intro band, and
   stronger module cards.
-- Rebuilt `src/frontend/luvelox/styles.css` around the newer v2 visual system:
+- Rebuilt `src/frontend/imperialax/styles.css` around the newer v2 visual system:
   light technical grid, white panels, black action blocks, blue/green accent
   language, 8px card radii, responsive desktop/mobile spacing, and no floating
   marketing-style hero.
-- Updated `src/frontend/luvelox/app.js` so Laminate, Injection, and
+- Updated `src/frontend/imperialax/app.js` so Laminate, Injection, and
   Optimization module cards use inline SVG icons instead of placeholder
   letters.
-- Updated `DESIGN.md` to record the Luvelox login and workspace shell as part
+- Updated `DESIGN.md` to record the ImperialAX login and workspace shell as part
   of the shared design source of truth.
 
 Verification:
 
 - `git diff --check` passed.
-- `node --check src/frontend/luvelox/app.js` and
-  `node --check src/frontend/luvelox/login-v2.js` passed.
-- `.venv/bin/python -m pytest tests/backend/test_luvelox_modules.py
+- `node --check src/frontend/imperialax/app.js` and
+  `node --check src/frontend/imperialax/login-v2.js` passed.
+- `.venv/bin/python -m pytest tests/backend/test_imperialax_modules.py
   tests/backend/test_dd_laminate_ios_contract.py -q` passed:
   `18 passed, 1 warning`.
 - Public checks confirmed:
-  - `https://ai.luvelox.com/` serves the logo-only top area with no
+  - `https://ai.imperialax.com/` serves the logo-only top area with no
     `Module workspace` / `Laminate v2` links.
-  - `https://ai.luvelox.com/index.html` serves the cache-busted v2 workspace
+  - `https://ai.imperialax.com/index.html` serves the cache-busted v2 workspace
     CSS and JS.
   - The workspace JS contains SVG module icons.
 - In-app browser checks confirmed:
-  - Root login page title is `C2ES Account Access`.
-  - Root login page has `brand = C2ES`, no topbar action links, and no
+  - Root login page title is `ImperialAX Account Access`.
+  - Root login page has `brand = ImperialAX`, no topbar action links, and no
     `Module workspace` / `Laminate v2` body text.
   - Workspace page opens after demo login with three module cards, each module
     card has an SVG icon, and the visible UI matches the v2 workspace direction.
 
-## 2026-06-19 Luvelox Workspace Title, Korean Pages, And API Hiding
+## 2026-06-19 ImperialAX Workspace Title, Korean Pages, And API Hiding
 
-User pointed out that `C2ES App` on `ai.luvelox.com/index.html` felt too
+User pointed out that `ImperialAX App` on `ai.imperialax.com/index.html` felt too
 placeholder-like, the subtitle wrapped awkwardly, module cards exposed API
 paths, the font needed refinement, and Korean versions were missing for the
-Luvelox hub.
+ImperialAX hub.
 
 Applied:
 
-- Renamed the Luvelox workspace page from `C2ES App` to
-  `C2ES Forecast Workspace`.
-- Changed the Korean workspace title to `C2ES 예측 워크스페이스`.
+- Renamed the ImperialAX workspace page from `ImperialAX App` to
+  `ImperialAX Forecast Workspace`.
+- Changed the Korean workspace title to `ImperialAX 예측 워크스페이스`.
 - Rewrote the hero subtitle to a shorter, intentional line:
   `Choose Laminate or Injection, then continue to the dedicated prediction screen.`
-- Added `src/frontend/luvelox/index.ko.html`.
-- Added `src/frontend/luvelox/login-v2.ko.html`.
-- Updated `src/frontend/luvelox/app.js` so Korean pages localize dynamic module
+- Added `src/frontend/imperialax/index.ko.html`.
+- Added `src/frontend/imperialax/login-v2.ko.html`.
+- Updated `src/frontend/imperialax/app.js` so Korean pages localize dynamic module
   card summaries, badges, action buttons, module counts, access-copy text, and
   capability labels.
-- Updated `src/frontend/luvelox/login-v2.js` so Korean login status text and
+- Updated `src/frontend/imperialax/login-v2.js` so Korean login status text and
   post-login redirect go to `index.ko.html`.
 - Removed the module-card API path display by deleting the card-level
   `.route-text` element and no longer writing `module.route.api_prefix` into
   cards.
 - Kept modal access copy user-facing instead of exposing raw entitlement keys.
-- Updated `src/frontend/luvelox/styles.css` and
-  `src/frontend/luvelox/login-v2.css` to use a Pretendard-first font stack with
+- Updated `src/frontend/imperialax/styles.css` and
+  `src/frontend/imperialax/login-v2.css` to use a Pretendard-first font stack with
   Korean-friendly fallbacks.
 - Added `/index.ko.html` and `/login-v2.ko.html` host-routed entries to
-  `src/backend/dd_laminate_app.py` so `ai.luvelox.com` can serve the Luvelox
+  `src/backend/dd_laminate_app.py` so `ai.imperialax.com` can serve the ImperialAX
   Korean pages through the current public 8000 app.
 - Updated `DESIGN.md` to record the workspace naming, Korean page coverage, and
   Pretendard-first web typography decision.
@@ -8564,8 +8564,8 @@ Applied:
 Translation coverage note:
 
 - Main product surfaces now have Korean variants:
-  - Luvelox login: `login-v2.ko.html`
-  - Luvelox module workspace: `index.ko.html`
+  - ImperialAX login: `login-v2.ko.html`
+  - ImperialAX module workspace: `index.ko.html`
   - Laminate Classic: `index.ko.html`
   - Laminate v2: `index-v2.ko.html`
   - Simple Injection: `index.ko.html`
@@ -8577,18 +8577,18 @@ Deployment/verification:
 
 - Restarted the public port `8000` `dd_laminate_app` uvicorn process so the new
   Korean routes are active.
-- `node --check src/frontend/luvelox/app.js` and
-  `node --check src/frontend/luvelox/login-v2.js` passed.
+- `node --check src/frontend/imperialax/app.js` and
+  `node --check src/frontend/imperialax/login-v2.js` passed.
 - `git diff --check` passed.
-- `.venv/bin/python -m pytest tests/backend/test_luvelox_modules.py
+- `.venv/bin/python -m pytest tests/backend/test_imperialax_modules.py
   tests/backend/test_dd_laminate_ios_contract.py -q` passed:
   `19 passed, 1 warning`.
 - Public checks confirmed:
-  - `https://ai.luvelox.com/index.html` serves
-    `C2ES Forecast Workspace` and no longer contains `C2ES App`.
-  - `https://ai.luvelox.com/index.ko.html` serves `lang="ko"` and
-    `C2ES 예측 워크스페이스`.
-  - `https://ai.luvelox.com/login-v2.ko.html` serves the Korean login page.
+  - `https://ai.imperialax.com/index.html` serves
+    `ImperialAX Forecast Workspace` and no longer contains `ImperialAX App`.
+  - `https://ai.imperialax.com/index.ko.html` serves `lang="ko"` and
+    `ImperialAX 예측 워크스페이스`.
+  - `https://ai.imperialax.com/login-v2.ko.html` serves the Korean login page.
 - In-app browser checks confirmed:
   - Korean workspace renders 3 module cards.
   - Card-level `.route-text` count is `0`.
@@ -8597,20 +8597,20 @@ Deployment/verification:
 
 Follow-up title adjustment:
 
-- User preferred the Luvelox workspace title on one line.
-- Updated `src/frontend/luvelox/styles.css` and
-  `src/frontend/luvelox/login-v2.css` so `h1` title spans render inline with
+- User preferred the ImperialAX workspace title on one line.
+- Updated `src/frontend/imperialax/styles.css` and
+  `src/frontend/imperialax/login-v2.css` so `h1` title spans render inline with
   `white-space: nowrap`.
 - Replaced viewport-scaled title sizing with breakpoint-based fixed font sizes
-  so `C2ES Forecast Workspace` and `C2ES 예측 워크스페이스` stay on one line
+  so `ImperialAX Forecast Workspace` and `ImperialAX 예측 워크스페이스` stay on one line
   without horizontal overflow.
-- Bumped Luvelox CSS cache keys to `20260619-workspace-title-line2`.
+- Bumped ImperialAX CSS cache keys to `20260619-workspace-title-line2`.
 
 Verification:
 
 - `git diff --check` passed.
-- `node --check src/frontend/luvelox/app.js` and
-  `node --check src/frontend/luvelox/login-v2.js` passed.
+- `node --check src/frontend/imperialax/app.js` and
+  `node --check src/frontend/imperialax/login-v2.js` passed.
 - Public CSS/HTML checks confirmed the new cache key and `white-space: nowrap`.
 - In-app browser checks confirmed:
   - Desktop Korean workspace title has one text rect.
@@ -8626,13 +8626,13 @@ Follow-up hero copy adjustment:
 - Added `white-space: nowrap` to `.hero-copy`, reduced mobile hero-copy font
   size, and reduced `.workspace-hero` desktop height from `280px` to `240px`
   with tighter padding.
-- Bumped Luvelox workspace CSS cache key to `20260619-workspace-hero-line`.
+- Bumped ImperialAX workspace CSS cache key to `20260619-workspace-hero-line`.
 
 Verification:
 
 - `git diff --check` passed.
-- `node --check src/frontend/luvelox/app.js` and
-  `node --check src/frontend/luvelox/login-v2.js` passed.
+- `node --check src/frontend/imperialax/app.js` and
+  `node --check src/frontend/imperialax/login-v2.js` passed.
 - Public checks confirmed `index.html` and `index.ko.html` use the new subtitle
   copy and cache key.
 - In-app browser checks confirmed:
@@ -8644,7 +8644,7 @@ Follow-up full box alignment:
 
 - User pointed out that only the hero had been adjusted while the other boxes
   still had mismatched heights/wrapping.
-- Updated the entire Luvelox workspace stack, not only the title:
+- Updated the entire ImperialAX workspace stack, not only the title:
   - summary/step boxes
   - account band
   - dark module intro band
@@ -8661,17 +8661,17 @@ Follow-up full box alignment:
   the page wider than the viewport.
 - Reduced summary, intro, and module card vertical density; kept the mobile
   account band horizontal instead of stacking it vertically.
-- Bumped Luvelox workspace CSS/JS cache keys to
+- Bumped ImperialAX workspace CSS/JS cache keys to
   `20260619-workspace-box-align2`.
 - Updated `DESIGN.md` to record compact no-wrap workspace box rhythm.
 
 Verification:
 
 - `git diff --check` passed.
-- `node --check src/frontend/luvelox/app.js` and
-  `node --check src/frontend/luvelox/login-v2.js` passed.
+- `node --check src/frontend/imperialax/app.js` and
+  `node --check src/frontend/imperialax/login-v2.js` passed.
 - Public checks confirmed the new copy/cache keys are served from
-  `https://ai.luvelox.com/index.html` and `index.ko.html`.
+  `https://ai.imperialax.com/index.html` and `index.ko.html`.
 - In-app browser checks at 390px confirmed both English and Korean pages have:
   - `bodyScrollWidth == viewportWidth == 390`
   - title one-line/no overflow
@@ -8683,56 +8683,56 @@ Verification:
 
 Follow-up duplicate account card cleanup:
 
-- User pointed out that the top-right `Luvelox Demo · 2 modules` chip and the
-  middle horizontal `Luvelox Demo` account card were duplicate account surfaces.
-- Removed the middle `account-band` section from both Luvelox workspace pages:
-  - `src/frontend/luvelox/index.html`
-  - `src/frontend/luvelox/index.ko.html`
+- User pointed out that the top-right `ImperialAX Demo · 2 modules` chip and the
+  middle horizontal `ImperialAX Demo` account card were duplicate account surfaces.
+- Removed the middle `account-band` section from both ImperialAX workspace pages:
+  - `src/frontend/imperialax/index.html`
+  - `src/frontend/imperialax/index.ko.html`
 - Removed the now-unused `accountBand` render/click logic from
-  `src/frontend/luvelox/app.js`.
+  `src/frontend/imperialax/app.js`.
 - Removed the unused `.account-band` and `.account-avatar` CSS rules from
-  `src/frontend/luvelox/styles.css`.
+  `src/frontend/imperialax/styles.css`.
 - Kept the top-right account chip as the single account access point; it still
   opens the account dialog.
-- Bumped Luvelox workspace CSS/JS cache keys to
+- Bumped ImperialAX workspace CSS/JS cache keys to
   `20260619-workspace-no-account-band`.
 - Checked native app parity:
   - iOS also had a toolbar account menu plus a middle `accountBand`; removed
     the middle account band from
-    `ios/LuveloxMVP/Sources/LuveloxApp/ContentView.swift`.
+    `ios/ImperialAXMVP/Sources/ImperialAXApp/ContentView.swift`.
   - Android already uses a top-right `A` quick-action icon for account details
     and does not add `accountBand()` to the visible home screen.
 
 Verification:
 
-- `git diff --check -- src/frontend/luvelox/index.html
-  src/frontend/luvelox/index.ko.html src/frontend/luvelox/app.js
-  src/frontend/luvelox/styles.css` passed.
-- `node --check src/frontend/luvelox/app.js` and
-  `node --check src/frontend/luvelox/login-v2.js` passed.
-- Public checks confirmed `https://ai.luvelox.com/index.html` and
+- `git diff --check -- src/frontend/imperialax/index.html
+  src/frontend/imperialax/index.ko.html src/frontend/imperialax/app.js
+  src/frontend/imperialax/styles.css` passed.
+- `node --check src/frontend/imperialax/app.js` and
+  `node --check src/frontend/imperialax/login-v2.js` passed.
+- Public checks confirmed `https://ai.imperialax.com/index.html` and
   `index.ko.html` serve the new cache key, and public `app.js` contains only
   `accountButton/accountLabel` with no `accountBand`.
-- In-app browser check on `https://ai.luvelox.com/index.ko.html` confirmed:
+- In-app browser check on `https://ai.imperialax.com/index.ko.html` confirmed:
   - `.account-band` count is `0`
   - `.account-chip` count is `1`
   - visible account text is only in the top-right chip
   - workspace order is `hero -> summary -> intro -> module grid`
   - no horizontal overflow
-- iOS `swift test` in `ios/LuveloxMVP` passed: 4 tests.
+- iOS `swift test` in `ios/ImperialAXMVP` passed: 4 tests.
 - Backend pytest was not rerun successfully in the current terminal Python
   because the active Python is 3.10 and lacks `fastapi`; the project declares
   Python `>=3.11`, so this is an environment gap rather than a frontend syntax
   failure.
 
-Follow-up Luvelox login polish:
+Follow-up ImperialAX login polish:
 
-- User pointed out that forcing one-line copy on `ai.luvelox.com` broke the
+- User pointed out that forcing one-line copy on `ai.imperialax.com` broke the
   left login panel: the title overflowed outside the box and the visual layout
   felt careless.
-- Changed the Luvelox login title strategy from forced nowrap to deliberate
+- Changed the ImperialAX login title strategy from forced nowrap to deliberate
   wrapping:
-  - desktop shows `C2ES` and `Forecast Workspace` on two clean lines
+  - desktop shows `ImperialAX` and `Forecast Workspace` on two clean lines
   - mobile keeps the sign-in card first and prevents horizontal overflow
   - very small screens scale the title down instead of spilling outside the card
 - Reworked the left login panel so it no longer looks empty or unbalanced:
@@ -8745,20 +8745,20 @@ Follow-up Luvelox login polish:
   - module icon containers explicitly use grid centering
   - inline SVGs are block-level so they center visually instead of drifting
     toward the top-left
-- Applied the same polish to English and Korean Luvelox login/workspace entry
+- Applied the same polish to English and Korean ImperialAX login/workspace entry
   pages.
 - Bumped public cache keys:
-  - `styles.css?v=20260619-login-polish3` for the main Luvelox entry pages
+  - `styles.css?v=20260619-login-polish3` for the main ImperialAX entry pages
   - `login-v2.css?v=20260619-login-polish2` for the account/login v2 pages
 - Updated `DESIGN.md` to clarify that long headings should wrap deliberately,
   while no-wrap is reserved for short labels and chips.
 
 Verification:
 
-- `git diff --check` passed for the changed Luvelox HTML/CSS and `DESIGN.md`.
-- `node --check src/frontend/luvelox/app.js` and
-  `node --check src/frontend/luvelox/login-v2.js` passed.
-- Public checks confirmed `https://ai.luvelox.com/index.html`,
+- `git diff --check` passed for the changed ImperialAX HTML/CSS and `DESIGN.md`.
+- `node --check src/frontend/imperialax/app.js` and
+  `node --check src/frontend/imperialax/login-v2.js` passed.
+- Public checks confirmed `https://ai.imperialax.com/index.html`,
   `index.ko.html`, `login-v2.html`, and the updated CSS cache keys are served.
 - In-app browser checks confirmed:
   - desktop `index.html` has no horizontal overflow
@@ -8767,12 +8767,12 @@ Verification:
   - mobile Korean login has no horizontal overflow
   - login-v2 module SVGs are centered within their logo boxes
 
-Follow-up Luvelox mobile web adaptation:
+Follow-up ImperialAX mobile web adaptation:
 
 - User pointed out that the mobile web still felt like the desktop web version
   simply stacked vertically.
-- Reworked `ai.luvelox.com` mobile breakpoints in `src/frontend/luvelox/styles.css`
-  so the main Luvelox entry/workspace page behaves like a phone-first surface:
+- Reworked `ai.imperialax.com` mobile breakpoints in `src/frontend/imperialax/styles.css`
+  so the main ImperialAX entry/workspace page behaves like a phone-first surface:
   - mobile login now uses a compact brand/header panel, a 3-column module preview
     strip, and a tighter sign-in card instead of a tall stacked desktop pair
   - mobile workspace uses a compact hero, account/sign-out controls in one row,
@@ -8783,7 +8783,7 @@ Follow-up Luvelox mobile web adaptation:
     account/access surfaces
   - adjusted mobile title sizing upward from the previous cramped 25px fallback
     and removed mobile-only forced nowrap where wrapping is safer
-- Bumped public Luvelox CSS cache keys to
+- Bumped public ImperialAX CSS cache keys to
   `styles.css?v=20260619-mobile-adaptive2` in both English and Korean entry
   pages.
 - Updated `DESIGN.md` responsive guidance to state that mobile web must not be a
@@ -8792,9 +8792,9 @@ Follow-up Luvelox mobile web adaptation:
 
 Verification:
 
-- `git diff --check` passed for the changed Luvelox HTML/CSS and `DESIGN.md`.
-- `node --check src/frontend/luvelox/app.js` passed.
-- Public checks confirmed `https://ai.luvelox.com/index.html` serves
+- `git diff --check` passed for the changed ImperialAX HTML/CSS and `DESIGN.md`.
+- `node --check src/frontend/imperialax/app.js` passed.
+- Public checks confirmed `https://ai.imperialax.com/index.html` serves
   `20260619-mobile-adaptive2` and the updated CSS is available.
 - In-app browser checks at 390px width confirmed:
   - English mobile login has no horizontal overflow; login copy height is about
@@ -8862,8 +8862,8 @@ Injection v2 behavior:
 
 Public URLs:
 
-- `https://injection.luvelox.com/index-v2.html`
-- `https://injection.luvelox.com/index-v2.ko.html`
+- `https://injection.imperialax.com/index-v2.html`
+- `https://injection.imperialax.com/index-v2.ko.html`
 - Current cache key: `20260619-injection-v2-5`
 
 Verification:
@@ -8897,7 +8897,7 @@ Verification:
 Follow-up Laminate mobile ply preview:
 
 - User liked the one-page mobile layout, but asked to show the ply stack image
-  again on `laminate.luvelox.com` mobile because visuals help users understand
+  again on `laminate.imperialax.com` mobile because visuals help users understand
   the theta changes.
 - Added compact mobile-only live ply previews inside both active forecast forms:
   - Response Forecast form
@@ -8923,7 +8923,7 @@ Verification:
 
 - `git diff --check` passed for DD Laminate v2 HTML/CSS/JS and `DESIGN.md`.
 - `node --check src/frontend/dd-laminate/app-v2.js` passed.
-- Public curl checks confirmed `https://laminate.luvelox.com/` serves the new
+- Public curl checks confirmed `https://laminate.imperialax.com/` serves the new
   cache keys, mobile preview markup, CSS, and multi-preview JS.
 - In-app browser checks confirmed:
   - 390x844 Response tab: compact preview is visible, contains SVG, sits between
@@ -8969,7 +8969,7 @@ Verification:
 - `git diff --check` passed for the new Injection v2 HTML/CSS before the memory
   update.
 - Public curl check confirmed
-  `https://injection.luvelox.com/injection-v2-flow.html` serves the new file
+  `https://injection.imperialax.com/injection-v2-flow.html` serves the new file
   and references `injection-v2-flow.css`.
 - In-app browser checks confirmed:
   - 6 flow screens render
@@ -8990,9 +8990,9 @@ Current status:
 
 Follow-up Laminate one-screen mobile input:
 
-- User asked for `laminate.luvelox.com` to fit on mobile without scrolling,
-  similar to the `ai.luvelox.com` mobile adaptation.
-- Confirmed that `laminate.luvelox.com` serves DD Laminate v2 from
+- User asked for `laminate.imperialax.com` to fit on mobile without scrolling,
+  similar to the `ai.imperialax.com` mobile adaptation.
+- Confirmed that `laminate.imperialax.com` serves DD Laminate v2 from
   `src/frontend/dd-laminate/index-v2.html`.
 - Measured the previous 390x844 mobile layout:
   - topbar: about 240px
@@ -9024,7 +9024,7 @@ Verification:
 
 - `git diff --check` passed for DD Laminate v2 HTML/CSS/JS.
 - `node --check src/frontend/dd-laminate/app-v2.js` passed.
-- Public checks confirmed `https://laminate.luvelox.com/` serves the new CSS/JS
+- Public checks confirmed `https://laminate.imperialax.com/` serves the new CSS/JS
   cache keys.
 - In-app browser checks confirmed:
   - English 390x844 Response tab: no horizontal or vertical scroll; forecast
@@ -9074,7 +9074,7 @@ Verification:
   - Korean 375x667 Response and u3 tabs: same hidden headers, 168px preview, no
     overflow, and primary button visible around y=633.
 - Browser viewport override was reset after verification and the browser was
-  left on `https://laminate.luvelox.com/?v=mobile-ply3`.
+  left on `https://laminate.imperialax.com/?v=mobile-ply3`.
 
 Follow-up Laminate adaptive mobile ply preview:
 
@@ -9117,16 +9117,16 @@ Verification:
   - 430x932 English and Korean u3 tabs: preview height 254px, no overflow, and
     button visible around y=719.
 - Browser viewport override was reset after verification and the browser was
-  left on `https://laminate.luvelox.com/?v=mobile-ply5`.
+  left on `https://laminate.imperialax.com/?v=mobile-ply5`.
 
-Luvelox real account signup/login foundation:
+ImperialAX real account signup/login foundation:
 
 - User asked to move from visual-only web/app login pages to real login with a
   database and signup page.
-- Added a SQLite-backed Luvelox auth store at
-  `src/backend/services/luvelox_auth_store.py`.
-  - Default DB path: `data/luvelox_auth.sqlite3`.
-  - Override path for tests/deployment: `LUVELOX_AUTH_DB_PATH`.
+- Added a SQLite-backed ImperialAX auth store at
+  `src/backend/services/imperialax_auth_store.py`.
+  - Default DB path: `data/imperialax_auth.sqlite3`.
+  - Override path for tests/deployment: `IMPERIALAX_AUTH_DB_PATH`.
   - Stores users, PBKDF2 password hashes, session tokens, module entitlements,
     and access requests.
   - Seeds legacy demo accounts/tokens so existing demo clients keep working.
@@ -9137,40 +9137,40 @@ Luvelox real account signup/login foundation:
   - `GET /api/v1/modules/me` now resolves real bearer session tokens through
     the auth DB.
   - module access requests are now recorded in the auth DB.
-- Updated Luvelox web login/workspace pages:
+- Updated ImperialAX web login/workspace pages:
   - English and Korean workspace login cards now support switching between
     sign-in and account creation.
   - `login-v2` English/Korean entry pages also support account creation.
   - Real accounts call `/auth/signup` and `/auth/login`; demo button still uses
     the demo endpoint/fallback.
-- Updated Luvelox iOS app:
+- Updated ImperialAX iOS app:
   - Added signup payload/client call.
   - Login now calls the real `/auth/login` route.
   - Login screen can switch to create-account mode with name/company fields.
-- Updated Luvelox Android app:
+- Updated ImperialAX Android app:
   - Added `/auth/login`, `/auth/signup`, and demo-login URL handling.
   - Login card can switch to create-account mode with name/company fields.
   - Stored session format remains unchanged.
 
 Verification:
 
-- `.venv/bin/pytest tests/backend/test_luvelox_modules.py -q` passed:
+- `.venv/bin/pytest tests/backend/test_imperialax_modules.py -q` passed:
   12 tests.
 - `.venv/bin/ruff check` passed for the changed auth backend/test files.
-- `node --check src/frontend/luvelox/app.js` passed.
-- `node --check src/frontend/luvelox/login-v2.js` passed.
-- `cd ios/LuveloxMVP && swift test` passed: 4 tests.
+- `node --check src/frontend/imperialax/app.js` passed.
+- `node --check src/frontend/imperialax/login-v2.js` passed.
+- `cd ios/ImperialAXMVP && swift test` passed: 4 tests.
 - FastAPI smoke check confirmed signup, login, and bearer `/modules/me` using
   a temporary SQLite auth DB.
 - Android Gradle build could not run on this machine because no Java Runtime /
   JDK 17 is installed; Gradle stopped before compiling project code.
 
-Luvelox auth field visibility tweak:
+ImperialAX auth field visibility tweak:
 
 - User clarified that name/company should not appear during login; they are
   only needed for signup.
 - Confirmed iOS/Android already gate name/company fields behind signup mode.
-- Bumped Luvelox web cache keys so browsers load the CSS/JS where signup fields
+- Bumped ImperialAX web cache keys so browsers load the CSS/JS where signup fields
   are hidden in login mode:
   - `styles.css?v=20260619-auth-fields1`
   - `app.js?v=20260619-auth-fields1`
@@ -9179,41 +9179,41 @@ Luvelox auth field visibility tweak:
 
 Verification:
 
-- `node --check src/frontend/luvelox/app.js` passed.
-- `node --check src/frontend/luvelox/login-v2.js` passed.
-- `git diff --check` passed for the touched Luvelox web auth files.
+- `node --check src/frontend/imperialax/app.js` passed.
+- `node --check src/frontend/imperialax/login-v2.js` passed.
+- `git diff --check` passed for the touched ImperialAX web auth files.
 
-Luvelox login Korean entry:
+ImperialAX login Korean entry:
 
 - User noted the login page did not expose Korean.
 - Added visible language switches:
   - English login pages show `한국어`.
   - Korean login pages show `English`.
 - Applied this to both the `login-v2` entry pages and the workspace login pages.
-- Bumped Luvelox web cache keys to `20260619-login-lang1`.
+- Bumped ImperialAX web cache keys to `20260619-login-lang1`.
 
 Verification:
 
-- `node --check src/frontend/luvelox/app.js` passed.
-- `node --check src/frontend/luvelox/login-v2.js` passed.
-- `git diff --check` passed for the touched Luvelox web language files.
+- `node --check src/frontend/imperialax/app.js` passed.
+- `node --check src/frontend/imperialax/login-v2.js` passed.
+- `git diff --check` passed for the touched ImperialAX web language files.
 
-Luvelox login button sizing:
+ImperialAX login button sizing:
 
 - User asked to make `Continue demo` smaller and ensure `Sign in` is fully
   visible.
-- Updated Luvelox web login pages:
+- Updated ImperialAX web login pages:
   - `Sign in` / `로그인` now occupies the full primary row.
   - demo action is shortened to `Demo` / `데모` and styled as a smaller
     secondary button.
   - Applied to both `login-v2` and workspace login pages in English/Korean.
-- Bumped Luvelox web cache keys to `20260619-login-buttons1`.
+- Bumped ImperialAX web cache keys to `20260619-login-buttons1`.
 
 Verification:
 
-- `node --check src/frontend/luvelox/app.js` passed.
-- `node --check src/frontend/luvelox/login-v2.js` passed.
-- `git diff --check` passed for the touched Luvelox login button files.
+- `node --check src/frontend/imperialax/app.js` passed.
+- `node --check src/frontend/imperialax/login-v2.js` passed.
+- `git diff --check` passed for the touched ImperialAX login button files.
 
 ## 2026-06-19 - Injection v2 parametric preview and setup polish
 
@@ -9283,17 +9283,17 @@ Verification:
     and
     `/var/folders/7p/c3j_sb0j539805ngspmnb34r0000gn/T/injection-v2-mobile-viewer.png`
 
-## 2026-06-19 - Luvelox Native Workspace Parity With Web
+## 2026-06-19 - ImperialAX Native Workspace Parity With Web
 
-User noted that the native app view for `ai.luvelox.com/index.html` did not
+User noted that the native app view for `ai.imperialax.com/index.html` did not
 match the web page closely enough, and asked to use the web page as the source
 of truth.
 
 What changed:
 
-- Updated the unified iOS Luvelox app entry screen:
-  - login hero now follows the web `C2ES AI Workspace` /
-    `C2ES Forecast Workspace` hierarchy
+- Updated the unified iOS ImperialAX app entry screen:
+  - login hero now follows the web `ImperialAX AI Workspace` /
+    `ImperialAX Forecast Workspace` hierarchy
   - login form title now matches the web `Sign in` state
   - removed the extra top toolbar account menu so account, refresh, and sign
     out live inside the page like the web version
@@ -9301,9 +9301,9 @@ What changed:
     dark `Prediction modules` intro band, and module-card hierarchy
   - remote module catalog responses are normalized to the same short web copy
     for Laminate, Injection, and Optimization
-- Updated the unified Android Luvelox app entry screen:
+- Updated the unified Android ImperialAX app entry screen:
   - replaced the older `CAE-AI` / `UNIFIED CAE-AI WORKSPACE` shell with the
-    web-style `C2ES AI Workspace` / `C2ES Forecast Workspace` login and home
+    web-style `ImperialAX AI Workspace` / `ImperialAX Forecast Workspace` login and home
     cards
   - added the web-style Laminate / Injection / Optimization preview strip
   - changed the home summary strip to `Account`, `Choose module`, `Forecast`
@@ -9314,17 +9314,17 @@ What changed:
     `L` / `I` / `O` icons
   - normalized remote module catalog responses so connected Android builds keep
     the same web copy
-- Updated `DESIGN.md` to record that the Luvelox native unified app entry must
-  mirror `ai.luvelox.com/index.html` for login, account status, workspace
+- Updated `DESIGN.md` to record that the ImperialAX native unified app entry must
+  mirror `ai.imperialax.com/index.html` for login, account status, workspace
   summary, and module card hierarchy.
 
 Verification:
 
-- `cd ios/LuveloxMVP && swift test` passed: 4 tests.
-- `cd android/LuveloxMVP && JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home gradle :app:assembleDebug` passed.
+- `cd ios/ImperialAXMVP && swift test` passed: 4 tests.
+- `cd android/ImperialAXMVP && JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home gradle :app:assembleDebug` passed.
 - `git diff --check` passed for the changed iOS, Android, and design files.
 - Old workspace/app copy search found no remaining `CAE-AI WORKSPACE`,
-  `UNIFIED CAE-AI`, `C2ES App`, `C2ES MVP workspace`, `C2ES server`, or
+  `UNIFIED CAE-AI`, `ImperialAX App`, `ImperialAX MVP workspace`, `ImperialAX server`, or
   long v1 module summaries in the touched native workspace files.
 
 ## 2026-06-19 - Injection v2 Predicted Flow Preview Restored
@@ -9480,7 +9480,7 @@ Verification:
   `CUSTOM_GEOMETRY_ID`, `markCustomGeometry`, and manual comparison sample
   handling.
 
-## 2026-06-19 - Luvelox Separate Account Creation Page
+## 2026-06-19 - ImperialAX Separate Account Creation Page
 
 User asked to move `Create account` out of the login form into a separate page
 and collect `Name`, `Company`, `Location`, `Mobile`, `Email`, and `Password`.
@@ -9488,106 +9488,106 @@ and collect `Name`, `Company`, `Location`, `Mobile`, `Email`, and `Password`.
 What changed:
 
 - Added standalone English/Korean signup pages:
-  - `src/frontend/luvelox/signup-v2.html`
-  - `src/frontend/luvelox/signup-v2.ko.html`
-  - `src/frontend/luvelox/signup-v2.js`
-- Updated Luvelox login/workspace login screens so `Create account` navigates
+  - `src/frontend/imperialax/signup-v2.html`
+  - `src/frontend/imperialax/signup-v2.ko.html`
+  - `src/frontend/imperialax/signup-v2.js`
+- Updated ImperialAX login/workspace login screens so `Create account` navigates
   to the new signup page instead of toggling inline fields.
 - Kept login focused on only email/password plus demo access.
-- Extended the Luvelox auth store and API user DTO to persist and return
+- Extended the ImperialAX auth store and API user DTO to persist and return
   `location` and `mobile` alongside name/company/email.
 - Added SQLite migration logic so existing `users` tables get `location` and
   `mobile` columns automatically.
 - Added public DD Laminate standalone routes for `/signup-v2.html`,
-  `/signup-v2.ko.html`, and `/signup-v2.js` so `ai.luvelox.com` can serve the
+  `/signup-v2.ko.html`, and `/signup-v2.js` so `ai.imperialax.com` can serve the
   signup flow even when routed through the standalone app.
 - Added tests for signup page serving and signup API persistence of location
   and mobile.
 
 Verification:
 
-- `node --check src/frontend/luvelox/app.js`
-- `node --check src/frontend/luvelox/login-v2.js`
-- `node --check src/frontend/luvelox/signup-v2.js`
-- `.venv/bin/ruff check src/backend/api/v1/modules.py src/backend/services/luvelox_auth_store.py src/backend/dd_laminate_app.py tests/backend/test_luvelox_modules.py tests/backend/test_dd_laminate_ios_contract.py`
-- `.venv/bin/pytest tests/backend/test_luvelox_modules.py tests/backend/test_dd_laminate_ios_contract.py -q`
+- `node --check src/frontend/imperialax/app.js`
+- `node --check src/frontend/imperialax/login-v2.js`
+- `node --check src/frontend/imperialax/signup-v2.js`
+- `.venv/bin/ruff check src/backend/api/v1/modules.py src/backend/services/imperialax_auth_store.py src/backend/dd_laminate_app.py tests/backend/test_imperialax_modules.py tests/backend/test_dd_laminate_ios_contract.py`
+- `.venv/bin/pytest tests/backend/test_imperialax_modules.py tests/backend/test_dd_laminate_ios_contract.py -q`
   passed: 24 tests, with the existing `asyncio_mode` pytest config warning.
 - `git diff --check` passed for the touched signup/login/auth files.
 
-## 2026-06-19 - Luvelox Email ID Hint And Forgot Password Flow
+## 2026-06-19 - ImperialAX Email ID Hint And Forgot Password Flow
 
 User asked to make it clear that email is used as the sign-in ID, and to add a
 Forgot password flow authenticated by name and email.
 
 What changed:
 
-- Added sign-in ID helper text on Luvelox login and signup screens:
+- Added sign-in ID helper text on ImperialAX login and signup screens:
   - English: `This email is used as your sign-in ID.`
   - Korean: `이 이메일이 로그인 ID로 사용됩니다.`
 - Added Forgot password links on the English/Korean login pages and workspace
   login cards.
 - Added standalone English/Korean password reset pages:
-  - `src/frontend/luvelox/forgot-v2.html`
-  - `src/frontend/luvelox/forgot-v2.ko.html`
-  - `src/frontend/luvelox/forgot-v2.js`
+  - `src/frontend/imperialax/forgot-v2.html`
+  - `src/frontend/imperialax/forgot-v2.ko.html`
+  - `src/frontend/imperialax/forgot-v2.js`
 - Added `POST /api/v1/modules/auth/forgot-password`.
-- Implemented reset behavior in `luvelox_auth_store`:
+- Implemented reset behavior in `imperialax_auth_store`:
   - verifies account by normalized email plus case-insensitive normalized name
   - requires the new password to be at least 8 characters
   - updates password hash/salt
   - invalidates existing sessions for that user
   - returns a fresh login session
 - Added DD Laminate standalone static routes for `forgot-v2` pages/scripts so
-  `ai.luvelox.com` can serve the flow through either Luvelox or standalone app
+  `ai.imperialax.com` can serve the flow through either ImperialAX or standalone app
   routing.
 - Added backend tests for successful reset, old-password rejection, wrong-name
   rejection, and public static route coverage.
 
 Verification:
 
-- `node --check src/frontend/luvelox/app.js`
-- `node --check src/frontend/luvelox/login-v2.js`
-- `node --check src/frontend/luvelox/signup-v2.js`
-- `node --check src/frontend/luvelox/forgot-v2.js`
-- `.venv/bin/ruff check src/backend/api/v1/modules.py src/backend/services/luvelox_auth_store.py src/backend/dd_laminate_app.py tests/backend/test_luvelox_modules.py tests/backend/test_dd_laminate_ios_contract.py`
-- `.venv/bin/pytest tests/backend/test_luvelox_modules.py tests/backend/test_dd_laminate_ios_contract.py -q`
+- `node --check src/frontend/imperialax/app.js`
+- `node --check src/frontend/imperialax/login-v2.js`
+- `node --check src/frontend/imperialax/signup-v2.js`
+- `node --check src/frontend/imperialax/forgot-v2.js`
+- `.venv/bin/ruff check src/backend/api/v1/modules.py src/backend/services/imperialax_auth_store.py src/backend/dd_laminate_app.py tests/backend/test_imperialax_modules.py tests/backend/test_dd_laminate_ios_contract.py`
+- `.venv/bin/pytest tests/backend/test_imperialax_modules.py tests/backend/test_dd_laminate_ios_contract.py -q`
   passed: 26 tests, with the existing `asyncio_mode` pytest config warning.
 
-## 2026-06-19 - Public Account Links On ai.luvelox.com
+## 2026-06-19 - Public Account Links On ai.imperialax.com
 
 User could not open the previously mentioned local signup URL and asked to use
-`ai.luvelox.com/signup-v2.html` style URLs instead.
+`ai.imperialax.com/signup-v2.html` style URLs instead.
 
 What changed:
 
-- Restarted the public DD Laminate/Luvelox server on port `8000`, which is the
-  Cloudflare tunnel target for `ai.luvelox.com`.
+- Restarted the public DD Laminate/ImperialAX server on port `8000`, which is the
+  Cloudflare tunnel target for `ai.imperialax.com`.
 - Confirmed the earlier 404 was from the stale server process, not from the
   route definitions.
-- Updated Luvelox account-flow links to use absolute public URLs:
-  - `https://ai.luvelox.com/signup-v2.html`
-  - `https://ai.luvelox.com/signup-v2.ko.html`
-  - `https://ai.luvelox.com/forgot-v2.html`
-  - `https://ai.luvelox.com/forgot-v2.ko.html`
-  - `https://ai.luvelox.com/login-v2.html`
-  - `https://ai.luvelox.com/login-v2.ko.html`
+- Updated ImperialAX account-flow links to use absolute public URLs:
+  - `https://ai.imperialax.com/signup-v2.html`
+  - `https://ai.imperialax.com/signup-v2.ko.html`
+  - `https://ai.imperialax.com/forgot-v2.html`
+  - `https://ai.imperialax.com/forgot-v2.ko.html`
+  - `https://ai.imperialax.com/login-v2.html`
+  - `https://ai.imperialax.com/login-v2.ko.html`
 - Updated login/signup/forgot success redirects to return to
-  `https://ai.luvelox.com/index.html` or `index.ko.html`.
+  `https://ai.imperialax.com/index.html` or `index.ko.html`.
 
 Verification:
 
 - Public GET checks confirmed:
-  - `https://ai.luvelox.com/signup-v2.html` -> `200`
-  - `https://ai.luvelox.com/signup-v2.ko.html` -> `200`
-  - `https://ai.luvelox.com/forgot-v2.html` -> `200`
+  - `https://ai.imperialax.com/signup-v2.html` -> `200`
+  - `https://ai.imperialax.com/signup-v2.ko.html` -> `200`
+  - `https://ai.imperialax.com/forgot-v2.html` -> `200`
 - Public login page now contains:
-  - `href="https://ai.luvelox.com/signup-v2.html"`
-  - `href="https://ai.luvelox.com/forgot-v2.html"`
+  - `href="https://ai.imperialax.com/signup-v2.html"`
+  - `href="https://ai.imperialax.com/forgot-v2.html"`
 - `node --check` passed for `login-v2.js`, `signup-v2.js`, and
   `forgot-v2.js`.
-- `.venv/bin/pytest tests/backend/test_luvelox_modules.py tests/backend/test_dd_laminate_ios_contract.py -q`
+- `.venv/bin/pytest tests/backend/test_imperialax_modules.py tests/backend/test_dd_laminate_ios_contract.py -q`
   passed: 26 tests, with the existing `asyncio_mode` pytest config warning.
-- `git diff --check` passed for the touched Luvelox account-flow files.
+- `git diff --check` passed for the touched ImperialAX account-flow files.
 
 ## 2026-06-19 - Module Pages Link Back To User Page
 
@@ -9608,8 +9608,8 @@ What changed:
   - `src/frontend/simple-injection/index.html`
   - `src/frontend/simple-injection/index.ko.html`
 - Buttons point to:
-  - `https://ai.luvelox.com/index.html`
-  - `https://ai.luvelox.com/index.ko.html`
+  - `https://ai.imperialax.com/index.html`
+  - `https://ai.imperialax.com/index.ko.html`
 - Added backend/static HTML tests so both Laminate and Injection pages must keep
   the User Page return links.
 
@@ -9619,34 +9619,34 @@ Verification:
   passed: 14 tests, with the existing `asyncio_mode` pytest config warning.
 - `git diff --check` passed for touched Laminate/Injection HTML and tests.
 - Public GET checks confirmed:
-  - `https://laminate.luvelox.com/` contains the `Modules` link
-  - `https://laminate.luvelox.com/dd-laminate-v2-ko` contains `모듈 선택`
-  - `https://injection.luvelox.com/index-v2.html` contains the `Modules` link
-  - `https://injection.luvelox.com/index-v2.ko.html` contains `모듈 선택`
+  - `https://laminate.imperialax.com/` contains the `Modules` link
+  - `https://laminate.imperialax.com/dd-laminate-v2-ko` contains `모듈 선택`
+  - `https://injection.imperialax.com/index-v2.html` contains the `Modules` link
+  - `https://injection.imperialax.com/index-v2.ko.html` contains `모듈 선택`
 
-## 2026-06-19 - Luvelox Admin User Management Page
+## 2026-06-19 - ImperialAX Admin User Management Page
 
 User asked where registered user information can be checked and then asked to
 create an admin page.
 
 What changed:
 
-- Added a Luvelox admin users API:
+- Added a ImperialAX admin users API:
   - `GET /api/v1/modules/admin/users`
-  - Requires `X-Luvelox-Admin-Token` or `Authorization: Bearer ...`
-  - Uses `LUVELOX_ADMIN_TOKEN`
+  - Requires `X-ImperialAX-Admin-Token` or `Authorization: Bearer ...`
+  - Uses `IMPERIALAX_ADMIN_TOKEN`
   - Returns user profile fields, entitlements, session count, and last session
     timestamp.
   - Does not return password hashes or reset credentials.
 - Added admin pages:
-  - `src/frontend/luvelox/admin.html`
-  - `src/frontend/luvelox/admin.ko.html`
-  - `src/frontend/luvelox/admin.js`
-- Added admin table/card styling to `src/frontend/luvelox/styles.css`.
+  - `src/frontend/imperialax/admin.html`
+  - `src/frontend/imperialax/admin.ko.html`
+  - `src/frontend/imperialax/admin.js`
+- Added admin table/card styling to `src/frontend/imperialax/styles.css`.
 - Added public routes for `/admin.html`, `/admin.ko.html`, and `/admin.js` on
-  the `dd_laminate_app.py` public server used by `ai.luvelox.com`.
+  the `dd_laminate_app.py` public server used by `ai.imperialax.com`.
 - Created `scripts/run_public_ai_server.sh` so the public LaunchAgent reads the
-  admin token from `.omx/state/luvelox-admin-token.txt` without storing the
+  admin token from `.omx/state/imperialax-admin-token.txt` without storing the
   secret in the plist.
 - Updated `/Users/danlee/Library/LaunchAgents/com.kyulai.dd-laminate-api.plist`
   to run `scripts/run_public_ai_server.sh`; this fixed the stale public server
@@ -9654,17 +9654,17 @@ What changed:
 
 Admin URLs:
 
-- `https://ai.luvelox.com/admin.html`
-- `https://ai.luvelox.com/admin.ko.html`
+- `https://ai.imperialax.com/admin.html`
+- `https://ai.imperialax.com/admin.ko.html`
 
 Verification:
 
-- `node --check src/frontend/luvelox/admin.js`
-- `.venv/bin/ruff check src/backend/api/v1/modules.py src/backend/services/luvelox_auth_store.py src/backend/dd_laminate_app.py tests/backend/test_luvelox_modules.py tests/backend/test_dd_laminate_ios_contract.py`
-- `.venv/bin/pytest tests/backend/test_luvelox_modules.py tests/backend/test_dd_laminate_ios_contract.py -q`
+- `node --check src/frontend/imperialax/admin.js`
+- `.venv/bin/ruff check src/backend/api/v1/modules.py src/backend/services/imperialax_auth_store.py src/backend/dd_laminate_app.py tests/backend/test_imperialax_modules.py tests/backend/test_dd_laminate_ios_contract.py`
+- `.venv/bin/pytest tests/backend/test_imperialax_modules.py tests/backend/test_dd_laminate_ios_contract.py -q`
   passed: 31 tests, with the existing `asyncio_mode` pytest config warning.
 - Local admin API with token returned `user_count: 4`.
-- Public admin API via `https://ai.luvelox.com/api/v1/modules/admin/users` with
+- Public admin API via `https://ai.imperialax.com/api/v1/modules/admin/users` with
   token returned `user_count: 4`.
 - Public admin pages returned `200 text/html` for both English and Korean
   pages.
@@ -9675,26 +9675,26 @@ User asked for password reset inside the admin page.
 
 What changed:
 
-- Added `reset_password_by_user_id()` to the Luvelox auth store.
+- Added `reset_password_by_user_id()` to the ImperialAX auth store.
   - Admin reset updates the password hash/salt.
   - Existing sessions for that user are revoked.
   - The function returns only non-sensitive user profile fields.
 - Added admin API:
   - `POST /api/v1/modules/admin/users/{user_id}/password`
-  - Requires the same `X-Luvelox-Admin-Token` or bearer admin token as the
+  - Requires the same `X-ImperialAX-Admin-Token` or bearer admin token as the
     admin user list API.
   - Accepts `{ "password": "..." }` with the existing 8-character minimum.
 - Added a `Reset password` / `비밀번호 재설정` action button to each row in the
   admin users table.
 - Bumped admin page asset versions to `20260619-admin2`.
 - Restarted the public `com.kyulai.dd-laminate-api` LaunchAgent so
-  `https://ai.luvelox.com/admin.html` serves the updated UI.
+  `https://ai.imperialax.com/admin.html` serves the updated UI.
 
 Verification:
 
-- `node --check src/frontend/luvelox/admin.js`
-- `.venv/bin/ruff check src/backend/api/v1/modules.py src/backend/services/luvelox_auth_store.py tests/backend/test_luvelox_modules.py`
-- `.venv/bin/pytest tests/backend/test_luvelox_modules.py tests/backend/test_dd_laminate_ios_contract.py -q`
+- `node --check src/frontend/imperialax/admin.js`
+- `.venv/bin/ruff check src/backend/api/v1/modules.py src/backend/services/imperialax_auth_store.py tests/backend/test_imperialax_modules.py`
+- `.venv/bin/pytest tests/backend/test_imperialax_modules.py tests/backend/test_dd_laminate_ios_contract.py -q`
   passed: 33 tests, with the existing `asyncio_mode` pytest config warning.
 - Public admin HTML contains `admin2` assets and the `Actions` column.
 - Public admin JS contains the reset-password action.
@@ -9707,7 +9707,7 @@ User confirmed that admin-side module access management is needed.
 
 What changed:
 
-- Added `set_user_entitlements()` to the Luvelox auth store.
+- Added `set_user_entitlements()` to the ImperialAX auth store.
   - Replaces a user's module entitlement set in `user_entitlements`.
   - Rejects missing users via the existing credentials error path.
 - Added admin entitlement API:
@@ -9727,13 +9727,13 @@ What changed:
     in admin changes `/api/v1/modules/me` immediately.
 - Bumped admin page asset versions to `20260619-admin3`.
 - Restarted the public `com.kyulai.dd-laminate-api` LaunchAgent so
-  `https://ai.luvelox.com/admin.html` serves the updated UI.
+  `https://ai.imperialax.com/admin.html` serves the updated UI.
 
 Verification:
 
-- `node --check src/frontend/luvelox/admin.js`
-- `.venv/bin/ruff check src/backend/api/v1/modules.py src/backend/services/luvelox_auth_store.py tests/backend/test_luvelox_modules.py`
-- `.venv/bin/pytest tests/backend/test_luvelox_modules.py tests/backend/test_dd_laminate_ios_contract.py -q`
+- `node --check src/frontend/imperialax/admin.js`
+- `.venv/bin/ruff check src/backend/api/v1/modules.py src/backend/services/imperialax_auth_store.py tests/backend/test_imperialax_modules.py`
+- `.venv/bin/pytest tests/backend/test_imperialax_modules.py tests/backend/test_dd_laminate_ios_contract.py -q`
   passed: 35 tests, with the existing `asyncio_mode` pytest config warning.
 - Public admin HTML contains `admin3`, `Module access`, and `Actions`.
 - Public admin JS contains the entitlement update endpoint and success/error
@@ -9767,37 +9767,37 @@ What changed:
   - Limits search size with `max_candidates`.
 - Added `src/backend/api/v1/optimization.py`.
 - Included the optimization router in:
-  - `src/backend/luvelox_app.py`
+  - `src/backend/imperialax_app.py`
   - `src/backend/dd_laminate_app.py`
 - Added a usable Optimization web screen:
-  - `src/frontend/luvelox/optimization.html`
-  - `src/frontend/luvelox/optimization.ko.html`
-  - `src/frontend/luvelox/optimization.js`
-- Added Optimization UI styling in `src/frontend/luvelox/styles.css`.
+  - `src/frontend/imperialax/optimization.html`
+  - `src/frontend/imperialax/optimization.ko.html`
+  - `src/frontend/imperialax/optimization.js`
+- Added Optimization UI styling in `src/frontend/imperialax/styles.css`.
 - Changed the Optimization catalog entry from planned to active, while keeping
   it entitlement-gated.
 - Updated the module card route:
-  - English: `https://ai.luvelox.com/optimization.html`
-  - Korean workspace opens `https://ai.luvelox.com/optimization.ko.html`
+  - English: `https://ai.imperialax.com/optimization.html`
+  - Korean workspace opens `https://ai.imperialax.com/optimization.ko.html`
 - Added public routes for `/optimization.html`, `/optimization.ko.html`, and
-  `/optimization.js` in the public DD/Luvelox server.
+  `/optimization.js` in the public DD/ImperialAX server.
 - Restarted the public `com.kyulai.dd-laminate-api` LaunchAgent.
 
 Verification:
 
-- `node --check src/frontend/luvelox/app.js`
-- `node --check src/frontend/luvelox/optimization.js`
-- `.venv/bin/ruff check src/backend/api/v1/optimization.py src/backend/api/v1/modules.py src/backend/luvelox_app.py src/backend/dd_laminate_app.py tests/backend/test_luvelox_modules.py tests/backend/test_dd_laminate_ios_contract.py`
-- `.venv/bin/pytest tests/backend/test_luvelox_modules.py tests/backend/test_dd_laminate_ios_contract.py -q`
+- `node --check src/frontend/imperialax/app.js`
+- `node --check src/frontend/imperialax/optimization.js`
+- `.venv/bin/ruff check src/backend/api/v1/optimization.py src/backend/api/v1/modules.py src/backend/imperialax_app.py src/backend/dd_laminate_app.py tests/backend/test_imperialax_modules.py tests/backend/test_dd_laminate_ios_contract.py`
+- `.venv/bin/pytest tests/backend/test_imperialax_modules.py tests/backend/test_dd_laminate_ios_contract.py -q`
   passed: 39 tests, with the existing `asyncio_mode` pytest config warning.
 - Public API smoke test:
-  - `POST https://ai.luvelox.com/api/v1/optimization/search`
+  - `POST https://ai.imperialax.com/api/v1/optimization/search`
   - one Case2 / theta1 30 / theta2 -30 candidate
   - returned one feasible candidate with `predicted_pt`, force, displacement,
     Type, and confidence.
 - Public pages returned `200 text/html`:
-  - `https://ai.luvelox.com/optimization.html`
-  - `https://ai.luvelox.com/optimization.ko.html`
+  - `https://ai.imperialax.com/optimization.html`
+  - `https://ai.imperialax.com/optimization.ko.html`
 - Public `optimization.js` contains `/api/v1/optimization/search`.
 
 ## 2026-06-19 - Optimization Search Speed Fix
@@ -9838,19 +9838,19 @@ Verification:
   - after fast path: first request about 5.4 seconds, cached request about
     1.9 seconds.
 - Public API smoke test:
-  - `POST https://ai.luvelox.com/api/v1/optimization/search`
+  - `POST https://ai.imperialax.com/api/v1/optimization/search`
   - default payload returned `200`, `searched_count=9`,
     `feasible_count=9`, `skipped_count=0`.
 - Public Korean page confirmed updated defaults:
   - Case2 checked.
   - Case3/Case4 unchecked.
   - theta ranges set to -30..30.
-- `node --check src/frontend/luvelox/optimization.js`
+- `node --check src/frontend/imperialax/optimization.js`
 - `.venv/bin/ruff check src/backend/api/v1/optimization.py src/ml/dd_laminate/predict_response_surrogate.py`
-- `.venv/bin/pytest tests/backend/test_luvelox_modules.py tests/backend/test_dd_laminate_ios_contract.py`
+- `.venv/bin/pytest tests/backend/test_imperialax_modules.py tests/backend/test_dd_laminate_ios_contract.py`
   passed: 39 tests, with the existing `asyncio_mode` pytest config warning.
 
-## 2026-06-20 - Admin Module In Luvelox Apps
+## 2026-06-20 - Admin Module In ImperialAX Apps
 
 User asked to make the admin page visible from the app while keeping it hidden
 from other users.
@@ -9858,52 +9858,52 @@ from other users.
 Decision:
 
 - Do not create a separate admin app yet.
-- Add an admin-only module inside the unified Luvelox app.
+- Add an admin-only module inside the unified ImperialAX app.
 - Keep the admin module out of the public module catalog.
 - Add it only to `/api/v1/modules/me` when the logged-in account is an admin.
 - Treat these accounts as admin by default:
-  - `danlee@luvelox.com`
+  - `danlee@imperialax.com`
   - `dannylee9295@gmail.com`
-- Allow `LUVELOX_ADMIN_EMAILS` to override the admin email list.
+- Allow `IMPERIALAX_ADMIN_EMAILS` to override the admin email list.
 
 What changed:
 
 - Added a private `ADMIN_MODULE` definition in `src/backend/api/v1/modules.py`.
 - Added `module.admin` as an effective entitlement for admin accounts.
 - Updated admin API authorization so it accepts:
-  - existing `LUVELOX_ADMIN_TOKEN`
+  - existing `IMPERIALAX_ADMIN_TOKEN`
   - admin account session tokens such as `danlee-token`
 - Updated `/api/v1/modules/me`:
   - `danlee-token` gets Laminate, Injection, Optimization, and Admin.
   - `demo-token` does not receive Admin.
-- Updated `src/frontend/luvelox/admin.js` so `?session_token=...` or
+- Updated `src/frontend/imperialax/admin.js` so `?session_token=...` or
   `?admin_token=...` auto-fills the admin token and loads users.
-- Updated iOS Luvelox app:
+- Updated iOS ImperialAX app:
   - Admin card appears only when the server returns it.
   - Admin opens inside the app via `WKWebView`.
   - Admin URL includes the current app session token.
-- Updated Android Luvelox app:
+- Updated Android ImperialAX app:
   - Added `AdminWebActivity`.
   - Admin opens inside the app via `WebView`.
   - Admin URL includes the current app session token.
 
 Verification:
 
-- `node --check src/frontend/luvelox/admin.js`
-- `.venv/bin/ruff check src/backend/api/v1/modules.py tests/backend/test_luvelox_modules.py`
-- `.venv/bin/pytest tests/backend/test_luvelox_modules.py tests/backend/test_dd_laminate_ios_contract.py`
+- `node --check src/frontend/imperialax/admin.js`
+- `.venv/bin/ruff check src/backend/api/v1/modules.py tests/backend/test_imperialax_modules.py`
+- `.venv/bin/pytest tests/backend/test_imperialax_modules.py tests/backend/test_dd_laminate_ios_contract.py`
   passed: 41 tests, with the existing `asyncio_mode` pytest config warning.
-- `swift test` in `ios/LuveloxMVP` passed.
+- `swift test` in `ios/ImperialAXMVP` passed.
 - `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home gradle :app:assembleDebug`
-  passed in `android/LuveloxMVP`.
+  passed in `android/ImperialAXMVP`.
 - Restarted the public `com.kyulai.dd-laminate-api` LaunchAgent.
 - Public API checks:
-  - `GET https://laminate.luvelox.com/api/v1/modules/me` with
+  - `GET https://laminate.imperialax.com/api/v1/modules/me` with
     `Authorization: Bearer danlee-token` includes `admin`.
   - The same endpoint with `demo-token` does not include `admin`.
-  - `GET /api/v1/modules/admin/users` with `X-Luvelox-Admin-Token:
+  - `GET /api/v1/modules/admin/users` with `X-ImperialAX-Admin-Token:
     danlee-token` returns `200`.
-  - `GET https://ai.luvelox.com/api/v1/modules/admin/users` with
+  - `GET https://ai.imperialax.com/api/v1/modules/admin/users` with
     `danlee-token` returns `200`, matching the in-app admin WebView origin.
   - The same admin endpoint with `demo-token` returns `401`.
 
@@ -10069,7 +10069,7 @@ Verification:
   `predicted_pt = 10205.06331`,
   `curve_fit.kink.force = 10205.06331`.
 - Public URL check confirmed
-  `https://laminate.luvelox.com/index-v2.html` loads
+  `https://laminate.imperialax.com/index-v2.html` loads
   `app-v2.js?v=20260622-backend-fit`.
 - Public API check confirmed `curve_fit` is present and matches Predicted Pt.
 
@@ -10095,7 +10095,7 @@ Verification:
 - `rg` confirmed no v2 `Fit intersection`, `Fit 교차점`, or
   `legend-swatch pt` entries remain.
 - Public page check confirmed
-  `https://laminate.luvelox.com/index-v2.html` loads
+  `https://laminate.imperialax.com/index-v2.html` loads
   `app-v2.js?v=20260622-fit-pt-label`.
 
 Follow-up color tweak:
@@ -10339,15 +10339,15 @@ Third follow-up:
     - Laminate response model `response_goint_physics_nn_v2` -> 200.
     - u3 ML model `u3_forecast_physics_v2` -> 200.
     - u3 DL model `u3_forecast_goint_physics_v2` -> 200.
-  - JavaScript syntax checks for DD, Luvelox, and Simple Injection frontend
+  - JavaScript syntax checks for DD, ImperialAX, and Simple Injection frontend
     files -> passed.
   - iOS SwiftPM:
     - `ios/DDLaminateMVP swift test` -> 11 passed.
-    - `ios/LuveloxMVP swift test` -> 4 passed.
+    - `ios/ImperialAXMVP swift test` -> 4 passed.
   - Android Gradle debug builds:
     - Initial runs failed because macOS Java discovery could not find JDK 17.
     - Re-ran with `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home`.
-    - LuveloxMVP, DDLaminateMVP, and InjectionMVP debug builds all passed.
+    - ImperialAXMVP, DDLaminateMVP, and InjectionMVP debug builds all passed.
 - Fixes made:
   - Replaced deprecated DD standalone FastAPI `@app.on_event("startup")` with
     lifespan startup.
@@ -10359,7 +10359,7 @@ Third follow-up:
   - Added strict feature-name/value zipping for compact and neural-friendly
     physics feature vectors.
   - Cleaned an unused Pt curve consistency variable.
-  - Added `.gitignore` protection for local Luvelox auth SQLite files and Office
+  - Added `.gitignore` protection for local ImperialAX auth SQLite files and Office
     lock files.
 - Remaining known risks:
   - Current `.venv` does not include `pytest-asyncio`, so pytest reports
@@ -10383,7 +10383,7 @@ Follow-up in same debugging pass:
   - `pyproject.toml` now uses `explicit_package_bases = true`.
   - `Makefile typecheck` now passes `--explicit-package-bases`.
 - Fixed targeted typing/runtime-boundary issues in current serving paths:
-  - DD/Luvelox host parsing now handles a missing `Host` header safely.
+  - DD/ImperialAX host parsing now handles a missing `Host` header safely.
   - DD API dynamic model bundle/checkpoint outputs are cast at the boundary
     before being passed into Pydantic responses.
   - u3 forecast/checkpoint loader uses `Any` at artifact boundaries and strict
@@ -10394,14 +10394,14 @@ Follow-up in same debugging pass:
   - Optimization default factories now return fully typed defaults.
 - Targeted checks now passing:
   - `ruff check` on changed DD/Simple Injection/optimization/model helper files.
-  - `mypy --explicit-package-bases` on DD app, Luvelox app, DD API, Simple
+  - `mypy --explicit-package-bases` on DD app, ImperialAX app, DD API, Simple
     Injection API, optimization API, DD/u3 model helpers, and Simple Injection
     data loader.
   - `pytest tests -q` -> 170 passed, 2 scipy precision warnings.
   - `compileall -q src scripts tests` -> passed.
-  - `node --check` for DD, Luvelox, and Simple Injection frontend app files -> passed.
-  - `swift test` for iOS DD and Luvelox packages -> 11 passed / 4 passed.
-  - Android `gradle :app:assembleDebug` for LuveloxMVP, DDLaminateMVP, and
+  - `node --check` for DD, ImperialAX, and Simple Injection frontend app files -> passed.
+  - `swift test` for iOS DD and ImperialAX packages -> 11 passed / 4 passed.
+  - Android `gradle :app:assembleDebug` for ImperialAXMVP, DDLaminateMVP, and
     InjectionMVP -> all passed with `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home`.
 - Remaining known technical debt:
   - Full `mypy --explicit-package-bases src --ignore-missing-imports` still has
@@ -10425,7 +10425,7 @@ Follow-up in same debugging pass:
   - Simple Injection standalone app now exposes `/ready`, returning model-file
     and dependency availability for sprue/filling ML, GointMLP, and DeepONet
     models.
-  - Luvelox unified app also exposes `/ready`, combining DD and Simple
+  - ImperialAX unified app also exposes `/ready`, combining DD and Simple
     Injection readiness.
 - Improved Windows scripts:
   - `Setup-WindowsServing.ps1` now checks the configured Python command,
@@ -10438,7 +10438,7 @@ Follow-up in same debugging pass:
   - `Start-CloudflareTunnel.ps1` now fails with a clear install command if
     `cloudflared.exe` is not on PATH.
 - Updated portable bundle coverage:
-  - `scripts/package_windows_bundle.py` now includes the Luvelox/C2ES frontend,
+  - `scripts/package_windows_bundle.py` now includes the ImperialAX/ImperialAX frontend,
     all currently API-referenced DD model directories, all currently
     API-referenced Simple Injection sprue/filling model directories, and the
     current Double-Double/u3 curated datasets needed for serving handoff.
@@ -10457,7 +10457,7 @@ Follow-up in same debugging pass:
   - Size: about 1.3 GB.
   - Entries: 9,867 files.
 - Bundle includes:
-  - DD Laminate, Simple Injection, and Luvelox/C2ES backend/frontend runtime code.
+  - DD Laminate, Simple Injection, and ImperialAX/ImperialAX backend/frontend runtime code.
   - Windows serving scripts under `scripts/windows`.
   - Serving requirements and `.env.windows.example`.
   - Current API-referenced DD and Simple Injection model directories.
@@ -10522,7 +10522,7 @@ Follow-up in same debugging pass:
     results.
   - It does not run for Curve CSV preview/classification flows.
   - Local `/` may still serve the legacy page unless the host is
-    `laminate.luvelox.com`; local v2 testing should use `/index-v2.html` or
+    `laminate.imperialax.com`; local v2 testing should use `/index-v2.html` or
     the v2 route exposed by the server.
 - Updated DD v2 HTML asset query strings to
   `20260623-research-insight` so browsers/Cloudflare fetch the current
@@ -10644,7 +10644,7 @@ Follow-up in same debugging pass:
   - zone sample count and rate
   - selected Case highlight
 - Bumped DD v2 asset query strings to `20260623-case-insight`.
-- Restarted local DD/Luvelox server on port `8000`; new listener PID was
+- Restarted local DD/ImperialAX server on port `8000`; new listener PID was
   `15345`.
 - Verification:
   - `node --check src/frontend/dd-laminate/app-v2.js`
@@ -10699,7 +10699,7 @@ Follow-up in same debugging pass:
     - Type `0.18`
     - Distance/proximity `0.075`
   - Bumped DD v2 asset query strings to `20260623-score-breakdown`.
-  - Restarted local DD/Luvelox server on port `8000`; new listener PID was
+  - Restarted local DD/ImperialAX server on port `8000`; new listener PID was
     `46131`.
   - Verification:
     - `node --check src/frontend/dd-laminate/app-v2.js`
@@ -10726,24 +10726,24 @@ Follow-up in same debugging pass:
   - Updated all DD iOS graph callsites to pass `curveFit`.
   - Reworked `CurveChartView` so standard Laminate Forecast graphs prefer
     backend `curve_fit`, while u3 keeps its web-style u3 fit behavior.
-  - Made the chart module public enough for the Luvelox package to reuse.
+  - Made the chart module public enough for the ImperialAX package to reuse.
   - Added `/xai/local` support to the iOS API client and ViewModel:
     if prediction responses do not include XAI, iOS now fetches local XAI with
     the same `theta1`, `theta2`, `Case`, and model key, then attaches it before
     presenting the result detail.
-  - Added a compact graph + XAI block to the Luvelox-specific
+  - Added a compact graph + XAI block to the ImperialAX-specific
     `LaminateForecastView`; the actual app path currently opens
     `DDLaminateModuleView`, which also received the graph/XAI fixes.
 - Verification:
   - `swift test` in `ios/DDLaminateMVP`: 11 tests passed.
-  - `swift build` in `ios/LuveloxMVP`: passed.
+  - `swift build` in `ios/ImperialAXMVP`: passed.
   - XcodeBuildMCP simulator run:
-    - project: `ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj`
-    - scheme: `LuveloxMVPHost`
+    - project: `ios/ImperialAXMVPApp/ImperialAXMVPHost.xcodeproj`
+    - scheme: `ImperialAXMVPHost`
     - simulator: `iPhone 17`
     - build/install/launch succeeded.
   - Simulator smoke flow:
-    - opened C2ES app
+    - opened ImperialAX app
     - opened Laminate module
     - ran default `Case2`, `theta1=30`, `theta2=-30` forecast
     - result showed Type 2, Predicted Pt `17,163.21`, 128 curve points
@@ -10773,10 +10773,10 @@ Follow-up in same debugging pass:
     revised web layout direction.
 - Verification:
   - `swift test` in `ios/DDLaminateMVP`: 11 tests passed.
-  - `swift build` in `ios/LuveloxMVP`: passed.
+  - `swift build` in `ios/ImperialAXMVP`: passed.
   - XcodeBuildMCP simulator run succeeded with:
-    - project: `ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj`
-    - scheme: `LuveloxMVPHost`
+    - project: `ios/ImperialAXMVPApp/ImperialAXMVPHost.xcodeproj`
+    - scheme: `ImperialAXMVPHost`
     - simulator: `iPhone 17`
   - Laminate Forecast smoke check:
     - default `Case2`, `theta1=30`, `theta2=-30`
@@ -10817,7 +10817,7 @@ Follow-up in same debugging pass:
     - Axes are theta1 x theta2 from -90 to +90.
 - Verification:
   - `swift test` in `ios/DDLaminateMVP`: 11 tests passed.
-  - `swift build` in `ios/LuveloxMVP`: passed.
+  - `swift build` in `ios/ImperialAXMVP`: passed.
   - XcodeBuildMCP build/run succeeded on `iPhone 17`.
   - Laminate Forecast simulator smoke check confirmed:
     - `Design-space map` appears in Research Insight.
@@ -10848,7 +10848,7 @@ Follow-up in same debugging pass:
     unchanged; this pass was visual/readability-focused.
 - Verification:
   - `swift test` in `ios/DDLaminateMVP`: 11 tests passed.
-  - `swift build` in `ios/LuveloxMVP`: passed.
+  - `swift build` in `ios/ImperialAXMVP`: passed.
   - XcodeBuildMCP simulator smoke check on `iPhone 17` confirmed:
     - Laminate Forecast result detail shows the v2 hero and result cards.
     - u3 Forecast result detail shows the v2 hero and result cards.
@@ -10873,7 +10873,7 @@ Follow-up in same debugging pass:
     distinct visual positions.
 - Verification:
   - `swift test` in `ios/DDLaminateMVP`: 11 tests passed.
-  - `swift build` in `ios/LuveloxMVP`: passed.
+  - `swift build` in `ios/ImperialAXMVP`: passed.
   - XcodeBuildMCP build/run succeeded on `iPhone 17`.
   - Laminate Forecast simulator smoke check confirmed the updated
     `Case behavior zones` layout.
@@ -10906,13 +10906,13 @@ Follow-up in same debugging pass:
     smoke attempts were intermittent in the sandbox, while the server process
     remained listening on port 8000.
 
-## 2026-06-23 - C2ES app login-screen check
+## 2026-06-23 - ImperialAX app login-screen check
 - User asked whether the mobile app was missing a login page.
 - Findings:
   - iOS and Android both have a login page; the app skips it when a saved
     account/demo session exists.
-  - iOS stores the session under `luvelox.auth.session.v1` in `UserDefaults`.
-  - Android stores the session under the `luvelox_auth` SharedPreferences.
+  - iOS stores the session under `imperialax.auth.session.v1` in `UserDefaults`.
+  - Android stores the session under the `imperialax_auth` SharedPreferences.
   - Both apps expose `Sign out`, which clears the saved session and re-renders
     the login page.
 - Verification:
@@ -10922,7 +10922,7 @@ Follow-up in same debugging pass:
     password, `Sign in`, `Create a new account`, and
     `Continue with demo account`.
 
-## 2026-06-23 - C2ES app session timeout
+## 2026-06-23 - ImperialAX app session timeout
 - User asked whether the app can automatically log out after staying logged in
   for some time.
 - Decision:
@@ -10931,8 +10931,8 @@ Follow-up in same debugging pass:
     first app launch time after this update, so users are not logged out
     immediately on upgrade.
 - iOS:
-  - Stores `luvelox.auth.saved_at.v1` next to the existing
-    `luvelox.auth.session.v1` session in `UserDefaults`.
+  - Stores `imperialax.auth.saved_at.v1` next to the existing
+    `imperialax.auth.session.v1` session in `UserDefaults`.
   - Checks expiry on startup, refresh/request actions, and app active-state
     transitions.
   - Expired sessions are cleared and the login screen shows
@@ -10940,40 +10940,40 @@ Follow-up in same debugging pass:
   - Added tests for expired-session clearing and legacy-session timestamp
     migration.
 - Android:
-  - Stores `saved_at_ms` next to the existing `luvelox_auth` SharedPreferences
+  - Stores `saved_at_ms` next to the existing `imperialax_auth` SharedPreferences
     values.
   - Checks expiry on startup, resume, and before opening a module.
   - Expired sessions are cleared and the login screen shows the same message.
 - Verification:
-  - `swift test` in `ios/LuveloxMVP`: 6 tests passed.
-  - `swift build` in `ios/LuveloxMVP`: passed.
-  - XcodeBuildMCP `build_run_sim` for `LuveloxMVPHost` on `iPhone 17`: passed.
+  - `swift test` in `ios/ImperialAXMVP`: 6 tests passed.
+  - `swift build` in `ios/ImperialAXMVP`: passed.
+  - XcodeBuildMCP `build_run_sim` for `ImperialAXMVPHost` on `iPhone 17`: passed.
   - Runtime UI snapshot showed the login screen with email/password fields,
     `Sign in`, `Create a new account`, and `Continue with demo account`.
   - Android `gradle :app:assembleDebug` passed when run with
     `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home`.
 
-## 2026-06-23 - C2ES app Optimization module routing
+## 2026-06-23 - ImperialAX app Optimization module routing
 - User asked whether Optimization was reflected in the app.
 - Findings:
   - Optimization backend/API and web page already existed:
-    `/api/v1/optimization/search` and `src/frontend/luvelox/optimization.html`.
+    `/api/v1/optimization/search` and `src/frontend/imperialax/optimization.html`.
   - iOS/Android apps already listed the Optimization module, but the fallback
     copy still treated it as planned/coming soon and the app route pointed at
-    the generic `https://ai.luvelox.com` module page.
+    the generic `https://ai.imperialax.com` module page.
 - Changes:
   - Updated iOS and Android fallback module metadata to treat Optimization as
     an active, access-controlled module.
   - Updated Optimization module route to
-    `https://ai.luvelox.com/optimization.html`.
+    `https://ai.imperialax.com/optimization.html`.
   - Updated login preview copy from `Coming soon` to `Design search`.
   - iOS now opens granted Optimization access inside the existing in-app
     WebView with the session token attached.
   - Android now opens Optimization with the existing WebView activity and the
     session token attached.
 - Verification:
-  - `swift test` in `ios/LuveloxMVP`: 6 tests passed.
-  - `swift build` in `ios/LuveloxMVP`: passed.
+  - `swift test` in `ios/ImperialAXMVP`: 6 tests passed.
+  - `swift build` in `ios/ImperialAXMVP`: passed.
   - Android `gradle :app:assembleDebug` passed with Java 17 `JAVA_HOME`.
   - XcodeBuildMCP simulator smoke:
     - Login preview shows Optimization as `Design search`.
@@ -11004,17 +11004,17 @@ Follow-up in same debugging pass:
   - Existing module access toggles and password reset remain available.
   - Bumped Admin asset cache version to `20260623-admin-account`.
 - Verification:
-  - `/Users/danlee/KyulAI_codex/.venv/bin/python -m pytest tests/backend/test_luvelox_modules.py`:
+  - `/Users/danlee/KyulAI_codex/.venv/bin/python -m pytest tests/backend/test_imperialax_modules.py`:
     29 passed.
-  - `node --check src/frontend/luvelox/admin.js`: passed.
+  - `node --check src/frontend/imperialax/admin.js`: passed.
   - `git diff --check`: passed.
 
-## 2026-06-24 - C2ES app interactive design-space map
+## 2026-06-24 - ImperialAX app interactive design-space map
 - User asked for the in-app design-space map to show point details when dots
   are tapped, and to remain usable when the map does not fit the screen.
 - iOS changes:
   - Added an interactive `InteractiveDesignSpaceMapView` inside
-    `ios/LuveloxMVP/Sources/LuveloxApp/LaminateForecastView.swift`.
+    `ios/ImperialAXMVP/Sources/ImperialAXApp/LaminateForecastView.swift`.
   - The map is wider than the card and wrapped in a horizontal `ScrollView`,
     so users can pan across the full theta1/theta2 design space.
   - Tapping a map dot selects the nearest simulation/design point and shows
@@ -11022,17 +11022,17 @@ Follow-up in same debugging pass:
   - Current input and top candidate markers remain visually distinct.
 - Android changes:
   - Preserved backend `map_points` in
-    `android/LuveloxMVP/app/src/main/java/com/luvelox/app/LaminateActivity.kt`.
+    `android/ImperialAXMVP/app/src/main/java/com/imperialax/app/LaminateActivity.kt`.
   - Added a custom `DesignSpaceMapView` in
-    `android/LuveloxMVP/app/src/main/java/com/luvelox/app/LaminateResultActivity.kt`.
+    `android/ImperialAXMVP/app/src/main/java/com/imperialax/app/LaminateResultActivity.kt`.
   - The map is placed in a `HorizontalScrollView`; short taps select points,
     while drags continue to scroll the map.
   - Point details update in a compact info panel below the map.
 - Artifact:
   - Copied the refreshed Android APK to
-    `artifacts/android/C2ES-debug-design-space-map.apk`.
+    `artifacts/android/ImperialAX-debug-design-space-map.apk`.
 - Verification:
-  - `swift test` in `ios/LuveloxMVP`: 6 tests passed.
+  - `swift test` in `ios/ImperialAXMVP`: 6 tests passed.
   - Android `gradle :app:assembleDebug` passed with Java 17 `JAVA_HOME`.
   - `git diff --check`: passed.
 
@@ -11057,7 +11057,7 @@ Follow-up in same debugging pass:
   - If the design-space request fails, the result page shows a visible
     unavailable card instead of silently omitting Research Insight.
   - Refreshed Android APK artifact:
-    `artifacts/android/C2ES-debug-design-space-map.apk`.
+    `artifacts/android/ImperialAX-debug-design-space-map.apk`.
 - Verification:
   - Android `gradle :app:assembleDebug` passed with Java 17 `JAVA_HOME`.
   - Android `gradle :app:lintDebug` passed with Java 17 `JAVA_HOME`.
@@ -11090,37 +11090,37 @@ Follow-up in same debugging pass:
   - Bumped web asset query versions to `20260624-auth-refresh1`.
 - Artifact:
   - Refreshed Android APK:
-    `artifacts/android/C2ES-debug-design-space-map.apk`.
+    `artifacts/android/ImperialAX-debug-design-space-map.apk`.
 - Verification:
-  - `node --check src/frontend/luvelox/app.js`: passed.
-  - `node --check src/frontend/luvelox/login-v2.js`: passed.
-  - `swift test` in `ios/LuveloxMVP`: 6 tests passed.
+  - `node --check src/frontend/imperialax/app.js`: passed.
+  - `node --check src/frontend/imperialax/login-v2.js`: passed.
+  - `swift test` in `ios/ImperialAXMVP`: 6 tests passed.
   - Android `gradle :app:assembleDebug` passed with Java 17 `JAVA_HOME`.
   - Android `gradle :app:lintDebug` passed with Java 17 `JAVA_HOME`.
   - `git diff --check` passed.
 
 ## 2026-06-24 - Demo email placeholder cleanup
-- User asked that `demo@luvelox.com` should not be pre-filled as actual text in
+- User asked that `demo@imperialax.com` should not be pre-filled as actual text in
   the login ID field. It should appear like an example/placeholder and
   disappear automatically when the user taps and types.
 - Platform alignment:
-  - Android already used `demo@luvelox.com` as an `EditText` hint rather than a
+  - Android already used `demo@imperialax.com` as an `EditText` hint rather than a
     direct input value, so no Android source change was needed.
-  - iOS now starts with an empty email state and uses `demo@luvelox.com` as the
+  - iOS now starts with an empty email state and uses `demo@imperialax.com` as the
     `TextField` placeholder.
   - iOS blank Sign in still resolves to the demo email internally, preserving
     the demo-account convenience without forcing users to erase text.
   - Web `index`, `index.ko`, `login-v2`, and `login-v2.ko` now use
-    `placeholder="demo@luvelox.com"` instead of a `value`.
+    `placeholder="demo@imperialax.com"` instead of a `value`.
   - Web demo buttons clear the email field instead of filling it with the demo
     address, while the existing blank-email demo fallback remains active.
   - Web asset query versions bumped to `20260624-auth-placeholder1`.
 - Verification:
-  - Search confirmed no remaining `value="demo@luvelox.com"` or prefilled iOS
+  - Search confirmed no remaining `value="demo@imperialax.com"` or prefilled iOS
     email state in the login inputs.
-  - `node --check src/frontend/luvelox/app.js`: passed.
-  - `node --check src/frontend/luvelox/login-v2.js`: passed.
-  - `swift test` in `ios/LuveloxMVP`: 6 tests passed.
+  - `node --check src/frontend/imperialax/app.js`: passed.
+  - `node --check src/frontend/imperialax/login-v2.js`: passed.
+  - `swift test` in `ios/ImperialAXMVP`: 6 tests passed.
 
 ## 2026-06-24 - App design-space point selection fix
 - User reported that tapping the design-space control/points inside the app did
@@ -11143,9 +11143,9 @@ Follow-up in same debugging pass:
   - Uses a higher-priority map tap gesture and a larger nearest-point radius.
 - Artifact:
   - Refreshed Android APK:
-    `artifacts/android/C2ES-debug-design-space-map.apk`.
+    `artifacts/android/ImperialAX-debug-design-space-map.apk`.
 - Verification:
-  - `swift test` in `ios/LuveloxMVP`: 6 tests passed.
+  - `swift test` in `ios/ImperialAXMVP`: 6 tests passed.
   - Android `gradle :app:assembleDebug` passed with JetBrains JBR Java 17.
   - Android `gradle :app:lintDebug` passed with JetBrains JBR Java 17.
   - `git diff --check` passed.
@@ -11211,7 +11211,7 @@ Follow-up in same debugging pass:
     `θ₂`, with degrees displayed as `°`.
 - Artifact:
   - Refreshed Android APK:
-    `artifacts/android/C2ES-debug-design-space-map.apk`.
+    `artifacts/android/ImperialAX-debug-design-space-map.apk`.
 - Verification:
   - Android `gradle :app:assembleDebug` passed with JetBrains JBR Java 17.
   - Android `gradle :app:lintDebug` passed with JetBrains JBR Java 17.
@@ -11222,7 +11222,7 @@ Follow-up in same debugging pass:
   presentation more closely, including visible legend items and two clear red
   slope/linear-fit lines.
 - Updated the shared SwiftUI `CurveChartView` used by both DD Laminate iOS and
-  the Luvelox/C2ES iOS host:
+  the ImperialAX/ImperialAX iOS host:
   - Added a responsive legend for predicted curve, linear fit, kink guide, and
     Predicted Pt.
   - Added English/Korean localized legend strings.
@@ -11232,13 +11232,13 @@ Follow-up in same debugging pass:
     to distinguish on phone screens.
   - Kept backend `curve_fit` usage for standard forecasts and u3 fit behavior.
 - Increased chart frame heights in DD result panels, detail views, share image,
-  and the Luvelox Laminate forecast result so adding the legend does not shrink
+  and the ImperialAX Laminate forecast result so adding the legend does not shrink
   the graph too aggressively.
 - Verification:
   - `swift test` in `ios/DDLaminateMVP`: 11 tests passed.
-  - `swift test` in `ios/LuveloxMVP`: 6 tests passed.
+  - `swift test` in `ios/ImperialAXMVP`: 6 tests passed.
   - `git diff --check` passed.
-  - XcodeBuildMCP built and launched `LuveloxMVPHost` on the iPhone 17
+  - XcodeBuildMCP built and launched `ImperialAXMVPHost` on the iPhone 17
     simulator successfully.
   - Simulator smoke test ran a Laminate forecast and confirmed the Response
     Curve result screen renders the new legend.
@@ -11261,9 +11261,9 @@ Follow-up in same debugging pass:
     fit only when the API does not provide `curve_fit`.
 - Artifact:
   - Refreshed Android APK:
-    `artifacts/android/C2ES-debug-response-curve-zoom.apk`.
+    `artifacts/android/ImperialAX-debug-response-curve-zoom.apk`.
   - Also refreshed the usual install path:
-    `artifacts/android/C2ES-debug-design-space-map.apk`.
+    `artifacts/android/ImperialAX-debug-design-space-map.apk`.
 - Verification:
   - Android `gradle :app:assembleDebug` passed with JetBrains JBR Java 17.
   - Android `gradle :app:lintDebug` passed with JetBrains JBR Java 17.
@@ -11287,9 +11287,9 @@ Follow-up in same debugging pass:
     drag.
 - Artifact:
   - Refreshed Android APK:
-    `artifacts/android/C2ES-debug-result-order-zoom.apk`.
+    `artifacts/android/ImperialAX-debug-result-order-zoom.apk`.
   - Also refreshed:
-    `artifacts/android/C2ES-debug-design-space-map.apk`.
+    `artifacts/android/ImperialAX-debug-design-space-map.apk`.
 - Verification:
   - Android `gradle :app:assembleDebug` passed with JetBrains JBR Java 17.
   - Android `gradle :app:lintDebug` passed with JetBrains JBR Java 17.
@@ -11309,9 +11309,9 @@ Follow-up in same debugging pass:
     uncluttered.
 - Artifact:
   - Refreshed Android APK:
-    `artifacts/android/C2ES-debug-curve-tap.apk`.
+    `artifacts/android/ImperialAX-debug-curve-tap.apk`.
   - Also refreshed:
-    `artifacts/android/C2ES-debug-design-space-map.apk`.
+    `artifacts/android/ImperialAX-debug-design-space-map.apk`.
 - Verification:
   - Android `gradle :app:assembleDebug` passed with JetBrains JBR Java 17.
   - Android `gradle :app:lintDebug` passed with JetBrains JBR Java 17.
@@ -11331,9 +11331,9 @@ Follow-up in same debugging pass:
     plot boundaries.
 - Artifact:
   - Refreshed Android APK:
-    `artifacts/android/C2ES-debug-curve-scrub.apk`.
+    `artifacts/android/ImperialAX-debug-curve-scrub.apk`.
   - Also refreshed:
-    `artifacts/android/C2ES-debug-design-space-map.apk`.
+    `artifacts/android/ImperialAX-debug-design-space-map.apk`.
 - Verification:
   - Android `gradle :app:assembleDebug` passed with JetBrains JBR Java 17.
   - Android `gradle :app:lintDebug` passed with JetBrains JBR Java 17.
@@ -11352,9 +11352,9 @@ Follow-up in same debugging pass:
   - Added subtle card elevation and softened chart plot/grid colors so the
     Response Curve and Design-space map feel less harsh.
 - Artifact:
-  - Created Android APK: `artifacts/android/C2ES-debug-ios-style.apk`.
+  - Created Android APK: `artifacts/android/ImperialAX-debug-ios-style.apk`.
   - Refreshed shared Android APK path:
-    `artifacts/android/C2ES-debug-design-space-map.apk`.
+    `artifacts/android/ImperialAX-debug-design-space-map.apk`.
 - Verification:
   - Android `gradle :app:assembleDebug` passed with JetBrains JBR Java 17.
   - Android `gradle :app:lintDebug` passed with JetBrains JBR Java 17.
@@ -11377,9 +11377,9 @@ Follow-up in same debugging pass:
     the zoomed pan behavior.
   - This matches the Android curve interaction model more closely.
 - Artifact:
-  - Created Android APK: `artifacts/android/C2ES-debug-ios-android-parity.apk`.
+  - Created Android APK: `artifacts/android/ImperialAX-debug-ios-android-parity.apk`.
   - Refreshed shared Android APK path:
-    `artifacts/android/C2ES-debug-design-space-map.apk`.
+    `artifacts/android/ImperialAX-debug-design-space-map.apk`.
 - Verification:
   - Android `gradle :app:assembleDebug` passed with JetBrains JBR Java 17.
   - Android `gradle :app:lintDebug` passed with JetBrains JBR Java 17.
@@ -11401,9 +11401,9 @@ Follow-up in same debugging pass:
   - Increased Case/Model spinner touch height for clearer mobile input.
 - Artifact:
   - Created Android APK:
-    `artifacts/android/C2ES-debug-forecast-setup-sections.apk`.
+    `artifacts/android/ImperialAX-debug-forecast-setup-sections.apk`.
   - Refreshed shared Android APK path:
-    `artifacts/android/C2ES-debug-design-space-map.apk`.
+    `artifacts/android/ImperialAX-debug-design-space-map.apk`.
 - Verification:
   - Android `gradle :app:assembleDebug` passed with JetBrains JBR Java 17.
   - Android `gradle :app:lintDebug` passed with JetBrains JBR Java 17.
@@ -11432,11 +11432,11 @@ Follow-up in same debugging pass:
   - Added a shared recent-history writer plus selected-record deletion by
     history signature.
 - Artifact:
-  - Created Android APK: `artifacts/android/C2ES-debug-history-delete.apk`.
+  - Created Android APK: `artifacts/android/ImperialAX-debug-history-delete.apk`.
 - Verification:
   - Web `node --check src/frontend/dd-laminate/app-v2.js` passed.
   - iOS `swift test` passed in `ios/DDLaminateMVP` with 11 tests.
-  - iOS `swift build` passed in `ios/LuveloxMVP`.
+  - iOS `swift build` passed in `ios/ImperialAXMVP`.
   - Android `gradle :app:assembleDebug` passed with JetBrains JBR Java 17.
 
 ## 2026-06-24 - Android u3 Forecast restoration
@@ -11463,7 +11463,7 @@ Follow-up in same debugging pass:
   - Result screen receives `EXTRA_LAMINATE_MODE`; u3 runs show `u3 Forecast`
     as the result title and request Research Insight with `scope = "u3"`.
 - Artifact:
-  - Created Android APK: `artifacts/android/C2ES-debug-u3-restored.apk`.
+  - Created Android APK: `artifacts/android/ImperialAX-debug-u3-restored.apk`.
 - Verification:
   - Android `gradle :app:assembleDebug` passed with JetBrains JBR Java 17.
   - Android `gradle :app:lintDebug` passed with JetBrains JBR Java 17.
@@ -11583,17 +11583,17 @@ Follow-up in same debugging pass:
     and right-side input field.
   - Added English and Korean localizations for the new section titles.
   - Existing defaults already start from `G01 / P01`; this remains unchanged.
-- Android C2ES/Luvelox Injection app update:
+- Android ImperialAX/ImperialAX Injection app update:
   - Explicitly selects `G01` and `P01` after DOE catalog loading when available.
   - Replaced the flat value grid with `Process details` and `Geometry details`
     sections using compact cards, blue readouts, mini bars, and value pills.
   - Built and copied the updated debug APK to
-    `artifacts/android/C2ES-debug-injection-detail-cards.apk`.
+    `artifacts/android/ImperialAX-debug-injection-detail-cards.apk`.
 - Verification:
   - `swift test` in `ios/InjectionMVP` passed: 8 tests.
-  - `swift build` in `ios/LuveloxMVP` passed.
+  - `swift build` in `ios/ImperialAXMVP` passed.
   - `JAVA_HOME=/Applications/PyCharm.app/Contents/jbr/Contents/Home gradle :app:assembleDebug`
-    in `android/LuveloxMVP` passed.
+    in `android/ImperialAXMVP` passed.
   - `git diff --check` passed for the touched app files.
 
 ## 2026-06-24 - Injection app prediction model label parity
@@ -11612,12 +11612,12 @@ Follow-up in same debugging pass:
   `GointMLP NN`, and `DeepONet NN` cannot silently reappear in app display
   paths.
 - Built and copied the updated Android debug APK to
-  `artifacts/android/C2ES-debug-injection-model-label-parity.apk`.
+  `artifacts/android/ImperialAX-debug-injection-model-label-parity.apk`.
 - Verification:
   - `swift test` in `ios/InjectionMVP` passed: 8 tests.
-  - `swift build` in `ios/LuveloxMVP` passed.
+  - `swift build` in `ios/ImperialAXMVP` passed.
   - `JAVA_HOME=/Applications/PyCharm.app/Contents/jbr/Contents/Home gradle :app:assembleDebug`
-    in `android/LuveloxMVP` passed.
+    in `android/ImperialAXMVP` passed.
   - `git diff --check` passed for the model-label app files and session memory.
 
 ## 2026-06-24 - Laminate predict flow restored to history/result page
@@ -11639,9 +11639,9 @@ Follow-up in same debugging pass:
     when a result exists.
 - Verification:
   - `swift test` in `ios/DDLaminateMVP` passed: 11 tests.
-  - `swift build` in `ios/LuveloxMVP` passed.
+  - `swift build` in `ios/ImperialAXMVP` passed.
   - `JAVA_HOME=/Applications/PyCharm.app/Contents/jbr/Contents/Home gradle :app:assembleDebug`
-    in `android/LuveloxMVP` passed.
+    in `android/ImperialAXMVP` passed.
   - `git diff --check` passed for the touched Laminate app files and session
     memory.
 
@@ -11662,7 +11662,7 @@ Follow-up in same debugging pass:
   route experiment, not the history panel itself.
 - Verification:
   - `swift test` in `ios/DDLaminateMVP` passed: 11 tests.
-  - `swift build` in `ios/LuveloxMVP` passed.
+  - `swift build` in `ios/ImperialAXMVP` passed.
   - `git diff --check` passed for `ContentViewV2.swift` and session memory.
 
 ## 2026-06-24 - iOS Injection UI aligned with Laminate
@@ -11685,10 +11685,10 @@ Follow-up in same debugging pass:
   - Fixed the Injection SwiftUI preview to inject required environment objects.
 - Verification:
   - `swift test` in `ios/InjectionMVP` passed: 8 tests.
-  - `swift build` in `ios/LuveloxMVP` passed.
-  - XcodeBuildMCP built and launched `LuveloxMVPHost` on the iPhone 17
+  - `swift build` in `ios/ImperialAXMVP` passed.
+  - XcodeBuildMCP built and launched `ImperialAXMVPHost` on the iPhone 17
     simulator.
-  - Simulator screenshot reached the C2ES workspace/login flow; direct
+  - Simulator screenshot reached the ImperialAX workspace/login flow; direct
     Injection screen navigation was limited by the current UI automation
     scroll gesture failing in this simulator environment.
 
@@ -11716,7 +11716,7 @@ Follow-up in same debugging pass:
   - Added the same research-purpose card to the active iOS DD module
     `ContentViewV2`.
   - Added the same research-purpose card to Android
-    `android/LuveloxMVP/.../LaminateActivity.kt`.
+    `android/ImperialAXMVP/.../LaminateActivity.kt`.
 - Design note:
   - Refreshed `DESIGN.md` to record the DD Laminate research-purpose brief as a
     supported top-of-screen context component.
@@ -11724,7 +11724,7 @@ Follow-up in same debugging pass:
   - `git diff --check` passed for the touched web/app/design files.
   - `swift test` in `ios/DDLaminateMVP` passed: 11 tests.
   - `JAVA_HOME=/Applications/PyCharm.app/Contents/jbr/Contents/Home gradle :app:assembleDebug`
-    in `android/LuveloxMVP` passed.
+    in `android/ImperialAXMVP` passed.
   - Local web render check passed for English and Korean pages; mobile width
     390px showed no page-level horizontal overflow.
 
@@ -11751,21 +11751,21 @@ Follow-up in same debugging pass:
 - User asked for the very top Laminate name to fit on one line in both English
   and Korean.
 - Web changes:
-  - `C2ES Laminate Forecast` and `C2ES 적층 예측` now render as one-line `h1`
+  - `ImperialAX Laminate Forecast` and `ImperialAX 적층 예측` now render as one-line `h1`
     text by removing the block-style span behavior.
   - Web title sizing now uses a smaller responsive clamp and `white-space:
     nowrap`.
   - CSS cache query was bumped to `20260626-title-nowrap`.
 - App changes:
   - iOS DD active screen `ContentViewV2` and legacy `ContentView` now use
-    `C2ES Laminate Forecast` / `C2ES 적층 예측` without embedded newlines.
-  - Legacy Luvelox Laminate SwiftUI screen also uses a one-line title.
-  - Android Luvelox Laminate screen now uses `C2ES Laminate Forecast` without
+    `ImperialAX Laminate Forecast` / `ImperialAX 적층 예측` without embedded newlines.
+  - Legacy ImperialAX Laminate SwiftUI screen also uses a one-line title.
+  - Android ImperialAX Laminate screen now uses `ImperialAX Laminate Forecast` without
     embedded newline and a smaller one-line title size.
 - Verification:
   - `git diff --check` passed for the touched files.
   - `swift test` in `ios/DDLaminateMVP` passed: 11 tests.
-  - `swift build` in `ios/LuveloxMVP` passed.
+  - `swift build` in `ios/ImperialAXMVP` passed.
   - Android `gradle :app:assembleDebug` passed.
   - Web English/Korean pages at 320px and 390px rendered the top title as one
     line with no page-level horizontal overflow.
@@ -11908,7 +11908,7 @@ Follow-up in same debugging pass:
   - `python -m compileall src/data/rag/answer.py src/backend/api/v1/rag.py`
     passed.
   - Restarted DD server on port 8000.
-  - Public `https://laminate.luvelox.com/api/v1/rag/answer` now returns a
+  - Public `https://laminate.imperialax.com/api/v1/rag/answer` now returns a
     Korean D11 explanation before citations.
 
 ## 2026-06-26 - RAG citation toggle and LLM setup note
@@ -11964,7 +11964,7 @@ Follow-up in same debugging pass:
     - `provider: openai`
     - `model: gpt-5.4-mini`
     - `used_llm: true`
-  - Public `https://laminate.luvelox.com/api/v1/rag/answer` returned the same
+  - Public `https://laminate.imperialax.com/api/v1/rag/answer` returned the same
     OpenAI provider fields.
 - Safety:
   - Did not print or store the actual key in logs, docs, or git-tracked files.
@@ -12285,7 +12285,7 @@ Follow-up in same debugging pass:
   - `python -m compileall src/backend/simple_injection_app.py` passed.
   - `node --check src/frontend/simple-injection/app-v2.js` passed.
   - Restarted the Injection server on port 8010.
-  - `https://injection.luvelox.com/` now returns v2 markers and the updated
+  - `https://injection.imperialax.com/` now returns v2 markers and the updated
     `styles-v2.css?v=20260626-injection-xai-1`.
 
 ## 2026-06-26 - Injection Korean XAI copy and header cleanup
@@ -12411,7 +12411,7 @@ Follow-up in same debugging pass:
   - Smoke test for `보압 시간이 왜 영향력을 주는 것 같아?` with `수지 온도`
     at 25.6% and `보압 시간` at 9.1% returned a `보압 시간`-specific answer
     and did not repeat the 25.6% melt-temperature explanation.
-  - Public `https://injection.luvelox.com/` serves `20260626-injection-rag-2`,
+  - Public `https://injection.imperialax.com/` serves `20260626-injection-rag-2`,
     and public `app-v2.js` uses the full `data.xai.top_features.map(...)`.
 
 ## 2026-06-26 - Injection assistant causal explanation quality improved
@@ -12502,11 +12502,11 @@ Follow-up in same debugging pass:
 - Verification:
   - `swift test` in `ios/InjectionMVP` passed: 8 tests.
   - `swift test` in `ios/DDLaminateMVP` passed: 11 tests.
-  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+  - `swift test` in `ios/ImperialAXMVP` passed: 6 tests.
   - XcodeBuildMCP build/run of
-    `ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj` scheme `LuveloxMVPHost`
+    `ios/ImperialAXMVPApp/ImperialAXMVPHost.xcodeproj` scheme `ImperialAXMVPHost`
     on booted iPhone 17 simulator succeeded.
-  - Simulator screenshot succeeded and showed the C2ES Forecast Workspace login
+  - Simulator screenshot succeeded and showed the ImperialAX Forecast Workspace login
     screen.
 - Remaining performance candidates:
   - Laminate `DesignSpaceMapView` sorts nearby map points during view render.
@@ -12514,10 +12514,10 @@ Follow-up in same debugging pass:
     calculations in the render path. These are good next targets if Laminate
     result pages still feel slow.
 
-## 2026-06-26 - Fixed iOS Open Injection freeze in Luvelox host
+## 2026-06-26 - Fixed iOS Open Injection freeze in ImperialAX host
 - User reported that tapping `Open Injection` froze the iOS app.
 - Root cause:
-  - `LuveloxMVP` opens module cards inside an existing `NavigationStack`.
+  - `ImperialAXMVP` opens module cards inside an existing `NavigationStack`.
   - The Injection module destination used `InjectionModuleView()`, whose
     internal `ContentView` created another `NavigationStack`.
   - This nested NavigationStack path could freeze or heavily stall the
@@ -12529,18 +12529,18 @@ Follow-up in same debugging pass:
     - Embedded Injection can render inside the host's existing navigation stack.
   - `ios/InjectionMVP/Sources/KyulAIInjectionApp/InjectionModuleView.swift`
     - Added `embedInNavigationStack` initializer option.
-  - `ios/LuveloxMVP/Sources/LuveloxApp/ContentView.swift`
+  - `ios/ImperialAXMVP/Sources/ImperialAXApp/ContentView.swift`
     - `Open Injection` now uses
       `InjectionModuleView(embedInNavigationStack: false)`.
 - Verification:
   - `swift test` in `ios/InjectionMVP` passed: 8 tests.
-  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
-  - XcodeBuildMCP rebuilt and launched `LuveloxMVPHost` on iPhone 17 simulator.
+  - `swift test` in `ios/ImperialAXMVP` passed: 6 tests.
+  - XcodeBuildMCP rebuilt and launched `ImperialAXMVPHost` on iPhone 17 simulator.
   - UI automation flow:
     - tapped `Continue with demo account`;
     - scrolled to `Open Injection`;
     - tapped `Open Injection`;
-    - confirmed the Injection screen opened with `C2ES Injection Forecast` and
+    - confirmed the Injection screen opened with `ImperialAX Injection Forecast` and
       `Connected` visible.
 
 ## 2026-06-26 - Injection XAI visible in native apps
@@ -12558,14 +12558,14 @@ Follow-up in same debugging pass:
     - Full result page now shows an `Injection XAI` card after the pressure
       curve.
     - Shows top 8 features with category, percent bar, and explanation.
-  - `android/LuveloxMVP/app/src/main/java/com/luvelox/app/InjectionActivity.kt`
+  - `android/ImperialAXMVP/app/src/main/java/com/imperialax/app/InjectionActivity.kt`
     - Android Injection result card now shows an `Injection XAI` section when
       `xaiFeatures` are present.
     - Shows top 5 features with percent bars and explanations before the
       assistant card.
 - Verification:
   - `swift test` in `ios/InjectionMVP` passed: 8 tests.
-  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+  - `swift test` in `ios/ImperialAXMVP` passed: 6 tests.
   - Android compile check was attempted with
     `gradle :app:compileDebugKotlin`, but the local Mac still has no Java 17
     runtime, so Gradle stopped before Kotlin compilation.
@@ -12588,12 +12588,12 @@ Follow-up in same debugging pass:
     - The card sends the current prediction context with the question:
       mode, model, inputs, predicted Type, Pt, max displacement/force, and
       top XAI features.
-  - `android/LuveloxMVP/app/src/main/java/com/luvelox/app/LaminateResultActivity.kt`
+  - `android/ImperialAXMVP/app/src/main/java/com/imperialax/app/LaminateResultActivity.kt`
     - Added a Laminate AI Assistant card to the native Android result page.
     - It posts the current result and XAI context to the same RAG endpoint.
 - Verification:
   - `swift test` in `ios/DDLaminateMVP` passed: 11 tests.
-  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+  - `swift test` in `ios/ImperialAXMVP` passed: 6 tests.
   - Public RAG endpoint smoke test passed with a D11 bending stiffness question
     and returned internal XAI report citations.
   - Android compile check was attempted with
@@ -12613,13 +12613,13 @@ Follow-up in same debugging pass:
     - Added a `Shape Preview` section inside the Injection input card.
     - Added `InjectionShapePreviewView`, a SwiftUI Canvas 2.5D panel preview
       with hole, edge gate, flow guide, and dimension chips.
-  - `android/LuveloxMVP/app/src/main/java/com/luvelox/app/InjectionActivity.kt`
+  - `android/ImperialAXMVP/app/src/main/java/com/imperialax/app/InjectionActivity.kt`
     - Added a `Shape Preview` section above process/geometry details.
     - Added `InjectionShapePreviewView`, a native Android custom View drawing
       the same DOE-driven panel/hole/gate preview.
 - Verification:
   - `swift test` in `ios/InjectionMVP` passed: 8 tests.
-  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+  - `swift test` in `ios/ImperialAXMVP` passed: 6 tests.
   - `git diff --check` passed for the changed iOS/Android files.
   - Android compile check was attempted with
     `gradle :app:compileDebugKotlin`, but Gradle still cannot start on this Mac
@@ -12628,7 +12628,7 @@ Follow-up in same debugging pass:
 ## 2026-06-26 - Hardened iOS Injection Shape Preview after main-thread crash report
 - User reported Xcode stopping at `Thread 1 Queue : com.apple.main-thread`.
 - Reproduction attempt:
-  - Built and launched `LuveloxMVPHost` on the iPhone 17 simulator.
+  - Built and launched `ImperialAXMVPHost` on the iPhone 17 simulator.
   - Opened the Injection module and scrolled to the new `Shape Preview`
     section.
   - The simulator did not reproduce a crash; the preview rendered normally.
@@ -12640,8 +12640,8 @@ Follow-up in same debugging pass:
       cannot enter preview geometry calculations.
 - Verification:
   - `swift test` in `ios/InjectionMVP` passed: 8 tests.
-  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
-  - XcodeBuildMCP build/run of `LuveloxMVPHost` succeeded.
+  - `swift test` in `ios/ImperialAXMVP` passed: 6 tests.
+  - XcodeBuildMCP build/run of `ImperialAXMVPHost` succeeded.
   - UI automation opened Injection and confirmed the `Shape Preview` section
     with G01 dimensions visible.
 
@@ -12663,8 +12663,8 @@ Follow-up in same debugging pass:
       path.
 - Verification:
   - `swift test` in `ios/DDLaminateMVP` passed: 11 tests.
-  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
-  - XcodeBuildMCP build/run of `LuveloxMVPHost` succeeded.
+  - `swift test` in `ios/ImperialAXMVP` passed: 6 tests.
+  - XcodeBuildMCP build/run of `ImperialAXMVPHost` succeeded.
   - UI automation opened Laminate, tapped `Run Forecast`, and confirmed the
     result detail page opened with `Predicted Pt 17,163.21`.
 
@@ -12672,7 +12672,7 @@ Follow-up in same debugging pass:
 - User reported that `Open Injection` froze, the Injection preview did not feel
   consistent with DOE geometry, and Injection needed RAG inside the app.
 - Reproduction:
-  - Built and launched `LuveloxMVPHost` on the iPhone 17 simulator.
+  - Built and launched `ImperialAXMVPHost` on the iPhone 17 simulator.
   - Demo-login state was active.
   - Tapped `Open Injection`; the current build entered the Injection module
     without freezing.
@@ -12687,14 +12687,14 @@ Follow-up in same debugging pass:
     - Added `Injection AI Assistant` to the full result page.
     - The assistant now sends prediction context, inputs, XAI features, pressure,
       filling, model labels, and curve metadata to `/api/v1/rag/answer`.
-  - `android/LuveloxMVP/app/src/main/java/com/luvelox/app/InjectionActivity.kt`
+  - `android/ImperialAXMVP/app/src/main/java/com/imperialax/app/InjectionActivity.kt`
     - Reworked native Injection shape preview to the same top-view DOE geometry
       interpretation used by iOS.
 - Verification:
   - `swift test` in `ios/InjectionMVP` passed: 8 tests.
-  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+  - `swift test` in `ios/ImperialAXMVP` passed: 6 tests.
   - `git diff --check` passed.
-  - XcodeBuildMCP build/run of `LuveloxMVPHost` succeeded.
+  - XcodeBuildMCP build/run of `ImperialAXMVPHost` succeeded.
   - UI automation opened Injection, confirmed the `Shape Preview` section with
     G01 dimensions visible, tapped `Predict Pressure`, and confirmed the result
     detail page opened.
@@ -12739,7 +12739,7 @@ Follow-up in same debugging pass:
     passed: 17 tests.
   - `git diff --check` passed.
   - Restarted both uvicorn servers on ports 8000 and 8010.
-  - Public smoke checks against `https://injection.luvelox.com/api/v1/rag/answer`
+  - Public smoke checks against `https://injection.imperialax.com/api/v1/rag/answer`
     returned HTTP 200 for both Korean and English Injection assistant questions.
 
 ## 2026-06-29 - Improved Laminate Assistant keyboard dismissal on iOS
@@ -12769,7 +12769,7 @@ Follow-up in same debugging pass:
     - Applied the same behavior to the Injection main-screen Assistant card.
 - Verification:
   - `swift test` in `ios/InjectionMVP` passed: 8 tests.
-  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+  - `swift test` in `ios/ImperialAXMVP` passed: 6 tests.
   - `git diff --check` passed.
 
 ## 2026-06-29 - Made mobile module cards tappable, not only the Open button
@@ -12780,17 +12780,17 @@ Follow-up in same debugging pass:
   - The module card itself was not a navigation target, so tapping the
     `Injection` card/title/body felt unresponsive.
 - Fix:
-  - `ios/LuveloxMVP/Sources/LuveloxApp/ContentView.swift`
+  - `ios/ImperialAXMVP/Sources/ImperialAXApp/ContentView.swift`
     - Wrapped granted Laminate and Injection module cards in `NavigationLink`.
     - The whole card is now tappable while preserving the existing button-like
       visual label.
-  - `android/LuveloxMVP/app/src/main/java/com/luvelox/app/MainActivity.kt`
+  - `android/ImperialAXMVP/app/src/main/java/com/imperialax/app/MainActivity.kt`
     - Added a card-level click listener so tapping the Android module card also
       opens the module or shows the access dialog.
 - Verification:
-  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+  - `swift test` in `ios/ImperialAXMVP` passed: 6 tests.
   - `swift test` in `ios/InjectionMVP` passed: 8 tests.
-  - XcodeBuildMCP build/run of `LuveloxMVPHost` succeeded.
+  - XcodeBuildMCP build/run of `ImperialAXMVPHost` succeeded.
   - UI automation confirmed the Injection card is now one tap target and opens
     the `Injection Forecast AI` screen.
   - Android compile check is still blocked by missing Java 17 toolchain on the
@@ -12812,7 +12812,7 @@ Follow-up in same debugging pass:
     too-small preview size during layout.
 - Verification:
   - `swift test` in `ios/InjectionMVP` passed: 8 tests.
-  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+  - `swift test` in `ios/ImperialAXMVP` passed: 6 tests.
   - `git diff --check` passed.
   - XcodeBuildMCP build/run succeeded.
   - UI automation opened Injection and scrolled to `Shape Preview`; the card
@@ -12830,7 +12830,7 @@ Follow-up in same debugging pass:
   - Kept geometry value sanitization before rendering.
 - Verification:
   - `swift test` in `ios/InjectionMVP` passed: 8 tests.
-  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+  - `swift test` in `ios/ImperialAXMVP` passed: 6 tests.
   - `git diff --check` passed.
   - XcodeBuildMCP build/run succeeded.
   - UI automation opened Injection and scrolled to `Shape Preview`; the preview
@@ -12852,7 +12852,7 @@ Follow-up in same debugging pass:
   - The old line 511 `content()` crash site no longer exists.
 - Verification:
   - `swift test` in `ios/InjectionMVP` passed: 8 tests.
-  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+  - `swift test` in `ios/ImperialAXMVP` passed: 6 tests.
   - `git diff --check` passed.
   - XcodeBuildMCP build/run succeeded.
   - UI automation opened Injection, scrolled through Shape Preview, Process
@@ -12883,13 +12883,13 @@ Follow-up in same debugging pass:
       paragraphs with better line spacing.
   - `ios/InjectionMVP/Sources/KyulAIInjectionApp/ResultDetailView.swift`
     - Result Assistant now uses the same answer block.
-  - `android/LuveloxMVP/app/src/main/java/com/luvelox/app/InjectionActivity.kt`
+  - `android/ImperialAXMVP/app/src/main/java/com/imperialax/app/InjectionActivity.kt`
     - Android Injection Assistant now renders answers as paragraph rows inside
       a bordered answer block.
 - Verification:
   - `python -m pytest tests/unit/test_rag_answer.py` passed: 14 tests.
   - `swift test` in `ios/InjectionMVP` passed: 8 tests.
-  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+  - `swift test` in `ios/ImperialAXMVP` passed: 6 tests.
   - `git diff --check` passed.
   - Backend API test collection is blocked in this local Python by missing
     `fastapi`.
@@ -12905,14 +12905,14 @@ Follow-up in same debugging pass:
   - Kept compatibility/fail-safe fallbacks that protect offline modules,
     local history, and local RAG answers.
 - Fixes:
-  - `android/LuveloxMVP/app/src/main/java/com/luvelox/app/MainActivity.kt`
+  - `android/ImperialAXMVP/app/src/main/java/com/imperialax/app/MainActivity.kt`
     - Removed an invalid login-card click handler that referenced `module`
       outside scope and broke Android Kotlin compilation.
-  - `src/frontend/luvelox/login-v2.html`,
-    `src/frontend/luvelox/login-v2.ko.html`,
-    `src/frontend/luvelox/login-v2.js`, and
-    `src/frontend/luvelox/app.js`
-    - Replaced remaining visible web fallback `Luvelox Demo` account copy with
+  - `src/frontend/imperialax/login-v2.html`,
+    `src/frontend/imperialax/login-v2.ko.html`,
+    `src/frontend/imperialax/login-v2.js`, and
+    `src/frontend/imperialax/app.js`
+    - Replaced remaining visible web fallback `ImperialAX Demo` account copy with
       `Demo Account`.
   - `tests/backend/test_dd_laminate_ios_contract.py`
     - Updated stale route/static expectations to the current UX contract:
@@ -12925,12 +12925,12 @@ Follow-up in same debugging pass:
     `java_home` does not discover it.
   - Verified Android with explicit `JAVA_HOME=/opt/homebrew/opt/openjdk@17`.
 - Verification:
-  - JS syntax checks passed for DD Laminate, Simple Injection, Luvelox app,
-    Luvelox login, and Luvelox admin scripts.
+  - JS syntax checks passed for DD Laminate, Simple Injection, ImperialAX app,
+    ImperialAX login, and ImperialAX admin scripts.
   - Python backend/RAG suite passed: 71 tests.
   - `swift test` in `ios/DDLaminateMVP` passed: 11 tests.
   - `swift test` in `ios/InjectionMVP` passed: 8 tests.
-  - `swift test` in `ios/LuveloxMVP` passed: 6 tests.
+  - `swift test` in `ios/ImperialAXMVP` passed: 6 tests.
   - Android `gradle :app:assembleDebug --no-daemon` passed with explicit JDK 17.
   - `git diff --check` passed.
 - Remaining notes:
@@ -12994,8 +12994,8 @@ Follow-up in same debugging pass:
     - Localizes backend result notes in Korean mode.
   - `src/frontend/simple-injection/styles-v2.css`
     - Added compact history-card styles.
-- Android Luvelox app changes:
-  - `android/LuveloxMVP/app/src/main/java/com/luvelox/app/InjectionActivity.kt`
+- Android ImperialAX app changes:
+  - `android/ImperialAXMVP/app/src/main/java/com/imperialax/app/InjectionActivity.kt`
     - Added SharedPreferences-backed recent Injection history cards.
     - Added Korean XAI label/explanation copy when the device locale is Korean.
     - Added Korean Assistant default question/note text.
@@ -13026,7 +13026,7 @@ Follow-up in same debugging pass:
   - `ios/InjectionMVP/Sources/KyulAIInjectionApp/ResultDetailView.swift`
     - Updated result-detail Assistant to use the same polished answer block.
 - Android Injection:
-  - `android/LuveloxMVP/app/src/main/java/com/luvelox/app/InjectionActivity.kt`
+  - `android/ImperialAXMVP/app/src/main/java/com/imperialax/app/InjectionActivity.kt`
     - Renders Assistant answers as a headed block with summary/reasoning cards.
 - Verification:
   - `swift test` in `ios/InjectionMVP` passed: 8 tests.
@@ -13060,7 +13060,7 @@ Follow-up in same debugging pass:
   - Added `PredictionUncertainty` Codable model and result-detail card in
     `ios/DDLaminateMVP`.
 - Android:
-  - Added uncertainty parsing to the Luvelox Laminate API result model and a
+  - Added uncertainty parsing to the ImperialAX Laminate API result model and a
     compact result-detail section in `LaminateResultActivity`.
 - Verification:
   - `.venv/bin/python` FastAPI TestClient checks returned uncertainty for
@@ -13069,7 +13069,7 @@ Follow-up in same debugging pass:
   - `node --check src/frontend/dd-laminate/app-v2.js` passed.
   - `swift test --package-path ios/DDLaminateMVP` passed 11 tests.
   - Android Gradle compile could not run because this Mac does not have a Java
-    17 toolchain configured for the Luvelox Android project.
+    17 toolchain configured for the ImperialAX Android project.
 
 ## 2026-06-30 - DD Laminate Case5 / Explicit Ply-Sequence Preview
 - User asked whether new laminate stacking patterns can be applied from the
@@ -13120,7 +13120,7 @@ Follow-up in same debugging pass:
   - `node --check src/frontend/dd-laminate/app-v2.js` passed.
   - Local backend curl to `/stack/preview` returned HTTP 200 for the sample
     16-ply Case5 sequence.
-  - Public `https://laminate.luvelox.com/` serves
+  - Public `https://laminate.imperialax.com/` serves
     `app-v2.js?v=20260630-stack-lab`.
   - Browser smoke test clicked `Stack Lab`, verified active mode and 16-ply
     live preview, then ran `Preview Stack Physics`; result showed 16 plies,
@@ -13143,7 +13143,7 @@ Follow-up in same debugging pass:
   stack-formula / generated-sequence wording.
 - Verification:
   - `node --check src/frontend/dd-laminate/app-v2.js` passed.
-  - Public `https://laminate.luvelox.com/` serves
+  - Public `https://laminate.imperialax.com/` serves
     `app-v2.js?v=20260702-formula-parser`.
   - Browser smoke test:
     - Default `[[±θ₁]/[±θ₂]/[∓θ₂]/[∓θ₁]]₂` generated 16 plies.
@@ -13194,20 +13194,20 @@ Follow-up in same debugging pass:
 - Verification:
   - `node --check src/frontend/simple-injection/app-v2.js` passed.
 
-## 2026-07-03 - C2ES App Latest Build
+## 2026-07-03 - ImperialAX App Latest Build
 - User asked to update the app to the latest version.
 - Android:
-  - Built the unified Android app from `android/LuveloxMVP`.
+  - Built the unified Android app from `android/ImperialAXMVP`.
   - Used JDK 17 explicitly because the default macOS Java runtime was not
     registered.
   - Copied the latest debug APK to:
-    - `artifacts/android/C2ES-debug-20260703-latest.apk`
-    - `artifacts/android/C2ES-debug-latest.apk`
+    - `artifacts/android/ImperialAX-debug-20260703-latest.apk`
+    - `artifacts/android/ImperialAX-debug-latest.apk`
 - iOS:
-  - `swift test` passed for `ios/LuveloxMVP`.
+  - `swift test` passed for `ios/ImperialAXMVP`.
   - Simulator build succeeded for
-    `ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj`, scheme
-    `LuveloxMVPHost`, with `CODE_SIGNING_ALLOWED=NO`.
+    `ios/ImperialAXMVPApp/ImperialAXMVPHost.xcodeproj`, scheme
+    `ImperialAXMVPHost`, with `CODE_SIGNING_ALLOWED=NO`.
 - Verification:
   - Android `gradle assembleDebug` passed.
   - iOS Swift package tests passed: 6 tests, 0 failures.
@@ -13216,9 +13216,9 @@ Follow-up in same debugging pass:
 ## 2026-07-03 - Imperialax Cloudflare Server Routing
 - User registered `imperialax.com` and asked to connect the current app/web
   servers.
-- Updated DD/Luvelox host routing:
-  - `ai.imperialax.com` and `app.imperialax.com` serve the C2ES workspace
-    login from the DD/Luvelox server on port 8000.
+- Updated DD/ImperialAX host routing:
+  - `ai.imperialax.com` and `app.imperialax.com` serve the ImperialAX workspace
+    login from the DD/ImperialAX server on port 8000.
   - `laminate.imperialax.com` and `dd.imperialax.com` serve the Laminate
     Forecast v2 page from port 8000.
   - `injection.imperialax.com` is routed in the Cloudflare Tunnel config to
@@ -13234,45 +13234,45 @@ Follow-up in same debugging pass:
   - `python3 -m py_compile src/backend/dd_laminate_app.py` passed.
   - Local `/ready` checks for ports 8000 and 8010 returned ready/ok models.
   - Local Host-header checks served the expected pages:
-    - `ai.imperialax.com` / `app.imperialax.com`: C2ES Account Access.
-    - `laminate.imperialax.com` / `dd.imperialax.com`: C2ES Laminate Forecast.
-    - `injection.imperialax.com`: C2ES Injection Forecast v2.
+    - `ai.imperialax.com` / `app.imperialax.com`: ImperialAX Account Access.
+    - `laminate.imperialax.com` / `dd.imperialax.com`: ImperialAX Laminate Forecast.
+    - `injection.imperialax.com`: ImperialAX Injection Forecast v2.
 - DNS caveat:
   - `imperialax.com` NS resolves to Cloudflare
     (`weston.ns.cloudflare.com`, `tegan.ns.cloudflare.com`).
   - The local `cloudflared tunnel route dns` authentication is currently tied
-    to the existing `luvelox.com` zone, so CLI-created records landed under
-    `*.imperialax.com.luvelox.com` instead of the `imperialax.com` zone.
+    to the existing `imperialax.com` zone, so CLI-created records landed under
+    `*.imperialax.com.imperialax.com` instead of the `imperialax.com` zone.
   - Add the intended `imperialax.com` CNAME records manually in the Cloudflare
     dashboard, or re-run `cloudflared tunnel login` for the `imperialax.com`
     zone before using CLI DNS provisioning.
 
-## 2026-07-03 - Luvelox Root Domain Restored
-- User asked to keep `luvelox.com` open and verify that it works.
+## 2026-07-03 - ImperialAX Root Domain Restored
+- User asked to keep `imperialax.com` open and verify that it works.
 - Root cause:
-  - DD/Luvelox and Injection servers were running and ready.
-  - `laminate.luvelox.com` and `injection.luvelox.com` already returned HTTP 200.
-  - `luvelox.com` and `www.luvelox.com` returned Cloudflare Tunnel HTTP 404 because they were missing from the active tunnel ingress list.
+  - DD/ImperialAX and Injection servers were running and ready.
+  - `laminate.imperialax.com` and `injection.imperialax.com` already returned HTTP 200.
+  - `imperialax.com` and `www.imperialax.com` returned Cloudflare Tunnel HTTP 404 because they were missing from the active tunnel ingress list.
 - Fix:
-  - Added `luvelox.com` and `www.luvelox.com` to the active Cloudflare Tunnel config, routed to port 8000.
+  - Added `imperialax.com` and `www.imperialax.com` to the active Cloudflare Tunnel config, routed to port 8000.
   - Mirrored the same entries into the Windows example tunnel config.
   - Restarted `cloudflared` with `/Users/danlee/KyulAI_codex/infrastructure/cloudflare/kclab-composite-ai.yml`.
 - Verification:
-  - `https://luvelox.com`, `https://www.luvelox.com`, `https://laminate.luvelox.com`, and `https://injection.luvelox.com` all returned HTTP 200 after restart.
+  - `https://imperialax.com`, `https://www.imperialax.com`, `https://laminate.imperialax.com`, and `https://injection.imperialax.com` all returned HTTP 200 after restart.
 
-## 2026-07-03 - Luvelox Root Redirect to AI Workspace
-- User asked to make `luvelox.com` connect to `ai.luvelox.com`.
+## 2026-07-03 - ImperialAX Root Redirect to AI Workspace
+- User asked to make `imperialax.com` connect to `ai.imperialax.com`.
 - Updated `/Users/danlee/KyulAI_codex/src/backend/dd_laminate_app.py`:
-  - Added `AI_REDIRECT_HOSTS = {"luvelox.com", "www.luvelox.com"}`.
-  - Root requests for those hosts now return HTTP 308 to `https://ai.luvelox.com/`.
-- Restarted the DD/Luvelox uvicorn server on port 8000.
+  - Added `AI_REDIRECT_HOSTS = {"imperialax.com", "www.imperialax.com"}`.
+  - Root requests for those hosts now return HTTP 308 to `https://ai.imperialax.com/`.
+- Restarted the DD/ImperialAX uvicorn server on port 8000.
 - Verification:
   - `python3 -m py_compile src/backend/dd_laminate_app.py` passed.
-  - Local Host-header checks for `luvelox.com` and `www.luvelox.com` return `308 Location: https://ai.luvelox.com/`.
+  - Local Host-header checks for `imperialax.com` and `www.imperialax.com` return `308 Location: https://ai.imperialax.com/`.
   - Public checks:
-    - `https://luvelox.com` -> HTTP 308 to `https://ai.luvelox.com/`.
-    - `https://www.luvelox.com` -> HTTP 308 to `https://ai.luvelox.com/`.
-    - `https://ai.luvelox.com`, `https://laminate.luvelox.com`, and `https://injection.luvelox.com` return HTTP 200.
+    - `https://imperialax.com` -> HTTP 308 to `https://ai.imperialax.com/`.
+    - `https://www.imperialax.com` -> HTTP 308 to `https://ai.imperialax.com/`.
+    - `https://ai.imperialax.com`, `https://laminate.imperialax.com`, and `https://injection.imperialax.com` return HTTP 200.
 
 ## 2026-07-03 - Imperialax Public DNS Connected
 - User approved Cloudflare login for `imperialax.com`.
@@ -13290,8 +13290,8 @@ Follow-up in same debugging pass:
   - `/Users/danlee/KyulAI_codex/infrastructure/cloudflare/kclab-composite-ai.windows.example.yml`
 - Updated `/Users/danlee/KyulAI_codex/src/backend/dd_laminate_app.py`:
   - `imperialax.com` and `www.imperialax.com` redirect to `https://ai.imperialax.com/`.
-  - Existing `luvelox.com` and `www.luvelox.com` redirects to `https://ai.luvelox.com/` remain intact.
-- Restarted DD/Luvelox server on port 8000 and Cloudflare Tunnel.
+  - Existing `imperialax.com` and `www.imperialax.com` redirects to `https://ai.imperialax.com/` remain intact.
+- Restarted DD/ImperialAX server on port 8000 and Cloudflare Tunnel.
 - Verification:
   - DD `/ready` returned all models ok.
   - Injection `/ready` returned all models ok before the routing update.
@@ -13299,7 +13299,7 @@ Follow-up in same debugging pass:
   - HTTPS checks through Cloudflare edge:
     - `https://imperialax.com` -> HTTP 308 to `https://ai.imperialax.com/`.
     - `https://www.imperialax.com` -> HTTP 308 to `https://ai.imperialax.com/`.
-    - `https://ai.imperialax.com` and `https://app.imperialax.com` -> HTTP 200, C2ES workspace.
+    - `https://ai.imperialax.com` and `https://app.imperialax.com` -> HTTP 200, ImperialAX workspace.
     - `https://laminate.imperialax.com` and `https://dd.imperialax.com` -> HTTP 200, Laminate Forecast.
     - `https://injection.imperialax.com` -> HTTP 200, Injection Forecast.
 - Note:
@@ -13374,24 +13374,24 @@ Follow-up in same debugging pass:
 - Restarted DD/Laminate server on port 8000 so the RAG answer code update is live.
 - App impact:
   - Web, iOS, and Android Laminate Assistant all call the server `/api/v1/rag/answer` endpoint, so the new TAC vs DD knowledge is available to apps through the shared backend without a new app build.
-  - Android currently calls the Laminate RAG endpoint through `https://laminate.luvelox.com`; this is still live and backed by the same updated server/index.
+  - Android currently calls the Laminate RAG endpoint through `https://laminate.imperialax.com`; this is still live and backed by the same updated server/index.
 - Verification:
   - `scripts/rag_query_index.py "TAC와 DD 차이 B16 B26 Case4 Case6"` returns `TAC vs DD.pptx` as top hits.
   - `scripts/rag_answer.py "TAC와 DD를 비교할 때 D11만 보면 안 되는 이유는?" --top-k 6 --language ko` returns a Korean answer grounded in `TAC vs DD.pptx` and the new basis doc.
   - Local `/api/v1/rag/answer` with `use_llm=false` returns citations from `DD Laminate TAC vs DD PPT Basis` and `TAC vs DD`.
   - `pytest tests/unit/test_rag_answer.py tests/unit/test_rag_knowledge_index.py tests/backend/test_rag_api.py -q` passed: 21 tests.
 
-## 2026-07-09 - iOS LuveloxMVPHost Xcode Priors Cache Fix
+## 2026-07-09 - iOS ImperialAXMVPHost Xcode Priors Cache Fix
 - User reported `SwiftDriver.ModuleDependencyGraph.ReadError error 14` while Xcode tried to read `KyulAIDDLaminateCore-primary.priors` under `DerivedData`.
 - Treated this as stale/corrupt Xcode incremental build cache rather than a source-code error.
-- Removed only the Luvelox host build caches:
-  - `/Users/danlee/Library/Developer/Xcode/DerivedData/LuveloxMVPHost-*`
-  - `/Users/danlee/KyulAI_codex/ios/LuveloxMVPApp/.derived-data`
+- Removed only the ImperialAX host build caches:
+  - `/Users/danlee/Library/Developer/Xcode/DerivedData/ImperialAXMVPHost-*`
+  - `/Users/danlee/KyulAI_codex/ios/ImperialAXMVPApp/.derived-data`
 - Re-resolved Swift package dependencies for:
-  - `/Users/danlee/KyulAI_codex/ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj`
-  - Scheme: `LuveloxMVPHost`
+  - `/Users/danlee/KyulAI_codex/ios/ImperialAXMVPApp/ImperialAXMVPHost.xcodeproj`
+  - Scheme: `ImperialAXMVPHost`
 - Verification:
-  - `xcodebuild -resolvePackageDependencies -project /Users/danlee/KyulAI_codex/ios/LuveloxMVPApp/LuveloxMVPHost.xcodeproj -scheme LuveloxMVPHost` succeeded.
+  - `xcodebuild -resolvePackageDependencies -project /Users/danlee/KyulAI_codex/ios/ImperialAXMVPApp/ImperialAXMVPHost.xcodeproj -scheme ImperialAXMVPHost` succeeded.
   - Simulator build with `CODE_SIGNING_ALLOWED=NO` succeeded.
 - Recommendation:
   - Reopen Xcode if it was already open, run Clean Build Folder once, then build/run again on the device.
@@ -13400,7 +13400,7 @@ Follow-up in same debugging pass:
 ## 2026-07-09 - App Laminate XAI Korean Translation Fix
 - User reported that the Laminate app section titled "Why this prediction?" still showed English content on the Korean page.
 - Added Android shared XAI localization helper:
-  - `/Users/danlee/KyulAI_codex/android/LuveloxMVP/app/src/main/java/com/luvelox/app/LaminateXaiText.kt`
+  - `/Users/danlee/KyulAI_codex/android/ImperialAXMVP/app/src/main/java/com/imperialax/app/LaminateXaiText.kt`
 - Updated Android Laminate input/recent-result and result-detail XAI cards to localize:
   - Section title: "왜 이런 예측이 나왔나요?"
   - XAI summary text
@@ -13409,17 +13409,17 @@ Follow-up in same debugging pass:
   - "Show more / hide extra features" toggle text
 - Updated iOS Laminate result XAI translation map to include newer normalized-CLT summary variants for Laminate Forecast and u3 Forecast.
 - Verification:
-  - Android `gradle -p android/LuveloxMVP :app:compileDebugKotlin` succeeded using local JetBrains JBR as `JAVA_HOME`.
+  - Android `gradle -p android/ImperialAXMVP :app:compileDebugKotlin` succeeded using local JetBrains JBR as `JAVA_HOME`.
   - iOS `swift test --package-path ios/DDLaminateMVP` passed 11 tests.
 
-## 2026-07-10 - C2ES Product Page Copy Draft for Laminate Forecast
-- User wants to add the jointly built Laminate product to `c2eskorea.com > 제품소개`.
-- Checked the public C2ES product page/search snippets and existing product tone: CAE/engineering software descriptions are organized around problem, functions, application fields, and expected value.
+## 2026-07-10 - ImperialAX Product Page Copy Draft for Laminate Forecast
+- User wants to add the jointly built Laminate product to `imperialaxkorea.com > 제품소개`.
+- Checked the public ImperialAX product page/search snippets and existing product tone: CAE/engineering software descriptions are organized around problem, functions, application fields, and expected value.
 - Created a product-page draft document:
-  - `/Users/danlee/KyulAI_codex/docs/C2ES_Laminate_Product_Page_Draft.md`
+  - `/Users/danlee/KyulAI_codex/docs/ImperialAX_Laminate_Product_Page_Draft.md`
 - Draft includes:
   - Product name candidates and recommended title.
-  - Full Korean HTML-style product description for `C2ES Laminate Forecast`.
+  - Full Korean HTML-style product description for `ImperialAX Laminate Forecast`.
   - Short product-card copy and one-line intro.
   - Supported Case formulas.
   - Core functions: Type prediction, Pt prediction, response curve, u3 Forecast, Physics XAI, Design-space Insight, AI Assistant/RAG.
@@ -13444,18 +13444,18 @@ Follow-up in same debugging pass:
 - Patched `src/frontend/dd-laminate/app-v2.js` in both active workspace roots to localize:
   - `This explanation uses the Laminate Forecast Machine Learning model... with ABD terms normalized as A/h, 2B/h², and 12D/h³.`
 - Re-captured the XAI screenshot after confirming the summary appears in Korean.
-- Updated `/Users/danlee/KyulAI_codex/docs/C2ES_Laminate_Product_Page_Draft.md` with the screenshot list.
+- Updated `/Users/danlee/KyulAI_codex/docs/ImperialAX_Laminate_Product_Page_Draft.md` with the screenshot list.
 
-## 2026-07-10 - C2ES Laminate Product Page Zip Package
+## 2026-07-10 - ImperialAX Laminate Product Page Zip Package
 - User asked to package only the needed files for uploading from another PC.
 - Created upload package folder:
-  - `/Users/danlee/KyulAI_codex/dist/c2es-laminate-product-page-20260710/`
+  - `/Users/danlee/KyulAI_codex/dist/imperialax-laminate-product-page-20260710/`
 - Included only:
-  - `C2ES_Laminate_Product_Page_Draft.md`
+  - `ImperialAX_Laminate_Product_Page_Draft.md`
   - `README.md`
   - 8 screenshot PNGs under `images/`
 - Created zip:
-  - `/Users/danlee/KyulAI_codex/dist/c2es-laminate-product-page-20260710.zip`
+  - `/Users/danlee/KyulAI_codex/dist/imperialax-laminate-product-page-20260710.zip`
 - Zip size: about 1.8 MB.
 
 ## 2026-07-10 - AniForm-Style Laminate Product HTML
@@ -13466,7 +13466,7 @@ Follow-up in same debugging pass:
   - `details/summary` accordion sections.
   - 3-column feature cards with 16:9 images.
 - Created AniForm-style Laminate HTML:
-  - `/Users/danlee/KyulAI_codex/docs/C2ES_Laminate_Product_Page_AniFormStyle.html`
+  - `/Users/danlee/KyulAI_codex/docs/ImperialAX_Laminate_Product_Page_AniFormStyle.html`
 - Structure:
   - Intro / positioning.
   - AI-based laminate screening.
@@ -13477,86 +13477,86 @@ Follow-up in same debugging pass:
   - AI Assistant and knowledge base.
 - Uses the screenshot package image paths as `images/laminate-*.png`.
 - Updated the upload package and regenerated:
-  - `/Users/danlee/KyulAI_codex/dist/c2es-laminate-product-page-20260710.zip`
-- Updated package README to explain the new `C2ES_Laminate_Product_Page_AniFormStyle.html` file.
+  - `/Users/danlee/KyulAI_codex/dist/imperialax-laminate-product-page-20260710.zip`
+- Updated package README to explain the new `ImperialAX_Laminate_Product_Page_AniFormStyle.html` file.
 
 ## 2026-07-10 - AniForm-Style Product HTML With Explicit Image Placement
 - User clarified that the source code should include the screenshots already placed at appropriate locations, not only separate image assets.
 - Created final recommended HTML:
-  - `/Users/danlee/KyulAI_codex/docs/C2ES_Laminate_Product_Page_AniFormStyle_FINAL.html`
+  - `/Users/danlee/KyulAI_codex/docs/ImperialAX_Laminate_Product_Page_AniFormStyle_FINAL.html`
 - Changes:
   - Added a top representative hero image using `images/laminate-01-overview.png`.
   - Kept function-specific card images for input, result, curve, XAI, design-space, and u3 sections.
   - Added captions and CSS for the hero image block.
   - Image placement now includes 9 `<img>` tags: one hero plus eight feature/card placements.
 - Copied the final HTML into the upload package and regenerated:
-  - `/Users/danlee/KyulAI_codex/dist/c2es-laminate-product-page-20260710.zip`
-- Updated package README to recommend using `C2ES_Laminate_Product_Page_AniFormStyle_FINAL.html` first.
+  - `/Users/danlee/KyulAI_codex/dist/imperialax-laminate-product-page-20260710.zip`
+- Updated package README to recommend using `ImperialAX_Laminate_Product_Page_AniFormStyle_FINAL.html` first.
 
-## 2026-07-10 - Copy/Paste Source Text for C2ES Product Admin
+## 2026-07-10 - Copy/Paste Source Text for ImperialAX Product Admin
 - User clarified they want a source text file to paste into the product admin source editor, not just an `.html` artifact.
 - Created:
-  - `/Users/danlee/KyulAI_codex/docs/C2ES_Laminate_Product_Page_Source_For_Upload.txt`
+  - `/Users/danlee/KyulAI_codex/docs/ImperialAX_Laminate_Product_Page_Source_For_Upload.txt`
 - Content is identical to the final image-placed AniForm-style source.
 - Copied it into the upload package and regenerated:
-  - `/Users/danlee/KyulAI_codex/dist/c2es-laminate-product-page-20260710.zip`
-- Updated README to instruct using `C2ES_Laminate_Product_Page_Source_For_Upload.txt` for copy/paste.
+  - `/Users/danlee/KyulAI_codex/dist/imperialax-laminate-product-page-20260710.zip`
+- Updated README to instruct using `ImperialAX_Laminate_Product_Page_Source_For_Upload.txt` for copy/paste.
 
-## 2026-07-10 - C2ES Laminate Representative Image
+## 2026-07-10 - ImperialAX Laminate Representative Image
 - User asked to create a representative image for the Laminate product page.
 - Generated screenshot-based 16:9 representative assets:
-  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/c2es-laminate-forecast-representative-1200x675.png`
-  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/c2es-laminate-forecast-representative-1200x675.jpg`
-  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/c2es-laminate-forecast-representative-1600x900.png`
-  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/c2es-laminate-forecast-representative-1600x900.jpg`
-- Design uses C2ES palette, Laminate Forecast title, Korean summary, feature pills, and real web UI screenshots.
+  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/imperialax-laminate-forecast-representative-1200x675.png`
+  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/imperialax-laminate-forecast-representative-1200x675.jpg`
+  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/imperialax-laminate-forecast-representative-1600x900.png`
+  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/imperialax-laminate-forecast-representative-1600x900.jpg`
+- Design uses ImperialAX palette, Laminate Forecast title, Korean summary, feature pills, and real web UI screenshots.
 - Added the assets to the upload package under:
-  - `/Users/danlee/KyulAI_codex/dist/c2es-laminate-product-page-20260710/representative/`
+  - `/Users/danlee/KyulAI_codex/dist/imperialax-laminate-product-page-20260710/representative/`
 - Updated package README with representative image recommendations.
 - Regenerated:
-  - `/Users/danlee/KyulAI_codex/dist/c2es-laminate-product-page-20260710.zip`
+  - `/Users/danlee/KyulAI_codex/dist/imperialax-laminate-product-page-20260710.zip`
 
-## 2026-07-10 - C2ES Product-Page-Fit Laminate Assets and Modern Source
-- User clarified the C2ES product page needs a square product photo matching the product list/detail style, not only a 16:9 representative banner.
-- Checked the live C2ES product list/detail pages:
+## 2026-07-10 - ImperialAX Product-Page-Fit Laminate Assets and Modern Source
+- User clarified the ImperialAX product page needs a square product photo matching the product list/detail style, not only a 16:9 representative banner.
+- Checked the live ImperialAX product list/detail pages:
   - Product list uses 350x350 thumbnail-style product images.
   - Current Laminate page source had `object-fit: cover`, causing UI screenshots to be cropped inside cards.
 - Generated square product-photo assets:
-  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/c2es-laminate-product-thumb-350x350.png`
-  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/c2es-laminate-product-thumb-350x350.jpg`
-  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/c2es-laminate-product-thumb-700x700.png`
-  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/c2es-laminate-product-thumb-700x700.jpg`
-  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/c2es-laminate-product-thumb-1000x1000.png`
-  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/c2es-laminate-product-thumb-1000x1000.jpg`
+  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/imperialax-laminate-product-thumb-350x350.png`
+  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/imperialax-laminate-product-thumb-350x350.jpg`
+  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/imperialax-laminate-product-thumb-700x700.png`
+  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/imperialax-laminate-product-thumb-700x700.jpg`
+  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/imperialax-laminate-product-thumb-1000x1000.png`
+  - `/Users/danlee/KyulAI_codex/docs/product-assets/representative/imperialax-laminate-product-thumb-1000x1000.jpg`
 - Created a new Laminate-specific product detail source that does not inherit the AniForm card-crop structure:
-  - `/Users/danlee/KyulAI_codex/docs/C2ES_Laminate_Product_Page_Source_Modern.txt`
-  - `/Users/danlee/KyulAI_codex/docs/C2ES_Laminate_Product_Page_Modern.html`
+  - `/Users/danlee/KyulAI_codex/docs/ImperialAX_Laminate_Product_Page_Source_Modern.txt`
+  - `/Users/danlee/KyulAI_codex/docs/ImperialAX_Laminate_Product_Page_Modern.html`
 - Modern source uses:
   - Screenshot-first sections.
   - `object-fit: contain`.
   - Wide feature rows instead of cropped image cards.
   - Case formulas, response curve, Physics XAI, Design-space, u3 Forecast, and AI Assistant sections.
 - Copied modern source and square representative images into:
-  - `/Users/danlee/KyulAI_codex/dist/c2es-laminate-product-page-20260710/`
+  - `/Users/danlee/KyulAI_codex/dist/imperialax-laminate-product-page-20260710/`
 - Updated README to recommend:
-  - `C2ES_Laminate_Product_Page_Source_Modern.txt` for product detail source.
-  - `representative/c2es-laminate-product-thumb-700x700.png` for product main/list image.
+  - `ImperialAX_Laminate_Product_Page_Source_Modern.txt` for product detail source.
+  - `representative/imperialax-laminate-product-thumb-700x700.png` for product main/list image.
 - Regenerated:
-  - `/Users/danlee/KyulAI_codex/dist/c2es-laminate-product-page-20260710.zip`
+  - `/Users/danlee/KyulAI_codex/dist/imperialax-laminate-product-page-20260710.zip`
 - Follow-up: User asked to make the square product image name appear on one line as `Laminate | Forecast AI`.
 - Regenerated the 350x350, 700x700, and 1000x1000 square product thumbnail PNG/JPG files.
 - Re-copied updated thumbnails into the upload package and regenerated the same zip.
 - Follow-up: User asked to remove the `|`, remove the non-white/background area, and make the product-name font bolder.
 - Updated square product thumbnails to use one-line `Laminate Forecast AI`, a heavier font, and transparent PNG background outside the white product card.
 - Added explicit transparent files:
-  - `c2es-laminate-product-thumb-transparent-350x350.png`
-  - `c2es-laminate-product-thumb-transparent-700x700.png`
-  - `c2es-laminate-product-thumb-transparent-1000x1000.png`
+  - `imperialax-laminate-product-thumb-transparent-350x350.png`
+  - `imperialax-laminate-product-thumb-transparent-700x700.png`
+  - `imperialax-laminate-product-thumb-transparent-1000x1000.png`
 - Verified alpha channel on the 700x700 transparent PNG; corner pixels are fully transparent.
-- Updated README to recommend `representative/c2es-laminate-product-thumb-transparent-700x700.png`.
+- Updated README to recommend `representative/imperialax-laminate-product-thumb-transparent-700x700.png`.
 - Regenerated the upload zip.
 - Follow-up: User asked for the Design-space insight result image to be scrollable and for the product detail source fonts to be smaller.
-- Updated `/Users/danlee/KyulAI_codex/docs/C2ES_Laminate_Product_Page_Source_Modern.txt`:
+- Updated `/Users/danlee/KyulAI_codex/docs/ImperialAX_Laminate_Product_Page_Source_Modern.txt`:
   - Reduced hero/title/body/card/list/table font sizes.
   - Added `.screenBox.scroll` with vertical scrolling.
   - Applied `class="screenBox tall scroll"` to the Design-space map figure.
@@ -13579,25 +13579,25 @@ Follow-up in same debugging pass:
 - Replaced `∓θ` in the supported-case formulas with `opposite ±θ` text for better CMS/font compatibility.
 - Synced source/preview/package files and regenerated the zip.
 
-## 2026-07-10 - C2ES Laminate product page formula entity fix
+## 2026-07-10 - ImperialAX Laminate product page formula entity fix
 - User clarified that the `∓` symbol must appear in the supported-case formulas, even though the homepage/CMS may not read the literal character correctly.
 - Updated the modern product-page upload source to use HTML numeric entity `&#8723;` instead of literal `∓` or the temporary `opposite ±θ` text.
 - Current supported-case formulas in upload source:
   - Case 3: `[[±θ₁]/[±θ₂]/[&#8723;θ₂]/[&#8723;θ₂]]₂`
   - Case 4: `[([±θ₁]/[±θ₂])₂ / ([&#8723;θ₁]/[&#8723;θ₂])₂]`
 - Added math/symbol-capable font fallbacks to `.formula`: `Cambria Math`, `STIX Two Math`, `DejaVu Sans`, `Segoe UI Symbol`, `Apple Symbols`.
-- Synced `docs/C2ES_Laminate_Product_Page_Source_Modern.txt` to the preview HTML and the package copy.
-- Regenerated `/Users/danlee/KyulAI_codex/dist/c2es-laminate-product-page-20260710.zip`.
+- Synced `docs/ImperialAX_Laminate_Product_Page_Source_Modern.txt` to the preview HTML and the package copy.
+- Regenerated `/Users/danlee/KyulAI_codex/dist/imperialax-laminate-product-page-20260710.zip`.
 
-## 2026-07-10 - C2ES Laminate product page site link
+## 2026-07-10 - ImperialAX Laminate product page site link
 - User asked whether the product page includes the demo/site URL at the bottom.
 - Added a bottom CTA site link to the modern upload source:
-  - `https://laminate.luvelox.com/`
+  - `https://laminate.imperialax.com/`
 - Added `.siteLink` styling so the URL appears as a clear white pill button inside the final CTA block, with mobile-safe line breaking.
-- Synced the modern source to preview/package HTML and regenerated `/Users/danlee/KyulAI_codex/dist/c2es-laminate-product-page-20260710.zip`.
+- Synced the modern source to preview/package HTML and regenerated `/Users/danlee/KyulAI_codex/dist/imperialax-laminate-product-page-20260710.zip`.
 
-## 2026-07-10 - C2ES Laminate product page accordion and spacing update
-- User requested the modern product-page source to adopt the collapsible `details/summary` style seen in `C2ES_Laminate_Product_Page_AniFormStyle_FINAL.html`.
+## 2026-07-10 - ImperialAX Laminate product page accordion and spacing update
+- User requested the modern product-page source to adopt the collapsible `details/summary` style seen in `ImperialAX_Laminate_Product_Page_AniFormStyle_FINAL.html`.
 - Reworked the modern upload source into six collapsible accordion sections:
   - AI-based laminate screening / Why it matters
   - Workflow
@@ -13609,7 +13609,7 @@ Follow-up in same debugging pass:
 - Moved `Double-Double 적층 패턴` into the first accordion section below the three summary cards.
 - Added `.casePanel` styling and `margin-top: 30px` to create clear spacing between the three summary cards and the supported-case formula block.
 - Continued using `&#8723;` HTML entity for the required `∓` symbol in Case 3 and Case 4 formulas.
-- Synced the modern source to preview/package HTML and regenerated `/Users/danlee/KyulAI_codex/dist/c2es-laminate-product-page-20260710.zip`.
+- Synced the modern source to preview/package HTML and regenerated `/Users/danlee/KyulAI_codex/dist/imperialax-laminate-product-page-20260710.zip`.
 
 ## 2026-07-15 - Laminate greenfield Codex rebuild package
 - User asked for a package so his brother can rebuild only the Laminate portion from scratch on another PC using Codex.
@@ -13716,7 +13716,7 @@ Follow-up in same debugging pass:
 
 ## 2026-07-15 - Added license login gate for existing Laminate EXE packaging
 - User clarified the previous greenfield package was for brother's Codex to rebuild from scratch; this pass targets the already-built Laminate app.
-- Implemented a Laminate license/login gate using the existing Luvelox auth system instead of inventing a separate license database.
+- Implemented a Laminate license/login gate using the existing ImperialAX auth system instead of inventing a separate license database.
 - Added frontend gate:
   - `/Users/danlee/KyulAI_codex/src/frontend/dd-laminate/auth-gate.js`
   - Included from `index-v2.html` and `index-v2.ko.html` before `app-v2.js`.
@@ -13726,9 +13726,9 @@ Follow-up in same debugging pass:
 - Added CSS for the license overlay in `styles-v2.css`.
 - Added backend enforcement switch in `src/backend/dd_laminate_app.py`:
   - `LAMINATE_REQUIRE_AUTH=1` makes `/api/v1/dd-laminate/*` require a bearer token with `module.laminate`.
-  - Path roots can now be supplied via `KYULAI_PROJECT_ROOT`, `LAMINATE_FRONTEND_DIR`, `LUVELOX_FRONTEND_DIR`, `WEDDING_FRONTEND_DIR`, and `WEDDING_DATA_DIR` for packaged execution.
+  - Path roots can now be supplied via `KYULAI_PROJECT_ROOT`, `LAMINATE_FRONTEND_DIR`, `IMPERIALAX_FRONTEND_DIR`, `WEDDING_FRONTEND_DIR`, and `WEDDING_DATA_DIR` for packaged execution.
 - Added demo-login kill switch in `src/backend/api/v1/modules.py`:
-  - `LUVELOX_DISABLE_DEMO_LOGIN=1` disables `/api/v1/modules/auth/demo-login`.
+  - `IMPERIALAX_DISABLE_DEMO_LOGIN=1` disables `/api/v1/modules/auth/demo-login`.
 - Added existing-app Windows EXE packaging kit:
   - `scripts/windows/exe/Build-LaminateExe.ps1`
   - `scripts/windows/exe/Create-LaminateUser.ps1`
@@ -13764,7 +13764,7 @@ Follow-up in same debugging pass:
   - `scripts/windows/exe/*` build and account scripts
   - `docs/LAMINATE_EXISTING_EXE_PACKAGE.md`
   - current Laminate backend/frontend/auth-gate source
-  - Luvelox login frontend source
+  - ImperialAX login frontend source
   - current ABD-normalized active Laminate/u3 model folders
   - current XAI report folders
   - RAG knowledge index and minimal DD design-space manifests
@@ -13843,7 +13843,7 @@ Follow-up in same debugging pass:
   - RAG unit test passed: 14 tests.
   - FastAPI Laminate model/predict/XAI smoke passed for Machine Learning, Deep Learning, and Distilled NN.
   - iOS `swift test` passed in `ios/DDLaminateMVP`: 11 tests.
-  - Android `gradle -p android/LuveloxMVP :app:assembleDebug` was blocked by missing Java 17 toolchain on this Mac, before Kotlin/Java compilation.
+  - Android `gradle -p android/ImperialAXMVP :app:assembleDebug` was blocked by missing Java 17 toolchain on this Mac, before Kotlin/Java compilation.
 
 ## 2026-07-15 - Built Laminate Forecast synthetic theta/case grid distillation v2
 - User asked to try `synthetic theta/case grid distillation`.
@@ -14231,7 +14231,7 @@ Follow-up in same debugging pass:
   - `/Users/danlee/KyulAI_codex/dist/KyulAI_windows_gpu_handoff_20260715_122841.sha256`
   - `/Users/danlee/KyulAI_codex/dist/LaminateForecast(share).zip`
   - `/Users/danlee/KyulAI_codex/dist/laminate_existing_exe_buildkit_20260715.zip`
-  - `/Users/danlee/KyulAI_codex/dist/c2es-laminate-product-page-20260710.zip`
+  - `/Users/danlee/KyulAI_codex/dist/imperialax-laminate-product-page-20260710.zip`
 - Removed obsolete/superseded zip artifacts:
   - `KyulAI_DD_Injection_windows_bundle_20260512_151719.zip`
   - `KyulAI_dd_laminate_current_20260514_090104.zip`
@@ -14320,26 +14320,26 @@ Follow-up in same debugging pass:
 - Verification:
   - `python -m py_compile scripts/dd_response_distillation_train.py` passed.
 
-## 2026-07-20 - Prepared Luvelox to ImperialAX URL migration
-- User said the company name is now ImperialAX and asked to forward Luvelox-side URLs to ImperialAX.
+## 2026-07-20 - Prepared ImperialAX to ImperialAX URL migration
+- User said the company name is now ImperialAX and asked to forward ImperialAX-side URLs to ImperialAX.
 - Updated host routing and public URLs:
-  - `luvelox.com`, `www.luvelox.com`, and `ai.luvelox.com` now return HTTP `308` to `https://ai.imperialax.com/`.
-  - `laminate.luvelox.com` now returns HTTP `308` to `https://laminate.imperialax.com/` while preserving path/query.
-  - `injection.luvelox.com` now returns HTTP `308` to `https://injection.imperialax.com/` while preserving path/query.
+  - `imperialax.com`, `www.imperialax.com`, and `ai.imperialax.com` now return HTTP `308` to `https://ai.imperialax.com/`.
+  - `laminate.imperialax.com` now returns HTTP `308` to `https://laminate.imperialax.com/` while preserving path/query.
+  - `injection.imperialax.com` now returns HTTP `308` to `https://injection.imperialax.com/` while preserving path/query.
 - Updated the module catalog API to use `brand: "ImperialAX"` and ImperialAX module URLs:
   - Laminate: `https://laminate.imperialax.com`
   - Injection: `https://injection.imperialax.com`
   - Optimization/Admin: `https://ai.imperialax.com`
-- Updated user-facing workspace/login/admin/optimization copy from Luvelox to ImperialAX.
+- Updated user-facing workspace/login/admin/optimization copy from ImperialAX to ImperialAX.
 - Added demo email aliases so `demo@imperialax.com` and `danlee@imperialax.com` map to the existing demo sessions without breaking legacy accounts.
-- Kept legacy `X-Luvelox-*` headers and legacy demo account records for compatibility.
-- Kept old Luvelox hostnames in Cloudflare tunnel routing intentionally so the app can serve the redirects.
+- Kept legacy `X-ImperialAX-*` headers and legacy demo account records for compatibility.
+- Kept old ImperialAX hostnames in Cloudflare tunnel routing intentionally so the app can serve the redirects.
 - Restarted local production servers:
-  - DD/Laminate/C2ES app on port `8000`
+  - DD/Laminate/ImperialAX app on port `8000`
   - Simple Injection app on port `8010`
 - Verification:
-  - `python -m py_compile src/backend/dd_laminate_app.py src/backend/simple_injection_app.py src/backend/api/v1/modules.py src/backend/luvelox_app.py` passed.
-  - `node --check` passed for Luvelox workspace JS files.
+  - `python -m py_compile src/backend/dd_laminate_app.py src/backend/simple_injection_app.py src/backend/api/v1/modules.py src/backend/imperialax_app.py` passed.
+  - `node --check` passed for ImperialAX workspace JS files.
   - Public `/ready` checks returned `200` for `ai.imperialax.com`, `laminate.imperialax.com`, and `injection.imperialax.com`.
   - Public legacy redirect checks returned `308` to the expected ImperialAX targets.
   - `https://ai.imperialax.com/api/v1/modules` returns `brand: "ImperialAX"` and ImperialAX URLs.
@@ -14486,7 +14486,7 @@ Follow-up in same debugging pass:
   - Public Geometry DL prediction with `panel_a_in=6`, `panel_b_in=8` returned model `response_geometry_goint_v1`, Type `3`, Pt `7959.53`.
 
 ## 2026-07-20 - Updated Laminate Forecast public branding
-- User asked to replace the remaining `C2ES Laminate Forecast` page title/header on `laminate.imperialax.com`.
+- User asked to replace the remaining `ImperialAX Laminate Forecast` page title/header on `laminate.imperialax.com`.
 - Updated DD Laminate web shell files:
   - `/Users/danlee/KyulAI_codex/src/frontend/dd-laminate/index-v2.html`
   - `/Users/danlee/KyulAI_codex/src/frontend/dd-laminate/index.html`
@@ -14495,7 +14495,7 @@ Follow-up in same debugging pass:
 - English public title/header now shows `ImperialAX Laminate Forecast`.
 - Korean public title/header now shows `ImperialAX 적층 예측`.
 - Verification:
-  - `rg` confirms the updated Laminate shell files no longer contain `C2ES Laminate Forecast`.
+  - `rg` confirms the updated Laminate shell files no longer contain `ImperialAX Laminate Forecast`.
   - `curl https://laminate.imperialax.com/` returns `<title>ImperialAX Laminate Forecast</title>` and the matching H1.
 
 ## 2026-07-20 - Fixed empty Laminate Forecast model dropdown
@@ -14602,7 +14602,7 @@ Follow-up in same debugging pass:
   - `.env.local` remains ignored and was not staged.
   - `dist/`, `.venv/`, and Gradle cache folders remain ignored.
   - Secret scan found only placeholder/example Slack/OpenAI strings, not real credentials.
-  - Syntax checks passed for DD Laminate web JS, Injection web JS, Luvelox web JS, and key Python backend/training/RAG files.
+  - Syntax checks passed for DD Laminate web JS, Injection web JS, ImperialAX web JS, and key Python backend/training/RAG files.
 - Git result:
   - Created commit `f555ab3` on `codex/dd-laminate-ui-api`.
   - Uploaded three LFS model objects separately, then pushed `codex/dd-laminate-ui-api` to GitHub.
@@ -14615,10 +14615,10 @@ Follow-up in same debugging pass:
   - Remaining ignored files were mostly local caches/build outputs (`dist/`, `.venv/`, Gradle/Xcode build folders), OS metadata, local auth DB, logs, and historical APK variants.
 - Added the useful remaining portable assets:
   - `data/datasets/DD_cases_2_3_4_geometry_v1/` with geometry response manifest and Case2/Case3/Case4 transition-load CSV summaries.
-  - `artifacts/android/C2ES-debug-latest.apk` as the current Android debug APK alias.
+  - `artifacts/android/ImperialAX-debug-latest.apk` as the current Android debug APK alias.
 - Deliberately left out:
   - `dist/` bundles (~8.6GB), because they are generated copies and include old packaged artifacts.
-  - `.env.local` and `data/luvelox_auth.sqlite3`, because they contain local secrets/runtime state.
+  - `.env.local` and `data/imperialax_auth.sqlite3`, because they contain local secrets/runtime state.
   - Build caches and OS metadata.
   - Untracked `random_forest.joblib` / `extra_trees.joblib` challenger artifacts, because they are large local experiment outputs and not current deployment models.
 
@@ -14731,7 +14731,7 @@ Follow-up in same debugging pass:
 - Updated clients:
   - Web `app-v2.js` now saves panel dimensions in response forecast history, restores them when a history card is clicked, includes them in history signatures, and passes them to assistant lazy-XAI requests.
   - iOS `DDLaminateMVP` now has `panelAIn`/`panelBIn` ViewModel state, sends `panel_a_in`/`panel_b_in`, restores/saves them in recent runs, and shows panel chips in response history.
-  - Android `LuveloxMVP` now shows Panel size inputs, sends geometry values for Response Forecast, includes them in result summaries, assistant context, and recent-history signatures/cards.
+  - Android `ImperialAXMVP` now shows Panel size inputs, sends geometry values for Response Forecast, includes them in result summaries, assistant context, and recent-history signatures/cards.
   - Standalone Android `DDLaminateMVP` also sends and stores panel dimensions to avoid stale behavior in that older app surface.
 - Scope note:
   - u3 Forecast remains theta/case-only for now because the current u3 model request/schema does not include panel geometry.
@@ -14741,7 +14741,7 @@ Follow-up in same debugging pass:
   - `swift test` in `ios/DDLaminateMVP` passed: 11 tests.
   - Initial Android Gradle assemble was blocked because macOS could not locate Java 17.
   - Homebrew `openjdk@17` was already installed; using `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home` fixed the toolchain.
-  - `gradle :app:assembleDebug` passed in `android/LuveloxMVP`.
+  - `gradle :app:assembleDebug` passed in `android/ImperialAXMVP`.
   - `gradle :app:assembleDebug` passed in `android/DDLaminateMVP`.
 
 ## 2026-07-21 - RTX Geometry-Aware Strict Leaderboard v2
@@ -14871,31 +14871,70 @@ Follow-up in same debugging pass:
     - DL: `response_geometry_goint_v1`.
     - Student/challenger: `response_hybrid_student_deploy_quick_v1`.
   - Added `TeacherStudentAgreementCard` to result detail and Laminate result panels.
-  - Exposed the shared agreement card for reuse and inserted it into the separate `ios/LuveloxMVP` Laminate forecast result flow as well.
+  - Exposed the shared agreement card for reuse and inserted it into the separate `ios/ImperialAXMVP` Laminate forecast result flow as well.
   - Korean/English labels and notes are included.
 - Android changes:
-  - Updated Luvelox Android Laminate defaults to the same geometry-aware model keys.
+  - Updated ImperialAX Android Laminate defaults to the same geometry-aware model keys.
   - Added `LaminateTeacherStudentAgreement` and snapshot parsing.
   - Default ML forecast now calls `/predict/response-ensemble`; other selected models still call `/predict/response`.
   - Added a `Tree vs Student agreement` section to the Android result detail page.
 - Verification:
   - `swift build --package-path ios/DDLaminateMVP` passed.
-  - `swift build --package-path ios/LuveloxMVP` passed.
+  - `swift build --package-path ios/ImperialAXMVP` passed.
   - `xcodebuild` for `KyulAIDDLaminateCore` simulator scheme passed.
   - `xcodebuild` for `KyulAIDDLaminateApp` simulator scheme passed.
-  - `xcodebuild` for `LuveloxMVPHost` simulator scheme passed.
+  - `xcodebuild` for `ImperialAXMVPHost` simulator scheme passed.
   - Android `:app:compileDebugKotlin` passed with `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home`.
 - Note:
   - The Mac has Homebrew `openjdk@17`, but system `/usr/bin/java` is not linked. Use the explicit `JAVA_HOME` above for Android builds.
 
 ## 2026-07-22 - ImperialAX Public Rebrand Pass
-- User requested removing user-facing `Luvelox` and `C2ES` naming and replacing it with `ImperialAX`.
+- User requested removing user-facing legacy brand names and replacing the product
+  identity with `ImperialAX`.
 - Scope decision:
   - Updated visible product text, account text, URLs, test expectations, and app display names to `ImperialAX`.
-  - Kept internal package/file/type identifiers such as `LuveloxApp`, `com.luvelox.app`, and `src/frontend/luvelox` for compatibility and to avoid unnecessary bundle/package churn.
-  - Kept legacy `*.luvelox.com` redirects so older links route to the new `imperialax.com` hosts.
+  - At this point, internal package/file/type identifiers were still mostly kept
+    for compatibility and to avoid unnecessary bundle/package churn.
 - Backend compatibility:
   - Module catalog brand is now `ImperialAX`.
-  - Admin API accepts both `X-ImperialAX-Admin-Token` / `IMPERIALAX_ADMIN_TOKEN` and legacy `X-Luvelox-Admin-Token` / `LUVELOX_ADMIN_TOKEN`.
-  - Entitlement override accepts both `X-ImperialAX-Entitlements` and legacy `X-Luvelox-Entitlements`.
-  - Legacy demo/admin emails under `@luvelox.com` are canonicalized to `@imperialax.com`.
+  - Admin API uses `X-ImperialAX-Admin-Token` / `IMPERIALAX_ADMIN_TOKEN`.
+  - Entitlement override uses `X-ImperialAX-Entitlements`.
+  - Demo/admin emails use `@imperialax.com`.
+
+## 2026-07-22 - ImperialAX Internal Rename Pass
+- User confirmed the project is still pre-release and asked to rename the
+  remaining internal Luvelox/C2ES-era identifiers now, even if servers need a
+  short restart.
+- Completed broad internal rename:
+  - Unified shell moved from `src/backend/luvelox_app.py` to
+    `src/backend/imperialax_app.py`.
+  - Account store moved from `src/backend/services/luvelox_auth_store.py` to
+    `src/backend/services/imperialax_auth_store.py`.
+  - Unified frontend moved from `src/frontend/luvelox/` to
+    `src/frontend/imperialax/`.
+  - iOS unified package/project moved from `ios/LuveloxMVP*` to
+    `ios/ImperialAXMVP*`, with Swift target/type names changed to
+    `ImperialAXApp` and bundle id changed to `com.imperialax.mvp`.
+  - Android unified app moved from `android/LuveloxMVP` to
+    `android/ImperialAXMVP`, package/application id changed to
+    `com.imperialax.app`.
+  - Tests, scripts, product docs, product images, and app icon/source asset
+    paths were renamed to ImperialAX where they are active repo assets.
+- Important migration note:
+  - Because the iOS bundle id and Android application id changed, existing
+    installed test builds with the old app id will not update in-place. Fresh
+    install is expected until production identifiers are finalized.
+  - iOS real-device installation now needs a provisioning profile for
+    `com.imperialax.mvp`.
+- Verification:
+  - Backend targeted suite passed:
+    `.venv/bin/pytest tests/backend/test_imperialax_modules.py tests/backend/test_simple_injection_model_labels.py -q`.
+  - JS syntax checks passed for `src/frontend/imperialax/app.js`,
+    `login-v2.js`, and `admin.js`.
+  - Ruff passed for the touched backend rename surface.
+  - `swift build --package-path ios/ImperialAXMVP --scratch-path ...` passed.
+  - `xcodebuild -project ios/ImperialAXMVPApp/ImperialAXMVPHost.xcodeproj -scheme ImperialAXMVPHost -destination generic/platform=iOS\ Simulator -configuration Debug CODE_SIGNING_ALLOWED=NO build` passed.
+  - `swift build` for `ios/DDLaminateMVP` and `ios/InjectionMVP` passed.
+  - Android Gradle `:app:compileDebugKotlin` passed for
+    `android/ImperialAXMVP`, `android/DDLaminateMVP`, and
+    `android/InjectionMVP`.

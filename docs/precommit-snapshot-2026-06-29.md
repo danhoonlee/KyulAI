@@ -14,7 +14,7 @@ combined DD Laminate, Injection, ImperialAX shell, Android, and RAG changes.
 ## Cleanup Fixes Applied
 
 - Removed an invalid Android login-card click handler in
-  `android/ImperialAXMVP/app/src/main/java/com/luvelox/app/MainActivity.kt`.
+  `android/ImperialAXMVP/app/src/main/java/com/imperialax/app/MainActivity.kt`.
   The handler referenced a `module` value outside its scope and broke
   Kotlin compilation.
 - Updated ImperialAX web fallback account copy from `ImperialAX Demo` to
@@ -32,13 +32,13 @@ combined DD Laminate, Injection, ImperialAX shell, Android, and RAG changes.
 ```bash
 node --check src/frontend/dd-laminate/app-v2.js
 node --check src/frontend/simple-injection/app-v2.js
-node --check src/frontend/luvelox/app.js
-node --check src/frontend/luvelox/login-v2.js
-node --check src/frontend/luvelox/admin.js
+node --check src/frontend/imperialax/app.js
+node --check src/frontend/imperialax/login-v2.js
+node --check src/frontend/imperialax/admin.js
 
 python -m pytest \
   tests/backend/test_dd_laminate_ios_contract.py \
-  tests/backend/test_luvelox_modules.py \
+  tests/backend/test_imperialax_modules.py \
   tests/backend/test_rag_api.py \
   tests/unit/test_rag_answer.py \
   tests/unit/test_rag_knowledge_index.py \

@@ -796,7 +796,7 @@ struct ContentView: View {
 
                     #if os(iOS)
                     ShareImageButton(
-                        fileName: "c2es-laminate-forecast",
+                        fileName: "imperialax-laminate-forecast",
                         report: LaminateShareImageReportView(result: result)
                     ) {
                         Label(L10n.t("share.image"), systemImage: "photo")

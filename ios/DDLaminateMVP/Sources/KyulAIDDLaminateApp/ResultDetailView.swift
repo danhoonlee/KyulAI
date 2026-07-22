@@ -125,7 +125,7 @@ struct ResultDetailView: View {
             }
             #if os(iOS)
             ShareImageButton(
-                fileName: "c2es-laminate-forecast",
+                fileName: "imperialax-laminate-forecast",
                 report: LaminateShareImageReportView(result: result)
             ) {
                 Image(systemName: "photo")

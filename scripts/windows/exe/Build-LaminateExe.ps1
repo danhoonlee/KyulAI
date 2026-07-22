@@ -88,11 +88,11 @@ Default local URL:
 
 Security mode:
   - LAMINATE_REQUIRE_AUTH=1
-  - LUVELOX_DISABLE_DEMO_LOGIN=1
+  - IMPERIALAX_DISABLE_DEMO_LOGIN=1
   - Users must sign in with module.laminate entitlement.
 
 Account storage:
-  The local SQLite auth database is created under runtime/auth unless LUVELOX_AUTH_DB is set.
+  The local SQLite auth database is created under runtime/auth unless IMPERIALAX_AUTH_DB is set.
   Create/recover users with the bundled admin/API workflow before sharing externally.
 "@ | Set-Content -Path "$OutputPath\README.txt" -Encoding UTF8
 

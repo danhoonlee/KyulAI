@@ -33,7 +33,7 @@ def test_simple_injection_model_labels_use_actual_model_names() -> None:
     }
 
 
-def test_simple_injection_pages_link_back_to_luvelox_user_page() -> None:
+def test_simple_injection_pages_link_back_to_imperialax_user_page() -> None:
     client = TestClient(app)
 
     english_v2 = client.get("/index-v2.html")

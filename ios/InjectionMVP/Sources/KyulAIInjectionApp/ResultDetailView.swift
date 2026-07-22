@@ -66,7 +66,7 @@ struct ResultDetailView: View {
             }
             #if os(iOS)
             ShareImageButton(
-                fileName: "c2es-injection-forecast",
+                fileName: "imperialax-injection-forecast",
                 report: InjectionShareImageReportView(result: result)
             ) {
                 Image(systemName: "photo")

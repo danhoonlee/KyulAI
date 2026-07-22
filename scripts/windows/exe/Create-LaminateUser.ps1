@@ -4,7 +4,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$Password,
     [string]$Name = "",
-    [string]$AuthDbPath = ".\data\luvelox_auth.sqlite3"
+    [string]$AuthDbPath = ".\data\imperialax_auth.sqlite3"
 )
 
 $ErrorActionPreference = "Stop"
@@ -22,10 +22,10 @@ if (-not $AuthDbParent) {
     $AuthDbParent = "."
 }
 New-Item -ItemType Directory -Force -Path $AuthDbParent | Out-Null
-$env:LUVELOX_AUTH_DB_PATH = (Join-Path (Resolve-Path $AuthDbParent).Path (Split-Path -Leaf $AuthDbPath))
+$env:IMPERIALAX_AUTH_DB_PATH = (Join-Path (Resolve-Path $AuthDbParent).Path (Split-Path -Leaf $AuthDbPath))
 
 python -c @"
-from src.backend.services.luvelox_auth_store import create_account_by_admin, DuplicateAccountError
+from src.backend.services.imperialax_auth_store import create_account_by_admin, DuplicateAccountError
 
 email = r'''$Email'''
 password = r'''$Password'''
@@ -43,4 +43,4 @@ except DuplicateAccountError:
     print(f'User already exists: {email.lower()}')
 "@
 
-Write-Host "Auth DB: $env:LUVELOX_AUTH_DB_PATH" -ForegroundColor Green
+Write-Host "Auth DB: $env:IMPERIALAX_AUTH_DB_PATH" -ForegroundColor Green

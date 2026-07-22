@@ -12,10 +12,10 @@ if [[ -f .env.local ]]; then
 fi
 
 if [[ -z "${IMPERIALAX_ADMIN_TOKEN:-}" ]]; then
-  if [[ -n "${LUVELOX_ADMIN_TOKEN:-}" ]]; then
-    export IMPERIALAX_ADMIN_TOKEN="${LUVELOX_ADMIN_TOKEN}"
+  if [[ -n "${IMPERIALAX_ADMIN_TOKEN:-}" ]]; then
+    export IMPERIALAX_ADMIN_TOKEN="${IMPERIALAX_ADMIN_TOKEN}"
   else
-    export IMPERIALAX_ADMIN_TOKEN="$(cat .omx/state/luvelox-admin-token.txt)"
+    export IMPERIALAX_ADMIN_TOKEN="$(cat .omx/state/imperialax-admin-token.txt)"
   fi
 fi
 echo "IMPERIALAX_ADMIN_TOKEN configured length: ${#IMPERIALAX_ADMIN_TOKEN}" >&2

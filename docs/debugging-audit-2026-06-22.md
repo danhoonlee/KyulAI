@@ -18,7 +18,7 @@ iOS, Android, and serving surfaces without reverting existing worktree changes.
   - `src/backend/dd_laminate_app.py`
 - Hardened DD/ImperialAX standalone host parsing against missing `Host` headers:
   - `src/backend/dd_laminate_app.py`
-  - `src/backend/luvelox_app.py`
+  - `src/backend/imperialax_app.py`
 - Tightened type boundaries in current operational API/model paths:
   - DD Laminate/u3 API response assembly
   - u3 forecast model bundle/checkpoint loading
@@ -31,8 +31,8 @@ iOS, Android, and serving surfaces without reverting existing worktree changes.
   - strict physics feature-name/value alignment
   - removed unused physics and Pt-consistency variables
 - Protected local-only/generated files from accidental commits:
-  - `data/luvelox_auth.sqlite3`
-  - `data/luvelox_auth.sqlite3-*`
+  - `data/imperialax_auth.sqlite3`
+  - `data/imperialax_auth.sqlite3-*`
   - Office lock files matching `~$*`
 
 ## Verification

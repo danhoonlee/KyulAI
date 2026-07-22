@@ -19,8 +19,8 @@ from src.backend.api.v1.simple_injection import router as simple_injection_route
 PROJECT_ROOT = __import__("pathlib").Path(__file__).resolve().parents[2]
 FRONTEND_DIR = PROJECT_ROOT / "src/frontend/simple-injection"
 DATA_DIR = PROJECT_ROOT / "data"
-LUVELOX_TO_IMPERIALAX_REDIRECTS = {
-    "injection.luvelox.com": "https://injection.imperialax.com",
+IMPERIALAX_TO_IMPERIALAX_REDIRECTS = {
+    "injection.imperialax.com": "https://injection.imperialax.com",
 }
 
 mimetypes.add_type("model/gltf-binary", ".glb")
@@ -55,8 +55,8 @@ def _request_host(request: Request) -> str:
 
 
 @app.middleware("http")
-async def redirect_legacy_luvelox_hosts(request: Request, call_next):
-    base_url = LUVELOX_TO_IMPERIALAX_REDIRECTS.get(_request_host(request))
+async def redirect_legacy_imperialax_hosts(request: Request, call_next):
+    base_url = IMPERIALAX_TO_IMPERIALAX_REDIRECTS.get(_request_host(request))
     if base_url:
         location = f"{base_url}{request.url.path or '/'}"
         if request.url.query:
