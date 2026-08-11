@@ -1,0 +1,120 @@
+{
+  "experiment_id": "20260811-uq-deep-fold-pretrain-v2",
+  "status": "planned_challenger_not_deployed",
+  "production_changes": false,
+  "data_dir": "data/datasets/DD_cases_2_3_4_geometry_3size_v1",
+  "split_manifest": "data/datasets/DD_cases_2_3_4_geometry_grouped_v1/split_manifest.csv",
+  "feature_set": "theta_physics_geometry_v1",
+  "seq_len": 128,
+  "target_cache": "reports/dd_response_pt_consistent_deep_3size_grouped_v1/p1_targets.npz",
+  "modes": [
+    "goint",
+    "hybrid"
+  ],
+  "architectures": {
+    "goint": "models/dd_laminate_response_pt_consistent_goint_3size_grouped_v1/response_goint.pt",
+    "hybrid": "models/dd_laminate_response_pt_consistent_hybrid_3size_grouped_v1/response_goint.pt"
+  },
+  "selection_protocol": {
+    "partition": "development_only",
+    "rows": 2154,
+    "group_key": [
+      "case",
+      "theta1",
+      "theta2"
+    ],
+    "grouped_folds": 5,
+    "seed": 42,
+    "forbid_fixed_benchmark_selection": true,
+    "initialization": "random_per_fold_with_fold_local_pretraining"
+  },
+  "pretraining": {
+    "enabled": true,
+    "scope": "fold_fit_rows_only",
+    "objective": "type_ordinal_response_scalars_curve_without_p1_or_teacher",
+    "goint_epochs": 45,
+    "hybrid_epochs": 45,
+    "goint_lr": 0.00035,
+    "hybrid_lr": 0.0003,
+    "ordinal_weight": 0.25,
+    "scalar_weight": 0.55,
+    "curve_weight": 0.4,
+    "teacher_targets": false,
+    "synthetic_rows": false
+  },
+  "teacher": {
+    "family": "pt_consistent_tree_fold_local",
+    "n_estimators": 500,
+    "n_components": 20,
+    "n_jobs": -1
+  },
+  "training": {
+    "batch_size": 256,
+    "num_workers": 2,
+    "goint_epochs": 60,
+    "hybrid_epochs": 35,
+    "goint_lr": 0.0002,
+    "hybrid_lr": 0.00015,
+    "weight_decay": 0.0008,
+    "ordinal_weight": 0.25,
+    "scalar_weight": 0.45,
+    "p1_weight": 0.35,
+    "curve_weight": 0.25,
+    "distillation_temperature": 2.5,
+    "hard_class_weight": 0.45,
+    "soft_class_weight": 0.75,
+    "hybrid_ordinal_weight": 0.12,
+    "hard_scalar_weight": 0.28,
+    "soft_scalar_weight": 0.55,
+    "hard_p1_weight": 0.25,
+    "soft_p1_weight": 0.4,
+    "hard_curve_weight": 0.18,
+    "soft_curve_weight": 0.38
+  },
+  "synthetic_teacher": {
+    "grid_step": 2.5,
+    "theta_min": -90.0,
+    "theta_max": 90.0,
+    "panel_sizes": "6x4,6x8,8x8",
+    "weight": 0.28,
+    "confidence_power": 1.5,
+    "minimum_confidence_weight": 0.45,
+    "exclusion_radius_degrees": 2.5
+  },
+  "classification": {
+    "candidate_methods": [
+      "identity",
+      "temperature_scaling"
+    ],
+    "selection_rule": {
+      "maximum_nll_regression": 0.0,
+      "maximum_brier_regression": 0.0,
+      "minimum_ece_improvement": 0.0
+    }
+  },
+  "regression_intervals": {
+    "targets": [
+      "pt",
+      "max_force"
+    ],
+    "levels": [
+      0.8,
+      0.9,
+      0.95
+    ],
+    "minimum_group_size": 30,
+    "selection_rule": {
+      "minimum_gap_improvement": 0.005,
+      "maximum_mean_width_ratio": 1.25,
+      "maximum_worst_gap_regression": 0.02
+    }
+  },
+  "fixed_benchmark": {
+    "rows": 546,
+    "status": "reused_fixed_benchmark_not_pristine_external_holdout",
+    "allowed_use": "report_frozen_configuration_only",
+    "forbidden_use": "model_or_UQ_selection"
+  },
+  "report_dir": "reports/dd_aicomp2026_v1/20260811-uq-deep-fold-pretrain-v2",
+  "deployment_decision": "challenger_only"
+}

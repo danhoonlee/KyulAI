@@ -30,6 +30,7 @@ from scripts.dd_response_pt_consistent_deep_train import (  # noqa: E402
     load_or_make_targets,
     make_model,
     metric_row,
+    record_keys_sha256,
     save_checkpoint,
     set_seed,
     train_model,
@@ -100,6 +101,8 @@ def _normalization(train: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 
 def _training_args(config: dict[str, Any], device: torch.device) -> Namespace:
     training = config["training"]
+    pretraining = config.get("pretraining", {})
+    pretraining_enabled = bool(pretraining.get("enabled", False))
     synthetic = config["synthetic_teacher"]
     return Namespace(
         batch_size=int(training["batch_size"]),
@@ -124,6 +127,19 @@ def _training_args(config: dict[str, Any], device: torch.device) -> Namespace:
         soft_p1_weight=float(training["soft_p1_weight"]),
         hard_curve_weight=float(training["hard_curve_weight"]),
         soft_curve_weight=float(training["soft_curve_weight"]),
+        pretrain_goint_epochs=(
+            int(pretraining.get("goint_epochs", 0)) if pretraining_enabled else 0
+        ),
+        pretrain_hybrid_epochs=(
+            int(pretraining.get("hybrid_epochs", 0)) if pretraining_enabled else 0
+        ),
+        pretrain_goint_lr=float(pretraining.get("goint_lr", training["goint_lr"])),
+        pretrain_hybrid_lr=float(pretraining.get("hybrid_lr", training["hybrid_lr"])),
+        pretrain_ordinal_weight=float(
+            pretraining.get("ordinal_weight", training["ordinal_weight"])
+        ),
+        pretrain_scalar_weight=float(pretraining.get("scalar_weight", training["scalar_weight"])),
+        pretrain_curve_weight=float(pretraining.get("curve_weight", training["curve_weight"])),
         synthetic_grid_step=float(synthetic["grid_step"]),
         synthetic_theta_min=float(synthetic["theta_min"]),
         synthetic_theta_max=float(synthetic["theta_max"]),
@@ -177,7 +193,7 @@ def _predict_with_probabilities(
     scalar_parts: list[np.ndarray] = []
     curve_parts: list[np.ndarray] = []
     dataset = TensorDataset(torch.tensor(features, dtype=torch.float32))
-    loader: DataLoader[tuple[torch.Tensor]] = DataLoader(
+    loader: DataLoader[Any] = DataLoader(
         dataset,
         batch_size=args.batch_size,
         shuffle=False,
@@ -213,6 +229,8 @@ def _fit_network(
     config: dict[str, Any],
     args: Namespace,
     seed: int,
+    fit_records: list[DDRecord],
+    training_context: dict[str, Any],
 ) -> tuple[
     DDResponseGointSurrogate,
     np.ndarray,
@@ -252,8 +270,22 @@ def _fit_network(
         feature_std=feature_std,
         args=args,
         warm_start_weights=False,
+        training_context={
+            **training_context,
+            "seed": seed,
+            "fit_rows": len(fit_idx),
+            "fit_record_sha256": record_keys_sha256(fit_records),
+            "source_checkpoint_sha256": _sha256(architecture_path),
+            "assessment_rows_seen": 0,
+            "fixed_benchmark_rows_seen": 0,
+        },
     )
-    training["initialization"] = "random_fold_local_no_full_development_warm_start"
+    pretraining_enabled = bool(config.get("pretraining", {}).get("enabled", False))
+    training["initialization"] = (
+        "random_fold_local_response_pretraining_then_pt_consistent_fine_tuning"
+        if pretraining_enabled
+        else "random_fold_local_no_full_development_warm_start"
+    )
     del teacher_bundle
     gc.collect()
     return model, feature_mean, feature_std, scalar_mean, scalar_std, training
@@ -269,6 +301,25 @@ def _validate_preflight(
     features: np.ndarray,
     curves: np.ndarray,
 ) -> dict[str, Any]:
+    if not bool(config["selection_protocol"].get("forbid_fixed_benchmark_selection", False)):
+        raise ValueError("fixed benchmark must be forbidden for model and UQ selection")
+    pretraining = config.get("pretraining", {})
+    if pretraining.get("enabled", False):
+        if pretraining.get("scope") != "fold_fit_rows_only":
+            raise ValueError("pretraining scope must be fold_fit_rows_only")
+        if pretraining.get("teacher_targets") is not False:
+            raise ValueError("response pretraining cannot use teacher targets")
+        if pretraining.get("synthetic_rows") is not False:
+            raise ValueError("response pretraining cannot use synthetic rows")
+        if (
+            min(
+                int(pretraining.get("goint_epochs", 0)),
+                int(pretraining.get("hybrid_epochs", 0)),
+            )
+            <= 0
+        ):
+            raise ValueError("enabled pretraining requires positive epochs for every mode")
+
     expected_development = int(config["selection_protocol"]["rows"])
     expected_benchmark = int(config["fixed_benchmark"]["rows"])
     if len(development_idx) != expected_development:
@@ -326,6 +377,12 @@ def _validate_preflight(
         "group_overlap": 0,
         "feature_dim": int(features.shape[1]),
         "curve_points": int(curves.shape[1]),
+        "pretraining": {
+            "enabled": bool(pretraining.get("enabled", False)),
+            "scope": pretraining.get("scope"),
+            "teacher_targets": pretraining.get("teacher_targets", False),
+            "synthetic_rows": pretraining.get("synthetic_rows", False),
+        },
         "architectures": architecture_rows,
     }
 
@@ -584,8 +641,14 @@ def _append_benchmark_ledger(
 
 
 def _report(payload: dict[str, Any]) -> str:
+    pretraining = payload["training_strategy"]
+    training_strategy = (
+        "fold-local response pretraining followed by Pt-consistent fine-tuning"
+        if pretraining.get("enabled", False)
+        else "random initialization followed by Pt-consistent training"
+    )
     lines = [
-        "# Pt-Consistent Deep Learning UQ v1",
+        f"# Pt-Consistent Deep Learning UQ: {payload['experiment_id']}",
         "",
         "## Protocol",
         "",
@@ -594,6 +657,7 @@ def _report(payload: dict[str, Any]) -> str:
         f"- Fixed benchmark rows: {payload['split']['benchmark_rows']}",
         "- Fold models and fold-local Tree teachers never saw their assessment groups.",
         "- Fold models used random initialization to avoid full-development warm-start leakage.",
+        f"- Training strategy: {training_strategy}.",
         "- Type calibration and interval conditioning were selected from development OOF only.",
         "- Production models and endpoints were not changed.",
         "",
@@ -753,6 +817,11 @@ def main() -> int:
                 config=config,
                 args=train_args,
                 seed=seed,
+                fit_records=[records[int(index)] for index in fit_idx],
+                training_context={
+                    "partition": "development_oof_fit",
+                    "fold": fold,
+                },
             )
             predicted = _predict_with_probabilities(
                 model,
@@ -847,12 +916,17 @@ def main() -> int:
             config=config,
             args=train_args,
             seed=final_seed,
+            fit_records=[records[int(index)] for index in development_idx],
+            training_context={
+                "partition": "final_development_fit",
+                "fold": "final",
+            },
         )
         checkpoint_path = save_checkpoint(
             model=final_model,
             baseline_path=architecture_path,
             output_dir=model_dir / mode,
-            model_name=f"laminate_forecast_pt_consistent_{mode}_uq_v1",
+            model_name=f"laminate_forecast_pt_consistent_{mode}_{experiment_id}",
             feature_set=config["feature_set"],
             feature_columns=feature_columns,
             feature_mean=feature_mean,
@@ -886,7 +960,21 @@ def main() -> int:
         "experiment_id": experiment_id,
         "git_parent_commit": parent_commit,
         "selection_partition": "development_grouped_oof_only",
+        "training_strategy": config.get("pretraining", {"enabled": False}),
         "point_models": {mode: model_results[mode]["point_model"] for mode in modes},
+        "oof_training_provenance": {
+            mode: [
+                {
+                    "fold": row["fold"],
+                    "fit_rows": row["fit_rows"],
+                    "assessment_rows": row["assessment_rows"],
+                    "provenance": row["training"]["provenance"],
+                    "training_stages": row["training"]["training_stages"],
+                }
+                for row in model_results[mode]["development_oof"]["folds"]
+            ]
+            for mode in modes
+        },
         "classification": {
             mode: model_results[mode]["development_oof"]["classification"] for mode in modes
         },
@@ -943,7 +1031,7 @@ def main() -> int:
             curves[benchmark_idx], scalars[benchmark_idx], predicted[3], predicted[2]
         )
         benchmark_metrics = metric_row(
-            f"Pt-Consistent {mode} UQ v1",
+            f"Pt-Consistent {mode} {experiment_id}",
             labels[benchmark_idx],
             scalars[benchmark_idx],
             curves[benchmark_idx],
@@ -1031,6 +1119,7 @@ def main() -> int:
         "production_changes": False,
         "elapsed_seconds": time.monotonic() - started,
         "device": str(device),
+        "training_strategy": config.get("pretraining", {"enabled": False}),
         "split": {
             "development_rows": len(development_idx),
             "development_groups": len(set(development_groups.tolist())),
@@ -1062,6 +1151,7 @@ def main() -> int:
                 "point_models": {mode: model_results[mode]["point_model"] for mode in modes},
                 "sidecars": {mode: model_results[mode]["sidecar"] for mode in modes},
                 "selection_freeze": payload["selection_freeze"],
+                "training_strategy": payload["training_strategy"],
                 "production_changes": False,
             },
             indent=2,
