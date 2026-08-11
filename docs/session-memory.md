@@ -15907,3 +15907,22 @@ Follow-up in same debugging pass:
 - The first challenger will add calibrated Type probabilities and conformal Pt/Max. Force intervals
   using only the development partition for calibration; the locked Holdout remains the final gate.
 - Baseline integrity can be checked with `python scripts/dd_verify_model_baseline.py`.
+
+## 2026-08-11 - DD Tree UQ Calibration v1
+
+- Added strict grouped calibration experiment `20260811-uq-calibration-tree-v1` on branch
+  `codex/dd-aicomp2026-uq` without modifying the production baseline.
+- Split the 2,154-row development partition into 1,725 fit rows / 575 groups and 429 calibration rows /
+  143 groups. The locked 546-row Holdout remained separate; Case+theta group overlap was zero.
+- Temperature scaling was rejected by a calibration-only safety rule. It slightly improved calibration
+  NLL but worsened calibration Brier/ECE, and Holdout ECE changed from 1.22% raw to 2.76% scaled.
+  The selected Type probability method therefore remains the model's raw probability (`identity`).
+- Split-conformal Pt intervals achieved 81.68%, 91.03%, and 96.70% empirical coverage for nominal
+  80%, 90%, and 95%. Corresponding mean widths were 467.38, 901.33, and 1,619.53 kips.
+- Split-conformal Max. Force intervals achieved 83.70%, 94.87%, and 98.53% coverage; the pooled 90%
+  and 95% intervals were conservative.
+- Pooled Pt intervals under-covered the 6x4 subgroup at 80% and 90%, while over-covering 6x8/8x8.
+  The next challenger should test geometry-conditioned (Mondrian) conformal quantiles without tuning
+  decisions on the locked Holdout.
+- Strict-split point performance was lower than the production model because 429 rows were reserved
+  for calibration: Type accuracy 0.9176, Pt MAE 236.01 kips, Max. Force MAE 218.94 kips.

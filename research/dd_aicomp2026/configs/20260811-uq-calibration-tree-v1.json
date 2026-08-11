@@ -1,0 +1,19 @@
+{
+  "experiment_id": "20260811-uq-calibration-tree-v1",
+  "status": "challenger",
+  "data_dir": "data/datasets/DD_cases_2_3_4_geometry_3size_v1",
+  "split_manifest": "data/datasets/DD_cases_2_3_4_geometry_grouped_v1/split_manifest.csv",
+  "feature_set": "theta_physics_geometry_v1",
+  "calibration_fraction": 0.2,
+  "levels": [
+    0.8,
+    0.9,
+    0.95
+  ],
+  "seq_len": 128,
+  "n_components": 20,
+  "n_estimators": 500,
+  "seed": 42,
+  "model_path": "models/dd_laminate_aicomp2026_v1/20260811-uq-calibration-tree-v1/artifacts/response_surrogate_uq.joblib",
+  "report_dir": "reports/dd_aicomp2026_v1/20260811-uq-calibration-tree-v1"
+}

@@ -1,0 +1,38 @@
+{
+  "artifact": {
+    "path": "models/dd_laminate_aicomp2026_v1/20260811-uq-calibration-tree-v1/artifacts/response_surrogate_uq.joblib",
+    "size_bytes": 388501874,
+    "sha256": "a90578f27e4416d01a51ff07823f126ed6670d81db7d8b849629c161663719bb"
+  },
+  "calibration": {
+    "classification": {
+      "method": "identity",
+      "candidate_method": "temperature_scaling",
+      "temperature": 1.1912582195132242,
+      "classes": [
+        1,
+        2,
+        3
+      ],
+      "selection_rule": "candidate NLL, Brier score, and ECE must all be no worse on calibration data"
+    },
+    "regression": {
+      "method": "split_conformal_absolute_residual",
+      "levels": [
+        0.8,
+        0.9,
+        0.95
+      ],
+      "pt_quantiles": {
+        "0.80": 233.69150396481564,
+        "0.90": 450.6625685187719,
+        "0.95": 809.7657992447712
+      },
+      "max_force_quantiles": {
+        "0.80": 338.76886104226287,
+        "0.90": 830.2537569649066,
+        "0.95": 1390.071285812377
+      }
+    }
+  }
+}

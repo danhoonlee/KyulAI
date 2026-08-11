@@ -1,0 +1,506 @@
+{
+  "experiment_id": "20260811-uq-calibration-tree-v1",
+  "status": "challenger",
+  "git_parent_commit": "56a8614d34a4db7b29b938386ea71802452092b9",
+  "dataset": "data/datasets/DD_cases_2_3_4_geometry_3size_v1",
+  "split_manifest": "data/datasets/DD_cases_2_3_4_geometry_grouped_v1/split_manifest.csv",
+  "split_manifest_sha256": "af7b4b020abc943c2ff3b942f7b696c9691d7ca796b686c5fdfeba28d8151ed6",
+  "feature_set": "theta_physics_geometry_v1",
+  "seed": 42,
+  "n_estimators": 500,
+  "n_components": 20,
+  "calibration_fraction": 0.2,
+  "split": {
+    "fit": {
+      "rows": 1725,
+      "groups": 575,
+      "cases": {
+        "Case2": 576,
+        "Case3": 576,
+        "Case4": 573
+      },
+      "types": {
+        "Type 1": 422,
+        "Type 2": 968,
+        "Type 3": 335
+      },
+      "geometries": {
+        "6x4": 575,
+        "6x8": 575,
+        "8x8": 575
+      }
+    },
+    "calibration": {
+      "rows": 429,
+      "groups": 143,
+      "cases": {
+        "Case2": 141,
+        "Case3": 141,
+        "Case4": 147
+      },
+      "types": {
+        "Type 1": 102,
+        "Type 2": 244,
+        "Type 3": 83
+      },
+      "geometries": {
+        "6x4": 143,
+        "6x8": 143,
+        "8x8": 143
+      }
+    },
+    "holdout": {
+      "rows": 546,
+      "groups": 182,
+      "cases": {
+        "Case2": 183,
+        "Case3": 183,
+        "Case4": 180
+      },
+      "types": {
+        "Type 1": 130,
+        "Type 2": 306,
+        "Type 3": 110
+      },
+      "geometries": {
+        "6x4": 182,
+        "6x8": 182,
+        "8x8": 182
+      }
+    },
+    "group_overlap": 0
+  },
+  "classification_calibration": {
+    "temperature": 1.1912582195132242,
+    "decision": {
+      "selected_method": "identity",
+      "candidate_accepted": false,
+      "reason": "Temperature scaling failed the calibration-only NLL/Brier/ECE guard; raw probabilities are retained."
+    },
+    "calibration_raw": {
+      "accuracy": 0.9347319347319347,
+      "negative_log_likelihood": 0.2199077865740189,
+      "brier_score": 0.09475750116551512,
+      "expected_calibration_error": 0.023724941725826502,
+      "mean_confidence": 0.923491841490707
+    },
+    "calibration_calibrated": {
+      "accuracy": 0.9347319347319347,
+      "negative_log_likelihood": 0.2166088663410229,
+      "brier_score": 0.09717460336434759,
+      "expected_calibration_error": 0.030144294894284863,
+      "mean_confidence": 0.9088077672451882
+    },
+    "holdout_raw": {
+      "accuracy": 0.9175824175824175,
+      "negative_log_likelihood": 0.18979927636370875,
+      "brier_score": 0.11424213919414773,
+      "expected_calibration_error": 0.012249084250020298,
+      "mean_confidence": 0.9144835164824079
+    },
+    "holdout_calibrated": {
+      "accuracy": 0.9175824175824175,
+      "negative_log_likelihood": 0.19478414253033335,
+      "brier_score": 0.11592994849253753,
+      "expected_calibration_error": 0.027632521699407636,
+      "mean_confidence": 0.8985130913936572
+    },
+    "holdout_selected": {
+      "accuracy": 0.9175824175824175,
+      "negative_log_likelihood": 0.18979927636370875,
+      "brier_score": 0.11424213919414773,
+      "expected_calibration_error": 0.012249084250020298,
+      "mean_confidence": 0.9144835164824079
+    }
+  },
+  "regression_intervals": {
+    "pt": {
+      "0.80": {
+        "quantile": 233.69150396481564,
+        "overall": {
+          "nominal_coverage": 0.8,
+          "empirical_coverage": 0.8168498168498168,
+          "coverage_gap": 0.01684981684981679,
+          "mean_width": 467.3830079296313,
+          "median_width": 467.3830079296313
+        },
+        "subgroups": {
+          "geometry:6x4": {
+            "nominal_coverage": 0.8,
+            "empirical_coverage": 0.6208791208791209,
+            "coverage_gap": -0.17912087912087915,
+            "mean_width": 467.3830079296313,
+            "median_width": 467.3830079296313
+          },
+          "geometry:6x8": {
+            "nominal_coverage": 0.8,
+            "empirical_coverage": 0.8901098901098901,
+            "coverage_gap": 0.09010989010989001,
+            "mean_width": 467.3830079296313,
+            "median_width": 467.3830079296313
+          },
+          "geometry:8x8": {
+            "nominal_coverage": 0.8,
+            "empirical_coverage": 0.9395604395604396,
+            "coverage_gap": 0.1395604395604395,
+            "mean_width": 467.3830079296313,
+            "median_width": 467.3830079296313
+          },
+          "case:Case2": {
+            "nominal_coverage": 0.8,
+            "empirical_coverage": 0.8579234972677595,
+            "coverage_gap": 0.05792349726775947,
+            "mean_width": 467.3830079296313,
+            "median_width": 467.3830079296313
+          },
+          "case:Case3": {
+            "nominal_coverage": 0.8,
+            "empirical_coverage": 0.726775956284153,
+            "coverage_gap": -0.07322404371584701,
+            "mean_width": 467.3830079296313,
+            "median_width": 467.3830079296313
+          },
+          "case:Case4": {
+            "nominal_coverage": 0.8,
+            "empirical_coverage": 0.8666666666666667,
+            "coverage_gap": 0.06666666666666665,
+            "mean_width": 467.3830079296313,
+            "median_width": 467.3830079296313
+          }
+        }
+      },
+      "0.90": {
+        "quantile": 450.6625685187719,
+        "overall": {
+          "nominal_coverage": 0.9,
+          "empirical_coverage": 0.9102564102564102,
+          "coverage_gap": 0.01025641025641022,
+          "mean_width": 901.3251370375438,
+          "median_width": 901.3251370375438
+        },
+        "subgroups": {
+          "geometry:6x4": {
+            "nominal_coverage": 0.9,
+            "empirical_coverage": 0.7747252747252747,
+            "coverage_gap": -0.12527472527472527,
+            "mean_width": 901.325137037544,
+            "median_width": 901.3251370375438
+          },
+          "geometry:6x8": {
+            "nominal_coverage": 0.9,
+            "empirical_coverage": 0.978021978021978,
+            "coverage_gap": 0.07802197802197797,
+            "mean_width": 901.325137037544,
+            "median_width": 901.3251370375438
+          },
+          "geometry:8x8": {
+            "nominal_coverage": 0.9,
+            "empirical_coverage": 0.978021978021978,
+            "coverage_gap": 0.07802197802197797,
+            "mean_width": 901.325137037544,
+            "median_width": 901.3251370375438
+          },
+          "case:Case2": {
+            "nominal_coverage": 0.9,
+            "empirical_coverage": 0.9344262295081968,
+            "coverage_gap": 0.03442622950819674,
+            "mean_width": 901.325137037544,
+            "median_width": 901.3251370375438
+          },
+          "case:Case3": {
+            "nominal_coverage": 0.9,
+            "empirical_coverage": 0.8524590163934426,
+            "coverage_gap": -0.04754098360655745,
+            "mean_width": 901.325137037544,
+            "median_width": 901.3251370375438
+          },
+          "case:Case4": {
+            "nominal_coverage": 0.9,
+            "empirical_coverage": 0.9444444444444444,
+            "coverage_gap": 0.0444444444444444,
+            "mean_width": 901.3251370375439,
+            "median_width": 901.3251370375438
+          }
+        }
+      },
+      "0.95": {
+        "quantile": 809.7657992447712,
+        "overall": {
+          "nominal_coverage": 0.95,
+          "empirical_coverage": 0.967032967032967,
+          "coverage_gap": 0.017032967032967083,
+          "mean_width": 1619.5315984895424,
+          "median_width": 1619.5315984895424
+        },
+        "subgroups": {
+          "geometry:6x4": {
+            "nominal_coverage": 0.95,
+            "empirical_coverage": 0.9230769230769231,
+            "coverage_gap": -0.026923076923076827,
+            "mean_width": 1619.5315984895428,
+            "median_width": 1619.5315984895424
+          },
+          "geometry:6x8": {
+            "nominal_coverage": 0.95,
+            "empirical_coverage": 0.9835164835164835,
+            "coverage_gap": 0.03351648351648351,
+            "mean_width": 1619.5315984895428,
+            "median_width": 1619.5315984895424
+          },
+          "geometry:8x8": {
+            "nominal_coverage": 0.95,
+            "empirical_coverage": 0.9945054945054945,
+            "coverage_gap": 0.04450549450549457,
+            "mean_width": 1619.5315984895428,
+            "median_width": 1619.5315984895424
+          },
+          "case:Case2": {
+            "nominal_coverage": 0.95,
+            "empirical_coverage": 0.9672131147540983,
+            "coverage_gap": 0.01721311475409837,
+            "mean_width": 1619.5315984895428,
+            "median_width": 1619.5315984895424
+          },
+          "case:Case3": {
+            "nominal_coverage": 0.95,
+            "empirical_coverage": 0.9562841530054644,
+            "coverage_gap": 0.006284153005464477,
+            "mean_width": 1619.5315984895428,
+            "median_width": 1619.5315984895424
+          },
+          "case:Case4": {
+            "nominal_coverage": 0.95,
+            "empirical_coverage": 0.9777777777777777,
+            "coverage_gap": 0.02777777777777779,
+            "mean_width": 1619.5315984895426,
+            "median_width": 1619.5315984895424
+          }
+        }
+      }
+    },
+    "max_force": {
+      "0.80": {
+        "quantile": 338.76886104226287,
+        "overall": {
+          "nominal_coverage": 0.8,
+          "empirical_coverage": 0.836996336996337,
+          "coverage_gap": 0.036996336996336976,
+          "mean_width": 677.5377220845257,
+          "median_width": 677.5377220845257
+        },
+        "subgroups": {
+          "geometry:6x4": {
+            "nominal_coverage": 0.8,
+            "empirical_coverage": 0.8186813186813187,
+            "coverage_gap": 0.018681318681318615,
+            "mean_width": 677.5377220845257,
+            "median_width": 677.5377220845257
+          },
+          "geometry:6x8": {
+            "nominal_coverage": 0.8,
+            "empirical_coverage": 0.8516483516483516,
+            "coverage_gap": 0.051648351648351576,
+            "mean_width": 677.5377220845257,
+            "median_width": 677.5377220845257
+          },
+          "geometry:8x8": {
+            "nominal_coverage": 0.8,
+            "empirical_coverage": 0.8406593406593407,
+            "coverage_gap": 0.040659340659340626,
+            "mean_width": 677.5377220845257,
+            "median_width": 677.5377220845257
+          },
+          "case:Case2": {
+            "nominal_coverage": 0.8,
+            "empirical_coverage": 0.9289617486338798,
+            "coverage_gap": 0.12896174863387977,
+            "mean_width": 677.5377220845257,
+            "median_width": 677.5377220845257
+          },
+          "case:Case3": {
+            "nominal_coverage": 0.8,
+            "empirical_coverage": 0.6775956284153005,
+            "coverage_gap": -0.12240437158469952,
+            "mean_width": 677.5377220845257,
+            "median_width": 677.5377220845257
+          },
+          "case:Case4": {
+            "nominal_coverage": 0.8,
+            "empirical_coverage": 0.9055555555555556,
+            "coverage_gap": 0.10555555555555551,
+            "mean_width": 677.5377220845257,
+            "median_width": 677.5377220845257
+          }
+        }
+      },
+      "0.90": {
+        "quantile": 830.2537569649066,
+        "overall": {
+          "nominal_coverage": 0.9,
+          "empirical_coverage": 0.9487179487179487,
+          "coverage_gap": 0.048717948717948656,
+          "mean_width": 1660.5075139298133,
+          "median_width": 1660.5075139298133
+        },
+        "subgroups": {
+          "geometry:6x4": {
+            "nominal_coverage": 0.9,
+            "empirical_coverage": 0.9340659340659341,
+            "coverage_gap": 0.034065934065934056,
+            "mean_width": 1660.5075139298128,
+            "median_width": 1660.5075139298133
+          },
+          "geometry:6x8": {
+            "nominal_coverage": 0.9,
+            "empirical_coverage": 0.9560439560439561,
+            "coverage_gap": 0.05604395604395607,
+            "mean_width": 1660.5075139298128,
+            "median_width": 1660.5075139298133
+          },
+          "geometry:8x8": {
+            "nominal_coverage": 0.9,
+            "empirical_coverage": 0.9560439560439561,
+            "coverage_gap": 0.05604395604395607,
+            "mean_width": 1660.5075139298128,
+            "median_width": 1660.5075139298133
+          },
+          "case:Case2": {
+            "nominal_coverage": 0.9,
+            "empirical_coverage": 0.9781420765027322,
+            "coverage_gap": 0.0781420765027322,
+            "mean_width": 1660.5075139298128,
+            "median_width": 1660.5075139298133
+          },
+          "case:Case3": {
+            "nominal_coverage": 0.9,
+            "empirical_coverage": 0.9016393442622951,
+            "coverage_gap": 0.0016393442622950616,
+            "mean_width": 1660.5075139298128,
+            "median_width": 1660.5075139298133
+          },
+          "case:Case4": {
+            "nominal_coverage": 0.9,
+            "empirical_coverage": 0.9666666666666667,
+            "coverage_gap": 0.06666666666666665,
+            "mean_width": 1660.507513929813,
+            "median_width": 1660.5075139298133
+          }
+        }
+      },
+      "0.95": {
+        "quantile": 1390.071285812377,
+        "overall": {
+          "nominal_coverage": 0.95,
+          "empirical_coverage": 0.9853479853479854,
+          "coverage_gap": 0.035347985347985444,
+          "mean_width": 2780.1425716247545,
+          "median_width": 2780.142571624754
+        },
+        "subgroups": {
+          "geometry:6x4": {
+            "nominal_coverage": 0.95,
+            "empirical_coverage": 0.978021978021978,
+            "coverage_gap": 0.028021978021978033,
+            "mean_width": 2780.142571624754,
+            "median_width": 2780.142571624754
+          },
+          "geometry:6x8": {
+            "nominal_coverage": 0.95,
+            "empirical_coverage": 0.989010989010989,
+            "coverage_gap": 0.039010989010989094,
+            "mean_width": 2780.142571624754,
+            "median_width": 2780.142571624754
+          },
+          "geometry:8x8": {
+            "nominal_coverage": 0.95,
+            "empirical_coverage": 0.989010989010989,
+            "coverage_gap": 0.039010989010989094,
+            "mean_width": 2780.1425716247536,
+            "median_width": 2780.142571624754
+          },
+          "case:Case2": {
+            "nominal_coverage": 0.95,
+            "empirical_coverage": 0.9836065573770492,
+            "coverage_gap": 0.03360655737704921,
+            "mean_width": 2780.142571624754,
+            "median_width": 2780.142571624754
+          },
+          "case:Case3": {
+            "nominal_coverage": 0.95,
+            "empirical_coverage": 0.9890710382513661,
+            "coverage_gap": 0.03907103825136615,
+            "mean_width": 2780.142571624754,
+            "median_width": 2780.142571624754
+          },
+          "case:Case4": {
+            "nominal_coverage": 0.95,
+            "empirical_coverage": 0.9833333333333333,
+            "coverage_gap": 0.033333333333333326,
+            "mean_width": 2780.142571624754,
+            "median_width": 2780.142571624754
+          }
+        }
+      }
+    }
+  },
+  "holdout_point_metrics": {
+    "name": "Strict Split-Calibrated Tree v1",
+    "accuracy": 0.9175824175824175,
+    "macro_f1": 0.9133175735719155,
+    "pt_mae": 236.00636533954022,
+    "max_displacement_mae": 0.0004296153188161143,
+    "max_force_mae": 218.93621968530582,
+    "curve_norm_rmse": 0.00656926626348719,
+    "curve_force_rmse": 417.09357962847116,
+    "pt_displacement_norm_mae": 0.006921464055152224,
+    "first_slope_norm_mae": 0.07223655336616608,
+    "second_slope_norm_mae": 0.028362199931704347,
+    "displayed_p1_direct_pt_gap": 0.0,
+    "p1_fit_failures": 0,
+    "curve_p1_pt_mae": 4689.662357091489,
+    "direct_curve_p1_gap_mae": 4659.047711383888,
+    "direct_curve_p1_gap_median": 2591.8294070550837,
+    "direct_curve_p1_gap_p95": 13009.53678447251,
+    "direct_curve_p1_gap_percent_median": 32.86392289690367,
+    "direct_curve_p1_gap_percent_p95": 251.33107020220083,
+    "direct_curve_p1_within_1_percent": 0.07692307692307693,
+    "direct_curve_p1_within_2_percent": 0.152014652014652,
+    "direct_curve_p1_within_5_percent": 0.27289377289377287
+  },
+  "calibration": {
+    "classification": {
+      "method": "identity",
+      "candidate_method": "temperature_scaling",
+      "temperature": 1.1912582195132242,
+      "classes": [
+        1,
+        2,
+        3
+      ],
+      "selection_rule": "candidate NLL, Brier score, and ECE must all be no worse on calibration data"
+    },
+    "regression": {
+      "method": "split_conformal_absolute_residual",
+      "levels": [
+        0.8,
+        0.9,
+        0.95
+      ],
+      "pt_quantiles": {
+        "0.80": 233.69150396481564,
+        "0.90": 450.6625685187719,
+        "0.95": 809.7657992447712
+      },
+      "max_force_quantiles": {
+        "0.80": 338.76886104226287,
+        "0.90": 830.2537569649066,
+        "0.95": 1390.071285812377
+      }
+    }
+  },
+  "artifact": {
+    "path": "models/dd_laminate_aicomp2026_v1/20260811-uq-calibration-tree-v1/artifacts/response_surrogate_uq.joblib",
+    "size_bytes": 388501874,
+    "sha256": "a90578f27e4416d01a51ff07823f126ed6670d81db7d8b849629c161663719bb"
+  }
+}
