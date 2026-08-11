@@ -1,5 +1,6 @@
 {
-  "experiment_id": "20260811-uq-deep-force-head-v3a",
+  "experiment_id": "20260811-uq-deep-force-head-v3b",
+  "supersedes": "20260811-uq-deep-force-head-v3a_seed-offset-mismatch_stopped-before-benchmark",
   "status": "planned_challenger_not_deployed",
   "production_changes": false,
   "data_dir": "data/datasets/DD_cases_2_3_4_geometry_3size_v1",
@@ -144,6 +145,6 @@
     "allowed_use": "report_only_after_development_gate_passes",
     "forbidden_use": "model_or_UQ_selection"
   },
-  "report_dir": "reports/dd_aicomp2026_v1/20260811-uq-deep-force-head-v3a",
+  "report_dir": "reports/dd_aicomp2026_v1/20260811-uq-deep-force-head-v3b",
   "deployment_decision": "challenger_only"
 }

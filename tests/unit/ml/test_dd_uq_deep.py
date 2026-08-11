@@ -484,3 +484,8 @@ def test_development_gate_uses_only_declared_oof_metrics() -> None:
     assert result["passed"] is True
     assert result["fixed_benchmark_used"] is False
     assert result["deltas"]["max_force_mae_improvement_ratio"] > 0.05
+
+
+def test_hybrid_seed_offset_is_stable_when_goint_mode_is_omitted() -> None:
+    assert deep_uq._mode_seed_offset("goint") == 0
+    assert deep_uq._mode_seed_offset("hybrid") == 10_000

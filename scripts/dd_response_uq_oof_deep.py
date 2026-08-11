@@ -68,6 +68,7 @@ from src.ml.dd_laminate.uq_experiment import (  # noqa: E402
 DEFAULT_CONFIG = Path("research/dd_aicomp2026/configs/20260811-uq-deep-geometry-case-v1.json")
 DEFAULT_LEDGER = Path("research/dd_aicomp2026/holdout_usage_ledger.json")
 CLASSES = np.asarray([1, 2, 3], dtype=int)
+MODE_SEED_OFFSETS = {"goint": 0, "hybrid": 10_000}
 
 
 def _sha256(path: Path) -> str:
@@ -91,6 +92,13 @@ def _geometry(record: DDRecord) -> str:
 
 def _geometry_case(record: DDRecord) -> str:
     return f"{_geometry(record)}|{record.case}"
+
+
+def _mode_seed_offset(mode: str) -> int:
+    try:
+        return MODE_SEED_OFFSETS[mode]
+    except KeyError as exc:
+        raise ValueError(f"unsupported deep UQ mode: {mode}") from exc
 
 
 def _normalization(train: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -857,7 +865,7 @@ def main() -> int:
     model_results: dict[str, Any] = {}
     frozen_models: dict[str, Path] = {}
     development_gates: dict[str, Any] = {}
-    for mode_position, mode in enumerate(modes):
+    for mode in modes:
         print(f"\n=== {mode.upper()} grouped OOF ===", flush=True)
         architecture_path = ROOT / config["architectures"][mode]
         rows = len(development_idx)
@@ -886,7 +894,7 @@ def main() -> int:
             )
             excluded = [records[int(index)] for index in assess_idx]
             excluded.extend(records[int(index)] for index in benchmark_idx)
-            seed = int(config["selection_protocol"]["seed"]) + mode_position * 10_000 + fold * 101
+            seed = int(config["selection_protocol"]["seed"]) + _mode_seed_offset(mode) + fold * 101
             model, feature_mean, feature_std, scalar_mean, scalar_std, training = _fit_network(
                 mode=mode,
                 fit_idx=fit_idx,
@@ -994,7 +1002,7 @@ def main() -> int:
         )
 
         print(f"[{mode}] training final development model...", flush=True)
-        final_seed = int(config["selection_protocol"]["seed"]) + mode_position * 10_000 + 9_999
+        final_seed = int(config["selection_protocol"]["seed"]) + _mode_seed_offset(mode) + 9_999
         excluded_benchmark = [records[int(index)] for index in benchmark_idx]
         final_model, feature_mean, feature_std, scalar_mean, scalar_std, training = _fit_network(
             mode=mode,
