@@ -16124,3 +16124,23 @@ Follow-up in same debugging pass:
   changed. Full evidence is stored under
   `reports/dd_aicomp2026_v1/20260811-uq-deep-force-robust-v3c/` and the sidecar metadata under
   `models/dd_laminate_aicomp2026_v1/20260811-uq-deep-force-robust-v3c/`.
+
+## 2026-08-11 - UV3S1 Untouched Validation Campaign Freeze
+
+- Added a deterministic untouched-simulation campaign generator and returned-data validator. It uses
+  no model prediction or target when choosing designs and excludes every exact theta1 + theta2 pair
+  already present in the 2,700-row three-size dataset.
+- Frozen campaign `UV3S1` contains 60 new integer-angle pairs. Thirty are pre-registered uniform-grid
+  samples and thirty are maximin stress samples selected from gaps in the current design space.
+- Every pair is repeated across Case 2/3/4 and 6x4/6x8/8x8 panels, producing 540 simulations with
+  exactly 60 rows in each geometry + Case cell and zero source-pair overlap.
+- The campaign is split into a 180-run pilot and a 360-run confirmatory phase. Pilot targets may stop
+  the campaign for solver or data-quality failures only; they must not be used to retrain, recalibrate,
+  change interval grouping, or alter thresholds.
+- The primary predeclared weak-subgroup diagnostic is `6x8 | Case2`, which receives 60 completely new
+  simulations. Uniform and maximin strata must be reported both separately and combined.
+- The freeze records hashes for the source manifest, grouped split, production Tree, Hybrid v3b point
+  model, v3c uncertainty sidecar, all phase manifests, and the blind result template. The frozen files
+  are under `research/dd_aicomp2026/campaigns/20260811-untouched-3size-v1/`.
+- No production model, API endpoint, or UI was changed. Final model evaluation begins only after all
+  540 returned rows pass the blind result audit.

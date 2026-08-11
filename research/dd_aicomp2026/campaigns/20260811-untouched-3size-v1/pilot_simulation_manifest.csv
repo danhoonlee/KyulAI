@@ -1,0 +1,181 @@
+campaign_id,simulation_id,pair_id,phase,selection_stratum,geometry,panel_a_in,panel_b_in,case,theta1,theta2,case_formula,group_key,result_status
+UV3S1,UV3S1-P001-6x4-Case2,P001,pilot,maximin_gap,6x4,6.0,4.0,Case2,-90,-68,[[+/-theta1]/[+/-theta2]]4,Case2|-90|-68,planned_blind
+UV3S1,UV3S1-P001-6x4-Case3,P001,pilot,maximin_gap,6x4,6.0,4.0,Case3,-90,-68,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-90|-68,planned_blind
+UV3S1,UV3S1-P001-6x4-Case4,P001,pilot,maximin_gap,6x4,6.0,4.0,Case4,-90,-68,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-90|-68,planned_blind
+UV3S1,UV3S1-P001-6x8-Case2,P001,pilot,maximin_gap,6x8,6.0,8.0,Case2,-90,-68,[[+/-theta1]/[+/-theta2]]4,Case2|-90|-68,planned_blind
+UV3S1,UV3S1-P001-6x8-Case3,P001,pilot,maximin_gap,6x8,6.0,8.0,Case3,-90,-68,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-90|-68,planned_blind
+UV3S1,UV3S1-P001-6x8-Case4,P001,pilot,maximin_gap,6x8,6.0,8.0,Case4,-90,-68,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-90|-68,planned_blind
+UV3S1,UV3S1-P001-8x8-Case2,P001,pilot,maximin_gap,8x8,8.0,8.0,Case2,-90,-68,[[+/-theta1]/[+/-theta2]]4,Case2|-90|-68,planned_blind
+UV3S1,UV3S1-P001-8x8-Case3,P001,pilot,maximin_gap,8x8,8.0,8.0,Case3,-90,-68,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-90|-68,planned_blind
+UV3S1,UV3S1-P001-8x8-Case4,P001,pilot,maximin_gap,8x8,8.0,8.0,Case4,-90,-68,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-90|-68,planned_blind
+UV3S1,UV3S1-P002-6x4-Case2,P002,pilot,maximin_gap,6x4,6.0,4.0,Case2,-90,-23,[[+/-theta1]/[+/-theta2]]4,Case2|-90|-23,planned_blind
+UV3S1,UV3S1-P002-6x4-Case3,P002,pilot,maximin_gap,6x4,6.0,4.0,Case3,-90,-23,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-90|-23,planned_blind
+UV3S1,UV3S1-P002-6x4-Case4,P002,pilot,maximin_gap,6x4,6.0,4.0,Case4,-90,-23,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-90|-23,planned_blind
+UV3S1,UV3S1-P002-6x8-Case2,P002,pilot,maximin_gap,6x8,6.0,8.0,Case2,-90,-23,[[+/-theta1]/[+/-theta2]]4,Case2|-90|-23,planned_blind
+UV3S1,UV3S1-P002-6x8-Case3,P002,pilot,maximin_gap,6x8,6.0,8.0,Case3,-90,-23,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-90|-23,planned_blind
+UV3S1,UV3S1-P002-6x8-Case4,P002,pilot,maximin_gap,6x8,6.0,8.0,Case4,-90,-23,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-90|-23,planned_blind
+UV3S1,UV3S1-P002-8x8-Case2,P002,pilot,maximin_gap,8x8,8.0,8.0,Case2,-90,-23,[[+/-theta1]/[+/-theta2]]4,Case2|-90|-23,planned_blind
+UV3S1,UV3S1-P002-8x8-Case3,P002,pilot,maximin_gap,8x8,8.0,8.0,Case3,-90,-23,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-90|-23,planned_blind
+UV3S1,UV3S1-P002-8x8-Case4,P002,pilot,maximin_gap,8x8,8.0,8.0,Case4,-90,-23,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-90|-23,planned_blind
+UV3S1,UV3S1-P003-6x4-Case2,P003,pilot,maximin_gap,6x4,6.0,4.0,Case2,-90,4,[[+/-theta1]/[+/-theta2]]4,Case2|-90|4,planned_blind
+UV3S1,UV3S1-P003-6x4-Case3,P003,pilot,maximin_gap,6x4,6.0,4.0,Case3,-90,4,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-90|4,planned_blind
+UV3S1,UV3S1-P003-6x4-Case4,P003,pilot,maximin_gap,6x4,6.0,4.0,Case4,-90,4,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-90|4,planned_blind
+UV3S1,UV3S1-P003-6x8-Case2,P003,pilot,maximin_gap,6x8,6.0,8.0,Case2,-90,4,[[+/-theta1]/[+/-theta2]]4,Case2|-90|4,planned_blind
+UV3S1,UV3S1-P003-6x8-Case3,P003,pilot,maximin_gap,6x8,6.0,8.0,Case3,-90,4,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-90|4,planned_blind
+UV3S1,UV3S1-P003-6x8-Case4,P003,pilot,maximin_gap,6x8,6.0,8.0,Case4,-90,4,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-90|4,planned_blind
+UV3S1,UV3S1-P003-8x8-Case2,P003,pilot,maximin_gap,8x8,8.0,8.0,Case2,-90,4,[[+/-theta1]/[+/-theta2]]4,Case2|-90|4,planned_blind
+UV3S1,UV3S1-P003-8x8-Case3,P003,pilot,maximin_gap,8x8,8.0,8.0,Case3,-90,4,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-90|4,planned_blind
+UV3S1,UV3S1-P003-8x8-Case4,P003,pilot,maximin_gap,8x8,8.0,8.0,Case4,-90,4,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-90|4,planned_blind
+UV3S1,UV3S1-P004-6x4-Case2,P004,pilot,maximin_gap,6x4,6.0,4.0,Case2,-49,-90,[[+/-theta1]/[+/-theta2]]4,Case2|-49|-90,planned_blind
+UV3S1,UV3S1-P004-6x4-Case3,P004,pilot,maximin_gap,6x4,6.0,4.0,Case3,-49,-90,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-49|-90,planned_blind
+UV3S1,UV3S1-P004-6x4-Case4,P004,pilot,maximin_gap,6x4,6.0,4.0,Case4,-49,-90,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-49|-90,planned_blind
+UV3S1,UV3S1-P004-6x8-Case2,P004,pilot,maximin_gap,6x8,6.0,8.0,Case2,-49,-90,[[+/-theta1]/[+/-theta2]]4,Case2|-49|-90,planned_blind
+UV3S1,UV3S1-P004-6x8-Case3,P004,pilot,maximin_gap,6x8,6.0,8.0,Case3,-49,-90,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-49|-90,planned_blind
+UV3S1,UV3S1-P004-6x8-Case4,P004,pilot,maximin_gap,6x8,6.0,8.0,Case4,-49,-90,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-49|-90,planned_blind
+UV3S1,UV3S1-P004-8x8-Case2,P004,pilot,maximin_gap,8x8,8.0,8.0,Case2,-49,-90,[[+/-theta1]/[+/-theta2]]4,Case2|-49|-90,planned_blind
+UV3S1,UV3S1-P004-8x8-Case3,P004,pilot,maximin_gap,8x8,8.0,8.0,Case3,-49,-90,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-49|-90,planned_blind
+UV3S1,UV3S1-P004-8x8-Case4,P004,pilot,maximin_gap,8x8,8.0,8.0,Case4,-49,-90,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-49|-90,planned_blind
+UV3S1,UV3S1-P005-6x4-Case2,P005,pilot,maximin_gap,6x4,6.0,4.0,Case2,-43,42,[[+/-theta1]/[+/-theta2]]4,Case2|-43|42,planned_blind
+UV3S1,UV3S1-P005-6x4-Case3,P005,pilot,maximin_gap,6x4,6.0,4.0,Case3,-43,42,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-43|42,planned_blind
+UV3S1,UV3S1-P005-6x4-Case4,P005,pilot,maximin_gap,6x4,6.0,4.0,Case4,-43,42,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-43|42,planned_blind
+UV3S1,UV3S1-P005-6x8-Case2,P005,pilot,maximin_gap,6x8,6.0,8.0,Case2,-43,42,[[+/-theta1]/[+/-theta2]]4,Case2|-43|42,planned_blind
+UV3S1,UV3S1-P005-6x8-Case3,P005,pilot,maximin_gap,6x8,6.0,8.0,Case3,-43,42,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-43|42,planned_blind
+UV3S1,UV3S1-P005-6x8-Case4,P005,pilot,maximin_gap,6x8,6.0,8.0,Case4,-43,42,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-43|42,planned_blind
+UV3S1,UV3S1-P005-8x8-Case2,P005,pilot,maximin_gap,8x8,8.0,8.0,Case2,-43,42,[[+/-theta1]/[+/-theta2]]4,Case2|-43|42,planned_blind
+UV3S1,UV3S1-P005-8x8-Case3,P005,pilot,maximin_gap,8x8,8.0,8.0,Case3,-43,42,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-43|42,planned_blind
+UV3S1,UV3S1-P005-8x8-Case4,P005,pilot,maximin_gap,8x8,8.0,8.0,Case4,-43,42,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-43|42,planned_blind
+UV3S1,UV3S1-P006-6x4-Case2,P006,pilot,maximin_gap,6x4,6.0,4.0,Case2,7,58,[[+/-theta1]/[+/-theta2]]4,Case2|7|58,planned_blind
+UV3S1,UV3S1-P006-6x4-Case3,P006,pilot,maximin_gap,6x4,6.0,4.0,Case3,7,58,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|7|58,planned_blind
+UV3S1,UV3S1-P006-6x4-Case4,P006,pilot,maximin_gap,6x4,6.0,4.0,Case4,7,58,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|7|58,planned_blind
+UV3S1,UV3S1-P006-6x8-Case2,P006,pilot,maximin_gap,6x8,6.0,8.0,Case2,7,58,[[+/-theta1]/[+/-theta2]]4,Case2|7|58,planned_blind
+UV3S1,UV3S1-P006-6x8-Case3,P006,pilot,maximin_gap,6x8,6.0,8.0,Case3,7,58,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|7|58,planned_blind
+UV3S1,UV3S1-P006-6x8-Case4,P006,pilot,maximin_gap,6x8,6.0,8.0,Case4,7,58,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|7|58,planned_blind
+UV3S1,UV3S1-P006-8x8-Case2,P006,pilot,maximin_gap,8x8,8.0,8.0,Case2,7,58,[[+/-theta1]/[+/-theta2]]4,Case2|7|58,planned_blind
+UV3S1,UV3S1-P006-8x8-Case3,P006,pilot,maximin_gap,8x8,8.0,8.0,Case3,7,58,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|7|58,planned_blind
+UV3S1,UV3S1-P006-8x8-Case4,P006,pilot,maximin_gap,8x8,8.0,8.0,Case4,7,58,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|7|58,planned_blind
+UV3S1,UV3S1-P007-6x4-Case2,P007,pilot,maximin_gap,6x4,6.0,4.0,Case2,28,90,[[+/-theta1]/[+/-theta2]]4,Case2|28|90,planned_blind
+UV3S1,UV3S1-P007-6x4-Case3,P007,pilot,maximin_gap,6x4,6.0,4.0,Case3,28,90,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|28|90,planned_blind
+UV3S1,UV3S1-P007-6x4-Case4,P007,pilot,maximin_gap,6x4,6.0,4.0,Case4,28,90,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|28|90,planned_blind
+UV3S1,UV3S1-P007-6x8-Case2,P007,pilot,maximin_gap,6x8,6.0,8.0,Case2,28,90,[[+/-theta1]/[+/-theta2]]4,Case2|28|90,planned_blind
+UV3S1,UV3S1-P007-6x8-Case3,P007,pilot,maximin_gap,6x8,6.0,8.0,Case3,28,90,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|28|90,planned_blind
+UV3S1,UV3S1-P007-6x8-Case4,P007,pilot,maximin_gap,6x8,6.0,8.0,Case4,28,90,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|28|90,planned_blind
+UV3S1,UV3S1-P007-8x8-Case2,P007,pilot,maximin_gap,8x8,8.0,8.0,Case2,28,90,[[+/-theta1]/[+/-theta2]]4,Case2|28|90,planned_blind
+UV3S1,UV3S1-P007-8x8-Case3,P007,pilot,maximin_gap,8x8,8.0,8.0,Case3,28,90,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|28|90,planned_blind
+UV3S1,UV3S1-P007-8x8-Case4,P007,pilot,maximin_gap,8x8,8.0,8.0,Case4,28,90,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|28|90,planned_blind
+UV3S1,UV3S1-P008-6x4-Case2,P008,pilot,maximin_gap,6x4,6.0,4.0,Case2,90,-10,[[+/-theta1]/[+/-theta2]]4,Case2|90|-10,planned_blind
+UV3S1,UV3S1-P008-6x4-Case3,P008,pilot,maximin_gap,6x4,6.0,4.0,Case3,90,-10,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|90|-10,planned_blind
+UV3S1,UV3S1-P008-6x4-Case4,P008,pilot,maximin_gap,6x4,6.0,4.0,Case4,90,-10,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|90|-10,planned_blind
+UV3S1,UV3S1-P008-6x8-Case2,P008,pilot,maximin_gap,6x8,6.0,8.0,Case2,90,-10,[[+/-theta1]/[+/-theta2]]4,Case2|90|-10,planned_blind
+UV3S1,UV3S1-P008-6x8-Case3,P008,pilot,maximin_gap,6x8,6.0,8.0,Case3,90,-10,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|90|-10,planned_blind
+UV3S1,UV3S1-P008-6x8-Case4,P008,pilot,maximin_gap,6x8,6.0,8.0,Case4,90,-10,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|90|-10,planned_blind
+UV3S1,UV3S1-P008-8x8-Case2,P008,pilot,maximin_gap,8x8,8.0,8.0,Case2,90,-10,[[+/-theta1]/[+/-theta2]]4,Case2|90|-10,planned_blind
+UV3S1,UV3S1-P008-8x8-Case3,P008,pilot,maximin_gap,8x8,8.0,8.0,Case3,90,-10,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|90|-10,planned_blind
+UV3S1,UV3S1-P008-8x8-Case4,P008,pilot,maximin_gap,8x8,8.0,8.0,Case4,90,-10,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|90|-10,planned_blind
+UV3S1,UV3S1-P009-6x4-Case2,P009,pilot,maximin_gap,6x4,6.0,4.0,Case2,90,74,[[+/-theta1]/[+/-theta2]]4,Case2|90|74,planned_blind
+UV3S1,UV3S1-P009-6x4-Case3,P009,pilot,maximin_gap,6x4,6.0,4.0,Case3,90,74,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|90|74,planned_blind
+UV3S1,UV3S1-P009-6x4-Case4,P009,pilot,maximin_gap,6x4,6.0,4.0,Case4,90,74,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|90|74,planned_blind
+UV3S1,UV3S1-P009-6x8-Case2,P009,pilot,maximin_gap,6x8,6.0,8.0,Case2,90,74,[[+/-theta1]/[+/-theta2]]4,Case2|90|74,planned_blind
+UV3S1,UV3S1-P009-6x8-Case3,P009,pilot,maximin_gap,6x8,6.0,8.0,Case3,90,74,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|90|74,planned_blind
+UV3S1,UV3S1-P009-6x8-Case4,P009,pilot,maximin_gap,6x8,6.0,8.0,Case4,90,74,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|90|74,planned_blind
+UV3S1,UV3S1-P009-8x8-Case2,P009,pilot,maximin_gap,8x8,8.0,8.0,Case2,90,74,[[+/-theta1]/[+/-theta2]]4,Case2|90|74,planned_blind
+UV3S1,UV3S1-P009-8x8-Case3,P009,pilot,maximin_gap,8x8,8.0,8.0,Case3,90,74,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|90|74,planned_blind
+UV3S1,UV3S1-P009-8x8-Case4,P009,pilot,maximin_gap,8x8,8.0,8.0,Case4,90,74,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|90|74,planned_blind
+UV3S1,UV3S1-P010-6x4-Case2,P010,pilot,maximin_gap,6x4,6.0,4.0,Case2,90,90,[[+/-theta1]/[+/-theta2]]4,Case2|90|90,planned_blind
+UV3S1,UV3S1-P010-6x4-Case3,P010,pilot,maximin_gap,6x4,6.0,4.0,Case3,90,90,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|90|90,planned_blind
+UV3S1,UV3S1-P010-6x4-Case4,P010,pilot,maximin_gap,6x4,6.0,4.0,Case4,90,90,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|90|90,planned_blind
+UV3S1,UV3S1-P010-6x8-Case2,P010,pilot,maximin_gap,6x8,6.0,8.0,Case2,90,90,[[+/-theta1]/[+/-theta2]]4,Case2|90|90,planned_blind
+UV3S1,UV3S1-P010-6x8-Case3,P010,pilot,maximin_gap,6x8,6.0,8.0,Case3,90,90,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|90|90,planned_blind
+UV3S1,UV3S1-P010-6x8-Case4,P010,pilot,maximin_gap,6x8,6.0,8.0,Case4,90,90,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|90|90,planned_blind
+UV3S1,UV3S1-P010-8x8-Case2,P010,pilot,maximin_gap,8x8,8.0,8.0,Case2,90,90,[[+/-theta1]/[+/-theta2]]4,Case2|90|90,planned_blind
+UV3S1,UV3S1-P010-8x8-Case3,P010,pilot,maximin_gap,8x8,8.0,8.0,Case3,90,90,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|90|90,planned_blind
+UV3S1,UV3S1-P010-8x8-Case4,P010,pilot,maximin_gap,8x8,8.0,8.0,Case4,90,90,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|90|90,planned_blind
+UV3S1,UV3S1-P011-6x4-Case2,P011,pilot,uniform_grid,6x4,6.0,4.0,Case2,-78,-31,[[+/-theta1]/[+/-theta2]]4,Case2|-78|-31,planned_blind
+UV3S1,UV3S1-P011-6x4-Case3,P011,pilot,uniform_grid,6x4,6.0,4.0,Case3,-78,-31,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-78|-31,planned_blind
+UV3S1,UV3S1-P011-6x4-Case4,P011,pilot,uniform_grid,6x4,6.0,4.0,Case4,-78,-31,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-78|-31,planned_blind
+UV3S1,UV3S1-P011-6x8-Case2,P011,pilot,uniform_grid,6x8,6.0,8.0,Case2,-78,-31,[[+/-theta1]/[+/-theta2]]4,Case2|-78|-31,planned_blind
+UV3S1,UV3S1-P011-6x8-Case3,P011,pilot,uniform_grid,6x8,6.0,8.0,Case3,-78,-31,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-78|-31,planned_blind
+UV3S1,UV3S1-P011-6x8-Case4,P011,pilot,uniform_grid,6x8,6.0,8.0,Case4,-78,-31,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-78|-31,planned_blind
+UV3S1,UV3S1-P011-8x8-Case2,P011,pilot,uniform_grid,8x8,8.0,8.0,Case2,-78,-31,[[+/-theta1]/[+/-theta2]]4,Case2|-78|-31,planned_blind
+UV3S1,UV3S1-P011-8x8-Case3,P011,pilot,uniform_grid,8x8,8.0,8.0,Case3,-78,-31,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-78|-31,planned_blind
+UV3S1,UV3S1-P011-8x8-Case4,P011,pilot,uniform_grid,8x8,8.0,8.0,Case4,-78,-31,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-78|-31,planned_blind
+UV3S1,UV3S1-P012-6x4-Case2,P012,pilot,uniform_grid,6x4,6.0,4.0,Case2,-25,-63,[[+/-theta1]/[+/-theta2]]4,Case2|-25|-63,planned_blind
+UV3S1,UV3S1-P012-6x4-Case3,P012,pilot,uniform_grid,6x4,6.0,4.0,Case3,-25,-63,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-25|-63,planned_blind
+UV3S1,UV3S1-P012-6x4-Case4,P012,pilot,uniform_grid,6x4,6.0,4.0,Case4,-25,-63,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-25|-63,planned_blind
+UV3S1,UV3S1-P012-6x8-Case2,P012,pilot,uniform_grid,6x8,6.0,8.0,Case2,-25,-63,[[+/-theta1]/[+/-theta2]]4,Case2|-25|-63,planned_blind
+UV3S1,UV3S1-P012-6x8-Case3,P012,pilot,uniform_grid,6x8,6.0,8.0,Case3,-25,-63,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-25|-63,planned_blind
+UV3S1,UV3S1-P012-6x8-Case4,P012,pilot,uniform_grid,6x8,6.0,8.0,Case4,-25,-63,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-25|-63,planned_blind
+UV3S1,UV3S1-P012-8x8-Case2,P012,pilot,uniform_grid,8x8,8.0,8.0,Case2,-25,-63,[[+/-theta1]/[+/-theta2]]4,Case2|-25|-63,planned_blind
+UV3S1,UV3S1-P012-8x8-Case3,P012,pilot,uniform_grid,8x8,8.0,8.0,Case3,-25,-63,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-25|-63,planned_blind
+UV3S1,UV3S1-P012-8x8-Case4,P012,pilot,uniform_grid,8x8,8.0,8.0,Case4,-25,-63,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-25|-63,planned_blind
+UV3S1,UV3S1-P013-6x4-Case2,P013,pilot,uniform_grid,6x4,6.0,4.0,Case2,-16,8,[[+/-theta1]/[+/-theta2]]4,Case2|-16|8,planned_blind
+UV3S1,UV3S1-P013-6x4-Case3,P013,pilot,uniform_grid,6x4,6.0,4.0,Case3,-16,8,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-16|8,planned_blind
+UV3S1,UV3S1-P013-6x4-Case4,P013,pilot,uniform_grid,6x4,6.0,4.0,Case4,-16,8,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-16|8,planned_blind
+UV3S1,UV3S1-P013-6x8-Case2,P013,pilot,uniform_grid,6x8,6.0,8.0,Case2,-16,8,[[+/-theta1]/[+/-theta2]]4,Case2|-16|8,planned_blind
+UV3S1,UV3S1-P013-6x8-Case3,P013,pilot,uniform_grid,6x8,6.0,8.0,Case3,-16,8,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-16|8,planned_blind
+UV3S1,UV3S1-P013-6x8-Case4,P013,pilot,uniform_grid,6x8,6.0,8.0,Case4,-16,8,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-16|8,planned_blind
+UV3S1,UV3S1-P013-8x8-Case2,P013,pilot,uniform_grid,8x8,8.0,8.0,Case2,-16,8,[[+/-theta1]/[+/-theta2]]4,Case2|-16|8,planned_blind
+UV3S1,UV3S1-P013-8x8-Case3,P013,pilot,uniform_grid,8x8,8.0,8.0,Case3,-16,8,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-16|8,planned_blind
+UV3S1,UV3S1-P013-8x8-Case4,P013,pilot,uniform_grid,8x8,8.0,8.0,Case4,-16,8,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-16|8,planned_blind
+UV3S1,UV3S1-P014-6x4-Case2,P014,pilot,uniform_grid,6x4,6.0,4.0,Case2,1,-66,[[+/-theta1]/[+/-theta2]]4,Case2|1|-66,planned_blind
+UV3S1,UV3S1-P014-6x4-Case3,P014,pilot,uniform_grid,6x4,6.0,4.0,Case3,1,-66,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|1|-66,planned_blind
+UV3S1,UV3S1-P014-6x4-Case4,P014,pilot,uniform_grid,6x4,6.0,4.0,Case4,1,-66,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|1|-66,planned_blind
+UV3S1,UV3S1-P014-6x8-Case2,P014,pilot,uniform_grid,6x8,6.0,8.0,Case2,1,-66,[[+/-theta1]/[+/-theta2]]4,Case2|1|-66,planned_blind
+UV3S1,UV3S1-P014-6x8-Case3,P014,pilot,uniform_grid,6x8,6.0,8.0,Case3,1,-66,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|1|-66,planned_blind
+UV3S1,UV3S1-P014-6x8-Case4,P014,pilot,uniform_grid,6x8,6.0,8.0,Case4,1,-66,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|1|-66,planned_blind
+UV3S1,UV3S1-P014-8x8-Case2,P014,pilot,uniform_grid,8x8,8.0,8.0,Case2,1,-66,[[+/-theta1]/[+/-theta2]]4,Case2|1|-66,planned_blind
+UV3S1,UV3S1-P014-8x8-Case3,P014,pilot,uniform_grid,8x8,8.0,8.0,Case3,1,-66,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|1|-66,planned_blind
+UV3S1,UV3S1-P014-8x8-Case4,P014,pilot,uniform_grid,8x8,8.0,8.0,Case4,1,-66,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|1|-66,planned_blind
+UV3S1,UV3S1-P015-6x4-Case2,P015,pilot,uniform_grid,6x4,6.0,4.0,Case2,30,-9,[[+/-theta1]/[+/-theta2]]4,Case2|30|-9,planned_blind
+UV3S1,UV3S1-P015-6x4-Case3,P015,pilot,uniform_grid,6x4,6.0,4.0,Case3,30,-9,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|30|-9,planned_blind
+UV3S1,UV3S1-P015-6x4-Case4,P015,pilot,uniform_grid,6x4,6.0,4.0,Case4,30,-9,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|30|-9,planned_blind
+UV3S1,UV3S1-P015-6x8-Case2,P015,pilot,uniform_grid,6x8,6.0,8.0,Case2,30,-9,[[+/-theta1]/[+/-theta2]]4,Case2|30|-9,planned_blind
+UV3S1,UV3S1-P015-6x8-Case3,P015,pilot,uniform_grid,6x8,6.0,8.0,Case3,30,-9,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|30|-9,planned_blind
+UV3S1,UV3S1-P015-6x8-Case4,P015,pilot,uniform_grid,6x8,6.0,8.0,Case4,30,-9,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|30|-9,planned_blind
+UV3S1,UV3S1-P015-8x8-Case2,P015,pilot,uniform_grid,8x8,8.0,8.0,Case2,30,-9,[[+/-theta1]/[+/-theta2]]4,Case2|30|-9,planned_blind
+UV3S1,UV3S1-P015-8x8-Case3,P015,pilot,uniform_grid,8x8,8.0,8.0,Case3,30,-9,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|30|-9,planned_blind
+UV3S1,UV3S1-P015-8x8-Case4,P015,pilot,uniform_grid,8x8,8.0,8.0,Case4,30,-9,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|30|-9,planned_blind
+UV3S1,UV3S1-P016-6x4-Case2,P016,pilot,uniform_grid,6x4,6.0,4.0,Case2,31,-68,[[+/-theta1]/[+/-theta2]]4,Case2|31|-68,planned_blind
+UV3S1,UV3S1-P016-6x4-Case3,P016,pilot,uniform_grid,6x4,6.0,4.0,Case3,31,-68,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|31|-68,planned_blind
+UV3S1,UV3S1-P016-6x4-Case4,P016,pilot,uniform_grid,6x4,6.0,4.0,Case4,31,-68,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|31|-68,planned_blind
+UV3S1,UV3S1-P016-6x8-Case2,P016,pilot,uniform_grid,6x8,6.0,8.0,Case2,31,-68,[[+/-theta1]/[+/-theta2]]4,Case2|31|-68,planned_blind
+UV3S1,UV3S1-P016-6x8-Case3,P016,pilot,uniform_grid,6x8,6.0,8.0,Case3,31,-68,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|31|-68,planned_blind
+UV3S1,UV3S1-P016-6x8-Case4,P016,pilot,uniform_grid,6x8,6.0,8.0,Case4,31,-68,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|31|-68,planned_blind
+UV3S1,UV3S1-P016-8x8-Case2,P016,pilot,uniform_grid,8x8,8.0,8.0,Case2,31,-68,[[+/-theta1]/[+/-theta2]]4,Case2|31|-68,planned_blind
+UV3S1,UV3S1-P016-8x8-Case3,P016,pilot,uniform_grid,8x8,8.0,8.0,Case3,31,-68,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|31|-68,planned_blind
+UV3S1,UV3S1-P016-8x8-Case4,P016,pilot,uniform_grid,8x8,8.0,8.0,Case4,31,-68,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|31|-68,planned_blind
+UV3S1,UV3S1-P017-6x4-Case2,P017,pilot,uniform_grid,6x4,6.0,4.0,Case2,47,82,[[+/-theta1]/[+/-theta2]]4,Case2|47|82,planned_blind
+UV3S1,UV3S1-P017-6x4-Case3,P017,pilot,uniform_grid,6x4,6.0,4.0,Case3,47,82,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|47|82,planned_blind
+UV3S1,UV3S1-P017-6x4-Case4,P017,pilot,uniform_grid,6x4,6.0,4.0,Case4,47,82,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|47|82,planned_blind
+UV3S1,UV3S1-P017-6x8-Case2,P017,pilot,uniform_grid,6x8,6.0,8.0,Case2,47,82,[[+/-theta1]/[+/-theta2]]4,Case2|47|82,planned_blind
+UV3S1,UV3S1-P017-6x8-Case3,P017,pilot,uniform_grid,6x8,6.0,8.0,Case3,47,82,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|47|82,planned_blind
+UV3S1,UV3S1-P017-6x8-Case4,P017,pilot,uniform_grid,6x8,6.0,8.0,Case4,47,82,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|47|82,planned_blind
+UV3S1,UV3S1-P017-8x8-Case2,P017,pilot,uniform_grid,8x8,8.0,8.0,Case2,47,82,[[+/-theta1]/[+/-theta2]]4,Case2|47|82,planned_blind
+UV3S1,UV3S1-P017-8x8-Case3,P017,pilot,uniform_grid,8x8,8.0,8.0,Case3,47,82,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|47|82,planned_blind
+UV3S1,UV3S1-P017-8x8-Case4,P017,pilot,uniform_grid,8x8,8.0,8.0,Case4,47,82,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|47|82,planned_blind
+UV3S1,UV3S1-P018-6x4-Case2,P018,pilot,uniform_grid,6x4,6.0,4.0,Case2,48,66,[[+/-theta1]/[+/-theta2]]4,Case2|48|66,planned_blind
+UV3S1,UV3S1-P018-6x4-Case3,P018,pilot,uniform_grid,6x4,6.0,4.0,Case3,48,66,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|48|66,planned_blind
+UV3S1,UV3S1-P018-6x4-Case4,P018,pilot,uniform_grid,6x4,6.0,4.0,Case4,48,66,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|48|66,planned_blind
+UV3S1,UV3S1-P018-6x8-Case2,P018,pilot,uniform_grid,6x8,6.0,8.0,Case2,48,66,[[+/-theta1]/[+/-theta2]]4,Case2|48|66,planned_blind
+UV3S1,UV3S1-P018-6x8-Case3,P018,pilot,uniform_grid,6x8,6.0,8.0,Case3,48,66,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|48|66,planned_blind
+UV3S1,UV3S1-P018-6x8-Case4,P018,pilot,uniform_grid,6x8,6.0,8.0,Case4,48,66,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|48|66,planned_blind
+UV3S1,UV3S1-P018-8x8-Case2,P018,pilot,uniform_grid,8x8,8.0,8.0,Case2,48,66,[[+/-theta1]/[+/-theta2]]4,Case2|48|66,planned_blind
+UV3S1,UV3S1-P018-8x8-Case3,P018,pilot,uniform_grid,8x8,8.0,8.0,Case3,48,66,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|48|66,planned_blind
+UV3S1,UV3S1-P018-8x8-Case4,P018,pilot,uniform_grid,8x8,8.0,8.0,Case4,48,66,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|48|66,planned_blind
+UV3S1,UV3S1-P019-6x4-Case2,P019,pilot,uniform_grid,6x4,6.0,4.0,Case2,68,-79,[[+/-theta1]/[+/-theta2]]4,Case2|68|-79,planned_blind
+UV3S1,UV3S1-P019-6x4-Case3,P019,pilot,uniform_grid,6x4,6.0,4.0,Case3,68,-79,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|68|-79,planned_blind
+UV3S1,UV3S1-P019-6x4-Case4,P019,pilot,uniform_grid,6x4,6.0,4.0,Case4,68,-79,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|68|-79,planned_blind
+UV3S1,UV3S1-P019-6x8-Case2,P019,pilot,uniform_grid,6x8,6.0,8.0,Case2,68,-79,[[+/-theta1]/[+/-theta2]]4,Case2|68|-79,planned_blind
+UV3S1,UV3S1-P019-6x8-Case3,P019,pilot,uniform_grid,6x8,6.0,8.0,Case3,68,-79,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|68|-79,planned_blind
+UV3S1,UV3S1-P019-6x8-Case4,P019,pilot,uniform_grid,6x8,6.0,8.0,Case4,68,-79,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|68|-79,planned_blind
+UV3S1,UV3S1-P019-8x8-Case2,P019,pilot,uniform_grid,8x8,8.0,8.0,Case2,68,-79,[[+/-theta1]/[+/-theta2]]4,Case2|68|-79,planned_blind
+UV3S1,UV3S1-P019-8x8-Case3,P019,pilot,uniform_grid,8x8,8.0,8.0,Case3,68,-79,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|68|-79,planned_blind
+UV3S1,UV3S1-P019-8x8-Case4,P019,pilot,uniform_grid,8x8,8.0,8.0,Case4,68,-79,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|68|-79,planned_blind
+UV3S1,UV3S1-P020-6x4-Case2,P020,pilot,uniform_grid,6x4,6.0,4.0,Case2,89,-39,[[+/-theta1]/[+/-theta2]]4,Case2|89|-39,planned_blind
+UV3S1,UV3S1-P020-6x4-Case3,P020,pilot,uniform_grid,6x4,6.0,4.0,Case3,89,-39,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|89|-39,planned_blind
+UV3S1,UV3S1-P020-6x4-Case4,P020,pilot,uniform_grid,6x4,6.0,4.0,Case4,89,-39,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|89|-39,planned_blind
+UV3S1,UV3S1-P020-6x8-Case2,P020,pilot,uniform_grid,6x8,6.0,8.0,Case2,89,-39,[[+/-theta1]/[+/-theta2]]4,Case2|89|-39,planned_blind
+UV3S1,UV3S1-P020-6x8-Case3,P020,pilot,uniform_grid,6x8,6.0,8.0,Case3,89,-39,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|89|-39,planned_blind
+UV3S1,UV3S1-P020-6x8-Case4,P020,pilot,uniform_grid,6x8,6.0,8.0,Case4,89,-39,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|89|-39,planned_blind
+UV3S1,UV3S1-P020-8x8-Case2,P020,pilot,uniform_grid,8x8,8.0,8.0,Case2,89,-39,[[+/-theta1]/[+/-theta2]]4,Case2|89|-39,planned_blind
+UV3S1,UV3S1-P020-8x8-Case3,P020,pilot,uniform_grid,8x8,8.0,8.0,Case3,89,-39,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|89|-39,planned_blind
+UV3S1,UV3S1-P020-8x8-Case4,P020,pilot,uniform_grid,8x8,8.0,8.0,Case4,89,-39,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|89|-39,planned_blind

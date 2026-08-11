@@ -1,0 +1,361 @@
+campaign_id,simulation_id,pair_id,phase,selection_stratum,geometry,panel_a_in,panel_b_in,case,theta1,theta2,case_formula,group_key,result_status
+UV3S1,UV3S1-P021-6x4-Case2,P021,confirmatory,maximin_gap,6x4,6.0,4.0,Case2,-79,-65,[[+/-theta1]/[+/-theta2]]4,Case2|-79|-65,planned_blind
+UV3S1,UV3S1-P021-6x4-Case3,P021,confirmatory,maximin_gap,6x4,6.0,4.0,Case3,-79,-65,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-79|-65,planned_blind
+UV3S1,UV3S1-P021-6x4-Case4,P021,confirmatory,maximin_gap,6x4,6.0,4.0,Case4,-79,-65,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-79|-65,planned_blind
+UV3S1,UV3S1-P021-6x8-Case2,P021,confirmatory,maximin_gap,6x8,6.0,8.0,Case2,-79,-65,[[+/-theta1]/[+/-theta2]]4,Case2|-79|-65,planned_blind
+UV3S1,UV3S1-P021-6x8-Case3,P021,confirmatory,maximin_gap,6x8,6.0,8.0,Case3,-79,-65,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-79|-65,planned_blind
+UV3S1,UV3S1-P021-6x8-Case4,P021,confirmatory,maximin_gap,6x8,6.0,8.0,Case4,-79,-65,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-79|-65,planned_blind
+UV3S1,UV3S1-P021-8x8-Case2,P021,confirmatory,maximin_gap,8x8,8.0,8.0,Case2,-79,-65,[[+/-theta1]/[+/-theta2]]4,Case2|-79|-65,planned_blind
+UV3S1,UV3S1-P021-8x8-Case3,P021,confirmatory,maximin_gap,8x8,8.0,8.0,Case3,-79,-65,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-79|-65,planned_blind
+UV3S1,UV3S1-P021-8x8-Case4,P021,confirmatory,maximin_gap,8x8,8.0,8.0,Case4,-79,-65,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-79|-65,planned_blind
+UV3S1,UV3S1-P022-6x4-Case2,P022,confirmatory,maximin_gap,6x4,6.0,4.0,Case2,-76,-90,[[+/-theta1]/[+/-theta2]]4,Case2|-76|-90,planned_blind
+UV3S1,UV3S1-P022-6x4-Case3,P022,confirmatory,maximin_gap,6x4,6.0,4.0,Case3,-76,-90,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-76|-90,planned_blind
+UV3S1,UV3S1-P022-6x4-Case4,P022,confirmatory,maximin_gap,6x4,6.0,4.0,Case4,-76,-90,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-76|-90,planned_blind
+UV3S1,UV3S1-P022-6x8-Case2,P022,confirmatory,maximin_gap,6x8,6.0,8.0,Case2,-76,-90,[[+/-theta1]/[+/-theta2]]4,Case2|-76|-90,planned_blind
+UV3S1,UV3S1-P022-6x8-Case3,P022,confirmatory,maximin_gap,6x8,6.0,8.0,Case3,-76,-90,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-76|-90,planned_blind
+UV3S1,UV3S1-P022-6x8-Case4,P022,confirmatory,maximin_gap,6x8,6.0,8.0,Case4,-76,-90,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-76|-90,planned_blind
+UV3S1,UV3S1-P022-8x8-Case2,P022,confirmatory,maximin_gap,8x8,8.0,8.0,Case2,-76,-90,[[+/-theta1]/[+/-theta2]]4,Case2|-76|-90,planned_blind
+UV3S1,UV3S1-P022-8x8-Case3,P022,confirmatory,maximin_gap,8x8,8.0,8.0,Case3,-76,-90,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-76|-90,planned_blind
+UV3S1,UV3S1-P022-8x8-Case4,P022,confirmatory,maximin_gap,8x8,8.0,8.0,Case4,-76,-90,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-76|-90,planned_blind
+UV3S1,UV3S1-P023-6x4-Case2,P023,confirmatory,maximin_gap,6x4,6.0,4.0,Case2,-72,63,[[+/-theta1]/[+/-theta2]]4,Case2|-72|63,planned_blind
+UV3S1,UV3S1-P023-6x4-Case3,P023,confirmatory,maximin_gap,6x4,6.0,4.0,Case3,-72,63,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-72|63,planned_blind
+UV3S1,UV3S1-P023-6x4-Case4,P023,confirmatory,maximin_gap,6x4,6.0,4.0,Case4,-72,63,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-72|63,planned_blind
+UV3S1,UV3S1-P023-6x8-Case2,P023,confirmatory,maximin_gap,6x8,6.0,8.0,Case2,-72,63,[[+/-theta1]/[+/-theta2]]4,Case2|-72|63,planned_blind
+UV3S1,UV3S1-P023-6x8-Case3,P023,confirmatory,maximin_gap,6x8,6.0,8.0,Case3,-72,63,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-72|63,planned_blind
+UV3S1,UV3S1-P023-6x8-Case4,P023,confirmatory,maximin_gap,6x8,6.0,8.0,Case4,-72,63,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-72|63,planned_blind
+UV3S1,UV3S1-P023-8x8-Case2,P023,confirmatory,maximin_gap,8x8,8.0,8.0,Case2,-72,63,[[+/-theta1]/[+/-theta2]]4,Case2|-72|63,planned_blind
+UV3S1,UV3S1-P023-8x8-Case3,P023,confirmatory,maximin_gap,8x8,8.0,8.0,Case3,-72,63,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-72|63,planned_blind
+UV3S1,UV3S1-P023-8x8-Case4,P023,confirmatory,maximin_gap,8x8,8.0,8.0,Case4,-72,63,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-72|63,planned_blind
+UV3S1,UV3S1-P024-6x4-Case2,P024,confirmatory,maximin_gap,6x4,6.0,4.0,Case2,-56,-14,[[+/-theta1]/[+/-theta2]]4,Case2|-56|-14,planned_blind
+UV3S1,UV3S1-P024-6x4-Case3,P024,confirmatory,maximin_gap,6x4,6.0,4.0,Case3,-56,-14,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-56|-14,planned_blind
+UV3S1,UV3S1-P024-6x4-Case4,P024,confirmatory,maximin_gap,6x4,6.0,4.0,Case4,-56,-14,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-56|-14,planned_blind
+UV3S1,UV3S1-P024-6x8-Case2,P024,confirmatory,maximin_gap,6x8,6.0,8.0,Case2,-56,-14,[[+/-theta1]/[+/-theta2]]4,Case2|-56|-14,planned_blind
+UV3S1,UV3S1-P024-6x8-Case3,P024,confirmatory,maximin_gap,6x8,6.0,8.0,Case3,-56,-14,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-56|-14,planned_blind
+UV3S1,UV3S1-P024-6x8-Case4,P024,confirmatory,maximin_gap,6x8,6.0,8.0,Case4,-56,-14,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-56|-14,planned_blind
+UV3S1,UV3S1-P024-8x8-Case2,P024,confirmatory,maximin_gap,8x8,8.0,8.0,Case2,-56,-14,[[+/-theta1]/[+/-theta2]]4,Case2|-56|-14,planned_blind
+UV3S1,UV3S1-P024-8x8-Case3,P024,confirmatory,maximin_gap,8x8,8.0,8.0,Case3,-56,-14,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-56|-14,planned_blind
+UV3S1,UV3S1-P024-8x8-Case4,P024,confirmatory,maximin_gap,8x8,8.0,8.0,Case4,-56,-14,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-56|-14,planned_blind
+UV3S1,UV3S1-P025-6x4-Case2,P025,confirmatory,maximin_gap,6x4,6.0,4.0,Case2,-54,-79,[[+/-theta1]/[+/-theta2]]4,Case2|-54|-79,planned_blind
+UV3S1,UV3S1-P025-6x4-Case3,P025,confirmatory,maximin_gap,6x4,6.0,4.0,Case3,-54,-79,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-54|-79,planned_blind
+UV3S1,UV3S1-P025-6x4-Case4,P025,confirmatory,maximin_gap,6x4,6.0,4.0,Case4,-54,-79,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-54|-79,planned_blind
+UV3S1,UV3S1-P025-6x8-Case2,P025,confirmatory,maximin_gap,6x8,6.0,8.0,Case2,-54,-79,[[+/-theta1]/[+/-theta2]]4,Case2|-54|-79,planned_blind
+UV3S1,UV3S1-P025-6x8-Case3,P025,confirmatory,maximin_gap,6x8,6.0,8.0,Case3,-54,-79,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-54|-79,planned_blind
+UV3S1,UV3S1-P025-6x8-Case4,P025,confirmatory,maximin_gap,6x8,6.0,8.0,Case4,-54,-79,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-54|-79,planned_blind
+UV3S1,UV3S1-P025-8x8-Case2,P025,confirmatory,maximin_gap,8x8,8.0,8.0,Case2,-54,-79,[[+/-theta1]/[+/-theta2]]4,Case2|-54|-79,planned_blind
+UV3S1,UV3S1-P025-8x8-Case3,P025,confirmatory,maximin_gap,8x8,8.0,8.0,Case3,-54,-79,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-54|-79,planned_blind
+UV3S1,UV3S1-P025-8x8-Case4,P025,confirmatory,maximin_gap,8x8,8.0,8.0,Case4,-54,-79,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-54|-79,planned_blind
+UV3S1,UV3S1-P026-6x4-Case2,P026,confirmatory,maximin_gap,6x4,6.0,4.0,Case2,-40,7,[[+/-theta1]/[+/-theta2]]4,Case2|-40|7,planned_blind
+UV3S1,UV3S1-P026-6x4-Case3,P026,confirmatory,maximin_gap,6x4,6.0,4.0,Case3,-40,7,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-40|7,planned_blind
+UV3S1,UV3S1-P026-6x4-Case4,P026,confirmatory,maximin_gap,6x4,6.0,4.0,Case4,-40,7,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-40|7,planned_blind
+UV3S1,UV3S1-P026-6x8-Case2,P026,confirmatory,maximin_gap,6x8,6.0,8.0,Case2,-40,7,[[+/-theta1]/[+/-theta2]]4,Case2|-40|7,planned_blind
+UV3S1,UV3S1-P026-6x8-Case3,P026,confirmatory,maximin_gap,6x8,6.0,8.0,Case3,-40,7,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-40|7,planned_blind
+UV3S1,UV3S1-P026-6x8-Case4,P026,confirmatory,maximin_gap,6x8,6.0,8.0,Case4,-40,7,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-40|7,planned_blind
+UV3S1,UV3S1-P026-8x8-Case2,P026,confirmatory,maximin_gap,8x8,8.0,8.0,Case2,-40,7,[[+/-theta1]/[+/-theta2]]4,Case2|-40|7,planned_blind
+UV3S1,UV3S1-P026-8x8-Case3,P026,confirmatory,maximin_gap,8x8,8.0,8.0,Case3,-40,7,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-40|7,planned_blind
+UV3S1,UV3S1-P026-8x8-Case4,P026,confirmatory,maximin_gap,8x8,8.0,8.0,Case4,-40,7,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-40|7,planned_blind
+UV3S1,UV3S1-P027-6x4-Case2,P027,confirmatory,maximin_gap,6x4,6.0,4.0,Case2,-36,-90,[[+/-theta1]/[+/-theta2]]4,Case2|-36|-90,planned_blind
+UV3S1,UV3S1-P027-6x4-Case3,P027,confirmatory,maximin_gap,6x4,6.0,4.0,Case3,-36,-90,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-36|-90,planned_blind
+UV3S1,UV3S1-P027-6x4-Case4,P027,confirmatory,maximin_gap,6x4,6.0,4.0,Case4,-36,-90,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-36|-90,planned_blind
+UV3S1,UV3S1-P027-6x8-Case2,P027,confirmatory,maximin_gap,6x8,6.0,8.0,Case2,-36,-90,[[+/-theta1]/[+/-theta2]]4,Case2|-36|-90,planned_blind
+UV3S1,UV3S1-P027-6x8-Case3,P027,confirmatory,maximin_gap,6x8,6.0,8.0,Case3,-36,-90,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-36|-90,planned_blind
+UV3S1,UV3S1-P027-6x8-Case4,P027,confirmatory,maximin_gap,6x8,6.0,8.0,Case4,-36,-90,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-36|-90,planned_blind
+UV3S1,UV3S1-P027-8x8-Case2,P027,confirmatory,maximin_gap,8x8,8.0,8.0,Case2,-36,-90,[[+/-theta1]/[+/-theta2]]4,Case2|-36|-90,planned_blind
+UV3S1,UV3S1-P027-8x8-Case3,P027,confirmatory,maximin_gap,8x8,8.0,8.0,Case3,-36,-90,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-36|-90,planned_blind
+UV3S1,UV3S1-P027-8x8-Case4,P027,confirmatory,maximin_gap,8x8,8.0,8.0,Case4,-36,-90,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-36|-90,planned_blind
+UV3S1,UV3S1-P028-6x4-Case2,P028,confirmatory,maximin_gap,6x4,6.0,4.0,Case2,-30,-26,[[+/-theta1]/[+/-theta2]]4,Case2|-30|-26,planned_blind
+UV3S1,UV3S1-P028-6x4-Case3,P028,confirmatory,maximin_gap,6x4,6.0,4.0,Case3,-30,-26,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-30|-26,planned_blind
+UV3S1,UV3S1-P028-6x4-Case4,P028,confirmatory,maximin_gap,6x4,6.0,4.0,Case4,-30,-26,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-30|-26,planned_blind
+UV3S1,UV3S1-P028-6x8-Case2,P028,confirmatory,maximin_gap,6x8,6.0,8.0,Case2,-30,-26,[[+/-theta1]/[+/-theta2]]4,Case2|-30|-26,planned_blind
+UV3S1,UV3S1-P028-6x8-Case3,P028,confirmatory,maximin_gap,6x8,6.0,8.0,Case3,-30,-26,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-30|-26,planned_blind
+UV3S1,UV3S1-P028-6x8-Case4,P028,confirmatory,maximin_gap,6x8,6.0,8.0,Case4,-30,-26,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-30|-26,planned_blind
+UV3S1,UV3S1-P028-8x8-Case2,P028,confirmatory,maximin_gap,8x8,8.0,8.0,Case2,-30,-26,[[+/-theta1]/[+/-theta2]]4,Case2|-30|-26,planned_blind
+UV3S1,UV3S1-P028-8x8-Case3,P028,confirmatory,maximin_gap,8x8,8.0,8.0,Case3,-30,-26,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-30|-26,planned_blind
+UV3S1,UV3S1-P028-8x8-Case4,P028,confirmatory,maximin_gap,8x8,8.0,8.0,Case4,-30,-26,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-30|-26,planned_blind
+UV3S1,UV3S1-P029-6x4-Case2,P029,confirmatory,maximin_gap,6x4,6.0,4.0,Case2,-23,24,[[+/-theta1]/[+/-theta2]]4,Case2|-23|24,planned_blind
+UV3S1,UV3S1-P029-6x4-Case3,P029,confirmatory,maximin_gap,6x4,6.0,4.0,Case3,-23,24,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-23|24,planned_blind
+UV3S1,UV3S1-P029-6x4-Case4,P029,confirmatory,maximin_gap,6x4,6.0,4.0,Case4,-23,24,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-23|24,planned_blind
+UV3S1,UV3S1-P029-6x8-Case2,P029,confirmatory,maximin_gap,6x8,6.0,8.0,Case2,-23,24,[[+/-theta1]/[+/-theta2]]4,Case2|-23|24,planned_blind
+UV3S1,UV3S1-P029-6x8-Case3,P029,confirmatory,maximin_gap,6x8,6.0,8.0,Case3,-23,24,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-23|24,planned_blind
+UV3S1,UV3S1-P029-6x8-Case4,P029,confirmatory,maximin_gap,6x8,6.0,8.0,Case4,-23,24,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-23|24,planned_blind
+UV3S1,UV3S1-P029-8x8-Case2,P029,confirmatory,maximin_gap,8x8,8.0,8.0,Case2,-23,24,[[+/-theta1]/[+/-theta2]]4,Case2|-23|24,planned_blind
+UV3S1,UV3S1-P029-8x8-Case3,P029,confirmatory,maximin_gap,8x8,8.0,8.0,Case3,-23,24,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-23|24,planned_blind
+UV3S1,UV3S1-P029-8x8-Case4,P029,confirmatory,maximin_gap,8x8,8.0,8.0,Case4,-23,24,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-23|24,planned_blind
+UV3S1,UV3S1-P030-6x4-Case2,P030,confirmatory,maximin_gap,6x4,6.0,4.0,Case2,-18,70,[[+/-theta1]/[+/-theta2]]4,Case2|-18|70,planned_blind
+UV3S1,UV3S1-P030-6x4-Case3,P030,confirmatory,maximin_gap,6x4,6.0,4.0,Case3,-18,70,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-18|70,planned_blind
+UV3S1,UV3S1-P030-6x4-Case4,P030,confirmatory,maximin_gap,6x4,6.0,4.0,Case4,-18,70,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-18|70,planned_blind
+UV3S1,UV3S1-P030-6x8-Case2,P030,confirmatory,maximin_gap,6x8,6.0,8.0,Case2,-18,70,[[+/-theta1]/[+/-theta2]]4,Case2|-18|70,planned_blind
+UV3S1,UV3S1-P030-6x8-Case3,P030,confirmatory,maximin_gap,6x8,6.0,8.0,Case3,-18,70,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-18|70,planned_blind
+UV3S1,UV3S1-P030-6x8-Case4,P030,confirmatory,maximin_gap,6x8,6.0,8.0,Case4,-18,70,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-18|70,planned_blind
+UV3S1,UV3S1-P030-8x8-Case2,P030,confirmatory,maximin_gap,8x8,8.0,8.0,Case2,-18,70,[[+/-theta1]/[+/-theta2]]4,Case2|-18|70,planned_blind
+UV3S1,UV3S1-P030-8x8-Case3,P030,confirmatory,maximin_gap,8x8,8.0,8.0,Case3,-18,70,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-18|70,planned_blind
+UV3S1,UV3S1-P030-8x8-Case4,P030,confirmatory,maximin_gap,8x8,8.0,8.0,Case4,-18,70,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-18|70,planned_blind
+UV3S1,UV3S1-P031-6x4-Case2,P031,confirmatory,maximin_gap,6x4,6.0,4.0,Case2,-13,-57,[[+/-theta1]/[+/-theta2]]4,Case2|-13|-57,planned_blind
+UV3S1,UV3S1-P031-6x4-Case3,P031,confirmatory,maximin_gap,6x4,6.0,4.0,Case3,-13,-57,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-13|-57,planned_blind
+UV3S1,UV3S1-P031-6x4-Case4,P031,confirmatory,maximin_gap,6x4,6.0,4.0,Case4,-13,-57,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-13|-57,planned_blind
+UV3S1,UV3S1-P031-6x8-Case2,P031,confirmatory,maximin_gap,6x8,6.0,8.0,Case2,-13,-57,[[+/-theta1]/[+/-theta2]]4,Case2|-13|-57,planned_blind
+UV3S1,UV3S1-P031-6x8-Case3,P031,confirmatory,maximin_gap,6x8,6.0,8.0,Case3,-13,-57,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-13|-57,planned_blind
+UV3S1,UV3S1-P031-6x8-Case4,P031,confirmatory,maximin_gap,6x8,6.0,8.0,Case4,-13,-57,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-13|-57,planned_blind
+UV3S1,UV3S1-P031-8x8-Case2,P031,confirmatory,maximin_gap,8x8,8.0,8.0,Case2,-13,-57,[[+/-theta1]/[+/-theta2]]4,Case2|-13|-57,planned_blind
+UV3S1,UV3S1-P031-8x8-Case3,P031,confirmatory,maximin_gap,8x8,8.0,8.0,Case3,-13,-57,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-13|-57,planned_blind
+UV3S1,UV3S1-P031-8x8-Case4,P031,confirmatory,maximin_gap,8x8,8.0,8.0,Case4,-13,-57,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-13|-57,planned_blind
+UV3S1,UV3S1-P032-6x4-Case2,P032,confirmatory,maximin_gap,6x4,6.0,4.0,Case2,-1,-90,[[+/-theta1]/[+/-theta2]]4,Case2|-1|-90,planned_blind
+UV3S1,UV3S1-P032-6x4-Case3,P032,confirmatory,maximin_gap,6x4,6.0,4.0,Case3,-1,-90,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-1|-90,planned_blind
+UV3S1,UV3S1-P032-6x4-Case4,P032,confirmatory,maximin_gap,6x4,6.0,4.0,Case4,-1,-90,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-1|-90,planned_blind
+UV3S1,UV3S1-P032-6x8-Case2,P032,confirmatory,maximin_gap,6x8,6.0,8.0,Case2,-1,-90,[[+/-theta1]/[+/-theta2]]4,Case2|-1|-90,planned_blind
+UV3S1,UV3S1-P032-6x8-Case3,P032,confirmatory,maximin_gap,6x8,6.0,8.0,Case3,-1,-90,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-1|-90,planned_blind
+UV3S1,UV3S1-P032-6x8-Case4,P032,confirmatory,maximin_gap,6x8,6.0,8.0,Case4,-1,-90,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-1|-90,planned_blind
+UV3S1,UV3S1-P032-8x8-Case2,P032,confirmatory,maximin_gap,8x8,8.0,8.0,Case2,-1,-90,[[+/-theta1]/[+/-theta2]]4,Case2|-1|-90,planned_blind
+UV3S1,UV3S1-P032-8x8-Case3,P032,confirmatory,maximin_gap,8x8,8.0,8.0,Case3,-1,-90,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-1|-90,planned_blind
+UV3S1,UV3S1-P032-8x8-Case4,P032,confirmatory,maximin_gap,8x8,8.0,8.0,Case4,-1,-90,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-1|-90,planned_blind
+UV3S1,UV3S1-P033-6x4-Case2,P033,confirmatory,maximin_gap,6x4,6.0,4.0,Case2,14,47,[[+/-theta1]/[+/-theta2]]4,Case2|14|47,planned_blind
+UV3S1,UV3S1-P033-6x4-Case3,P033,confirmatory,maximin_gap,6x4,6.0,4.0,Case3,14,47,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|14|47,planned_blind
+UV3S1,UV3S1-P033-6x4-Case4,P033,confirmatory,maximin_gap,6x4,6.0,4.0,Case4,14,47,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|14|47,planned_blind
+UV3S1,UV3S1-P033-6x8-Case2,P033,confirmatory,maximin_gap,6x8,6.0,8.0,Case2,14,47,[[+/-theta1]/[+/-theta2]]4,Case2|14|47,planned_blind
+UV3S1,UV3S1-P033-6x8-Case3,P033,confirmatory,maximin_gap,6x8,6.0,8.0,Case3,14,47,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|14|47,planned_blind
+UV3S1,UV3S1-P033-6x8-Case4,P033,confirmatory,maximin_gap,6x8,6.0,8.0,Case4,14,47,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|14|47,planned_blind
+UV3S1,UV3S1-P033-8x8-Case2,P033,confirmatory,maximin_gap,8x8,8.0,8.0,Case2,14,47,[[+/-theta1]/[+/-theta2]]4,Case2|14|47,planned_blind
+UV3S1,UV3S1-P033-8x8-Case3,P033,confirmatory,maximin_gap,8x8,8.0,8.0,Case3,14,47,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|14|47,planned_blind
+UV3S1,UV3S1-P033-8x8-Case4,P033,confirmatory,maximin_gap,8x8,8.0,8.0,Case4,14,47,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|14|47,planned_blind
+UV3S1,UV3S1-P034-6x4-Case2,P034,confirmatory,maximin_gap,6x4,6.0,4.0,Case2,30,-44,[[+/-theta1]/[+/-theta2]]4,Case2|30|-44,planned_blind
+UV3S1,UV3S1-P034-6x4-Case3,P034,confirmatory,maximin_gap,6x4,6.0,4.0,Case3,30,-44,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|30|-44,planned_blind
+UV3S1,UV3S1-P034-6x4-Case4,P034,confirmatory,maximin_gap,6x4,6.0,4.0,Case4,30,-44,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|30|-44,planned_blind
+UV3S1,UV3S1-P034-6x8-Case2,P034,confirmatory,maximin_gap,6x8,6.0,8.0,Case2,30,-44,[[+/-theta1]/[+/-theta2]]4,Case2|30|-44,planned_blind
+UV3S1,UV3S1-P034-6x8-Case3,P034,confirmatory,maximin_gap,6x8,6.0,8.0,Case3,30,-44,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|30|-44,planned_blind
+UV3S1,UV3S1-P034-6x8-Case4,P034,confirmatory,maximin_gap,6x8,6.0,8.0,Case4,30,-44,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|30|-44,planned_blind
+UV3S1,UV3S1-P034-8x8-Case2,P034,confirmatory,maximin_gap,8x8,8.0,8.0,Case2,30,-44,[[+/-theta1]/[+/-theta2]]4,Case2|30|-44,planned_blind
+UV3S1,UV3S1-P034-8x8-Case3,P034,confirmatory,maximin_gap,8x8,8.0,8.0,Case3,30,-44,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|30|-44,planned_blind
+UV3S1,UV3S1-P034-8x8-Case4,P034,confirmatory,maximin_gap,8x8,8.0,8.0,Case4,30,-44,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|30|-44,planned_blind
+UV3S1,UV3S1-P035-6x4-Case2,P035,confirmatory,maximin_gap,6x4,6.0,4.0,Case2,31,45,[[+/-theta1]/[+/-theta2]]4,Case2|31|45,planned_blind
+UV3S1,UV3S1-P035-6x4-Case3,P035,confirmatory,maximin_gap,6x4,6.0,4.0,Case3,31,45,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|31|45,planned_blind
+UV3S1,UV3S1-P035-6x4-Case4,P035,confirmatory,maximin_gap,6x4,6.0,4.0,Case4,31,45,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|31|45,planned_blind
+UV3S1,UV3S1-P035-6x8-Case2,P035,confirmatory,maximin_gap,6x8,6.0,8.0,Case2,31,45,[[+/-theta1]/[+/-theta2]]4,Case2|31|45,planned_blind
+UV3S1,UV3S1-P035-6x8-Case3,P035,confirmatory,maximin_gap,6x8,6.0,8.0,Case3,31,45,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|31|45,planned_blind
+UV3S1,UV3S1-P035-6x8-Case4,P035,confirmatory,maximin_gap,6x8,6.0,8.0,Case4,31,45,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|31|45,planned_blind
+UV3S1,UV3S1-P035-8x8-Case2,P035,confirmatory,maximin_gap,8x8,8.0,8.0,Case2,31,45,[[+/-theta1]/[+/-theta2]]4,Case2|31|45,planned_blind
+UV3S1,UV3S1-P035-8x8-Case3,P035,confirmatory,maximin_gap,8x8,8.0,8.0,Case3,31,45,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|31|45,planned_blind
+UV3S1,UV3S1-P035-8x8-Case4,P035,confirmatory,maximin_gap,8x8,8.0,8.0,Case4,31,45,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|31|45,planned_blind
+UV3S1,UV3S1-P036-6x4-Case2,P036,confirmatory,maximin_gap,6x4,6.0,4.0,Case2,60,-2,[[+/-theta1]/[+/-theta2]]4,Case2|60|-2,planned_blind
+UV3S1,UV3S1-P036-6x4-Case3,P036,confirmatory,maximin_gap,6x4,6.0,4.0,Case3,60,-2,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|60|-2,planned_blind
+UV3S1,UV3S1-P036-6x4-Case4,P036,confirmatory,maximin_gap,6x4,6.0,4.0,Case4,60,-2,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|60|-2,planned_blind
+UV3S1,UV3S1-P036-6x8-Case2,P036,confirmatory,maximin_gap,6x8,6.0,8.0,Case2,60,-2,[[+/-theta1]/[+/-theta2]]4,Case2|60|-2,planned_blind
+UV3S1,UV3S1-P036-6x8-Case3,P036,confirmatory,maximin_gap,6x8,6.0,8.0,Case3,60,-2,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|60|-2,planned_blind
+UV3S1,UV3S1-P036-6x8-Case4,P036,confirmatory,maximin_gap,6x8,6.0,8.0,Case4,60,-2,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|60|-2,planned_blind
+UV3S1,UV3S1-P036-8x8-Case2,P036,confirmatory,maximin_gap,8x8,8.0,8.0,Case2,60,-2,[[+/-theta1]/[+/-theta2]]4,Case2|60|-2,planned_blind
+UV3S1,UV3S1-P036-8x8-Case3,P036,confirmatory,maximin_gap,8x8,8.0,8.0,Case3,60,-2,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|60|-2,planned_blind
+UV3S1,UV3S1-P036-8x8-Case4,P036,confirmatory,maximin_gap,8x8,8.0,8.0,Case4,60,-2,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|60|-2,planned_blind
+UV3S1,UV3S1-P037-6x4-Case2,P037,confirmatory,maximin_gap,6x4,6.0,4.0,Case2,74,-8,[[+/-theta1]/[+/-theta2]]4,Case2|74|-8,planned_blind
+UV3S1,UV3S1-P037-6x4-Case3,P037,confirmatory,maximin_gap,6x4,6.0,4.0,Case3,74,-8,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|74|-8,planned_blind
+UV3S1,UV3S1-P037-6x4-Case4,P037,confirmatory,maximin_gap,6x4,6.0,4.0,Case4,74,-8,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|74|-8,planned_blind
+UV3S1,UV3S1-P037-6x8-Case2,P037,confirmatory,maximin_gap,6x8,6.0,8.0,Case2,74,-8,[[+/-theta1]/[+/-theta2]]4,Case2|74|-8,planned_blind
+UV3S1,UV3S1-P037-6x8-Case3,P037,confirmatory,maximin_gap,6x8,6.0,8.0,Case3,74,-8,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|74|-8,planned_blind
+UV3S1,UV3S1-P037-6x8-Case4,P037,confirmatory,maximin_gap,6x8,6.0,8.0,Case4,74,-8,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|74|-8,planned_blind
+UV3S1,UV3S1-P037-8x8-Case2,P037,confirmatory,maximin_gap,8x8,8.0,8.0,Case2,74,-8,[[+/-theta1]/[+/-theta2]]4,Case2|74|-8,planned_blind
+UV3S1,UV3S1-P037-8x8-Case3,P037,confirmatory,maximin_gap,8x8,8.0,8.0,Case3,74,-8,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|74|-8,planned_blind
+UV3S1,UV3S1-P037-8x8-Case4,P037,confirmatory,maximin_gap,8x8,8.0,8.0,Case4,74,-8,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|74|-8,planned_blind
+UV3S1,UV3S1-P038-6x4-Case2,P038,confirmatory,maximin_gap,6x4,6.0,4.0,Case2,78,90,[[+/-theta1]/[+/-theta2]]4,Case2|78|90,planned_blind
+UV3S1,UV3S1-P038-6x4-Case3,P038,confirmatory,maximin_gap,6x4,6.0,4.0,Case3,78,90,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|78|90,planned_blind
+UV3S1,UV3S1-P038-6x4-Case4,P038,confirmatory,maximin_gap,6x4,6.0,4.0,Case4,78,90,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|78|90,planned_blind
+UV3S1,UV3S1-P038-6x8-Case2,P038,confirmatory,maximin_gap,6x8,6.0,8.0,Case2,78,90,[[+/-theta1]/[+/-theta2]]4,Case2|78|90,planned_blind
+UV3S1,UV3S1-P038-6x8-Case3,P038,confirmatory,maximin_gap,6x8,6.0,8.0,Case3,78,90,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|78|90,planned_blind
+UV3S1,UV3S1-P038-6x8-Case4,P038,confirmatory,maximin_gap,6x8,6.0,8.0,Case4,78,90,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|78|90,planned_blind
+UV3S1,UV3S1-P038-8x8-Case2,P038,confirmatory,maximin_gap,8x8,8.0,8.0,Case2,78,90,[[+/-theta1]/[+/-theta2]]4,Case2|78|90,planned_blind
+UV3S1,UV3S1-P038-8x8-Case3,P038,confirmatory,maximin_gap,8x8,8.0,8.0,Case3,78,90,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|78|90,planned_blind
+UV3S1,UV3S1-P038-8x8-Case4,P038,confirmatory,maximin_gap,8x8,8.0,8.0,Case4,78,90,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|78|90,planned_blind
+UV3S1,UV3S1-P039-6x4-Case2,P039,confirmatory,maximin_gap,6x4,6.0,4.0,Case2,90,-27,[[+/-theta1]/[+/-theta2]]4,Case2|90|-27,planned_blind
+UV3S1,UV3S1-P039-6x4-Case3,P039,confirmatory,maximin_gap,6x4,6.0,4.0,Case3,90,-27,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|90|-27,planned_blind
+UV3S1,UV3S1-P039-6x4-Case4,P039,confirmatory,maximin_gap,6x4,6.0,4.0,Case4,90,-27,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|90|-27,planned_blind
+UV3S1,UV3S1-P039-6x8-Case2,P039,confirmatory,maximin_gap,6x8,6.0,8.0,Case2,90,-27,[[+/-theta1]/[+/-theta2]]4,Case2|90|-27,planned_blind
+UV3S1,UV3S1-P039-6x8-Case3,P039,confirmatory,maximin_gap,6x8,6.0,8.0,Case3,90,-27,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|90|-27,planned_blind
+UV3S1,UV3S1-P039-6x8-Case4,P039,confirmatory,maximin_gap,6x8,6.0,8.0,Case4,90,-27,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|90|-27,planned_blind
+UV3S1,UV3S1-P039-8x8-Case2,P039,confirmatory,maximin_gap,8x8,8.0,8.0,Case2,90,-27,[[+/-theta1]/[+/-theta2]]4,Case2|90|-27,planned_blind
+UV3S1,UV3S1-P039-8x8-Case3,P039,confirmatory,maximin_gap,8x8,8.0,8.0,Case3,90,-27,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|90|-27,planned_blind
+UV3S1,UV3S1-P039-8x8-Case4,P039,confirmatory,maximin_gap,8x8,8.0,8.0,Case4,90,-27,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|90|-27,planned_blind
+UV3S1,UV3S1-P040-6x4-Case2,P040,confirmatory,maximin_gap,6x4,6.0,4.0,Case2,90,28,[[+/-theta1]/[+/-theta2]]4,Case2|90|28,planned_blind
+UV3S1,UV3S1-P040-6x4-Case3,P040,confirmatory,maximin_gap,6x4,6.0,4.0,Case3,90,28,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|90|28,planned_blind
+UV3S1,UV3S1-P040-6x4-Case4,P040,confirmatory,maximin_gap,6x4,6.0,4.0,Case4,90,28,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|90|28,planned_blind
+UV3S1,UV3S1-P040-6x8-Case2,P040,confirmatory,maximin_gap,6x8,6.0,8.0,Case2,90,28,[[+/-theta1]/[+/-theta2]]4,Case2|90|28,planned_blind
+UV3S1,UV3S1-P040-6x8-Case3,P040,confirmatory,maximin_gap,6x8,6.0,8.0,Case3,90,28,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|90|28,planned_blind
+UV3S1,UV3S1-P040-6x8-Case4,P040,confirmatory,maximin_gap,6x8,6.0,8.0,Case4,90,28,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|90|28,planned_blind
+UV3S1,UV3S1-P040-8x8-Case2,P040,confirmatory,maximin_gap,8x8,8.0,8.0,Case2,90,28,[[+/-theta1]/[+/-theta2]]4,Case2|90|28,planned_blind
+UV3S1,UV3S1-P040-8x8-Case3,P040,confirmatory,maximin_gap,8x8,8.0,8.0,Case3,90,28,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|90|28,planned_blind
+UV3S1,UV3S1-P040-8x8-Case4,P040,confirmatory,maximin_gap,8x8,8.0,8.0,Case4,90,28,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|90|28,planned_blind
+UV3S1,UV3S1-P041-6x4-Case2,P041,confirmatory,uniform_grid,6x4,6.0,4.0,Case2,-86,81,[[+/-theta1]/[+/-theta2]]4,Case2|-86|81,planned_blind
+UV3S1,UV3S1-P041-6x4-Case3,P041,confirmatory,uniform_grid,6x4,6.0,4.0,Case3,-86,81,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-86|81,planned_blind
+UV3S1,UV3S1-P041-6x4-Case4,P041,confirmatory,uniform_grid,6x4,6.0,4.0,Case4,-86,81,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-86|81,planned_blind
+UV3S1,UV3S1-P041-6x8-Case2,P041,confirmatory,uniform_grid,6x8,6.0,8.0,Case2,-86,81,[[+/-theta1]/[+/-theta2]]4,Case2|-86|81,planned_blind
+UV3S1,UV3S1-P041-6x8-Case3,P041,confirmatory,uniform_grid,6x8,6.0,8.0,Case3,-86,81,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-86|81,planned_blind
+UV3S1,UV3S1-P041-6x8-Case4,P041,confirmatory,uniform_grid,6x8,6.0,8.0,Case4,-86,81,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-86|81,planned_blind
+UV3S1,UV3S1-P041-8x8-Case2,P041,confirmatory,uniform_grid,8x8,8.0,8.0,Case2,-86,81,[[+/-theta1]/[+/-theta2]]4,Case2|-86|81,planned_blind
+UV3S1,UV3S1-P041-8x8-Case3,P041,confirmatory,uniform_grid,8x8,8.0,8.0,Case3,-86,81,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-86|81,planned_blind
+UV3S1,UV3S1-P041-8x8-Case4,P041,confirmatory,uniform_grid,8x8,8.0,8.0,Case4,-86,81,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-86|81,planned_blind
+UV3S1,UV3S1-P042-6x4-Case2,P042,confirmatory,uniform_grid,6x4,6.0,4.0,Case2,-83,16,[[+/-theta1]/[+/-theta2]]4,Case2|-83|16,planned_blind
+UV3S1,UV3S1-P042-6x4-Case3,P042,confirmatory,uniform_grid,6x4,6.0,4.0,Case3,-83,16,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-83|16,planned_blind
+UV3S1,UV3S1-P042-6x4-Case4,P042,confirmatory,uniform_grid,6x4,6.0,4.0,Case4,-83,16,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-83|16,planned_blind
+UV3S1,UV3S1-P042-6x8-Case2,P042,confirmatory,uniform_grid,6x8,6.0,8.0,Case2,-83,16,[[+/-theta1]/[+/-theta2]]4,Case2|-83|16,planned_blind
+UV3S1,UV3S1-P042-6x8-Case3,P042,confirmatory,uniform_grid,6x8,6.0,8.0,Case3,-83,16,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-83|16,planned_blind
+UV3S1,UV3S1-P042-6x8-Case4,P042,confirmatory,uniform_grid,6x8,6.0,8.0,Case4,-83,16,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-83|16,planned_blind
+UV3S1,UV3S1-P042-8x8-Case2,P042,confirmatory,uniform_grid,8x8,8.0,8.0,Case2,-83,16,[[+/-theta1]/[+/-theta2]]4,Case2|-83|16,planned_blind
+UV3S1,UV3S1-P042-8x8-Case3,P042,confirmatory,uniform_grid,8x8,8.0,8.0,Case3,-83,16,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-83|16,planned_blind
+UV3S1,UV3S1-P042-8x8-Case4,P042,confirmatory,uniform_grid,8x8,8.0,8.0,Case4,-83,16,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-83|16,planned_blind
+UV3S1,UV3S1-P043-6x4-Case2,P043,confirmatory,uniform_grid,6x4,6.0,4.0,Case2,-65,17,[[+/-theta1]/[+/-theta2]]4,Case2|-65|17,planned_blind
+UV3S1,UV3S1-P043-6x4-Case3,P043,confirmatory,uniform_grid,6x4,6.0,4.0,Case3,-65,17,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-65|17,planned_blind
+UV3S1,UV3S1-P043-6x4-Case4,P043,confirmatory,uniform_grid,6x4,6.0,4.0,Case4,-65,17,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-65|17,planned_blind
+UV3S1,UV3S1-P043-6x8-Case2,P043,confirmatory,uniform_grid,6x8,6.0,8.0,Case2,-65,17,[[+/-theta1]/[+/-theta2]]4,Case2|-65|17,planned_blind
+UV3S1,UV3S1-P043-6x8-Case3,P043,confirmatory,uniform_grid,6x8,6.0,8.0,Case3,-65,17,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-65|17,planned_blind
+UV3S1,UV3S1-P043-6x8-Case4,P043,confirmatory,uniform_grid,6x8,6.0,8.0,Case4,-65,17,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-65|17,planned_blind
+UV3S1,UV3S1-P043-8x8-Case2,P043,confirmatory,uniform_grid,8x8,8.0,8.0,Case2,-65,17,[[+/-theta1]/[+/-theta2]]4,Case2|-65|17,planned_blind
+UV3S1,UV3S1-P043-8x8-Case3,P043,confirmatory,uniform_grid,8x8,8.0,8.0,Case3,-65,17,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-65|17,planned_blind
+UV3S1,UV3S1-P043-8x8-Case4,P043,confirmatory,uniform_grid,8x8,8.0,8.0,Case4,-65,17,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-65|17,planned_blind
+UV3S1,UV3S1-P044-6x4-Case2,P044,confirmatory,uniform_grid,6x4,6.0,4.0,Case2,-64,86,[[+/-theta1]/[+/-theta2]]4,Case2|-64|86,planned_blind
+UV3S1,UV3S1-P044-6x4-Case3,P044,confirmatory,uniform_grid,6x4,6.0,4.0,Case3,-64,86,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-64|86,planned_blind
+UV3S1,UV3S1-P044-6x4-Case4,P044,confirmatory,uniform_grid,6x4,6.0,4.0,Case4,-64,86,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-64|86,planned_blind
+UV3S1,UV3S1-P044-6x8-Case2,P044,confirmatory,uniform_grid,6x8,6.0,8.0,Case2,-64,86,[[+/-theta1]/[+/-theta2]]4,Case2|-64|86,planned_blind
+UV3S1,UV3S1-P044-6x8-Case3,P044,confirmatory,uniform_grid,6x8,6.0,8.0,Case3,-64,86,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-64|86,planned_blind
+UV3S1,UV3S1-P044-6x8-Case4,P044,confirmatory,uniform_grid,6x8,6.0,8.0,Case4,-64,86,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-64|86,planned_blind
+UV3S1,UV3S1-P044-8x8-Case2,P044,confirmatory,uniform_grid,8x8,8.0,8.0,Case2,-64,86,[[+/-theta1]/[+/-theta2]]4,Case2|-64|86,planned_blind
+UV3S1,UV3S1-P044-8x8-Case3,P044,confirmatory,uniform_grid,8x8,8.0,8.0,Case3,-64,86,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-64|86,planned_blind
+UV3S1,UV3S1-P044-8x8-Case4,P044,confirmatory,uniform_grid,8x8,8.0,8.0,Case4,-64,86,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-64|86,planned_blind
+UV3S1,UV3S1-P045-6x4-Case2,P045,confirmatory,uniform_grid,6x4,6.0,4.0,Case2,-62,-45,[[+/-theta1]/[+/-theta2]]4,Case2|-62|-45,planned_blind
+UV3S1,UV3S1-P045-6x4-Case3,P045,confirmatory,uniform_grid,6x4,6.0,4.0,Case3,-62,-45,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-62|-45,planned_blind
+UV3S1,UV3S1-P045-6x4-Case4,P045,confirmatory,uniform_grid,6x4,6.0,4.0,Case4,-62,-45,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-62|-45,planned_blind
+UV3S1,UV3S1-P045-6x8-Case2,P045,confirmatory,uniform_grid,6x8,6.0,8.0,Case2,-62,-45,[[+/-theta1]/[+/-theta2]]4,Case2|-62|-45,planned_blind
+UV3S1,UV3S1-P045-6x8-Case3,P045,confirmatory,uniform_grid,6x8,6.0,8.0,Case3,-62,-45,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-62|-45,planned_blind
+UV3S1,UV3S1-P045-6x8-Case4,P045,confirmatory,uniform_grid,6x8,6.0,8.0,Case4,-62,-45,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-62|-45,planned_blind
+UV3S1,UV3S1-P045-8x8-Case2,P045,confirmatory,uniform_grid,8x8,8.0,8.0,Case2,-62,-45,[[+/-theta1]/[+/-theta2]]4,Case2|-62|-45,planned_blind
+UV3S1,UV3S1-P045-8x8-Case3,P045,confirmatory,uniform_grid,8x8,8.0,8.0,Case3,-62,-45,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-62|-45,planned_blind
+UV3S1,UV3S1-P045-8x8-Case4,P045,confirmatory,uniform_grid,8x8,8.0,8.0,Case4,-62,-45,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-62|-45,planned_blind
+UV3S1,UV3S1-P046-6x4-Case2,P046,confirmatory,uniform_grid,6x4,6.0,4.0,Case2,-40,-36,[[+/-theta1]/[+/-theta2]]4,Case2|-40|-36,planned_blind
+UV3S1,UV3S1-P046-6x4-Case3,P046,confirmatory,uniform_grid,6x4,6.0,4.0,Case3,-40,-36,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-40|-36,planned_blind
+UV3S1,UV3S1-P046-6x4-Case4,P046,confirmatory,uniform_grid,6x4,6.0,4.0,Case4,-40,-36,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-40|-36,planned_blind
+UV3S1,UV3S1-P046-6x8-Case2,P046,confirmatory,uniform_grid,6x8,6.0,8.0,Case2,-40,-36,[[+/-theta1]/[+/-theta2]]4,Case2|-40|-36,planned_blind
+UV3S1,UV3S1-P046-6x8-Case3,P046,confirmatory,uniform_grid,6x8,6.0,8.0,Case3,-40,-36,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-40|-36,planned_blind
+UV3S1,UV3S1-P046-6x8-Case4,P046,confirmatory,uniform_grid,6x8,6.0,8.0,Case4,-40,-36,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-40|-36,planned_blind
+UV3S1,UV3S1-P046-8x8-Case2,P046,confirmatory,uniform_grid,8x8,8.0,8.0,Case2,-40,-36,[[+/-theta1]/[+/-theta2]]4,Case2|-40|-36,planned_blind
+UV3S1,UV3S1-P046-8x8-Case3,P046,confirmatory,uniform_grid,8x8,8.0,8.0,Case3,-40,-36,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-40|-36,planned_blind
+UV3S1,UV3S1-P046-8x8-Case4,P046,confirmatory,uniform_grid,8x8,8.0,8.0,Case4,-40,-36,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-40|-36,planned_blind
+UV3S1,UV3S1-P047-6x4-Case2,P047,confirmatory,uniform_grid,6x4,6.0,4.0,Case2,-38,62,[[+/-theta1]/[+/-theta2]]4,Case2|-38|62,planned_blind
+UV3S1,UV3S1-P047-6x4-Case3,P047,confirmatory,uniform_grid,6x4,6.0,4.0,Case3,-38,62,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-38|62,planned_blind
+UV3S1,UV3S1-P047-6x4-Case4,P047,confirmatory,uniform_grid,6x4,6.0,4.0,Case4,-38,62,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-38|62,planned_blind
+UV3S1,UV3S1-P047-6x8-Case2,P047,confirmatory,uniform_grid,6x8,6.0,8.0,Case2,-38,62,[[+/-theta1]/[+/-theta2]]4,Case2|-38|62,planned_blind
+UV3S1,UV3S1-P047-6x8-Case3,P047,confirmatory,uniform_grid,6x8,6.0,8.0,Case3,-38,62,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-38|62,planned_blind
+UV3S1,UV3S1-P047-6x8-Case4,P047,confirmatory,uniform_grid,6x8,6.0,8.0,Case4,-38,62,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-38|62,planned_blind
+UV3S1,UV3S1-P047-8x8-Case2,P047,confirmatory,uniform_grid,8x8,8.0,8.0,Case2,-38,62,[[+/-theta1]/[+/-theta2]]4,Case2|-38|62,planned_blind
+UV3S1,UV3S1-P047-8x8-Case3,P047,confirmatory,uniform_grid,8x8,8.0,8.0,Case3,-38,62,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-38|62,planned_blind
+UV3S1,UV3S1-P047-8x8-Case4,P047,confirmatory,uniform_grid,8x8,8.0,8.0,Case4,-38,62,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-38|62,planned_blind
+UV3S1,UV3S1-P048-6x4-Case2,P048,confirmatory,uniform_grid,6x4,6.0,4.0,Case2,-38,69,[[+/-theta1]/[+/-theta2]]4,Case2|-38|69,planned_blind
+UV3S1,UV3S1-P048-6x4-Case3,P048,confirmatory,uniform_grid,6x4,6.0,4.0,Case3,-38,69,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-38|69,planned_blind
+UV3S1,UV3S1-P048-6x4-Case4,P048,confirmatory,uniform_grid,6x4,6.0,4.0,Case4,-38,69,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-38|69,planned_blind
+UV3S1,UV3S1-P048-6x8-Case2,P048,confirmatory,uniform_grid,6x8,6.0,8.0,Case2,-38,69,[[+/-theta1]/[+/-theta2]]4,Case2|-38|69,planned_blind
+UV3S1,UV3S1-P048-6x8-Case3,P048,confirmatory,uniform_grid,6x8,6.0,8.0,Case3,-38,69,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-38|69,planned_blind
+UV3S1,UV3S1-P048-6x8-Case4,P048,confirmatory,uniform_grid,6x8,6.0,8.0,Case4,-38,69,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-38|69,planned_blind
+UV3S1,UV3S1-P048-8x8-Case2,P048,confirmatory,uniform_grid,8x8,8.0,8.0,Case2,-38,69,[[+/-theta1]/[+/-theta2]]4,Case2|-38|69,planned_blind
+UV3S1,UV3S1-P048-8x8-Case3,P048,confirmatory,uniform_grid,8x8,8.0,8.0,Case3,-38,69,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-38|69,planned_blind
+UV3S1,UV3S1-P048-8x8-Case4,P048,confirmatory,uniform_grid,8x8,8.0,8.0,Case4,-38,69,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-38|69,planned_blind
+UV3S1,UV3S1-P049-6x4-Case2,P049,confirmatory,uniform_grid,6x4,6.0,4.0,Case2,-31,54,[[+/-theta1]/[+/-theta2]]4,Case2|-31|54,planned_blind
+UV3S1,UV3S1-P049-6x4-Case3,P049,confirmatory,uniform_grid,6x4,6.0,4.0,Case3,-31,54,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-31|54,planned_blind
+UV3S1,UV3S1-P049-6x4-Case4,P049,confirmatory,uniform_grid,6x4,6.0,4.0,Case4,-31,54,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-31|54,planned_blind
+UV3S1,UV3S1-P049-6x8-Case2,P049,confirmatory,uniform_grid,6x8,6.0,8.0,Case2,-31,54,[[+/-theta1]/[+/-theta2]]4,Case2|-31|54,planned_blind
+UV3S1,UV3S1-P049-6x8-Case3,P049,confirmatory,uniform_grid,6x8,6.0,8.0,Case3,-31,54,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-31|54,planned_blind
+UV3S1,UV3S1-P049-6x8-Case4,P049,confirmatory,uniform_grid,6x8,6.0,8.0,Case4,-31,54,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-31|54,planned_blind
+UV3S1,UV3S1-P049-8x8-Case2,P049,confirmatory,uniform_grid,8x8,8.0,8.0,Case2,-31,54,[[+/-theta1]/[+/-theta2]]4,Case2|-31|54,planned_blind
+UV3S1,UV3S1-P049-8x8-Case3,P049,confirmatory,uniform_grid,8x8,8.0,8.0,Case3,-31,54,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-31|54,planned_blind
+UV3S1,UV3S1-P049-8x8-Case4,P049,confirmatory,uniform_grid,8x8,8.0,8.0,Case4,-31,54,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-31|54,planned_blind
+UV3S1,UV3S1-P050-6x4-Case2,P050,confirmatory,uniform_grid,6x4,6.0,4.0,Case2,-14,-90,[[+/-theta1]/[+/-theta2]]4,Case2|-14|-90,planned_blind
+UV3S1,UV3S1-P050-6x4-Case3,P050,confirmatory,uniform_grid,6x4,6.0,4.0,Case3,-14,-90,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-14|-90,planned_blind
+UV3S1,UV3S1-P050-6x4-Case4,P050,confirmatory,uniform_grid,6x4,6.0,4.0,Case4,-14,-90,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-14|-90,planned_blind
+UV3S1,UV3S1-P050-6x8-Case2,P050,confirmatory,uniform_grid,6x8,6.0,8.0,Case2,-14,-90,[[+/-theta1]/[+/-theta2]]4,Case2|-14|-90,planned_blind
+UV3S1,UV3S1-P050-6x8-Case3,P050,confirmatory,uniform_grid,6x8,6.0,8.0,Case3,-14,-90,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-14|-90,planned_blind
+UV3S1,UV3S1-P050-6x8-Case4,P050,confirmatory,uniform_grid,6x8,6.0,8.0,Case4,-14,-90,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-14|-90,planned_blind
+UV3S1,UV3S1-P050-8x8-Case2,P050,confirmatory,uniform_grid,8x8,8.0,8.0,Case2,-14,-90,[[+/-theta1]/[+/-theta2]]4,Case2|-14|-90,planned_blind
+UV3S1,UV3S1-P050-8x8-Case3,P050,confirmatory,uniform_grid,8x8,8.0,8.0,Case3,-14,-90,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-14|-90,planned_blind
+UV3S1,UV3S1-P050-8x8-Case4,P050,confirmatory,uniform_grid,8x8,8.0,8.0,Case4,-14,-90,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-14|-90,planned_blind
+UV3S1,UV3S1-P051-6x4-Case2,P051,confirmatory,uniform_grid,6x4,6.0,4.0,Case2,-11,60,[[+/-theta1]/[+/-theta2]]4,Case2|-11|60,planned_blind
+UV3S1,UV3S1-P051-6x4-Case3,P051,confirmatory,uniform_grid,6x4,6.0,4.0,Case3,-11,60,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-11|60,planned_blind
+UV3S1,UV3S1-P051-6x4-Case4,P051,confirmatory,uniform_grid,6x4,6.0,4.0,Case4,-11,60,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-11|60,planned_blind
+UV3S1,UV3S1-P051-6x8-Case2,P051,confirmatory,uniform_grid,6x8,6.0,8.0,Case2,-11,60,[[+/-theta1]/[+/-theta2]]4,Case2|-11|60,planned_blind
+UV3S1,UV3S1-P051-6x8-Case3,P051,confirmatory,uniform_grid,6x8,6.0,8.0,Case3,-11,60,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-11|60,planned_blind
+UV3S1,UV3S1-P051-6x8-Case4,P051,confirmatory,uniform_grid,6x8,6.0,8.0,Case4,-11,60,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-11|60,planned_blind
+UV3S1,UV3S1-P051-8x8-Case2,P051,confirmatory,uniform_grid,8x8,8.0,8.0,Case2,-11,60,[[+/-theta1]/[+/-theta2]]4,Case2|-11|60,planned_blind
+UV3S1,UV3S1-P051-8x8-Case3,P051,confirmatory,uniform_grid,8x8,8.0,8.0,Case3,-11,60,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-11|60,planned_blind
+UV3S1,UV3S1-P051-8x8-Case4,P051,confirmatory,uniform_grid,8x8,8.0,8.0,Case4,-11,60,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-11|60,planned_blind
+UV3S1,UV3S1-P052-6x4-Case2,P052,confirmatory,uniform_grid,6x4,6.0,4.0,Case2,-10,-80,[[+/-theta1]/[+/-theta2]]4,Case2|-10|-80,planned_blind
+UV3S1,UV3S1-P052-6x4-Case3,P052,confirmatory,uniform_grid,6x4,6.0,4.0,Case3,-10,-80,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-10|-80,planned_blind
+UV3S1,UV3S1-P052-6x4-Case4,P052,confirmatory,uniform_grid,6x4,6.0,4.0,Case4,-10,-80,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-10|-80,planned_blind
+UV3S1,UV3S1-P052-6x8-Case2,P052,confirmatory,uniform_grid,6x8,6.0,8.0,Case2,-10,-80,[[+/-theta1]/[+/-theta2]]4,Case2|-10|-80,planned_blind
+UV3S1,UV3S1-P052-6x8-Case3,P052,confirmatory,uniform_grid,6x8,6.0,8.0,Case3,-10,-80,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-10|-80,planned_blind
+UV3S1,UV3S1-P052-6x8-Case4,P052,confirmatory,uniform_grid,6x8,6.0,8.0,Case4,-10,-80,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-10|-80,planned_blind
+UV3S1,UV3S1-P052-8x8-Case2,P052,confirmatory,uniform_grid,8x8,8.0,8.0,Case2,-10,-80,[[+/-theta1]/[+/-theta2]]4,Case2|-10|-80,planned_blind
+UV3S1,UV3S1-P052-8x8-Case3,P052,confirmatory,uniform_grid,8x8,8.0,8.0,Case3,-10,-80,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|-10|-80,planned_blind
+UV3S1,UV3S1-P052-8x8-Case4,P052,confirmatory,uniform_grid,8x8,8.0,8.0,Case4,-10,-80,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|-10|-80,planned_blind
+UV3S1,UV3S1-P053-6x4-Case2,P053,confirmatory,uniform_grid,6x4,6.0,4.0,Case2,3,-32,[[+/-theta1]/[+/-theta2]]4,Case2|3|-32,planned_blind
+UV3S1,UV3S1-P053-6x4-Case3,P053,confirmatory,uniform_grid,6x4,6.0,4.0,Case3,3,-32,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|3|-32,planned_blind
+UV3S1,UV3S1-P053-6x4-Case4,P053,confirmatory,uniform_grid,6x4,6.0,4.0,Case4,3,-32,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|3|-32,planned_blind
+UV3S1,UV3S1-P053-6x8-Case2,P053,confirmatory,uniform_grid,6x8,6.0,8.0,Case2,3,-32,[[+/-theta1]/[+/-theta2]]4,Case2|3|-32,planned_blind
+UV3S1,UV3S1-P053-6x8-Case3,P053,confirmatory,uniform_grid,6x8,6.0,8.0,Case3,3,-32,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|3|-32,planned_blind
+UV3S1,UV3S1-P053-6x8-Case4,P053,confirmatory,uniform_grid,6x8,6.0,8.0,Case4,3,-32,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|3|-32,planned_blind
+UV3S1,UV3S1-P053-8x8-Case2,P053,confirmatory,uniform_grid,8x8,8.0,8.0,Case2,3,-32,[[+/-theta1]/[+/-theta2]]4,Case2|3|-32,planned_blind
+UV3S1,UV3S1-P053-8x8-Case3,P053,confirmatory,uniform_grid,8x8,8.0,8.0,Case3,3,-32,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|3|-32,planned_blind
+UV3S1,UV3S1-P053-8x8-Case4,P053,confirmatory,uniform_grid,8x8,8.0,8.0,Case4,3,-32,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|3|-32,planned_blind
+UV3S1,UV3S1-P054-6x4-Case2,P054,confirmatory,uniform_grid,6x4,6.0,4.0,Case2,11,90,[[+/-theta1]/[+/-theta2]]4,Case2|11|90,planned_blind
+UV3S1,UV3S1-P054-6x4-Case3,P054,confirmatory,uniform_grid,6x4,6.0,4.0,Case3,11,90,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|11|90,planned_blind
+UV3S1,UV3S1-P054-6x4-Case4,P054,confirmatory,uniform_grid,6x4,6.0,4.0,Case4,11,90,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|11|90,planned_blind
+UV3S1,UV3S1-P054-6x8-Case2,P054,confirmatory,uniform_grid,6x8,6.0,8.0,Case2,11,90,[[+/-theta1]/[+/-theta2]]4,Case2|11|90,planned_blind
+UV3S1,UV3S1-P054-6x8-Case3,P054,confirmatory,uniform_grid,6x8,6.0,8.0,Case3,11,90,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|11|90,planned_blind
+UV3S1,UV3S1-P054-6x8-Case4,P054,confirmatory,uniform_grid,6x8,6.0,8.0,Case4,11,90,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|11|90,planned_blind
+UV3S1,UV3S1-P054-8x8-Case2,P054,confirmatory,uniform_grid,8x8,8.0,8.0,Case2,11,90,[[+/-theta1]/[+/-theta2]]4,Case2|11|90,planned_blind
+UV3S1,UV3S1-P054-8x8-Case3,P054,confirmatory,uniform_grid,8x8,8.0,8.0,Case3,11,90,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|11|90,planned_blind
+UV3S1,UV3S1-P054-8x8-Case4,P054,confirmatory,uniform_grid,8x8,8.0,8.0,Case4,11,90,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|11|90,planned_blind
+UV3S1,UV3S1-P055-6x4-Case2,P055,confirmatory,uniform_grid,6x4,6.0,4.0,Case2,14,-52,[[+/-theta1]/[+/-theta2]]4,Case2|14|-52,planned_blind
+UV3S1,UV3S1-P055-6x4-Case3,P055,confirmatory,uniform_grid,6x4,6.0,4.0,Case3,14,-52,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|14|-52,planned_blind
+UV3S1,UV3S1-P055-6x4-Case4,P055,confirmatory,uniform_grid,6x4,6.0,4.0,Case4,14,-52,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|14|-52,planned_blind
+UV3S1,UV3S1-P055-6x8-Case2,P055,confirmatory,uniform_grid,6x8,6.0,8.0,Case2,14,-52,[[+/-theta1]/[+/-theta2]]4,Case2|14|-52,planned_blind
+UV3S1,UV3S1-P055-6x8-Case3,P055,confirmatory,uniform_grid,6x8,6.0,8.0,Case3,14,-52,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|14|-52,planned_blind
+UV3S1,UV3S1-P055-6x8-Case4,P055,confirmatory,uniform_grid,6x8,6.0,8.0,Case4,14,-52,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|14|-52,planned_blind
+UV3S1,UV3S1-P055-8x8-Case2,P055,confirmatory,uniform_grid,8x8,8.0,8.0,Case2,14,-52,[[+/-theta1]/[+/-theta2]]4,Case2|14|-52,planned_blind
+UV3S1,UV3S1-P055-8x8-Case3,P055,confirmatory,uniform_grid,8x8,8.0,8.0,Case3,14,-52,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|14|-52,planned_blind
+UV3S1,UV3S1-P055-8x8-Case4,P055,confirmatory,uniform_grid,8x8,8.0,8.0,Case4,14,-52,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|14|-52,planned_blind
+UV3S1,UV3S1-P056-6x4-Case2,P056,confirmatory,uniform_grid,6x4,6.0,4.0,Case2,25,-67,[[+/-theta1]/[+/-theta2]]4,Case2|25|-67,planned_blind
+UV3S1,UV3S1-P056-6x4-Case3,P056,confirmatory,uniform_grid,6x4,6.0,4.0,Case3,25,-67,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|25|-67,planned_blind
+UV3S1,UV3S1-P056-6x4-Case4,P056,confirmatory,uniform_grid,6x4,6.0,4.0,Case4,25,-67,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|25|-67,planned_blind
+UV3S1,UV3S1-P056-6x8-Case2,P056,confirmatory,uniform_grid,6x8,6.0,8.0,Case2,25,-67,[[+/-theta1]/[+/-theta2]]4,Case2|25|-67,planned_blind
+UV3S1,UV3S1-P056-6x8-Case3,P056,confirmatory,uniform_grid,6x8,6.0,8.0,Case3,25,-67,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|25|-67,planned_blind
+UV3S1,UV3S1-P056-6x8-Case4,P056,confirmatory,uniform_grid,6x8,6.0,8.0,Case4,25,-67,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|25|-67,planned_blind
+UV3S1,UV3S1-P056-8x8-Case2,P056,confirmatory,uniform_grid,8x8,8.0,8.0,Case2,25,-67,[[+/-theta1]/[+/-theta2]]4,Case2|25|-67,planned_blind
+UV3S1,UV3S1-P056-8x8-Case3,P056,confirmatory,uniform_grid,8x8,8.0,8.0,Case3,25,-67,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|25|-67,planned_blind
+UV3S1,UV3S1-P056-8x8-Case4,P056,confirmatory,uniform_grid,8x8,8.0,8.0,Case4,25,-67,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|25|-67,planned_blind
+UV3S1,UV3S1-P057-6x4-Case2,P057,confirmatory,uniform_grid,6x4,6.0,4.0,Case2,26,60,[[+/-theta1]/[+/-theta2]]4,Case2|26|60,planned_blind
+UV3S1,UV3S1-P057-6x4-Case3,P057,confirmatory,uniform_grid,6x4,6.0,4.0,Case3,26,60,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|26|60,planned_blind
+UV3S1,UV3S1-P057-6x4-Case4,P057,confirmatory,uniform_grid,6x4,6.0,4.0,Case4,26,60,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|26|60,planned_blind
+UV3S1,UV3S1-P057-6x8-Case2,P057,confirmatory,uniform_grid,6x8,6.0,8.0,Case2,26,60,[[+/-theta1]/[+/-theta2]]4,Case2|26|60,planned_blind
+UV3S1,UV3S1-P057-6x8-Case3,P057,confirmatory,uniform_grid,6x8,6.0,8.0,Case3,26,60,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|26|60,planned_blind
+UV3S1,UV3S1-P057-6x8-Case4,P057,confirmatory,uniform_grid,6x8,6.0,8.0,Case4,26,60,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|26|60,planned_blind
+UV3S1,UV3S1-P057-8x8-Case2,P057,confirmatory,uniform_grid,8x8,8.0,8.0,Case2,26,60,[[+/-theta1]/[+/-theta2]]4,Case2|26|60,planned_blind
+UV3S1,UV3S1-P057-8x8-Case3,P057,confirmatory,uniform_grid,8x8,8.0,8.0,Case3,26,60,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|26|60,planned_blind
+UV3S1,UV3S1-P057-8x8-Case4,P057,confirmatory,uniform_grid,8x8,8.0,8.0,Case4,26,60,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|26|60,planned_blind
+UV3S1,UV3S1-P058-6x4-Case2,P058,confirmatory,uniform_grid,6x4,6.0,4.0,Case2,44,-72,[[+/-theta1]/[+/-theta2]]4,Case2|44|-72,planned_blind
+UV3S1,UV3S1-P058-6x4-Case3,P058,confirmatory,uniform_grid,6x4,6.0,4.0,Case3,44,-72,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|44|-72,planned_blind
+UV3S1,UV3S1-P058-6x4-Case4,P058,confirmatory,uniform_grid,6x4,6.0,4.0,Case4,44,-72,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|44|-72,planned_blind
+UV3S1,UV3S1-P058-6x8-Case2,P058,confirmatory,uniform_grid,6x8,6.0,8.0,Case2,44,-72,[[+/-theta1]/[+/-theta2]]4,Case2|44|-72,planned_blind
+UV3S1,UV3S1-P058-6x8-Case3,P058,confirmatory,uniform_grid,6x8,6.0,8.0,Case3,44,-72,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|44|-72,planned_blind
+UV3S1,UV3S1-P058-6x8-Case4,P058,confirmatory,uniform_grid,6x8,6.0,8.0,Case4,44,-72,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|44|-72,planned_blind
+UV3S1,UV3S1-P058-8x8-Case2,P058,confirmatory,uniform_grid,8x8,8.0,8.0,Case2,44,-72,[[+/-theta1]/[+/-theta2]]4,Case2|44|-72,planned_blind
+UV3S1,UV3S1-P058-8x8-Case3,P058,confirmatory,uniform_grid,8x8,8.0,8.0,Case3,44,-72,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|44|-72,planned_blind
+UV3S1,UV3S1-P058-8x8-Case4,P058,confirmatory,uniform_grid,8x8,8.0,8.0,Case4,44,-72,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|44|-72,planned_blind
+UV3S1,UV3S1-P059-6x4-Case2,P059,confirmatory,uniform_grid,6x4,6.0,4.0,Case2,54,-73,[[+/-theta1]/[+/-theta2]]4,Case2|54|-73,planned_blind
+UV3S1,UV3S1-P059-6x4-Case3,P059,confirmatory,uniform_grid,6x4,6.0,4.0,Case3,54,-73,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|54|-73,planned_blind
+UV3S1,UV3S1-P059-6x4-Case4,P059,confirmatory,uniform_grid,6x4,6.0,4.0,Case4,54,-73,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|54|-73,planned_blind
+UV3S1,UV3S1-P059-6x8-Case2,P059,confirmatory,uniform_grid,6x8,6.0,8.0,Case2,54,-73,[[+/-theta1]/[+/-theta2]]4,Case2|54|-73,planned_blind
+UV3S1,UV3S1-P059-6x8-Case3,P059,confirmatory,uniform_grid,6x8,6.0,8.0,Case3,54,-73,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|54|-73,planned_blind
+UV3S1,UV3S1-P059-6x8-Case4,P059,confirmatory,uniform_grid,6x8,6.0,8.0,Case4,54,-73,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|54|-73,planned_blind
+UV3S1,UV3S1-P059-8x8-Case2,P059,confirmatory,uniform_grid,8x8,8.0,8.0,Case2,54,-73,[[+/-theta1]/[+/-theta2]]4,Case2|54|-73,planned_blind
+UV3S1,UV3S1-P059-8x8-Case3,P059,confirmatory,uniform_grid,8x8,8.0,8.0,Case3,54,-73,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|54|-73,planned_blind
+UV3S1,UV3S1-P059-8x8-Case4,P059,confirmatory,uniform_grid,8x8,8.0,8.0,Case4,54,-73,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|54|-73,planned_blind
+UV3S1,UV3S1-P060-6x4-Case2,P060,confirmatory,uniform_grid,6x4,6.0,4.0,Case2,80,-45,[[+/-theta1]/[+/-theta2]]4,Case2|80|-45,planned_blind
+UV3S1,UV3S1-P060-6x4-Case3,P060,confirmatory,uniform_grid,6x4,6.0,4.0,Case3,80,-45,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|80|-45,planned_blind
+UV3S1,UV3S1-P060-6x4-Case4,P060,confirmatory,uniform_grid,6x4,6.0,4.0,Case4,80,-45,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|80|-45,planned_blind
+UV3S1,UV3S1-P060-6x8-Case2,P060,confirmatory,uniform_grid,6x8,6.0,8.0,Case2,80,-45,[[+/-theta1]/[+/-theta2]]4,Case2|80|-45,planned_blind
+UV3S1,UV3S1-P060-6x8-Case3,P060,confirmatory,uniform_grid,6x8,6.0,8.0,Case3,80,-45,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|80|-45,planned_blind
+UV3S1,UV3S1-P060-6x8-Case4,P060,confirmatory,uniform_grid,6x8,6.0,8.0,Case4,80,-45,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|80|-45,planned_blind
+UV3S1,UV3S1-P060-8x8-Case2,P060,confirmatory,uniform_grid,8x8,8.0,8.0,Case2,80,-45,[[+/-theta1]/[+/-theta2]]4,Case2|80|-45,planned_blind
+UV3S1,UV3S1-P060-8x8-Case3,P060,confirmatory,uniform_grid,8x8,8.0,8.0,Case3,80,-45,[[+/-theta1]/[+/-theta2]/[-/+theta1]/[-/+theta2]]2,Case3|80|-45,planned_blind
+UV3S1,UV3S1-P060-8x8-Case4,P060,confirmatory,uniform_grid,8x8,8.0,8.0,Case4,80,-45,[([+/-theta1]/[+/-theta2])2 / ([-/+theta1]/[-/+theta2])2],Case4|80|-45,planned_blind

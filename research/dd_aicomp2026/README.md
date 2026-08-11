@@ -56,3 +56,16 @@ design-space-distance/failure-case reporting without changing production.
 See `docs/DD_MODEL_LIFECYCLE.md` and
 `docs/reviews/2026-08-11-aicomp-2026-dd-laminate-review.md` for the full policy
 and research roadmap.
+
+## Untouched validation campaign
+
+Campaign `UV3S1` is frozen under
+`campaigns/20260811-untouched-3size-v1/`. It contains 60 theta pairs absent
+from the current 2,700-row dataset, repeated across all three Cases and all
+three panel geometries for 540 blind simulations.
+
+Run the 180-row pilot manifest first for solver and data-quality checks, then
+the 360-row confirmatory manifest. Reading pilot targets does not authorize
+model tuning. No model, calibration method, interval grouping, or threshold
+may change until the full campaign has been evaluated; any such change starts
+a new untouched campaign.

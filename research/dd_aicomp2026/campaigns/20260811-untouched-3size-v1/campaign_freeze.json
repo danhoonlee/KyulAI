@@ -1,0 +1,186 @@
+{
+  "schema_version": 1,
+  "campaign_id": "UV3S1",
+  "status": "frozen_awaiting_untouched_simulations",
+  "git_parent_commit": "aec96a5b55f48388d28e581514d1c0ddb4d93ee8",
+  "selection_policy": {
+    "targets_or_predictions_used": false,
+    "source_pair_exclusion": "exact theta1 + theta2 pair across every Case and geometry",
+    "primary_evaluation": "report uniform_grid and maximin_gap separately and combined",
+    "pilot_rule": "quality-stop only; no model or interval changes after target access"
+  },
+  "source_manifest": {
+    "path": "data/datasets/DD_cases_2_3_4_geometry_3size_v1/manifest.csv",
+    "bytes": 524453,
+    "sha256": "8d99169bbb21df62b182b0a966c4a2d5e146cde3430a7314d0843b8ac2d245e2",
+    "unique_theta_pairs": 300
+  },
+  "config": {
+    "schema_version": 1,
+    "campaign_id": "UV3S1",
+    "output_dir": "research/dd_aicomp2026/campaigns/20260811-untouched-3size-v1",
+    "source_manifest": "data/datasets/DD_cases_2_3_4_geometry_3size_v1/manifest.csv",
+    "cases": [
+      "Case2",
+      "Case3",
+      "Case4"
+    ],
+    "geometries": [
+      {
+        "id": "6x4",
+        "panel_a_in": 6.0,
+        "panel_b_in": 4.0
+      },
+      {
+        "id": "6x8",
+        "panel_a_in": 6.0,
+        "panel_b_in": 8.0
+      },
+      {
+        "id": "8x8",
+        "panel_a_in": 8.0,
+        "panel_b_in": 8.0
+      }
+    ],
+    "angle_design": {
+      "min": -90,
+      "max": 90,
+      "step": 1,
+      "uniform_pairs": 30,
+      "maximin_pairs": 30,
+      "pilot_uniform_pairs": 10,
+      "pilot_maximin_pairs": 10,
+      "seed": 20260811
+    },
+    "primary_weak_subgroup": "6x8|Case2",
+    "frozen_artifacts": [
+      "research/dd_aicomp2026/baselines/dd_3size_pt_consistent_v1.json",
+      "data/datasets/DD_cases_2_3_4_geometry_grouped_v1/split_manifest.csv",
+      "models/dd_laminate_response_pt_consistent_tree_3size_grouped_v1/response_surrogate.joblib",
+      "models/dd_laminate_aicomp2026_v1/20260811-uq-deep-force-head-v3b/hybrid/response_goint.pt",
+      "models/dd_laminate_aicomp2026_v1/20260811-uq-deep-force-robust-v3c/hybrid/uncertainty_sidecar.joblib"
+    ],
+    "predeclared_metrics": {
+      "point": [
+        "Type accuracy and macro-F1",
+        "Pt MAE and RMSE in kips",
+        "Max. Force MAE and RMSE in kips",
+        "mean per-row 128-point curve RMSE in kips"
+      ],
+      "uncertainty": [
+        "Type probability NLL, Brier score, and ECE",
+        "Pt interval coverage and mean width at 80%, 90%, and 95%",
+        "Max. Force interval coverage and mean width at 80%, 90%, and 95%"
+      ],
+      "required_slices": [
+        "overall",
+        "uniform_grid versus maximin_gap",
+        "each geometry",
+        "each Case",
+        "each geometry + Case",
+        "6x8 + Case2 primary weak subgroup"
+      ]
+    },
+    "publication_rule": "No model, calibration, conformal grouping, or threshold may change after any campaign target is read. Any post-result change requires another untouched campaign."
+  },
+  "campaign_audit": {
+    "rows": 540,
+    "unique_simulation_ids": 540,
+    "unique_theta_pairs": 60,
+    "source_pair_overlap_count": 0,
+    "source_pair_overlap": [],
+    "geometry_case_counts": {
+      "6x4|Case2": 60,
+      "6x4|Case3": 60,
+      "6x4|Case4": 60,
+      "6x8|Case2": 60,
+      "6x8|Case3": 60,
+      "6x8|Case4": 60,
+      "8x8|Case2": 60,
+      "8x8|Case3": 60,
+      "8x8|Case4": 60
+    },
+    "phase_counts": {
+      "confirmatory": 360,
+      "pilot": 180
+    },
+    "selection_stratum_counts": {
+      "maximin_gap": 270,
+      "uniform_grid": 270
+    }
+  },
+  "selected_pair_sha256": "f4a8e9b7b74e66ef40ded0ff0e54f6263658187c07111fc9a5e3475ee544dcf5",
+  "simulation_manifest": {
+    "path": "research/dd_aicomp2026/campaigns/20260811-untouched-3size-v1/simulation_manifest.csv",
+    "bytes": 82405,
+    "sha256": "5757b27737adfb060b6ab3e61338e89d913053a3afadcebcda5bcf1918b6a05e"
+  },
+  "phase_manifests": {
+    "pilot": {
+      "path": "research/dd_aicomp2026/campaigns/20260811-untouched-3size-v1/pilot_simulation_manifest.csv",
+      "rows": 180,
+      "bytes": 26647,
+      "sha256": "615a50694c79627f2018f5de42fdadd3571d5bf49dc37d58edeb82678c4fbd46"
+    },
+    "confirmatory": {
+      "path": "research/dd_aicomp2026/campaigns/20260811-untouched-3size-v1/confirmatory_simulation_manifest.csv",
+      "rows": 360,
+      "bytes": 55903,
+      "sha256": "11079c89719db9a8795e6e2119103e4ac7d3573455a59e8a33db18c43afa4290"
+    }
+  },
+  "blind_results_template": {
+    "path": "research/dd_aicomp2026/campaigns/20260811-untouched-3size-v1/blind_results_template.csv",
+    "bytes": 86834,
+    "sha256": "3bd017ca1a45ea2bfb1af09b58d3eca611848fc2f3d96019701c41e47432e10e"
+  },
+  "frozen_artifacts": [
+    {
+      "path": "research/dd_aicomp2026/baselines/dd_3size_pt_consistent_v1.json",
+      "bytes": 5580,
+      "sha256": "069ed536453382df98d1a7d50e271ae53cea619f210dad0791253ef27d68ab73"
+    },
+    {
+      "path": "data/datasets/DD_cases_2_3_4_geometry_grouped_v1/split_manifest.csv",
+      "bytes": 603813,
+      "sha256": "af7b4b020abc943c2ff3b942f7b696c9691d7ca796b686c5fdfeba28d8151ed6"
+    },
+    {
+      "path": "models/dd_laminate_response_pt_consistent_tree_3size_grouped_v1/response_surrogate.joblib",
+      "bytes": 483986142,
+      "sha256": "d9fe0b66f474e6866af48164dd6ebc7521cb3bdea2f862b71fa02086b6626d84"
+    },
+    {
+      "path": "models/dd_laminate_aicomp2026_v1/20260811-uq-deep-force-head-v3b/hybrid/response_goint.pt",
+      "bytes": 3388869,
+      "sha256": "80dadb85a5a460eb923850538a12e26c0f05834d91d8413bce2e36329fe15bc9"
+    },
+    {
+      "path": "models/dd_laminate_aicomp2026_v1/20260811-uq-deep-force-robust-v3c/hybrid/uncertainty_sidecar.joblib",
+      "bytes": 1954,
+      "sha256": "89c071bbe0a654976380f218f0cea8daf24c5a07f669e9d2789edc34b5cdae1b"
+    }
+  ],
+  "predeclared_metrics": {
+    "point": [
+      "Type accuracy and macro-F1",
+      "Pt MAE and RMSE in kips",
+      "Max. Force MAE and RMSE in kips",
+      "mean per-row 128-point curve RMSE in kips"
+    ],
+    "uncertainty": [
+      "Type probability NLL, Brier score, and ECE",
+      "Pt interval coverage and mean width at 80%, 90%, and 95%",
+      "Max. Force interval coverage and mean width at 80%, 90%, and 95%"
+    ],
+    "required_slices": [
+      "overall",
+      "uniform_grid versus maximin_gap",
+      "each geometry",
+      "each Case",
+      "each geometry + Case",
+      "6x8 + Case2 primary weak subgroup"
+    ]
+  },
+  "publication_rule": "No model, calibration, conformal grouping, or threshold may change after any campaign target is read. Any post-result change requires another untouched campaign."
+}
