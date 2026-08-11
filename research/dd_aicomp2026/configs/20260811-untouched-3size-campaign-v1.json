@@ -1,6 +1,7 @@
 {
   "schema_version": 1,
   "campaign_id": "UV3S1",
+  "git_parent_commit": "aec96a5b55f48388d28e581514d1c0ddb4d93ee8",
   "output_dir": "research/dd_aicomp2026/campaigns/20260811-untouched-3size-v1",
   "source_manifest": "data/datasets/DD_cases_2_3_4_geometry_3size_v1/manifest.csv",
   "cases": ["Case2", "Case3", "Case4"],

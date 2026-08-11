@@ -171,7 +171,7 @@ def freeze_campaign(config_path: Path) -> None:
         "schema_version": 1,
         "campaign_id": config["campaign_id"],
         "status": "frozen_awaiting_untouched_simulations",
-        "git_parent_commit": git_head(),
+        "git_parent_commit": str(config.get("git_parent_commit") or git_head()),
         "selection_policy": {
             "targets_or_predictions_used": False,
             "source_pair_exclusion": "exact theta1 + theta2 pair across every Case and geometry",
