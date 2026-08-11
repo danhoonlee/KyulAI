@@ -160,19 +160,54 @@ def select_interval_method(
     maximum_worst_gap_regression: float,
 ) -> dict[str, Any]:
     """Select Mondrian only when predeclared coverage and width guards pass."""
-    pooled = summary["pooled"]
-    mondrian = summary["mondrian"]
-    gap_improvement = (
-        pooled["mean_absolute_subgroup_coverage_gap"]
-        - mondrian["mean_absolute_subgroup_coverage_gap"]
+    decision = select_interval_candidate(
+        summary,
+        baseline_name="pooled",
+        candidate_name="mondrian",
+        minimum_gap_improvement=minimum_gap_improvement,
+        maximum_width_ratio=maximum_width_ratio,
+        maximum_worst_gap_regression=maximum_worst_gap_regression,
     )
-    width_ratio = mondrian["mean_interval_width"] / max(
-        pooled["mean_interval_width"],
+    return {
+        "selected_method": decision["selected_method"],
+        "mondrian_accepted": decision["candidate_accepted"],
+        "gap_improvement": decision["gap_improvement"],
+        "width_ratio": decision["width_ratio"],
+        "worst_gap_regression": decision["worst_gap_regression"],
+        "guards": decision["guards"],
+        "reason": (
+            "Mondrian passed every development-only coverage and width guard."
+            if decision["candidate_accepted"]
+            else "Mondrian failed at least one development-only coverage or width guard."
+        ),
+    }
+
+
+def select_interval_candidate(
+    summary: dict[str, dict[str, float]],
+    *,
+    baseline_name: str,
+    candidate_name: str,
+    minimum_gap_improvement: float,
+    maximum_width_ratio: float,
+    maximum_worst_gap_regression: float,
+) -> dict[str, Any]:
+    """Select a named interval candidate using predeclared development-only guards."""
+    if baseline_name == candidate_name:
+        raise ValueError("baseline_name and candidate_name must differ")
+    baseline = summary[baseline_name]
+    candidate = summary[candidate_name]
+    gap_improvement = (
+        baseline["mean_absolute_subgroup_coverage_gap"]
+        - candidate["mean_absolute_subgroup_coverage_gap"]
+    )
+    width_ratio = candidate["mean_interval_width"] / max(
+        baseline["mean_interval_width"],
         1e-12,
     )
     worst_gap_regression = (
-        mondrian["maximum_absolute_subgroup_coverage_gap"]
-        - pooled["maximum_absolute_subgroup_coverage_gap"]
+        candidate["maximum_absolute_subgroup_coverage_gap"]
+        - baseline["maximum_absolute_subgroup_coverage_gap"]
     )
     guards = {
         "minimum_gap_improvement": gap_improvement >= minimum_gap_improvement,
@@ -183,15 +218,17 @@ def select_interval_method(
     }
     accepted = all(guards.values())
     return {
-        "selected_method": "mondrian" if accepted else "pooled",
-        "mondrian_accepted": accepted,
+        "baseline_method": baseline_name,
+        "candidate_method": candidate_name,
+        "selected_method": candidate_name if accepted else baseline_name,
+        "candidate_accepted": accepted,
         "gap_improvement": float(gap_improvement),
         "width_ratio": float(width_ratio),
         "worst_gap_regression": float(worst_gap_regression),
         "guards": guards,
         "reason": (
-            "Mondrian passed every development-only coverage and width guard."
+            f"{candidate_name} passed every development-only coverage and width guard."
             if accepted
-            else "Mondrian failed at least one development-only coverage or width guard."
+            else f"{candidate_name} failed at least one development-only coverage or width guard."
         ),
     }

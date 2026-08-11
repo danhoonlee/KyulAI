@@ -1,0 +1,2997 @@
+{
+  "experiment_id": "20260811-uq-geometry-case-tree-v3",
+  "status": "completed_challenger_not_deployed",
+  "git_parent_commit": "60e0029ce3b4b9bbd773586f8a21c7bee58ca787",
+  "production_changes": false,
+  "elapsed_seconds": 0.40670941723510623,
+  "development": {
+    "rows": 2154,
+    "folds": 5,
+    "source": "reports/dd_aicomp2026_v1/20260811-uq-mondrian-ood-tree-v2/development_oof_predictions.csv",
+    "source_sha256": "c52394f367179a795f661e89431920ddc80928f14ee7e158b553b69d4d579518",
+    "interval_evidence": {
+      "pt": {
+        "geometry": {
+          "0.80": {
+            "overall": {
+              "nominal_coverage": 0.8,
+              "empirical_coverage": 0.8036211699164345,
+              "coverage_gap": 0.0036211699164344635,
+              "mean_width": 484.59098861788283,
+              "median_width": 294.60268901380005
+            },
+            "subgroups": {
+              "geometry:6x4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8105849582172702,
+                "coverage_gap": 0.010584958217270124,
+                "mean_width": 889.3983501932543,
+                "median_width": 904.0755504345216
+              },
+              "geometry:6x8": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.7994428969359332,
+                "coverage_gap": -0.0005571030640668662,
+                "mean_width": 297.1101283558815,
+                "median_width": 294.60268901380005
+              },
+              "geometry:8x8": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8008356545961003,
+                "coverage_gap": 0.0008356545961002437,
+                "mean_width": 267.2644873045125,
+                "median_width": 262.5869424445118
+              },
+              "case:Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8828451882845189,
+                "coverage_gap": 0.08284518828451881,
+                "mean_width": 484.610555161203,
+                "median_width": 294.60268901380005
+              },
+              "case:Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.6387726638772664,
+                "coverage_gap": -0.16122733612273366,
+                "mean_width": 484.7451190008186,
+                "median_width": 294.60268901380005
+              },
+              "case:Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8888888888888888,
+                "coverage_gap": 0.0888888888888888,
+                "mean_width": 484.4180154288194,
+                "median_width": 294.60268901380005
+              },
+              "geometry_case:6x4|Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8786610878661087,
+                "coverage_gap": 0.0786610878661087,
+                "mean_width": 889.5090260608733,
+                "median_width": 904.0755504345216
+              },
+              "geometry_case:6x4|Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.6903765690376569,
+                "coverage_gap": -0.10962343096234317,
+                "mean_width": 889.7008859852949,
+                "median_width": 904.0755504345216
+              },
+              "geometry_case:6x4|Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8625,
+                "coverage_gap": 0.0625,
+                "mean_width": 888.9868602488433,
+                "median_width": 904.0755504345216
+              },
+              "geometry_case:6x8|Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.895397489539749,
+                "coverage_gap": 0.09539748953974891,
+                "mean_width": 297.09120719205424,
+                "median_width": 294.60268901380005
+              },
+              "geometry_case:6x8|Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.6150627615062761,
+                "coverage_gap": -0.1849372384937239,
+                "mean_width": 297.21968523786876,
+                "median_width": 294.60268901380005
+              },
+              "geometry_case:6x8|Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8875,
+                "coverage_gap": 0.08749999999999991,
+                "mean_width": 297.01987028654713,
+                "median_width": 294.60268901380005
+              },
+              "geometry_case:8x8|Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8744769874476988,
+                "coverage_gap": 0.0744769874476987,
+                "mean_width": 267.23143223068143,
+                "median_width": 262.5869424445118
+              },
+              "geometry_case:8x8|Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.6108786610878661,
+                "coverage_gap": -0.1891213389121339,
+                "mean_width": 267.3147857792919,
+                "median_width": 262.5869424445118
+              },
+              "geometry_case:8x8|Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9166666666666666,
+                "coverage_gap": 0.11666666666666659,
+                "mean_width": 267.247315751068,
+                "median_width": 262.5869424445118
+              }
+            },
+            "mean_applied_quantile": 242.29549430894141,
+            "median_applied_quantile": 147.30134450690002,
+            "fallback_rate": 0.0
+          },
+          "0.90": {
+            "overall": {
+              "nominal_coverage": 0.9,
+              "empirical_coverage": 0.9015784586815228,
+              "coverage_gap": 0.001578458681522732,
+              "mean_width": 697.7809532692294,
+              "median_width": 457.1634440423659
+            },
+            "subgroups": {
+              "geometry:6x4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9025069637883009,
+                "coverage_gap": 0.002506963788300842,
+                "mean_width": 1239.2119781656372,
+                "median_width": 1266.4395074247586
+              },
+              "geometry:6x8": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.8969359331476323,
+                "coverage_gap": -0.0030640668523677084,
+                "mean_width": 459.78022712662323,
+                "median_width": 457.1634440423659
+              },
+              "geometry:8x8": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9052924791086351,
+                "coverage_gap": 0.005292479108635062,
+                "mean_width": 394.35065451542783,
+                "median_width": 399.1579232597669
+              },
+              "case:Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9470013947001394,
+                "coverage_gap": 0.04700139470013942,
+                "mean_width": 697.7771148069739,
+                "median_width": 457.1634440423659
+              },
+              "case:Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.803347280334728,
+                "coverage_gap": -0.096652719665272,
+                "mean_width": 697.9875995866778,
+                "median_width": 457.1634440423659
+              },
+              "case:Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9541666666666667,
+                "coverage_gap": 0.054166666666666696,
+                "mean_width": 697.5789904467664,
+                "median_width": 457.1634440423659
+              },
+              "geometry_case:6x4|Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9581589958158996,
+                "coverage_gap": 0.05815899581589956,
+                "mean_width": 1239.4741732753312,
+                "median_width": 1266.4395074247586
+              },
+              "geometry_case:6x4|Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.8075313807531381,
+                "coverage_gap": -0.0924686192468619,
+                "mean_width": 1239.676539663542,
+                "median_width": 1266.4395074247586
+              },
+              "geometry_case:6x4|Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9416666666666667,
+                "coverage_gap": 0.04166666666666663,
+                "mean_width": 1238.4882497105705,
+                "median_width": 1266.4395074247586
+              },
+              "geometry_case:6x8|Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9372384937238494,
+                "coverage_gap": 0.03723849372384935,
+                "mean_width": 459.5969925647008,
+                "median_width": 457.1634440423659
+              },
+              "geometry_case:6x8|Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.799163179916318,
+                "coverage_gap": -0.100836820083682,
+                "mean_width": 459.93456871153245,
+                "median_width": 457.1634440423659
+              },
+              "geometry_case:6x8|Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9541666666666667,
+                "coverage_gap": 0.054166666666666696,
+                "mean_width": 459.8089997162321,
+                "median_width": 457.1634440423659
+              },
+              "geometry_case:8x8|Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9456066945606695,
+                "coverage_gap": 0.04560669456066946,
+                "mean_width": 394.2601785808899,
+                "median_width": 399.1579232597669
+              },
+              "geometry_case:8x8|Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.803347280334728,
+                "coverage_gap": -0.096652719665272,
+                "mean_width": 394.35169038495894,
+                "median_width": 399.1579232597669
+              },
+              "geometry_case:8x8|Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9666666666666667,
+                "coverage_gap": 0.06666666666666665,
+                "mean_width": 394.43972191349707,
+                "median_width": 399.1579232597669
+              }
+            },
+            "mean_applied_quantile": 348.89047663461474,
+            "median_applied_quantile": 228.58172202118294,
+            "fallback_rate": 0.0
+          },
+          "0.95": {
+            "overall": {
+              "nominal_coverage": 0.95,
+              "empirical_coverage": 0.9484679665738162,
+              "coverage_gap": -0.0015320334261837987,
+              "mean_width": 1025.858142401276,
+              "median_width": 716.6380634201287
+            },
+            "subgroups": {
+              "geometry:6x4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9484679665738162,
+                "coverage_gap": -0.0015320334261837987,
+                "mean_width": 1824.9479256419365,
+                "median_width": 1882.7018571998487
+              },
+              "geometry:6x8": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9512534818941504,
+                "coverage_gap": 0.001253481894150421,
+                "mean_width": 712.6297917708164,
+                "median_width": 716.6380634201287
+              },
+              "geometry:8x8": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9456824512534819,
+                "coverage_gap": -0.0043175487465180185,
+                "mean_width": 539.9967097910746,
+                "median_width": 544.2389827714487
+              },
+              "case:Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9735006973500697,
+                "coverage_gap": 0.023500697350069766,
+                "mean_width": 1026.0664496499912,
+                "median_width": 716.6380634201287
+              },
+              "case:Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.8940027894002789,
+                "coverage_gap": -0.05599721059972107,
+                "mean_width": 1026.1920157183768,
+                "median_width": 716.6380634201287
+              },
+              "case:Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9777777777777777,
+                "coverage_gap": 0.02777777777777779,
+                "mean_width": 1025.3182209211507,
+                "median_width": 716.6380634201287
+              },
+              "geometry_case:6x4|Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9790794979079498,
+                "coverage_gap": 0.029079497907949836,
+                "mean_width": 1826.1513277072163,
+                "median_width": 1882.7018571998506
+              },
+              "geometry_case:6x4|Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9079497907949791,
+                "coverage_gap": -0.042050209205020894,
+                "mean_width": 1826.1332572492524,
+                "median_width": 1882.7018571998487
+              },
+              "geometry_case:6x4|Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9583333333333334,
+                "coverage_gap": 0.008333333333333415,
+                "mean_width": 1822.5691450263107,
+                "median_width": 1882.7018571998487
+              },
+              "geometry_case:6x8|Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9790794979079498,
+                "coverage_gap": 0.029079497907949836,
+                "mean_width": 712.2640994453217,
+                "median_width": 716.6380634201287
+              },
+              "geometry_case:6x8|Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.891213389121339,
+                "coverage_gap": -0.058786610878660994,
+                "mean_width": 712.5672586100441,
+                "median_width": 716.6380634201287
+              },
+              "geometry_case:6x8|Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9833333333333333,
+                "coverage_gap": 0.033333333333333326,
+                "mean_width": 713.0562329842238,
+                "median_width": 716.6380634201287
+              },
+              "geometry_case:8x8|Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9623430962343096,
+                "coverage_gap": 0.012343096234309625,
+                "mean_width": 539.7839217974364,
+                "median_width": 544.2389827714487
+              },
+              "geometry_case:8x8|Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.8828451882845189,
+                "coverage_gap": -0.0671548117154811,
+                "mean_width": 539.8755312958335,
+                "median_width": 544.2389827714487
+              },
+              "geometry_case:8x8|Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9916666666666667,
+                "coverage_gap": 0.04166666666666674,
+                "mean_width": 540.3292847529173,
+                "median_width": 544.2389827714487
+              }
+            },
+            "mean_applied_quantile": 512.929071200638,
+            "median_applied_quantile": 358.31903171006434,
+            "fallback_rate": 0.0
+          }
+        },
+        "geometry_case": {
+          "0.80": {
+            "overall": {
+              "nominal_coverage": 0.8,
+              "empirical_coverage": 0.8003714020427113,
+              "coverage_gap": 0.0003714020427112441,
+              "mean_width": 472.67565242067644,
+              "median_width": 399.46728515452196
+            },
+            "subgroups": {
+              "geometry:6x4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8008356545961003,
+                "coverage_gap": 0.0008356545961002437,
+                "mean_width": 898.3016798396292,
+                "median_width": 739.8783821456091
+              },
+              "geometry:6x8": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.7952646239554317,
+                "coverage_gap": -0.004735376044568307,
+                "mean_width": 285.43496751790036,
+                "median_width": 207.8750671202979
+              },
+              "geometry:8x8": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8050139275766016,
+                "coverage_gap": 0.005013927576601573,
+                "mean_width": 234.29030990449985,
+                "median_width": 171.8303884974157
+              },
+              "case:Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.799163179916318,
+                "coverage_gap": -0.0008368200836820217,
+                "mean_width": 362.88213848540727,
+                "median_width": 190.75320577829552
+              },
+              "case:Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.799163179916318,
+                "coverage_gap": -0.0008368200836820217,
+                "mean_width": 692.5539458091507,
+                "median_width": 451.7413341800784
+              },
+              "case:Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8027777777777778,
+                "coverage_gap": 0.002777777777777768,
+                "mean_width": 363.04955954852625,
+                "median_width": 207.8750671202979
+              },
+              "geometry_case:6x4|Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.799163179916318,
+                "coverage_gap": -0.0008368200836820217,
+                "mean_width": 727.6276891942765,
+                "median_width": 739.8214339779879
+              },
+              "geometry_case:6x4|Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.803347280334728,
+                "coverage_gap": 0.0033472803347279756,
+                "mean_width": 1229.4915344399692,
+                "median_width": 1252.8684976038858
+              },
+              "geometry_case:6x4|Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8,
+                "coverage_gap": 0.0,
+                "mean_width": 738.4546319844538,
+                "median_width": 724.7499830283341
+              },
+              "geometry_case:6x8|Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.7949790794979079,
+                "coverage_gap": -0.00502092050209213,
+                "mean_width": 189.87071259738013,
+                "median_width": 190.75320577829552
+              },
+              "geometry_case:6x8|Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.7907949790794979,
+                "coverage_gap": -0.009205020920502127,
+                "mean_width": 452.9560683209301,
+                "median_width": 451.7413341800784
+              },
+              "geometry_case:6x8|Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8,
+                "coverage_gap": 0.0,
+                "mean_width": 213.77794182656805,
+                "median_width": 207.8750671202979
+              },
+              "geometry_case:8x8|Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.803347280334728,
+                "coverage_gap": 0.0033472803347279756,
+                "mean_width": 171.14801366456507,
+                "median_width": 171.8303884974157
+              },
+              "geometry_case:8x8|Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.803347280334728,
+                "coverage_gap": 0.0033472803347279756,
+                "mean_width": 395.214234666553,
+                "median_width": 399.46728515452196
+              },
+              "geometry_case:8x8|Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8083333333333333,
+                "coverage_gap": 0.008333333333333304,
+                "mean_width": 136.91610483455685,
+                "median_width": 139.48814569608658
+              }
+            },
+            "mean_applied_quantile": 236.33782621033822,
+            "median_applied_quantile": 199.73364257726098,
+            "fallback_rate": 0.0
+          },
+          "0.90": {
+            "overall": {
+              "nominal_coverage": 0.9,
+              "empirical_coverage": 0.8983286908077994,
+              "coverage_gap": -0.0016713091922005985,
+              "mean_width": 687.9041273465559,
+              "median_width": 544.4344193876586
+            },
+            "subgroups": {
+              "geometry:6x4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9011142061281338,
+                "coverage_gap": 0.0011142061281337323,
+                "mean_width": 1235.8448825159403,
+                "median_width": 1007.1135091708129
+              },
+              "geometry:6x8": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.8983286908077994,
+                "coverage_gap": -0.0016713091922005985,
+                "mean_width": 454.8480265376137,
+                "median_width": 311.730383106762
+              },
+              "geometry:8x8": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.8955431754874652,
+                "coverage_gap": -0.004456824512534818,
+                "mean_width": 373.0194729861138,
+                "median_width": 328.5771291087676
+              },
+              "case:Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.900976290097629,
+                "coverage_gap": 0.0009762900976290068,
+                "mean_width": 535.6626149646304,
+                "median_width": 331.19847199390097
+              },
+              "case:Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.895397489539749,
+                "coverage_gap": -0.004602510460251064,
+                "mean_width": 1008.3195977214646,
+                "median_width": 762.9289036217324
+              },
+              "case:Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.8986111111111111,
+                "coverage_gap": -0.001388888888888884,
+                "mean_width": 520.4308941785436,
+                "median_width": 308.9007425463169
+              },
+              "geometry_case:6x4|Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.899581589958159,
+                "coverage_gap": -0.00041841004184106634,
+                "mean_width": 977.854463204153,
+                "median_width": 990.3754296270126
+              },
+              "geometry_case:6x4|Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9037656903765691,
+                "coverage_gap": 0.003765690376569042,
+                "mean_width": 1729.278412114466,
+                "median_width": 1731.1635886826407
+              },
+              "geometry_case:6x4|Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9,
+                "coverage_gap": 0.0,
+                "mean_width": 1001.3827851887297,
+                "median_width": 1007.1135091708129
+              },
+              "geometry_case:6x8|Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.899581589958159,
+                "coverage_gap": -0.00041841004184106634,
+                "mean_width": 307.5989606779632,
+                "median_width": 294.60268901380095
+              },
+              "geometry_case:6x8|Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.895397489539749,
+                "coverage_gap": -0.004602510460251064,
+                "mean_width": 747.8588180085425,
+                "median_width": 762.9289036217324
+              },
+              "geometry_case:6x8|Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9,
+                "coverage_gap": 0.0,
+                "mean_width": 309.6936414497155,
+                "median_width": 308.9007425463169
+              },
+              "geometry_case:8x8|Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9037656903765691,
+                "coverage_gap": 0.003765690376569042,
+                "mean_width": 321.5344210117749,
+                "median_width": 328.5771291087676
+              },
+              "geometry_case:8x8|Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.8870292887029289,
+                "coverage_gap": -0.012970711297071169,
+                "mean_width": 547.8215630413852,
+                "median_width": 544.4344193876586
+              },
+              "geometry_case:8x8|Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.8958333333333334,
+                "coverage_gap": -0.004166666666666652,
+                "mean_width": 250.21625589718528,
+                "median_width": 250.16731283987247
+              }
+            },
+            "mean_applied_quantile": 343.95206367327796,
+            "median_applied_quantile": 272.2172096938293,
+            "fallback_rate": 0.0
+          },
+          "0.95": {
+            "overall": {
+              "nominal_coverage": 0.95,
+              "empirical_coverage": 0.9535747446610956,
+              "coverage_gap": 0.0035747446610956413,
+              "mean_width": 1013.1296280273647,
+              "median_width": 910.9719858935132
+            },
+            "subgroups": {
+              "geometry:6x4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9526462395543176,
+                "coverage_gap": 0.002646239554317642,
+                "mean_width": 1731.7536840180687,
+                "median_width": 1445.6730144117282
+              },
+              "geometry:6x8": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9540389972144847,
+                "coverage_gap": 0.004038997214484752,
+                "mean_width": 727.844441237992,
+                "median_width": 555.1790220362309
+              },
+              "geometry:8x8": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9540389972144847,
+                "coverage_gap": 0.004038997214484752,
+                "mean_width": 579.7907588260329,
+                "median_width": 475.1005168193842
+              },
+              "case:Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9525801952580195,
+                "coverage_gap": 0.0025801952580195575,
+                "mean_width": 750.0771519458866,
+                "median_width": 555.1790220362309
+              },
+              "case:Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9553695955369595,
+                "coverage_gap": 0.005369595536959593,
+                "mean_width": 1482.4488247450806,
+                "median_width": 1127.4736683594747
+              },
+              "case:Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9527777777777777,
+                "coverage_gap": 0.002777777777777768,
+                "mean_width": 807.7223520604441,
+                "median_width": 430.19917434057425
+              },
+              "geometry_case:6x4|Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9497907949790795,
+                "coverage_gap": -0.00020920502092047766,
+                "mean_width": 1215.8697258195962,
+                "median_width": 1266.4793519906452
+              },
+              "geometry_case:6x4|Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9539748953974896,
+                "coverage_gap": 0.003974895397489631,
+                "mean_width": 2382.334472448234,
+                "median_width": 2359.380687343066
+              },
+              "geometry_case:6x4|Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9541666666666667,
+                "coverage_gap": 0.004166666666666763,
+                "mean_width": 1597.618090579009,
+                "median_width": 1445.6730144117282
+              },
+              "geometry_case:6x8|Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9581589958158996,
+                "coverage_gap": 0.008158995815899628,
+                "mean_width": 568.4317692718477,
+                "median_width": 555.1790220362309
+              },
+              "geometry_case:6x8|Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9497907949790795,
+                "coverage_gap": -0.00020920502092047766,
+                "mean_width": 1167.033686952159,
+                "median_width": 1127.4736683594747
+              },
+              "geometry_case:6x8|Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9541666666666667,
+                "coverage_gap": 0.004166666666666763,
+                "mean_width": 449.2336032139194,
+                "median_width": 430.19917434057425
+              },
+              "geometry_case:8x8|Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9497907949790795,
+                "coverage_gap": -0.00020920502092047766,
+                "mean_width": 465.92996074621584,
+                "median_width": 475.1005168193842
+              },
+              "geometry_case:8x8|Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9623430962343096,
+                "coverage_gap": 0.012343096234309625,
+                "mean_width": 897.9783148348498,
+                "median_width": 910.9719858935132
+              },
+              "geometry_case:8x8|Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.95,
+                "coverage_gap": 0.0,
+                "mean_width": 376.3153623884037,
+                "median_width": 368.5390646822598
+              }
+            },
+            "mean_applied_quantile": 506.56481401368234,
+            "median_applied_quantile": 455.4859929467566,
+            "fallback_rate": 0.0
+          }
+        }
+      },
+      "max_force": {
+        "geometry": {
+          "0.80": {
+            "overall": {
+              "nominal_coverage": 0.8,
+              "empirical_coverage": 0.8017641597028784,
+              "coverage_gap": 0.001764159702878354,
+              "mean_width": 548.7235232363961,
+              "median_width": 521.2011315021227
+            },
+            "subgroups": {
+              "geometry:6x4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8064066852367688,
+                "coverage_gap": 0.006406685236768794,
+                "mean_width": 626.8500416757632,
+                "median_width": 649.7644897155769
+              },
+              "geometry:6x8": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.7980501392757661,
+                "coverage_gap": -0.001949860724233976,
+                "mean_width": 513.4687679563386,
+                "median_width": 509.60336081720015
+              },
+              "geometry:8x8": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8008356545961003,
+                "coverage_gap": 0.0008356545961002437,
+                "mean_width": 505.8517600770863,
+                "median_width": 502.13953003859206
+              },
+              "case:Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.891213389121339,
+                "coverage_gap": 0.09121338912133892,
+                "mean_width": 548.788710804924,
+                "median_width": 521.2011315021227
+              },
+              "case:Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.606694560669456,
+                "coverage_gap": -0.193305439330544,
+                "mean_width": 548.7310857986563,
+                "median_width": 521.2011315021227
+              },
+              "case:Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9069444444444444,
+                "coverage_gap": 0.1069444444444444,
+                "mean_width": 548.651076231153,
+                "median_width": 521.2011315021227
+              },
+              "geometry_case:6x4|Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9121338912133892,
+                "coverage_gap": 0.11213389121338913,
+                "mean_width": 627.0510451321375,
+                "median_width": 649.7644897155769
+              },
+              "geometry_case:6x4|Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.5941422594142259,
+                "coverage_gap": -0.2058577405857741,
+                "mean_width": 626.9579257679934,
+                "median_width": 649.7644897155769
+              },
+              "geometry_case:6x4|Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9125,
+                "coverage_gap": 0.11249999999999993,
+                "mean_width": 626.5424411586114,
+                "median_width": 649.7644897155769
+              },
+              "geometry_case:6x8|Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.895397489539749,
+                "coverage_gap": 0.09539748953974891,
+                "mean_width": 513.4804806356842,
+                "median_width": 509.60336081720015
+              },
+              "geometry_case:6x8|Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.5983263598326359,
+                "coverage_gap": -0.2016736401673641,
+                "mean_width": 513.480480635684,
+                "median_width": 509.60336081720015
+              },
+              "geometry_case:6x8|Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9,
+                "coverage_gap": 0.09999999999999998,
+                "mean_width": 513.4454402033091,
+                "median_width": 509.60336081720015
+              },
+              "geometry_case:8x8|Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8661087866108786,
+                "coverage_gap": 0.0661087866108786,
+                "mean_width": 505.8346066469504,
+                "median_width": 502.13953003859206
+              },
+              "geometry_case:8x8|Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.6276150627615062,
+                "coverage_gap": -0.1723849372384938,
+                "mean_width": 505.75485099229127,
+                "median_width": 502.13953003859206
+              },
+              "geometry_case:8x8|Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9083333333333333,
+                "coverage_gap": 0.10833333333333328,
+                "mean_width": 505.9653473315384,
+                "median_width": 502.13953003859206
+              }
+            },
+            "mean_applied_quantile": 274.3617616181981,
+            "median_applied_quantile": 260.60056575106137,
+            "fallback_rate": 0.0
+          },
+          "0.90": {
+            "overall": {
+              "nominal_coverage": 0.9,
+              "empirical_coverage": 0.8992571959145775,
+              "coverage_gap": -0.0007428040854224882,
+              "mean_width": 914.0011887343444,
+              "median_width": 870.8147570789151
+            },
+            "subgroups": {
+              "geometry:6x4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.8983286908077994,
+                "coverage_gap": -0.0016713091922005985,
+                "mean_width": 1056.9579318627234,
+                "median_width": 1076.5653012466428
+              },
+              "geometry:6x8": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.8997214484679665,
+                "coverage_gap": -0.0002785515320334886,
+                "mean_width": 825.7703011791108,
+                "median_width": 824.3440623004717
+              },
+              "geometry:8x8": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.8997214484679665,
+                "coverage_gap": -0.0002785515320334886,
+                "mean_width": 859.2753331611987,
+                "median_width": 870.8147570789151
+              },
+              "case:Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9539748953974896,
+                "coverage_gap": 0.053974895397489564,
+                "mean_width": 914.0629424860714,
+                "median_width": 870.8147570789151
+              },
+              "case:Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.7782426778242678,
+                "coverage_gap": -0.12175732217573221,
+                "mean_width": 914.0274279677373,
+                "median_width": 870.8147570789151
+              },
+              "case:Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9652777777777778,
+                "coverage_gap": 0.06527777777777777,
+                "mean_width": 913.9135623866621,
+                "median_width": 870.8147570789151
+              },
+              "geometry_case:6x4|Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9623430962343096,
+                "coverage_gap": 0.06234309623430956,
+                "mean_width": 1057.381335495874,
+                "median_width": 1076.5653012466428
+              },
+              "geometry_case:6x4|Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.7782426778242678,
+                "coverage_gap": -0.12175732217573221,
+                "mean_width": 1057.2719688940501,
+                "median_width": 1076.5653012466428
+              },
+              "geometry_case:6x4|Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9541666666666667,
+                "coverage_gap": 0.054166666666666696,
+                "mean_width": 1056.2235638676814,
+                "median_width": 1076.5653012466355
+              },
+              "geometry_case:6x8|Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9623430962343096,
+                "coverage_gap": 0.06234309623430956,
+                "mean_width": 825.7822921963723,
+                "median_width": 824.3440623004717
+              },
+              "geometry_case:6x8|Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.7698744769874477,
+                "coverage_gap": -0.1301255230125523,
+                "mean_width": 825.7704753225267,
+                "median_width": 824.3440623004717
+              },
+              "geometry_case:6x8|Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9666666666666667,
+                "coverage_gap": 0.06666666666666665,
+                "mean_width": 825.758186706603,
+                "median_width": 824.3440623004717
+              },
+              "geometry_case:8x8|Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9372384937238494,
+                "coverage_gap": 0.03723849372384935,
+                "mean_width": 859.025199765968,
+                "median_width": 870.8147570789151
+              },
+              "geometry_case:8x8|Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.7866108786610879,
+                "coverage_gap": -0.1133891213389121,
+                "mean_width": 859.0398396866351,
+                "median_width": 870.8147570789151
+              },
+              "geometry_case:8x8|Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.975,
+                "coverage_gap": 0.07499999999999996,
+                "mean_width": 859.758936585702,
+                "median_width": 870.8147570789151
+              }
+            },
+            "mean_applied_quantile": 457.0005943671721,
+            "median_applied_quantile": 435.40737853945757,
+            "fallback_rate": 0.0
+          },
+          "0.95": {
+            "overall": {
+              "nominal_coverage": 0.95,
+              "empirical_coverage": 0.9498607242339833,
+              "coverage_gap": -0.00013927576601668878,
+              "mean_width": 1421.8342792632836,
+              "median_width": 1376.7825724742725
+            },
+            "subgroups": {
+              "geometry:6x4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9526462395543176,
+                "coverage_gap": 0.002646239554317642,
+                "mean_width": 1741.4042000702348,
+                "median_width": 1704.7608617437509
+              },
+              "geometry:6x8": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9484679665738162,
+                "coverage_gap": -0.0015320334261837987,
+                "mean_width": 1142.4143299275465,
+                "median_width": 1139.2422531324264
+              },
+              "geometry:8x8": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9484679665738162,
+                "coverage_gap": -0.0015320334261837987,
+                "mean_width": 1381.6843077920691,
+                "median_width": 1376.7825724742725
+              },
+              "case:Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9860529986052998,
+                "coverage_gap": 0.03605299860529987,
+                "mean_width": 1421.7030007006013,
+                "median_width": 1376.7825724742725
+              },
+              "case:Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.8758716875871687,
+                "coverage_gap": -0.07412831241283124,
+                "mean_width": 1421.3852291702083,
+                "median_width": 1376.7825724742725
+              },
+              "case:Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9875,
+                "coverage_gap": 0.03750000000000009,
+                "mean_width": 1422.4121898829753,
+                "median_width": 1376.7825724742725
+              },
+              "geometry_case:6x4|Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9874476987447699,
+                "coverage_gap": 0.03744769874476994,
+                "mean_width": 1741.7204197933877,
+                "median_width": 1704.7608617437509
+              },
+              "geometry_case:6x4|Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.891213389121339,
+                "coverage_gap": -0.058786610878660994,
+                "mean_width": 1741.3303864219208,
+                "median_width": 1704.7608617437509
+              },
+              "geometry_case:6x4|Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9791666666666666,
+                "coverage_gap": 0.029166666666666674,
+                "mean_width": 1741.162804020707,
+                "median_width": 1704.7608617437509
+              },
+              "geometry_case:6x8|Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9916317991631799,
+                "coverage_gap": 0.04163179916317994,
+                "mean_width": 1142.1390558147903,
+                "median_width": 1139.2422531324264
+              },
+              "geometry_case:6x8|Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.8661087866108786,
+                "coverage_gap": -0.08389121338912131,
+                "mean_width": 1142.0275785994954,
+                "median_width": 1139.2422531324264
+              },
+              "geometry_case:6x8|Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9875,
+                "coverage_gap": 0.03750000000000009,
+                "mean_width": 1143.073596929017,
+                "median_width": 1139.2422531324264
+              },
+              "geometry_case:8x8|Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9790794979079498,
+                "coverage_gap": 0.029079497907949836,
+                "mean_width": 1381.2495264936258,
+                "median_width": 1376.7825724742725
+              },
+              "geometry_case:8x8|Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.8702928870292888,
+                "coverage_gap": -0.0797071129707112,
+                "mean_width": 1380.7977224892077,
+                "median_width": 1376.7825724742725
+              },
+              "geometry_case:8x8|Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9958333333333333,
+                "coverage_gap": 0.04583333333333339,
+                "mean_width": 1383.0001686992016,
+                "median_width": 1376.7825724742725
+              }
+            },
+            "mean_applied_quantile": 710.9171396316416,
+            "median_applied_quantile": 688.3912862371362,
+            "fallback_rate": 0.0
+          }
+        },
+        "geometry_case": {
+          "0.80": {
+            "overall": {
+              "nominal_coverage": 0.8,
+              "empirical_coverage": 0.8003714020427113,
+              "coverage_gap": 0.0003714020427112441,
+              "mean_width": 558.2096588221272,
+              "median_width": 376.802830210152
+            },
+            "subgroups": {
+              "geometry:6x4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.807799442896936,
+                "coverage_gap": 0.007799442896935904,
+                "mean_width": 629.8395567773418,
+                "median_width": 409.4794164199848
+              },
+              "geometry:6x8": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.7980501392757661,
+                "coverage_gap": -0.001949860724233976,
+                "mean_width": 513.9747794842549,
+                "median_width": 371.19105773470073
+              },
+              "geometry:8x8": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.7952646239554317,
+                "coverage_gap": -0.004735376044568307,
+                "mean_width": 530.8146402047847,
+                "median_width": 376.802830210152
+              },
+              "case:Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.793584379358438,
+                "coverage_gap": -0.006415620641562092,
+                "mean_width": 372.45805734706755,
+                "median_width": 376.2110942077634
+              },
+              "case:Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.803347280334728,
+                "coverage_gap": 0.0033472803347279756,
+                "mean_width": 976.8060854998072,
+                "median_width": 929.2301134920635
+              },
+              "case:Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8041666666666667,
+                "coverage_gap": 0.004166666666666652,
+                "mean_width": 326.3350203911842,
+                "median_width": 316.2216795757413
+              },
+              "geometry_case:6x4|Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.803347280334728,
+                "coverage_gap": 0.0033472803347279756,
+                "mean_width": 382.6653424564561,
+                "median_width": 380.86419233975175
+              },
+              "geometry_case:6x4|Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8117154811715481,
+                "coverage_gap": 0.011715481171548081,
+                "mean_width": 1137.423402858507,
+                "median_width": 1101.5324080047576
+              },
+              "geometry_case:6x4|Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8083333333333333,
+                "coverage_gap": 0.008333333333333304,
+                "mean_width": 370.51496514939697,
+                "median_width": 374.9680528259196
+              },
+              "geometry_case:6x8|Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.7907949790794979,
+                "coverage_gap": -0.009205020920502127,
+                "mean_width": 366.6555227834076,
+                "median_width": 371.19105773470073
+              },
+              "geometry_case:6x8|Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.799163179916318,
+                "coverage_gap": -0.0008368200836820217,
+                "mean_width": 871.7027385340403,
+                "median_width": 876.8578310223529
+              },
+              "geometry_case:6x8|Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8041666666666667,
+                "coverage_gap": 0.004166666666666652,
+                "mean_width": 304.44278006177063,
+                "median_width": 304.4522586135863
+              },
+              "geometry_case:8x8|Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.7866108786610879,
+                "coverage_gap": -0.013389121338912124,
+                "mean_width": 368.053306801339,
+                "median_width": 376.802830210152
+              },
+              "geometry_case:8x8|Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.799163179916318,
+                "coverage_gap": -0.0008368200836820217,
+                "mean_width": 921.2921151068747,
+                "median_width": 929.2301134920635
+              },
+              "geometry_case:8x8|Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8,
+                "coverage_gap": 0.0,
+                "mean_width": 304.04731596238497,
+                "median_width": 312.9764976797742
+              }
+            },
+            "mean_applied_quantile": 279.10482941106363,
+            "median_applied_quantile": 188.401415105076,
+            "fallback_rate": 0.0
+          },
+          "0.90": {
+            "overall": {
+              "nominal_coverage": 0.9,
+              "empirical_coverage": 0.903899721448468,
+              "coverage_gap": 0.003899721448467952,
+              "mean_width": 896.5546366682589,
+              "median_width": 602.8652027722637
+            },
+            "subgroups": {
+              "geometry:6x4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9025069637883009,
+                "coverage_gap": 0.002506963788300842,
+                "mean_width": 1002.3402133260955,
+                "median_width": 606.4942235889466
+              },
+              "geometry:6x8": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.903899721448468,
+                "coverage_gap": 0.003899721448467952,
+                "mean_width": 784.9433246526702,
+                "median_width": 537.007043865975
+              },
+              "geometry:8x8": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9052924791086351,
+                "coverage_gap": 0.005292479108635062,
+                "mean_width": 902.3803720260107,
+                "median_width": 602.8652027722637
+              },
+              "case:Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.898186889818689,
+                "coverage_gap": -0.0018131101813110284,
+                "mean_width": 569.4926626501493,
+                "median_width": 584.6034578355175
+              },
+              "case:Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.902370990237099,
+                "coverage_gap": 0.002370990237098969,
+                "mean_width": 1579.3398271995634,
+                "median_width": 1580.3771033198864
+              },
+              "case:Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9111111111111111,
+                "coverage_gap": 0.011111111111111072,
+                "mean_width": 542.3136002238691,
+                "median_width": 529.5009858493868
+              },
+              "geometry_case:6x4|Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.895397489539749,
+                "coverage_gap": -0.004602510460251064,
+                "mean_width": 588.7130346346255,
+                "median_width": 603.7560294952418
+              },
+              "geometry_case:6x4|Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9037656903765691,
+                "coverage_gap": 0.003765690376569042,
+                "mean_width": 1824.3170484562222,
+                "median_width": 1836.0923442688
+              },
+              "geometry_case:6x4|Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9083333333333333,
+                "coverage_gap": 0.008333333333333304,
+                "mean_width": 595.6920137892666,
+                "median_width": 591.9774398498557
+              },
+              "geometry_case:6x8|Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.895397489539749,
+                "coverage_gap": -0.004602510460251064,
+                "mean_width": 517.242786354116,
+                "median_width": 521.9253640307579
+              },
+              "geometry_case:6x8|Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9037656903765691,
+                "coverage_gap": 0.003765690376569042,
+                "mean_width": 1317.4979366582318,
+                "median_width": 1299.0581139100768
+              },
+              "geometry_case:6x8|Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9125,
+                "coverage_gap": 0.012499999999999956,
+                "mean_width": 521.192809586109,
+                "median_width": 518.2154995799792
+              },
+              "geometry_case:8x8|Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9037656903765691,
+                "coverage_gap": 0.003765690376569042,
+                "mean_width": 602.5221669617065,
+                "median_width": 602.8652027722637
+              },
+              "geometry_case:8x8|Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.899581589958159,
+                "coverage_gap": -0.00041841004184106634,
+                "mean_width": 1596.2044964842348,
+                "median_width": 1580.3771033198864
+              },
+              "geometry_case:8x8|Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9125,
+                "coverage_gap": 0.012499999999999956,
+                "mean_width": 510.0559772962315,
+                "median_width": 521.7886916179123
+              }
+            },
+            "mean_applied_quantile": 448.2773183341294,
+            "median_applied_quantile": 301.43260138613186,
+            "fallback_rate": 0.0
+          },
+          "0.95": {
+            "overall": {
+              "nominal_coverage": 0.95,
+              "empirical_coverage": 0.9535747446610956,
+              "coverage_gap": 0.0035747446610956413,
+              "mean_width": 1310.019729463306,
+              "median_width": 1058.8001710205062
+            },
+            "subgroups": {
+              "geometry:6x4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9540389972144847,
+                "coverage_gap": 0.004038997214484752,
+                "mean_width": 1482.8924314433782,
+                "median_width": 1108.1407662200945
+              },
+              "geometry:6x8": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9512534818941504,
+                "coverage_gap": 0.001253481894150421,
+                "mean_width": 1122.0200836593103,
+                "median_width": 769.3605703887952
+              },
+              "geometry:8x8": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9554317548746518,
+                "coverage_gap": 0.005431754874651862,
+                "mean_width": 1325.1466732872293,
+                "median_width": 1060.0804170095362
+              },
+              "case:Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9539748953974896,
+                "coverage_gap": 0.003974895397489631,
+                "mean_width": 905.8047527090084,
+                "median_width": 909.4999970614008
+              },
+              "case:Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9539748953974896,
+                "coverage_gap": 0.003974895397489631,
+                "mean_width": 2211.908930979956,
+                "median_width": 2329.3495447384776
+              },
+              "case:Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9527777777777777,
+                "coverage_gap": 0.002777777777777768,
+                "mean_width": 814.4191473041302,
+                "median_width": 734.8558109796577
+              },
+              "geometry_case:6x4|Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9539748953974896,
+                "coverage_gap": 0.003974895397489631,
+                "mean_width": 953.1870832859296,
+                "median_width": 1058.800171020499
+              },
+              "geometry_case:6x4|Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9497907949790795,
+                "coverage_gap": -0.00020920502092047766,
+                "mean_width": 2420.6016440510366,
+                "median_width": 2421.5623681297293
+              },
+              "geometry_case:6x4|Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9583333333333334,
+                "coverage_gap": 0.008333333333333415,
+                "mean_width": 1076.5885830950435,
+                "median_width": 1108.1407662200945
+              },
+              "geometry_case:6x8|Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9456066945606695,
+                "coverage_gap": -0.004393305439330475,
+                "mean_width": 764.0367976308247,
+                "median_width": 769.3605703887952
+              },
+              "geometry_case:6x8|Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9581589958158996,
+                "coverage_gap": 0.008158995815899628,
+                "mean_width": 1895.7396495360433,
+                "median_width": 1910.5145708988275
+              },
+              "geometry_case:6x8|Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.95,
+                "coverage_gap": 0.0,
+                "mean_width": 708.016038310431,
+                "median_width": 734.8558109796577
+              },
+              "geometry_case:8x8|Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9623430962343096,
+                "coverage_gap": 0.012343096234309625,
+                "mean_width": 1000.1903772102708,
+                "median_width": 1060.0804170095362
+              },
+              "geometry_case:8x8|Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9539748953974896,
+                "coverage_gap": 0.003974895397489631,
+                "mean_width": 2319.3854993527866,
+                "median_width": 2329.349544738485
+              },
+              "geometry_case:8x8|Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.95,
+                "coverage_gap": 0.0,
+                "mean_width": 658.6528205069164,
+                "median_width": 700.1107436838793
+              }
+            },
+            "mean_applied_quantile": 655.009864731653,
+            "median_applied_quantile": 529.4000855102531,
+            "fallback_rate": 0.0
+          }
+        }
+      }
+    },
+    "selection_summary": {
+      "pt": {
+        "geometry": {
+          "mean_absolute_subgroup_coverage_gap": 0.07089532000619865,
+          "maximum_absolute_subgroup_coverage_gap": 0.1891213389121339,
+          "mean_interval_width": 736.0766947627959
+        },
+        "geometry_case": {
+          "mean_absolute_subgroup_coverage_gap": 0.003591998553644313,
+          "maximum_absolute_subgroup_coverage_gap": 0.012970711297071169,
+          "mean_interval_width": 724.5698025981991
+        }
+      },
+      "max_force": {
+        "geometry": {
+          "mean_absolute_subgroup_coverage_gap": 0.08668384214060644,
+          "maximum_absolute_subgroup_coverage_gap": 0.2058577405857741,
+          "mean_interval_width": 961.5196637446746
+        },
+        "geometry_case": {
+          "mean_absolute_subgroup_coverage_gap": 0.005461929851748545,
+          "maximum_absolute_subgroup_coverage_gap": 0.013389121338912124,
+          "mean_interval_width": 921.594674984564
+        }
+      }
+    },
+    "selection_decisions": {
+      "pt": {
+        "baseline_method": "geometry",
+        "candidate_method": "geometry_case",
+        "selected_method": "geometry_case",
+        "candidate_accepted": true,
+        "gap_improvement": 0.06730332145255434,
+        "width_ratio": 0.9843672646526257,
+        "worst_gap_regression": -0.17615062761506273,
+        "guards": {
+          "minimum_gap_improvement": true,
+          "maximum_width_ratio": true,
+          "maximum_worst_gap_regression": true
+        },
+        "reason": "geometry_case passed every development-only coverage and width guard."
+      },
+      "max_force": {
+        "baseline_method": "geometry",
+        "candidate_method": "geometry_case",
+        "selected_method": "geometry_case",
+        "candidate_accepted": true,
+        "gap_improvement": 0.08122191228885789,
+        "width_ratio": 0.9584771999309705,
+        "worst_gap_regression": -0.19246861924686198,
+        "guards": {
+          "minimum_gap_improvement": true,
+          "maximum_width_ratio": true,
+          "maximum_worst_gap_regression": true
+        },
+        "reason": "geometry_case passed every development-only coverage and width guard."
+      }
+    }
+  },
+  "benchmark": {
+    "rows": 546,
+    "status": "reused_fixed_benchmark_not_pristine_external_holdout",
+    "source": "reports/dd_aicomp2026_v1/20260811-uq-mondrian-ood-tree-v2/fixed_benchmark_predictions.csv",
+    "source_sha256": "a19becbd4556d594a567ca449168775c27126b872f28214f5e156b098f84e036",
+    "intervals": {
+      "pt": {
+        "geometry": {
+          "0.80": {
+            "method": "geometry",
+            "overall": {
+              "nominal_coverage": 0.8,
+              "empirical_coverage": 0.8388278388278388,
+              "coverage_gap": 0.0388278388278388,
+              "mean_width": 482.49234534074037,
+              "median_width": 295.56025873854196
+            },
+            "subgroups": {
+              "geometry:6x4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8186813186813187,
+                "coverage_gap": 0.018681318681318615,
+                "mean_width": 879.8704905735503,
+                "median_width": 879.8704905735503
+              },
+              "geometry:6x8": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8241758241758241,
+                "coverage_gap": 0.02417582417582409,
+                "mean_width": 295.5602587385421,
+                "median_width": 295.56025873854196
+              },
+              "geometry:8x8": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8736263736263736,
+                "coverage_gap": 0.07362637362637359,
+                "mean_width": 272.04628671012875,
+                "median_width": 272.0462867101287
+              },
+              "case:Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9180327868852459,
+                "coverage_gap": 0.11803278688524588,
+                "mean_width": 482.4923453407405,
+                "median_width": 295.56025873854196
+              },
+              "case:Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.6775956284153005,
+                "coverage_gap": -0.12240437158469952,
+                "mean_width": 482.4923453407403,
+                "median_width": 295.56025873854196
+              },
+              "case:Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9222222222222223,
+                "coverage_gap": 0.12222222222222223,
+                "mean_width": 482.4923453407404,
+                "median_width": 295.56025873854196
+              },
+              "geometry_case:6x4|Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8852459016393442,
+                "coverage_gap": 0.0852459016393442,
+                "mean_width": 879.8704905735503,
+                "median_width": 879.8704905735503
+              },
+              "geometry_case:6x4|Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.7213114754098361,
+                "coverage_gap": -0.07868852459016396,
+                "mean_width": 879.8704905735503,
+                "median_width": 879.8704905735503
+              },
+              "geometry_case:6x4|Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.85,
+                "coverage_gap": 0.04999999999999993,
+                "mean_width": 879.8704905735503,
+                "median_width": 879.8704905735503
+              },
+              "geometry_case:6x8|Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9508196721311475,
+                "coverage_gap": 0.15081967213114744,
+                "mean_width": 295.5602587385421,
+                "median_width": 295.56025873854196
+              },
+              "geometry_case:6x8|Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.5737704918032787,
+                "coverage_gap": -0.22622950819672139,
+                "mean_width": 295.5602587385421,
+                "median_width": 295.56025873854196
+              },
+              "geometry_case:6x8|Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.95,
+                "coverage_gap": 0.1499999999999999,
+                "mean_width": 295.56025873854213,
+                "median_width": 295.56025873854196
+              },
+              "geometry_case:8x8|Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9180327868852459,
+                "coverage_gap": 0.11803278688524588,
+                "mean_width": 272.04628671012875,
+                "median_width": 272.0462867101287
+              },
+              "geometry_case:8x8|Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.7377049180327869,
+                "coverage_gap": -0.06229508196721312,
+                "mean_width": 272.04628671012875,
+                "median_width": 272.0462867101287
+              },
+              "geometry_case:8x8|Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9666666666666667,
+                "coverage_gap": 0.16666666666666663,
+                "mean_width": 272.0462867101287,
+                "median_width": 272.0462867101287
+              }
+            },
+            "mean_applied_quantile": 241.24617267037019,
+            "fallback_rate": 0.0
+          },
+          "0.90": {
+            "method": "geometry",
+            "overall": {
+              "nominal_coverage": 0.9,
+              "empirical_coverage": 0.9175824175824175,
+              "coverage_gap": 0.01758241758241752,
+              "mean_width": 695.5169719397376,
+              "median_width": 453.1548364036207
+            },
+            "subgroups": {
+              "geometry:6x4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.8846153846153846,
+                "coverage_gap": -0.015384615384615441,
+                "mean_width": 1238.597281958206,
+                "median_width": 1238.5972819582057
+              },
+              "geometry:6x8": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9175824175824175,
+                "coverage_gap": 0.01758241758241752,
+                "mean_width": 453.1548364036207,
+                "median_width": 453.1548364036207
+              },
+              "geometry:8x8": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9505494505494505,
+                "coverage_gap": 0.05054945054945048,
+                "mean_width": 394.7987974573861,
+                "median_width": 394.7987974573862
+              },
+              "case:Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9562841530054644,
+                "coverage_gap": 0.05628415300546441,
+                "mean_width": 695.5169719397377,
+                "median_width": 453.1548364036207
+              },
+              "case:Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.8360655737704918,
+                "coverage_gap": -0.06393442622950818,
+                "mean_width": 695.5169719397375,
+                "median_width": 453.1548364036207
+              },
+              "case:Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9611111111111111,
+                "coverage_gap": 0.061111111111111116,
+                "mean_width": 695.5169719397375,
+                "median_width": 453.1548364036207
+              },
+              "geometry_case:6x4|Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9344262295081968,
+                "coverage_gap": 0.03442622950819674,
+                "mean_width": 1238.5972819582064,
+                "median_width": 1238.5972819582057
+              },
+              "geometry_case:6x4|Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.7868852459016393,
+                "coverage_gap": -0.11311475409836069,
+                "mean_width": 1238.597281958206,
+                "median_width": 1238.5972819582057
+              },
+              "geometry_case:6x4|Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9333333333333333,
+                "coverage_gap": 0.033333333333333326,
+                "mean_width": 1238.597281958206,
+                "median_width": 1238.5972819582057
+              },
+              "geometry_case:6x8|Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9672131147540983,
+                "coverage_gap": 0.0672131147540983,
+                "mean_width": 453.1548364036207,
+                "median_width": 453.1548364036207
+              },
+              "geometry_case:6x8|Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.819672131147541,
+                "coverage_gap": -0.08032786885245902,
+                "mean_width": 453.1548364036207,
+                "median_width": 453.1548364036207
+              },
+              "geometry_case:6x8|Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9666666666666667,
+                "coverage_gap": 0.06666666666666665,
+                "mean_width": 453.1548364036207,
+                "median_width": 453.1548364036207
+              },
+              "geometry_case:8x8|Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9672131147540983,
+                "coverage_gap": 0.0672131147540983,
+                "mean_width": 394.798797457386,
+                "median_width": 394.7987974573862
+              },
+              "geometry_case:8x8|Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9016393442622951,
+                "coverage_gap": 0.0016393442622950616,
+                "mean_width": 394.798797457386,
+                "median_width": 394.7987974573862
+              },
+              "geometry_case:8x8|Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9833333333333333,
+                "coverage_gap": 0.08333333333333326,
+                "mean_width": 394.79879745738606,
+                "median_width": 394.7987974573862
+              }
+            },
+            "mean_applied_quantile": 347.75848596986873,
+            "fallback_rate": 0.0
+          },
+          "0.95": {
+            "method": "geometry",
+            "overall": {
+              "nominal_coverage": 0.95,
+              "empirical_coverage": 0.967032967032967,
+              "coverage_gap": 0.017032967032967083,
+              "mean_width": 1044.945725005008,
+              "median_width": 712.2151744969451
+            },
+            "subgroups": {
+              "geometry:6x4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9615384615384616,
+                "coverage_gap": 0.011538461538461608,
+                "mean_width": 1878.3830177466293,
+                "median_width": 1878.3830177466298
+              },
+              "geometry:6x8": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9725274725274725,
+                "coverage_gap": 0.02252747252747256,
+                "mean_width": 712.2151744969451,
+                "median_width": 712.2151744969451
+              },
+              "geometry:8x8": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.967032967032967,
+                "coverage_gap": 0.017032967032967083,
+                "mean_width": 544.2389827714488,
+                "median_width": 544.2389827714487
+              },
+              "case:Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9672131147540983,
+                "coverage_gap": 0.01721311475409837,
+                "mean_width": 1044.945725005008,
+                "median_width": 712.2151744969451
+              },
+              "case:Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9508196721311475,
+                "coverage_gap": 0.0008196721311475308,
+                "mean_width": 1044.945725005008,
+                "median_width": 712.2151744969451
+              },
+              "case:Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9833333333333333,
+                "coverage_gap": 0.033333333333333326,
+                "mean_width": 1044.9457250050077,
+                "median_width": 712.2151744969451
+              },
+              "geometry_case:6x4|Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9672131147540983,
+                "coverage_gap": 0.01721311475409837,
+                "mean_width": 1878.3830177466298,
+                "median_width": 1878.3830177466298
+              },
+              "geometry_case:6x4|Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9344262295081968,
+                "coverage_gap": -0.015573770491803196,
+                "mean_width": 1878.3830177466298,
+                "median_width": 1878.3830177466298
+              },
+              "geometry_case:6x4|Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9833333333333333,
+                "coverage_gap": 0.033333333333333326,
+                "mean_width": 1878.3830177466298,
+                "median_width": 1878.3830177466298
+              },
+              "geometry_case:6x8|Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9672131147540983,
+                "coverage_gap": 0.01721311475409837,
+                "mean_width": 712.2151744969451,
+                "median_width": 712.2151744969451
+              },
+              "geometry_case:6x8|Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9672131147540983,
+                "coverage_gap": 0.01721311475409837,
+                "mean_width": 712.2151744969451,
+                "median_width": 712.2151744969451
+              },
+              "geometry_case:6x8|Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9833333333333333,
+                "coverage_gap": 0.033333333333333326,
+                "mean_width": 712.2151744969451,
+                "median_width": 712.2151744969451
+              },
+              "geometry_case:8x8|Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9672131147540983,
+                "coverage_gap": 0.01721311475409837,
+                "mean_width": 544.2389827714488,
+                "median_width": 544.2389827714487
+              },
+              "geometry_case:8x8|Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9508196721311475,
+                "coverage_gap": 0.0008196721311475308,
+                "mean_width": 544.2389827714488,
+                "median_width": 544.2389827714487
+              },
+              "geometry_case:8x8|Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9833333333333333,
+                "coverage_gap": 0.033333333333333326,
+                "mean_width": 544.2389827714488,
+                "median_width": 544.2389827714487
+              }
+            },
+            "mean_applied_quantile": 522.472862502504,
+            "fallback_rate": 0.0
+          }
+        },
+        "geometry_case": {
+          "0.80": {
+            "method": "geometry_case",
+            "overall": {
+              "nominal_coverage": 0.8,
+              "empirical_coverage": 0.8608058608058609,
+              "coverage_gap": 0.06080586080586081,
+              "mean_width": 469.7990633769536,
+              "median_width": 399.46728515452196
+            },
+            "subgroups": {
+              "geometry:6x4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8131868131868132,
+                "coverage_gap": 0.01318681318681314,
+                "mean_width": 887.9975182399986,
+                "median_width": 724.7499830283341
+              },
+              "geometry:6x8": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8736263736263736,
+                "coverage_gap": 0.07362637362637359,
+                "mean_width": 284.7898975449693,
+                "median_width": 215.1360368478472
+              },
+              "geometry:8x8": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8956043956043956,
+                "coverage_gap": 0.0956043956043956,
+                "mean_width": 236.60977434589313,
+                "median_width": 171.74389904165582
+              },
+              "case:Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8633879781420765,
+                "coverage_gap": 0.06338797814207642,
+                "mean_width": 360.0979241109114,
+                "median_width": 190.75320577829552
+              },
+              "case:Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8360655737704918,
+                "coverage_gap": 0.0360655737704918,
+                "mean_width": 688.5251945571764,
+                "median_width": 447.3385834399596
+              },
+              "case:Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8833333333333333,
+                "coverage_gap": 0.08333333333333326,
+                "mean_width": 358.9569882642033,
+                "median_width": 215.1360368478472
+              },
+              "geometry_case:6x4|Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.819672131147541,
+                "coverage_gap": 0.01967213114754096,
+                "mean_width": 717.7966675127827,
+                "median_width": 717.7966675127827
+              },
+              "geometry_case:6x4|Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.7868852459016393,
+                "coverage_gap": -0.013114754098360715,
+                "mean_width": 1218.7697150770484,
+                "median_width": 1218.7697150770473
+              },
+              "geometry_case:6x4|Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8333333333333334,
+                "coverage_gap": 0.033333333333333326,
+                "mean_width": 724.7499830283341,
+                "median_width": 724.7499830283341
+              },
+              "geometry_case:6x8|Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8852459016393442,
+                "coverage_gap": 0.0852459016393442,
+                "mean_width": 190.75320577829552,
+                "median_width": 190.75320577829552
+              },
+              "geometry_case:6x8|Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.819672131147541,
+                "coverage_gap": 0.01967213114754096,
+                "mean_width": 447.3385834399596,
+                "median_width": 447.3385834399596
+              },
+              "geometry_case:6x8|Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9166666666666666,
+                "coverage_gap": 0.11666666666666659,
+                "mean_width": 215.13603684784735,
+                "median_width": 215.1360368478472
+              },
+              "geometry_case:8x8|Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8852459016393442,
+                "coverage_gap": 0.0852459016393442,
+                "mean_width": 171.74389904165582,
+                "median_width": 171.74389904165582
+              },
+              "geometry_case:8x8|Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9016393442622951,
+                "coverage_gap": 0.10163934426229504,
+                "mean_width": 399.46728515452196,
+                "median_width": 399.46728515452196
+              },
+              "geometry_case:8x8|Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9,
+                "coverage_gap": 0.09999999999999998,
+                "mean_width": 136.9849449164285,
+                "median_width": 136.9849449164285
+              }
+            },
+            "mean_applied_quantile": 234.89953168847688,
+            "fallback_rate": 0.0
+          },
+          "0.90": {
+            "method": "geometry_case",
+            "overall": {
+              "nominal_coverage": 0.9,
+              "empirical_coverage": 0.9395604395604396,
+              "coverage_gap": 0.03956043956043953,
+              "mean_width": 686.4334031480493,
+              "median_width": 544.4344193876586
+            },
+            "subgroups": {
+              "geometry:6x4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9065934065934066,
+                "coverage_gap": 0.00659340659340657,
+                "mean_width": 1239.0559158688754,
+                "median_width": 992.3937803920562
+              },
+              "geometry:6x8": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9560439560439561,
+                "coverage_gap": 0.05604395604395607,
+                "mean_width": 447.9772855777168,
+                "median_width": 308.9007425463169
+              },
+              "geometry:8x8": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9560439560439561,
+                "coverage_gap": 0.05604395604395607,
+                "mean_width": 372.2670079975558,
+                "median_width": 320.19765741828814
+              },
+              "case:Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9289617486338798,
+                "coverage_gap": 0.02896174863387979,
+                "mean_width": 537.6023252470623,
+                "median_width": 320.19765741828814
+              },
+              "case:Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9508196721311475,
+                "coverage_gap": 0.050819672131147464,
+                "mean_width": 1001.7688658575288,
+                "median_width": 729.7085895022865
+              },
+              "case:Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9388888888888889,
+                "coverage_gap": 0.03888888888888886,
+                "mean_width": 517.1539452594154,
+                "median_width": 308.9007425463169
+              },
+              "geometry_case:6x4|Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.8852459016393442,
+                "coverage_gap": -0.014754098360655776,
+                "mean_width": 989.5667369667353,
+                "median_width": 989.5667369667353
+              },
+              "geometry_case:6x4|Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9344262295081968,
+                "coverage_gap": 0.03442622950819674,
+                "mean_width": 1731.1635886826407,
+                "median_width": 1731.1635886826407
+              },
+              "geometry_case:6x4|Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9,
+                "coverage_gap": 0.0,
+                "mean_width": 992.3937803920562,
+                "median_width": 992.3937803920562
+              },
+              "geometry_case:6x8|Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9508196721311475,
+                "coverage_gap": 0.050819672131147464,
+                "mean_width": 303.0425813561633,
+                "median_width": 303.0425813561633
+              },
+              "geometry_case:6x8|Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9672131147540983,
+                "coverage_gap": 0.0672131147540983,
+                "mean_width": 729.7085895022868,
+                "median_width": 729.7085895022865
+              },
+              "geometry_case:6x8|Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.95,
+                "coverage_gap": 0.04999999999999993,
+                "mean_width": 308.9007425463169,
+                "median_width": 308.9007425463169
+              },
+              "geometry_case:8x8|Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9508196721311475,
+                "coverage_gap": 0.050819672131147464,
+                "mean_width": 320.19765741828814,
+                "median_width": 320.19765741828814
+              },
+              "geometry_case:8x8|Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9508196721311475,
+                "coverage_gap": 0.050819672131147464,
+                "mean_width": 544.4344193876587,
+                "median_width": 544.4344193876586
+              },
+              "geometry_case:8x8|Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9666666666666667,
+                "coverage_gap": 0.06666666666666665,
+                "mean_width": 250.1673128398732,
+                "median_width": 250.16731283987247
+              }
+            },
+            "mean_applied_quantile": 343.2167015740247,
+            "fallback_rate": 0.0
+          },
+          "0.95": {
+            "method": "geometry_case",
+            "overall": {
+              "nominal_coverage": 0.95,
+              "empirical_coverage": 0.9633699633699634,
+              "coverage_gap": 0.013369963369963433,
+              "mean_width": 968.0284557112258,
+              "median_width": 865.5844649258124
+            },
+            "subgroups": {
+              "geometry:6x4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9395604395604396,
+                "coverage_gap": -0.010439560439560402,
+                "mean_width": 1635.9426226399564,
+                "median_width": 1407.6573331876061
+              },
+              "geometry:6x8": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9725274725274725,
+                "coverage_gap": 0.02252747252747256,
+                "mean_width": 702.5547817409591,
+                "median_width": 546.0570960795085
+              },
+              "geometry:8x8": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.978021978021978,
+                "coverage_gap": 0.028021978021978033,
+                "mean_width": 565.587962752762,
+                "median_width": 459.4100488457789
+              },
+              "case:Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9453551912568307,
+                "coverage_gap": -0.004644808743169304,
+                "mean_width": 714.1715368400625,
+                "median_width": 546.0570960795085
+              },
+              "case:Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9726775956284153,
+                "coverage_gap": 0.022677595628415315,
+                "mean_width": 1450.8129402094494,
+                "median_width": 1127.4736683594747
+              },
+              "case:Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9722222222222222,
+                "coverage_gap": 0.022222222222222254,
+                "mean_width": 735.2854306570474,
+                "median_width": 429.6598941012762
+              },
+              "geometry_case:6x4|Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9016393442622951,
+                "coverage_gap": -0.04836065573770487,
+                "mean_width": 1137.0474655949,
+                "median_width": 1137.0474655949001
+              },
+              "geometry_case:6x4|Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9508196721311475,
+                "coverage_gap": 0.0008196721311475308,
+                "mean_width": 2359.3806873430626,
+                "median_width": 2359.380687343062
+              },
+              "geometry_case:6x4|Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9666666666666667,
+                "coverage_gap": 0.01666666666666672,
+                "mean_width": 1407.6573331876066,
+                "median_width": 1407.6573331876061
+              },
+              "geometry_case:6x8|Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9672131147540983,
+                "coverage_gap": 0.01721311475409837,
+                "mean_width": 546.0570960795085,
+                "median_width": 546.0570960795085
+              },
+              "geometry_case:6x8|Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9836065573770492,
+                "coverage_gap": 0.03360655737704921,
+                "mean_width": 1127.473668359475,
+                "median_width": 1127.4736683594747
+              },
+              "geometry_case:6x8|Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9666666666666667,
+                "coverage_gap": 0.01666666666666672,
+                "mean_width": 429.6598941012765,
+                "median_width": 429.6598941012762
+              },
+              "geometry_case:8x8|Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9672131147540983,
+                "coverage_gap": 0.01721311475409837,
+                "mean_width": 459.4100488457787,
+                "median_width": 459.4100488457789
+              },
+              "geometry_case:8x8|Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9836065573770492,
+                "coverage_gap": 0.03360655737704921,
+                "mean_width": 865.5844649258125,
+                "median_width": 865.5844649258124
+              },
+              "geometry_case:8x8|Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9833333333333333,
+                "coverage_gap": 0.033333333333333326,
+                "mean_width": 368.5390646822598,
+                "median_width": 368.5390646822598
+              }
+            },
+            "mean_applied_quantile": 484.0142278556129,
+            "fallback_rate": 0.0
+          }
+        }
+      },
+      "max_force": {
+        "geometry": {
+          "0.80": {
+            "method": "geometry",
+            "overall": {
+              "nominal_coverage": 0.8,
+              "empirical_coverage": 0.8498168498168498,
+              "coverage_gap": 0.04981684981684975,
+              "mean_width": 549.0252061578478,
+              "median_width": 518.2154995799792
+            },
+            "subgroups": {
+              "geometry:6x4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8351648351648352,
+                "coverage_gap": 0.03516483516483515,
+                "mean_width": 622.849711760995,
+                "median_width": 622.849711760995
+              },
+              "geometry:6x8": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8461538461538461,
+                "coverage_gap": 0.0461538461538461,
+                "mean_width": 518.2154995799792,
+                "median_width": 518.2154995799792
+              },
+              "geometry:8x8": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8681318681318682,
+                "coverage_gap": 0.06813186813186811,
+                "mean_width": 506.0104071325691,
+                "median_width": 506.0104071325695
+              },
+              "case:Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9672131147540983,
+                "coverage_gap": 0.16721311475409828,
+                "mean_width": 549.0252061578478,
+                "median_width": 518.2154995799792
+              },
+              "case:Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.6229508196721312,
+                "coverage_gap": -0.17704918032786887,
+                "mean_width": 549.0252061578478,
+                "median_width": 518.2154995799792
+              },
+              "case:Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9611111111111111,
+                "coverage_gap": 0.1611111111111111,
+                "mean_width": 549.0252061578478,
+                "median_width": 518.2154995799792
+              },
+              "geometry_case:6x4|Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9836065573770492,
+                "coverage_gap": 0.18360655737704912,
+                "mean_width": 622.849711760995,
+                "median_width": 622.849711760995
+              },
+              "geometry_case:6x4|Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.5737704918032787,
+                "coverage_gap": -0.22622950819672139,
+                "mean_width": 622.8497117609951,
+                "median_width": 622.849711760995
+              },
+              "geometry_case:6x4|Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.95,
+                "coverage_gap": 0.1499999999999999,
+                "mean_width": 622.849711760995,
+                "median_width": 622.849711760995
+              },
+              "geometry_case:6x8|Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9508196721311475,
+                "coverage_gap": 0.15081967213114744,
+                "mean_width": 518.2154995799792,
+                "median_width": 518.2154995799792
+              },
+              "geometry_case:6x8|Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.6229508196721312,
+                "coverage_gap": -0.17704918032786887,
+                "mean_width": 518.2154995799792,
+                "median_width": 518.2154995799792
+              },
+              "geometry_case:6x8|Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9666666666666667,
+                "coverage_gap": 0.16666666666666663,
+                "mean_width": 518.2154995799792,
+                "median_width": 518.2154995799792
+              },
+              "geometry_case:8x8|Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9672131147540983,
+                "coverage_gap": 0.16721311475409828,
+                "mean_width": 506.01040713256936,
+                "median_width": 506.0104071325695
+              },
+              "geometry_case:8x8|Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.6721311475409836,
+                "coverage_gap": -0.12786885245901647,
+                "mean_width": 506.01040713256884,
+                "median_width": 506.0104071325695
+              },
+              "geometry_case:8x8|Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9666666666666667,
+                "coverage_gap": 0.16666666666666663,
+                "mean_width": 506.0104071325693,
+                "median_width": 506.0104071325695
+              }
+            },
+            "mean_applied_quantile": 274.5126030789239,
+            "fallback_rate": 0.0
+          },
+          "0.90": {
+            "method": "geometry",
+            "overall": {
+              "nominal_coverage": 0.9,
+              "empirical_coverage": 0.9285714285714286,
+              "coverage_gap": 0.02857142857142858,
+              "mean_width": 919.9325372651219,
+              "median_width": 870.8147570789151
+            },
+            "subgroups": {
+              "geometry:6x4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9230769230769231,
+                "coverage_gap": 0.023076923076923106,
+                "mean_width": 1064.132927253726,
+                "median_width": 1064.132927253726
+              },
+              "geometry:6x8": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9340659340659341,
+                "coverage_gap": 0.034065934065934056,
+                "mean_width": 824.8499274627247,
+                "median_width": 824.8499274627247
+              },
+              "geometry:8x8": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9285714285714286,
+                "coverage_gap": 0.02857142857142858,
+                "mean_width": 870.8147570789151,
+                "median_width": 870.8147570789151
+              },
+              "case:Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9781420765027322,
+                "coverage_gap": 0.0781420765027322,
+                "mean_width": 919.9325372651219,
+                "median_width": 870.8147570789151
+              },
+              "case:Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.825136612021858,
+                "coverage_gap": -0.07486338797814207,
+                "mean_width": 919.9325372651219,
+                "median_width": 870.8147570789151
+              },
+              "case:Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9833333333333333,
+                "coverage_gap": 0.08333333333333326,
+                "mean_width": 919.9325372651219,
+                "median_width": 870.8147570789151
+              },
+              "geometry_case:6x4|Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9836065573770492,
+                "coverage_gap": 0.08360655737704914,
+                "mean_width": 1064.132927253726,
+                "median_width": 1064.132927253726
+              },
+              "geometry_case:6x4|Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.7868852459016393,
+                "coverage_gap": -0.11311475409836069,
+                "mean_width": 1064.132927253726,
+                "median_width": 1064.132927253726
+              },
+              "geometry_case:6x4|Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 1.0,
+                "coverage_gap": 0.09999999999999998,
+                "mean_width": 1064.132927253726,
+                "median_width": 1064.132927253726
+              },
+              "geometry_case:6x8|Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9836065573770492,
+                "coverage_gap": 0.08360655737704914,
+                "mean_width": 824.8499274627247,
+                "median_width": 824.8499274627247
+              },
+              "geometry_case:6x8|Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.8360655737704918,
+                "coverage_gap": -0.06393442622950818,
+                "mean_width": 824.8499274627247,
+                "median_width": 824.8499274627247
+              },
+              "geometry_case:6x8|Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9833333333333333,
+                "coverage_gap": 0.08333333333333326,
+                "mean_width": 824.8499274627247,
+                "median_width": 824.8499274627247
+              },
+              "geometry_case:8x8|Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9672131147540983,
+                "coverage_gap": 0.0672131147540983,
+                "mean_width": 870.8147570789151,
+                "median_width": 870.8147570789151
+              },
+              "geometry_case:8x8|Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.8524590163934426,
+                "coverage_gap": -0.04754098360655745,
+                "mean_width": 870.8147570789151,
+                "median_width": 870.8147570789151
+              },
+              "geometry_case:8x8|Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9666666666666667,
+                "coverage_gap": 0.06666666666666665,
+                "mean_width": 870.8147570789151,
+                "median_width": 870.8147570789151
+              }
+            },
+            "mean_applied_quantile": 459.96626863256097,
+            "fallback_rate": 0.0
+          },
+          "0.95": {
+            "method": "geometry",
+            "overall": {
+              "nominal_coverage": 0.95,
+              "empirical_coverage": 0.9725274725274725,
+              "coverage_gap": 0.02252747252747256,
+              "mean_width": 1409.6255964709512,
+              "median_width": 1376.7825724742725
+            },
+            "subgroups": {
+              "geometry:6x4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9945054945054945,
+                "coverage_gap": 0.04450549450549457,
+                "mean_width": 1712.8519638061548,
+                "median_width": 1712.8519638061553
+              },
+              "geometry:6x8": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9615384615384616,
+                "coverage_gap": 0.011538461538461608,
+                "mean_width": 1139.2422531324264,
+                "median_width": 1139.2422531324264
+              },
+              "geometry:8x8": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9615384615384616,
+                "coverage_gap": 0.011538461538461608,
+                "mean_width": 1376.7825724742725,
+                "median_width": 1376.7825724742725
+              },
+              "case:Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9836065573770492,
+                "coverage_gap": 0.03360655737704921,
+                "mean_width": 1409.6255964709515,
+                "median_width": 1376.7825724742725
+              },
+              "case:Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9508196721311475,
+                "coverage_gap": 0.0008196721311475308,
+                "mean_width": 1409.6255964709515,
+                "median_width": 1376.7825724742725
+              },
+              "case:Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9833333333333333,
+                "coverage_gap": 0.033333333333333326,
+                "mean_width": 1409.6255964709515,
+                "median_width": 1376.7825724742725
+              },
+              "geometry_case:6x4|Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9836065573770492,
+                "coverage_gap": 0.03360655737704921,
+                "mean_width": 1712.8519638061553,
+                "median_width": 1712.8519638061553
+              },
+              "geometry_case:6x4|Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 1.0,
+                "coverage_gap": 0.050000000000000044,
+                "mean_width": 1712.8519638061553,
+                "median_width": 1712.8519638061553
+              },
+              "geometry_case:6x4|Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 1.0,
+                "coverage_gap": 0.050000000000000044,
+                "mean_width": 1712.8519638061553,
+                "median_width": 1712.8519638061553
+              },
+              "geometry_case:6x8|Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9836065573770492,
+                "coverage_gap": 0.03360655737704921,
+                "mean_width": 1139.2422531324264,
+                "median_width": 1139.2422531324264
+              },
+              "geometry_case:6x8|Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9180327868852459,
+                "coverage_gap": -0.031967213114754034,
+                "mean_width": 1139.2422531324264,
+                "median_width": 1139.2422531324264
+              },
+              "geometry_case:6x8|Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9833333333333333,
+                "coverage_gap": 0.033333333333333326,
+                "mean_width": 1139.2422531324264,
+                "median_width": 1139.2422531324264
+              },
+              "geometry_case:8x8|Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9836065573770492,
+                "coverage_gap": 0.03360655737704921,
+                "mean_width": 1376.7825724742725,
+                "median_width": 1376.7825724742725
+              },
+              "geometry_case:8x8|Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9344262295081968,
+                "coverage_gap": -0.015573770491803196,
+                "mean_width": 1376.7825724742725,
+                "median_width": 1376.7825724742725
+              },
+              "geometry_case:8x8|Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9666666666666667,
+                "coverage_gap": 0.01666666666666672,
+                "mean_width": 1376.7825724742725,
+                "median_width": 1376.7825724742725
+              }
+            },
+            "mean_applied_quantile": 704.8127982354756,
+            "fallback_rate": 0.0
+          }
+        },
+        "geometry_case": {
+          "0.80": {
+            "method": "geometry_case",
+            "overall": {
+              "nominal_coverage": 0.8,
+              "empirical_coverage": 0.8864468864468864,
+              "coverage_gap": 0.08644688644688636,
+              "mean_width": 554.9134699873372,
+              "median_width": 372.7003123283357
+            },
+            "subgroups": {
+              "geometry:6x4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8681318681318682,
+                "coverage_gap": 0.06813186813186811,
+                "mean_width": 610.8808729145404,
+                "median_width": 372.7003123283357
+              },
+              "geometry:6x8": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8956043956043956,
+                "coverage_gap": 0.0956043956043956,
+                "mean_width": 517.3697669527309,
+                "median_width": 372.16835811447527
+              },
+              "geometry:8x8": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8956043956043956,
+                "coverage_gap": 0.0956043956043956,
+                "mean_width": 536.48977009474,
+                "median_width": 375.9092771568248
+              },
+              "case:Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9180327868852459,
+                "coverage_gap": 0.11803278688524588,
+                "mean_width": 373.5926491998793,
+                "median_width": 372.7003123283357
+              },
+              "case:Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8415300546448088,
+                "coverage_gap": 0.041530054644808745,
+                "mean_width": 969.2067841730576,
+                "median_width": 929.2301134920635
+              },
+              "case:Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9,
+                "coverage_gap": 0.09999999999999998,
+                "mean_width": 318.05810169910313,
+                "median_width": 300.46058879433986
+              },
+              "geometry_case:6x4|Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9016393442622951,
+                "coverage_gap": 0.10163934426229504,
+                "mean_width": 372.7003123283357,
+                "median_width": 372.7003123283357
+              },
+              "geometry_case:6x4|Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8032786885245902,
+                "coverage_gap": 0.003278688524590123,
+                "mean_width": 1101.5324080047576,
+                "median_width": 1101.5324080047576
+              },
+              "geometry_case:6x4|Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9,
+                "coverage_gap": 0.09999999999999998,
+                "mean_width": 354.202048835461,
+                "median_width": 354.202048835461
+              },
+              "geometry_case:6x8|Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9344262295081968,
+                "coverage_gap": 0.13442622950819672,
+                "mean_width": 372.16835811447527,
+                "median_width": 372.16835811447527
+              },
+              "geometry_case:6x8|Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8524590163934426,
+                "coverage_gap": 0.052459016393442526,
+                "mean_width": 876.8578310223529,
+                "median_width": 876.8578310223529
+              },
+              "geometry_case:6x8|Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9,
+                "coverage_gap": 0.09999999999999998,
+                "mean_width": 299.51166746750823,
+                "median_width": 299.51166746750823
+              },
+              "geometry_case:8x8|Case2": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9180327868852459,
+                "coverage_gap": 0.11803278688524588,
+                "mean_width": 375.9092771568271,
+                "median_width": 375.9092771568248
+              },
+              "geometry_case:8x8|Case3": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.8688524590163934,
+                "coverage_gap": 0.06885245901639336,
+                "mean_width": 929.2301134920629,
+                "median_width": 929.2301134920635
+              },
+              "geometry_case:8x8|Case4": {
+                "nominal_coverage": 0.8,
+                "empirical_coverage": 0.9,
+                "coverage_gap": 0.09999999999999998,
+                "mean_width": 300.4605887943401,
+                "median_width": 300.46058879433986
+              }
+            },
+            "mean_applied_quantile": 277.45673499366865,
+            "fallback_rate": 0.0
+          },
+          "0.90": {
+            "method": "geometry_case",
+            "overall": {
+              "nominal_coverage": 0.9,
+              "empirical_coverage": 0.967032967032967,
+              "coverage_gap": 0.06703296703296702,
+              "mean_width": 887.6744749232683,
+              "median_width": 583.3469447631869
+            },
+            "subgroups": {
+              "geometry:6x4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.978021978021978,
+                "coverage_gap": 0.07802197802197797,
+                "mean_width": 990.0145302160909,
+                "median_width": 583.3469447631869
+              },
+              "geometry:6x8": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9560439560439561,
+                "coverage_gap": 0.05604395604395607,
+                "mean_width": 778.330735183642,
+                "median_width": 521.9253640307579
+              },
+              "geometry:8x8": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.967032967032967,
+                "coverage_gap": 0.06703296703296702,
+                "mean_width": 894.6781593700724,
+                "median_width": 602.438571385057
+              },
+              "case:Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9672131147540983,
+                "coverage_gap": 0.0672131147540983,
+                "mean_width": 569.2369600596669,
+                "median_width": 583.3469447631869
+              },
+              "case:Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9726775956284153,
+                "coverage_gap": 0.07267759562841525,
+                "mean_width": 1559.138018251459,
+                "median_width": 1580.3771033198864
+              },
+              "case:Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9611111111111111,
+                "coverage_gap": 0.061111111111111116,
+                "mean_width": 528.7646793176028,
+                "median_width": 509.60336081720015
+              },
+              "geometry_case:6x4|Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9836065573770492,
+                "coverage_gap": 0.08360655737704914,
+                "mean_width": 583.346944763186,
+                "median_width": 583.3469447631869
+              },
+              "geometry_case:6x4|Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 1.0,
+                "coverage_gap": 0.09999999999999998,
+                "mean_width": 1797.9788375244173,
+                "median_width": 1797.978837524417
+              },
+              "geometry_case:6x4|Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.95,
+                "coverage_gap": 0.04999999999999993,
+                "mean_width": 582.0295296630793,
+                "median_width": 582.0295296630793
+              },
+              "geometry_case:6x8|Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9508196721311475,
+                "coverage_gap": 0.050819672131147464,
+                "mean_width": 521.9253640307579,
+                "median_width": 521.9253640307579
+              },
+              "geometry_case:6x8|Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9508196721311475,
+                "coverage_gap": 0.050819672131147464,
+                "mean_width": 1299.0581139100755,
+                "median_width": 1299.058113910076
+              },
+              "geometry_case:6x8|Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9666666666666667,
+                "coverage_gap": 0.06666666666666665,
+                "mean_width": 509.60336081720015,
+                "median_width": 509.60336081720015
+              },
+              "geometry_case:8x8|Case2": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9672131147540983,
+                "coverage_gap": 0.0672131147540983,
+                "mean_width": 602.4385713850569,
+                "median_width": 602.438571385057
+              },
+              "geometry_case:8x8|Case3": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9672131147540983,
+                "coverage_gap": 0.0672131147540983,
+                "mean_width": 1580.377103319885,
+                "median_width": 1580.3771033198864
+              },
+              "geometry_case:8x8|Case4": {
+                "nominal_coverage": 0.9,
+                "empirical_coverage": 0.9666666666666667,
+                "coverage_gap": 0.06666666666666665,
+                "mean_width": 494.6611474725289,
+                "median_width": 494.6611474725287
+              }
+            },
+            "mean_applied_quantile": 443.8372374616342,
+            "fallback_rate": 0.0
+          },
+          "0.95": {
+            "method": "geometry_case",
+            "overall": {
+              "nominal_coverage": 0.95,
+              "empirical_coverage": 0.9871794871794872,
+              "coverage_gap": 0.03717948717948727,
+              "mean_width": 1269.938797384675,
+              "median_width": 911.2970762590703
+            },
+            "subgroups": {
+              "geometry:6x4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9945054945054945,
+                "coverage_gap": 0.04450549450549457,
+                "mean_width": 1430.7885800166025,
+                "median_width": 977.5489157409684
+              },
+              "geometry:6x8": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.989010989010989,
+                "coverage_gap": 0.039010989010989094,
+                "mean_width": 1103.4385703174212,
+                "median_width": 750.1157372703601
+              },
+              "geometry:8x8": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.978021978021978,
+                "coverage_gap": 0.028021978021978033,
+                "mean_width": 1275.5892418200012,
+                "median_width": 911.2970762590703
+              },
+              "case:Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9836065573770492,
+                "coverage_gap": 0.03360655737704921,
+                "mean_width": 854.3841391574339,
+                "median_width": 901.7396039428713
+              },
+              "case:Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.994535519125683,
+                "coverage_gap": 0.0445355191256831,
+                "mean_width": 2189.789859266129,
+                "median_width": 2278.6813139473816
+              },
+              "case:Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9833333333333333,
+                "coverage_gap": 0.033333333333333326,
+                "mean_width": 757.237453669558,
+                "median_width": 668.0207751235939
+              },
+              "geometry_case:6x4|Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9836065573770492,
+                "coverage_gap": 0.03360655737704921,
+                "mean_width": 901.7396039428713,
+                "median_width": 901.7396039428713
+              },
+              "geometry_case:6x4|Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 1.0,
+                "coverage_gap": 0.050000000000000044,
+                "mean_width": 2405.6470619352185,
+                "median_width": 2405.6470619352185
+              },
+              "geometry_case:6x4|Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 1.0,
+                "coverage_gap": 0.050000000000000044,
+                "mean_width": 977.5489157409692,
+                "median_width": 977.5489157409684
+              },
+              "geometry_case:6x8|Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9836065573770492,
+                "coverage_gap": 0.03360655737704921,
+                "mean_width": 750.1157372703601,
+                "median_width": 750.1157372703601
+              },
+              "geometry_case:6x8|Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 1.0,
+                "coverage_gap": 0.050000000000000044,
+                "mean_width": 1885.041201915788,
+                "median_width": 1885.0412019157884
+              },
+              "geometry_case:6x8|Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9833333333333333,
+                "coverage_gap": 0.033333333333333326,
+                "mean_width": 668.020775123594,
+                "median_width": 668.0207751235939
+              },
+              "geometry_case:8x8|Case2": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9836065573770492,
+                "coverage_gap": 0.03360655737704921,
+                "mean_width": 911.2970762590703,
+                "median_width": 911.2970762590703
+              },
+              "geometry_case:8x8|Case3": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9836065573770492,
+                "coverage_gap": 0.03360655737704921,
+                "mean_width": 2278.681313947381,
+                "median_width": 2278.6813139473816
+              },
+              "geometry_case:8x8|Case4": {
+                "nominal_coverage": 0.95,
+                "empirical_coverage": 0.9666666666666667,
+                "coverage_gap": 0.01666666666666672,
+                "mean_width": 626.1426701441109,
+                "median_width": 626.1426701441087
+              }
+            },
+            "mean_applied_quantile": 634.9693986923374,
+            "fallback_rate": 0.0
+          }
+        }
+      }
+    },
+    "comparison_summary": {
+      "pt": {
+        "geometry": {
+          "mean_absolute_subgroup_coverage_gap": 0.06742562234365511,
+          "maximum_absolute_subgroup_coverage_gap": 0.22622950819672139,
+          "mean_interval_width": 740.985014095162
+        },
+        "geometry_case": {
+          "mean_absolute_subgroup_coverage_gap": 0.04361465290427037,
+          "maximum_absolute_subgroup_coverage_gap": 0.11666666666666659,
+          "mean_interval_width": 708.0869740787429
+        }
+      },
+      "max_force": {
+        "geometry": {
+          "mean_absolute_subgroup_coverage_gap": 0.09346286176887268,
+          "maximum_absolute_subgroup_coverage_gap": 0.22622950819672139,
+          "mean_interval_width": 959.5277799646404
+        },
+        "geometry_case": {
+          "mean_absolute_subgroup_coverage_gap": 0.0635600080955272,
+          "maximum_absolute_subgroup_coverage_gap": 0.13442622950819672,
+          "mean_interval_width": 904.1755807650934
+        }
+      }
+    }
+  },
+  "artifact": {
+    "path": "models/dd_laminate_aicomp2026_v1/20260811-uq-geometry-case-tree-v3/artifacts/uncertainty_sidecar.joblib",
+    "sha256": "3d0ba6b90da7d20bc649b56017010ae3bdca7aeb63223cae61592e260b0d1ac4",
+    "bytes": 1838
+  },
+  "selection_freeze": {
+    "path": "reports/dd_aicomp2026_v1/20260811-uq-geometry-case-tree-v3/selection_freeze.json",
+    "sha256": "be9505a69edbf63ff191cca85bdf46b098f7ae82cf5d8af5261186435bb62370"
+  },
+  "publication_external_validation_required": true
+}

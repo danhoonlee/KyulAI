@@ -5,6 +5,7 @@ import numpy as np
 from src.ml.dd_laminate.uq_experiment import (
     cross_fitted_interval_evaluation,
     interval_selection_summary,
+    select_interval_candidate,
     select_interval_method,
 )
 
@@ -81,3 +82,31 @@ def test_selection_accepts_mondrian_when_all_guards_pass() -> None:
 
     assert decision["selected_method"] == "mondrian"
     assert decision["mondrian_accepted"] is True
+
+
+def test_named_candidate_selection_supports_nested_mondrian_comparison() -> None:
+    summary = {
+        "geometry": {
+            "mean_absolute_subgroup_coverage_gap": 0.08,
+            "maximum_absolute_subgroup_coverage_gap": 0.20,
+            "mean_interval_width": 800.0,
+        },
+        "geometry_case": {
+            "mean_absolute_subgroup_coverage_gap": 0.01,
+            "maximum_absolute_subgroup_coverage_gap": 0.03,
+            "mean_interval_width": 790.0,
+        },
+    }
+
+    decision = select_interval_candidate(
+        summary,
+        baseline_name="geometry",
+        candidate_name="geometry_case",
+        minimum_gap_improvement=0.005,
+        maximum_width_ratio=1.25,
+        maximum_worst_gap_regression=0.02,
+    )
+
+    assert decision["selected_method"] == "geometry_case"
+    assert decision["candidate_accepted"] is True
+    assert decision["width_ratio"] < 1.0

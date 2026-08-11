@@ -1,0 +1,48 @@
+{
+  "experiment_id": "20260811-uq-geometry-case-tree-v3",
+  "status": "completed_challenger_not_deployed",
+  "parent_experiment": "20260811-uq-mondrian-ood-tree-v2",
+  "production_changes": false,
+  "source": {
+    "development_oof_predictions": "reports/dd_aicomp2026_v1/20260811-uq-mondrian-ood-tree-v2/development_oof_predictions.csv",
+    "fixed_benchmark_predictions": "reports/dd_aicomp2026_v1/20260811-uq-mondrian-ood-tree-v2/fixed_benchmark_predictions.csv",
+    "parent_sidecar": "models/dd_laminate_aicomp2026_v1/20260811-uq-mondrian-ood-tree-v2/artifacts/uncertainty_sidecar.joblib",
+    "base_point_model": "models/dd_laminate_response_pt_consistent_tree_3size_grouped_v1/response_surrogate.joblib"
+  },
+  "selection_protocol": {
+    "partition": "development_oof_only",
+    "rows": 2154,
+    "group_key": ["case", "theta1", "theta2"],
+    "folds": 5,
+    "baseline_conditioning": "panel_geometry",
+    "candidate_conditioning": "panel_geometry_case",
+    "comparison_subgroup": "panel_geometry_case",
+    "forbid_fixed_benchmark_selection": true
+  },
+  "regression_intervals": {
+    "targets": ["pt", "max_force"],
+    "levels": [0.8, 0.9, 0.95],
+    "minimum_group_size": 30,
+    "unsupported_group_fallback": "pooled",
+    "selection_rule": {
+      "allow_per_target_selection": true,
+      "primary_metric": "mean_absolute_geometry_case_coverage_gap",
+      "minimum_gap_improvement": 0.005,
+      "maximum_mean_width_ratio": 1.25,
+      "maximum_worst_gap_regression": 0.02
+    }
+  },
+  "fixed_benchmark": {
+    "rows": 546,
+    "status": "reused_fixed_benchmark_not_pristine_external_holdout",
+    "allowed_use": "report_frozen_configuration_only",
+    "forbidden_use": "method_or_hyperparameter_selection"
+  },
+  "report_dir": "reports/dd_aicomp2026_v1/20260811-uq-geometry-case-tree-v3",
+  "artifact": "models/dd_laminate_aicomp2026_v1/20260811-uq-geometry-case-tree-v3/artifacts/uncertainty_sidecar.joblib",
+  "selected_intervals": {
+    "pt": "panel_geometry_case_mondrian_conformal",
+    "max_force": "panel_geometry_case_mondrian_conformal"
+  },
+  "deployment_decision": "ready_for_api_ui_contract_review_not_deployed"
+}

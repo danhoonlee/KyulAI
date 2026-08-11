@@ -1,0 +1,12 @@
+{
+  "experiment_id": "20260811-uq-geometry-case-tree-v3",
+  "status": "challenger",
+  "base_point_model": "models/dd_laminate_response_pt_consistent_tree_3size_grouped_v1/response_surrogate.joblib",
+  "parent_sidecar": "models/dd_laminate_aicomp2026_v1/20260811-uq-mondrian-ood-tree-v2/artifacts/uncertainty_sidecar.joblib",
+  "selected_methods": {
+    "pt": "geometry_case",
+    "max_force": "geometry_case"
+  },
+  "artifact_sha256": "3d0ba6b90da7d20bc649b56017010ae3bdca7aeb63223cae61592e260b0d1ac4",
+  "production_changes": false
+}

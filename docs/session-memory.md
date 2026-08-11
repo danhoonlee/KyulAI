@@ -15983,3 +15983,25 @@ Follow-up in same debugging pass:
   `reports/dd_aicomp2026_v1/20260811-uq-mondrian-ood-tree-v2/`.
 - The 546-row partition is a reused fixed benchmark rather than a pristine external holdout. A newly
   generated untouched simulation set remains mandatory for publication-grade external validation.
+
+## 2026-08-11 - DD Tree UQ v3 Geometry + Case Challenger
+
+- Added `20260811-uq-geometry-case-tree-v3` as a statistical sidecar challenger without retraining or
+  changing the frozen Pt-Consistent Tree point predictor. Reused the immutable 2,154-row grouped OOF
+  predictions from UQ v2, avoiding five redundant Tree training runs.
+- Compared panel-geometry Mondrian intervals against panel-geometry-plus-Case Mondrian intervals using
+  development OOF evidence only. Pt mean absolute Case×geometry coverage gap improved from 0.0709 to
+  0.0036; Max. Force improved from 0.0867 to 0.0055.
+- The candidate also reduced development mean interval width: Pt width ratio 0.9844 and Max. Force
+  width ratio 0.9585. All predeclared coverage, width, and worst-gap guards passed for both targets.
+- After freezing the selection, the reused 546-row benchmark showed Pt coverage of 86.08%, 93.96%,
+  and 96.34% at nominal 80/90/95%; Max. Force coverage was 88.64%, 96.70%, and 98.72%.
+- Case 3 lower-level coverage improved substantially versus UQ v2: Pt 80% coverage rose from 67.76%
+  to 83.61%, and Max. Force rose from 62.30% to 84.15%. No supported benchmark row required the pooled
+  fallback.
+- Saved the 1.8KB sidecar at
+  `models/dd_laminate_aicomp2026_v1/20260811-uq-geometry-case-tree-v3/artifacts/uncertainty_sidecar.joblib`.
+  It remains undeployed until the API/UI uncertainty contract is reviewed against the existing
+  heuristic Reliability display.
+- The benchmark remains reused evidence rather than pristine external validation. A newly generated
+  untouched simulation set is still required for publication-grade claims.
