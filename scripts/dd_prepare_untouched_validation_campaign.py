@@ -154,6 +154,17 @@ def freeze_campaign(config_path: Path) -> None:
     manifest_path = output_dir / "simulation_manifest.csv"
     template_path = output_dir / "blind_results_template.csv"
     write_csv_rows(manifest_path, rows, MANIFEST_FIELDS)
+    phase_manifests: dict[str, dict[str, Any]] = {}
+    for phase in ("pilot", "confirmatory"):
+        phase_path = output_dir / f"{phase}_simulation_manifest.csv"
+        phase_rows = [row for row in rows if row["phase"] == phase]
+        write_csv_rows(phase_path, phase_rows, MANIFEST_FIELDS)
+        phase_manifests[phase] = {
+            "path": str(phase_path),
+            "rows": len(phase_rows),
+            "bytes": phase_path.stat().st_size,
+            "sha256": sha256_file(phase_path),
+        }
     result_rows = [dict(row) | {field: "" for field in RESULT_FIELDS if field not in row} for row in rows]
     write_csv_rows(template_path, result_rows, RESULT_FIELDS)
     freeze = {
@@ -183,6 +194,7 @@ def freeze_campaign(config_path: Path) -> None:
             "bytes": manifest_path.stat().st_size,
             "sha256": sha256_file(manifest_path),
         },
+        "phase_manifests": phase_manifests,
         "blind_results_template": {
             "path": str(template_path),
             "bytes": template_path.stat().st_size,
