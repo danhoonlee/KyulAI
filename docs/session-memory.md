@@ -16052,3 +16052,28 @@ Follow-up in same debugging pass:
   same OOF-only selection rules and keeping the fixed benchmark unavailable during tuning.
 - Full comparison evidence is stored in
   `reports/dd_aicomp2026_v1/20260811-uq-deep-geometry-case-v1/model_comparison.md`.
+
+## 2026-08-11 - Pt-Consistent Deep Learning v2 Fold-Local Pretraining Result
+
+- Executed `20260811-uq-deep-fold-pretrain-v2` on the RTX 5070 without changing production models,
+  endpoints, or UI. The run retained the frozen 2,154-row development / 546-row fixed-benchmark split,
+  five Case+theta grouped folds, and zero group overlap.
+- Added a fold-local response-pretraining stage before Pt-consistent fine-tuning. Pretraining used only
+  the fold fit rows and explicitly excluded P1 targets, Tree-teacher targets, synthetic rows, fold
+  assessment rows, and fixed-benchmark rows. Stage-level row hashes, checkpoint hashes, seeds, and loss
+  histories are recorded in `selection_freeze.json`.
+- Fixed-benchmark GointMLP v2 results were Type accuracy 0.9194, Pt MAE 766.17 kips, Max. Force MAE
+  1,077.71 kips, and mean per-row curve RMSE 852.75 kips. Compared with v1, Pt, Max. Force, and curve
+  error improved by 12.5%, 20.8%, and 20.0% respectively.
+- Fixed-benchmark Hybrid v2 results were Type accuracy 0.9322, Pt MAE 411.74 kips, Max. Force MAE
+  660.35 kips, and mean per-row curve RMSE 492.31 kips. Compared with v1, Pt error improved 17.6% and
+  curve error improved 8.9%; Max. Force error was effectively unchanged (+1.29 kips).
+- Hybrid v2's development-only selected 90% intervals achieved 92.12% Pt coverage with 1,484.38-kip
+  mean width and 91.21% Max. Force coverage with 2,784.16-kip mean width on the fixed benchmark.
+  GointMLP v2 achieved 93.41% and 92.31% coverage respectively.
+- The Pt-Consistent Tree remains the deployment leader at Type accuracy 0.9359, Pt MAE 191.79 kips,
+  Max. Force MAE 155.28 kips, and mean per-row curve RMSE 116.77 kips. Hybrid v2 becomes the primary
+  Deep Learning reference challenger; neither v2 model is deployed.
+- Full evidence is stored under
+  `reports/dd_aicomp2026_v1/20260811-uq-deep-fold-pretrain-v2/`, with immutable checkpoints under
+  `models/dd_laminate_aicomp2026_v1/20260811-uq-deep-fold-pretrain-v2/`.

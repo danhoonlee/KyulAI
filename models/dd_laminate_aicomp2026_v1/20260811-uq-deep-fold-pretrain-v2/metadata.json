@@ -1,0 +1,45 @@
+{
+  "experiment_id": "20260811-uq-deep-fold-pretrain-v2",
+  "status": "challenger",
+  "point_models": {
+    "goint": {
+      "path": "models/dd_laminate_aicomp2026_v1/20260811-uq-deep-fold-pretrain-v2/goint/response_goint.pt",
+      "sha256": "44a8cef0aebfc23d4b4eba149426fe65e516f997c8562098e51795338d5bfbf8"
+    },
+    "hybrid": {
+      "path": "models/dd_laminate_aicomp2026_v1/20260811-uq-deep-fold-pretrain-v2/hybrid/response_goint.pt",
+      "sha256": "298794f4ed173a43e24e74f2d725cba68ee3aa3f18ba934838ea06016087abaa"
+    }
+  },
+  "sidecars": {
+    "goint": {
+      "path": "models/dd_laminate_aicomp2026_v1/20260811-uq-deep-fold-pretrain-v2/goint/uncertainty_sidecar.joblib",
+      "sha256": "8d162ea0f446f9344a1fef51578703acf72508106d4613ba8950d8fc89266179",
+      "bytes": 1404
+    },
+    "hybrid": {
+      "path": "models/dd_laminate_aicomp2026_v1/20260811-uq-deep-fold-pretrain-v2/hybrid/uncertainty_sidecar.joblib",
+      "sha256": "17854bf385a0cd85809a1dfce76047bc1ae078cbf949b4b673ac01543c26e0c3",
+      "bytes": 1829
+    }
+  },
+  "selection_freeze": {
+    "path": "reports/dd_aicomp2026_v1/20260811-uq-deep-fold-pretrain-v2/selection_freeze.json",
+    "sha256": "a1f1862e2d0f06ee10062473ffca60c72bb679a2a6caf23cdc279f2d8a0a6f1e"
+  },
+  "training_strategy": {
+    "enabled": true,
+    "scope": "fold_fit_rows_only",
+    "objective": "type_ordinal_response_scalars_curve_without_p1_or_teacher",
+    "goint_epochs": 45,
+    "hybrid_epochs": 45,
+    "goint_lr": 0.00035,
+    "hybrid_lr": 0.0003,
+    "ordinal_weight": 0.25,
+    "scalar_weight": 0.55,
+    "curve_weight": 0.4,
+    "teacher_targets": false,
+    "synthetic_rows": false
+  },
+  "production_changes": false
+}
