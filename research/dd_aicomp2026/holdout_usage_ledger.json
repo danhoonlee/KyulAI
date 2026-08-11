@@ -51,6 +51,16 @@
       "selection_freeze_path": "reports/dd_aicomp2026_v1/20260811-uq-geometry-case-tree-v3/selection_freeze.json",
       "selection_freeze_sha256": "be9505a69edbf63ff191cca85bdf46b098f7ae82cf5d8af5261186435bb62370",
       "decision_role": "fixed benchmark reporting only; no grouping selection"
+    },
+    {
+      "recorded_at": "2026-08-11",
+      "purpose": "Evaluate frozen leakage-controlled GointMLP and Hybrid UQ challengers.",
+      "experiment_or_baseline": "20260811-uq-deep-geometry-case-v1",
+      "git_commit": "2d04f23d95e1d640d784e07aa82f841c98cbbc8c",
+      "git_parent_commit": "b39652a156964575470b9ed10a36353523f90d4c",
+      "selection_freeze_path": "reports/dd_aicomp2026_v1/20260811-uq-deep-geometry-case-v1/selection_freeze.json",
+      "selection_freeze_sha256": "52fef4a56411b472b68209af8e773fba5db2c1dc647ee5022fbfaa03bbf14ff0",
+      "decision_role": "fixed benchmark reporting only; no model or UQ selection"
     }
   ]
 }
