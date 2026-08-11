@@ -66,7 +66,7 @@
       "recorded_at": "2026-08-11",
       "purpose": "Evaluate frozen leakage-controlled GointMLP and Hybrid UQ challengers.",
       "experiment_or_baseline": "20260811-uq-deep-fold-pretrain-v2",
-      "git_commit": "pending-result-commit",
+      "git_commit": "f9055bdebb2de1f868baf0425d50d55818d3d44f",
       "git_parent_commit": "ebbaea5ba15897fefa2d78d879918d5a14dc065f",
       "selection_freeze_path": "reports/dd_aicomp2026_v1/20260811-uq-deep-fold-pretrain-v2/selection_freeze.json",
       "selection_freeze_sha256": "a1f1862e2d0f06ee10062473ffca60c72bb679a2a6caf23cdc279f2d8a0a6f1e",
