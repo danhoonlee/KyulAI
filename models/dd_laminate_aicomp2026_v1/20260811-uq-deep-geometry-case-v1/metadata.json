@@ -1,0 +1,31 @@
+{
+  "experiment_id": "20260811-uq-deep-geometry-case-v1",
+  "status": "challenger",
+  "point_models": {
+    "goint": {
+      "path": "models/dd_laminate_aicomp2026_v1/20260811-uq-deep-geometry-case-v1/goint/response_goint.pt",
+      "sha256": "e020906509d0ead3f6bb7f7a4e2b561ffd07db8b39db057b81480a3a14247bbb"
+    },
+    "hybrid": {
+      "path": "models/dd_laminate_aicomp2026_v1/20260811-uq-deep-geometry-case-v1/hybrid/response_goint.pt",
+      "sha256": "708c95577d8447cb774341484a5f1e9104d6b38ea5469040450f37cc47019579"
+    }
+  },
+  "sidecars": {
+    "goint": {
+      "path": "models/dd_laminate_aicomp2026_v1/20260811-uq-deep-geometry-case-v1/goint/uncertainty_sidecar.joblib",
+      "sha256": "445934bd6e2987e7c9562c47881c71e22bcf27efc8e179f0f02dc4096db699e0",
+      "bytes": 1827
+    },
+    "hybrid": {
+      "path": "models/dd_laminate_aicomp2026_v1/20260811-uq-deep-geometry-case-v1/hybrid/uncertainty_sidecar.joblib",
+      "sha256": "5741307452ec2b9c73ef567fd0ed1287dad1add4e8e92b17b4866b3ca8219cf8",
+      "bytes": 1829
+    }
+  },
+  "selection_freeze": {
+    "path": "reports/dd_aicomp2026_v1/20260811-uq-deep-geometry-case-v1/selection_freeze.json",
+    "sha256": "52fef4a56411b472b68209af8e773fba5db2c1dc647ee5022fbfaa03bbf14ff0"
+  },
+  "production_changes": false
+}

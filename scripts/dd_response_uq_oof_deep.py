@@ -599,7 +599,7 @@ def _report(payload: dict[str, Any]) -> str:
         "",
         "## Point performance",
         "",
-        "| Model | Partition | Type acc. | Pt MAE | Max. Force MAE | Curve RMSE |",
+        "| Model | Partition | Type acc. | Pt MAE | Max. Force MAE | Mean row Curve RMSE |",
         "| --- | --- | ---: | ---: | ---: | ---: |",
     ]
     for mode, result in payload["models"].items():
@@ -608,7 +608,7 @@ def _report(payload: dict[str, Any]) -> str:
             lines.append(
                 f"| {mode} | {partition} | {metrics['accuracy']:.4f} | "
                 f"{metrics['pt_mae']:.2f} | {metrics['max_force_mae']:.2f} | "
-                f"{metrics['curve_force_rmse']:.2f} |"
+                f"{metrics['curve_force_rmse_mean']:.2f} |"
             )
     lines.extend(
         [
@@ -798,6 +798,12 @@ def main() -> int:
             oof_curves,
             p1_head=True,
         )
+        point_metrics.update(
+            {
+                "curve_force_rmse_mean": float(np.mean(dev_curve_errors)),
+                "curve_force_rmse_median": float(np.median(dev_curve_errors)),
+            }
+        )
         classification = _cross_fitted_temperature(
             labels[development_idx], oof_probabilities, oof_fold_ids, config
         )
@@ -945,6 +951,12 @@ def main() -> int:
             predicted[2],
             predicted[3],
             p1_head=True,
+        )
+        benchmark_metrics.update(
+            {
+                "curve_force_rmse_mean": float(np.mean(benchmark_curve_errors)),
+                "curve_force_rmse_median": float(np.median(benchmark_curve_errors)),
+            }
         )
         intervals = _apply_intervals(
             records,

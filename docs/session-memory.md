@@ -16026,3 +16026,29 @@ Follow-up in same debugging pass:
   Pt/P1 scalar outputs for both GointMLP and Hybrid architectures.
 - The next action is the full RTX CUDA run. Its result remains a challenger until Tree, GointMLP, and
   Hybrid OOF calibration/coverage metrics are compared and explicitly approved for deployment.
+
+## 2026-08-11 - Pt-Consistent Deep Learning UQ v1 Result
+
+- Executed `20260811-uq-deep-geometry-case-v1` on the RTX 5070 using the frozen grouped protocol.
+  Five-fold development assessment covered 2,154 rows / 718 Case+theta groups, and the fixed benchmark
+  contained 546 rows / 182 groups with zero design-group overlap.
+- Corrected the Deep Learning report to use the same mean per-row 128-point curve RMSE definition as
+  the Tree report. This was a reporting-only correction and did not retrain or alter either model.
+- Fixed-benchmark GointMLP results were Type accuracy 0.9176, Pt MAE 876.01 kips, Max. Force MAE
+  1,361.00 kips, and mean per-row curve RMSE 1,065.80 kips.
+- Fixed-benchmark Hybrid results were Type accuracy 0.9304, Pt MAE 499.66 kips, Max. Force MAE
+  659.06 kips, and mean per-row curve RMSE 540.14 kips. The fold-local Tree teacher materially
+  improved every regression target relative to standalone GointMLP.
+- Both Deep Learning models selected temperature scaling and panel-geometry-plus-Case conformal
+  intervals from development OOF evidence only. At nominal 90%, GointMLP achieved 93.59% Pt coverage
+  and 89.93% Max. Force coverage; Hybrid achieved 89.19% and 89.56%.
+- Hybrid under-covered at the nominal 80% level: 73.26% for Pt and 76.92% for Max. Force. It remains a
+  research challenger and is not approved for deployment.
+- The frozen Pt-Consistent Tree remains the deployment leader on the same fixed benchmark: Type
+  accuracy 0.9359, Pt MAE 191.79 kips, Max. Force MAE 155.28 kips, and mean per-row curve RMSE
+  116.77 kips. Its 90% Pt/Max. Force interval widths were also much narrower than either neural model.
+- No production model, endpoint, or UI was changed. The next Deep Learning iteration should use
+  fold-local response-objective pretraining followed by Pt-consistent fine-tuning, while retaining the
+  same OOF-only selection rules and keeping the fixed benchmark unavailable during tuning.
+- Full comparison evidence is stored in
+  `reports/dd_aicomp2026_v1/20260811-uq-deep-geometry-case-v1/model_comparison.md`.
