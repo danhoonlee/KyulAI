@@ -10,7 +10,16 @@ import joblib
 import numpy as np
 
 from .curve_features import DDCurveRecord
-from .pt_curve_consistency import enforce_pt_curve_consistency, kink_fit_details
+from .pt_consistent_tree import (
+    CURVE_REPRESENTATION,
+    align_first_p1_line_to_curve_upper_envelope,
+    decode_bundle_outputs,
+)
+from .pt_curve_consistency import (
+    enforce_pt_curve_consistency,
+    kink_fit_details,
+    measure_pt_curve_consistency,
+)
 from .response_feature_sets import feature_set_from_columns, prediction_feature_matrix
 from .train_response_surrogate import make_feature_matrix
 
@@ -54,13 +63,17 @@ def predict_response_from_bundle(
     case: str,
     panel_a_in: float = 6.0,
     panel_b_in: float = 4.0,
+    *,
+    postprocess_curve: bool = True,
 ) -> dict:
     feature_columns = bundle.get("feature_columns", [])
     feature_builder = str(bundle.get("feature_builder") or "")
     if feature_builder:
         x = prediction_feature_matrix(theta1, theta2, case, feature_builder, panel_a_in, panel_b_in)
     elif "case_case2" in feature_columns:
-        x = prediction_feature_matrix(theta1, theta2, case, feature_set_from_columns(feature_columns), panel_a_in, panel_b_in)
+        x = prediction_feature_matrix(
+            theta1, theta2, case, feature_set_from_columns(feature_columns), panel_a_in, panel_b_in
+        )
     else:
         record = DDCurveRecord(
             case=case,
@@ -90,9 +103,17 @@ def predict_response_from_bundle(
     max_displacement = max(float(scalars[1]), 1e-9)
     max_force = max(float(scalars[2]), 1e-9)
 
-    curve_norm = np.clip(pca.inverse_transform(curve_model.predict(x))[0], 0.0, None)
+    pt_consistent_fit = None
+    if str(bundle.get("curve_representation")) == CURVE_REPRESENTATION:
+        curve_norm, pt_consistent_fit = decode_bundle_outputs(bundle, x, scalars)
+        pt = pt_consistent_fit.pt
+    else:
+        curve_norm = np.clip(pca.inverse_transform(curve_model.predict(x))[0], 0.0, None)
     grid = np.asarray(bundle["grid"], dtype=float)
-    consistency = enforce_pt_curve_consistency(
+    consistency_fn = enforce_pt_curve_consistency if postprocess_curve else measure_pt_curve_consistency
+    if pt_consistent_fit is not None:
+        consistency_fn = measure_pt_curve_consistency
+    consistency = consistency_fn(
         curve_norm=curve_norm,
         grid=grid,
         max_displacement=max_displacement,
@@ -105,6 +126,32 @@ def predict_response_from_bundle(
     force = curve_norm * max_force
     metrics = dict(bundle.get("metrics", {}))
     metrics.update(consistency.flat_metrics())
+    metrics.update(
+        {
+            "response_output_mode": (
+                CURVE_REPRESENTATION
+                if pt_consistent_fit is not None
+                else "pt_aligned_postprocessing"
+                if postprocess_curve
+                else "raw_model_prediction"
+            ),
+            "pt_curve_force_postprocessing_applied": int(
+                postprocess_curve and pt_consistent_fit is None
+            ),
+        }
+    )
+    if pt_consistent_fit is not None:
+        metrics["displayed_p1_direct_pt_gap"] = 0.0
+
+    curve_fit = (
+        align_first_p1_line_to_curve_upper_envelope(
+            pt_consistent_fit.details,
+            displacement,
+            force,
+        )
+        if pt_consistent_fit is not None
+        else kink_fit_details(displacement, force)
+    )
 
     return {
         "predicted_type": pred_type,
@@ -116,7 +163,7 @@ def predict_response_from_bundle(
             {"displacement": float(d), "force": float(f)}
             for d, f in zip(displacement, force, strict=True)
         ],
-        "curve_fit": kink_fit_details(displacement, force),
+        "curve_fit": curve_fit,
         "model_name": bundle.get("model_name", "response_surrogate"),
         "metrics": metrics,
     }
@@ -127,7 +174,9 @@ def main() -> None:
     parser.add_argument("--theta1", type=float, required=True)
     parser.add_argument("--theta2", type=float, required=True)
     parser.add_argument("--case", choices=["Case2", "Case3", "Case4"], required=True)
-    parser.add_argument("--model", default="models/dd_laminate_response_surrogate_v1/response_surrogate.joblib")
+    parser.add_argument(
+        "--model", default="models/dd_laminate_response_surrogate_v1/response_surrogate.joblib"
+    )
     args = parser.parse_args()
     result = predict_response(args.model, args.theta1, args.theta2, args.case)
     print(json.dumps(result, indent=2))
