@@ -16005,3 +16005,24 @@ Follow-up in same debugging pass:
   heuristic Reliability display.
 - The benchmark remains reused evidence rather than pristine external validation. A newly generated
   untouched simulation set is still required for publication-grade claims.
+
+## 2026-08-11 - Prepared Pt-Consistent Deep Learning UQ v1
+
+- Prepared experiment `20260811-uq-deep-geometry-case-v1` for the Pt-Consistent GointMLP and
+  Teacher-Student Hybrid challengers. Production models, API endpoints, and UI remain unchanged.
+- The protocol uses five-fold grouped OOF assessment on the 2,154-row development partition. The
+  grouping key is Case + theta1 + theta2, and the reused 546-row fixed benchmark is excluded from
+  model fitting, teacher fitting, calibration selection, and interval selection.
+- Existing full-development neural checkpoints are used only to recover model architecture. Every
+  fold model and final challenger starts from random weights; using existing checkpoint weights would
+  leak fold-assessment designs through the warm start.
+- Each Hybrid fold receives a fold-local Pt-Consistent Tree teacher fitted only to that fold's training
+  rows. Synthetic grid points exclude both the fold assessment designs and the fixed benchmark designs.
+- Type probability calibration compares identity with cross-fitted temperature scaling. Pt and Max.
+  Force intervals compare geometry conditioning with geometry + Case conditioning using development
+  OOF evidence and predeclared coverage/width guards.
+- Added a non-training preflight. It verified 2,700 total rows, 2,154 development rows / 718 groups,
+  546 benchmark rows / 182 groups, zero group overlap, 40 input features, 128 curve points, and six
+  Pt/P1 scalar outputs for both GointMLP and Hybrid architectures.
+- The next action is the full RTX CUDA run. Its result remains a challenger until Tree, GointMLP, and
+  Hybrid OOF calibration/coverage metrics are compared and explicitly approved for deployment.
