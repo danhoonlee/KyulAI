@@ -40,7 +40,9 @@ hyperparameters receives a new version suffix.
    changes that touch datasets, model loading, or deployment configuration.
 3. Record model binaries with Git LFS, while keeping configs, manifests,
    metrics, and reports as regular Git files.
-4. Keep the grouped holdout sealed until a challenger configuration is frozen.
+4. Make all challenger choices inside grouped development folds. The historical
+   546-row partition is now a reused fixed benchmark, not a pristine external
+   holdout; record every use in `research/dd_aicomp2026/holdout_usage_ledger.json`.
 5. Report human-reviewed and pseudo-labeled results separately when label
    provenance can affect the conclusion.
 
@@ -48,8 +50,8 @@ hyperparameters receives a new version suffix.
 
 A challenger can replace the baseline only when all of the following are true:
 
-- It is evaluated on the same 546-row grouped holdout with no Case/angle-group
-  leakage.
+- It is evaluated on the same 546-row grouped fixed benchmark with no
+  Case/angle-group leakage after its configuration is frozen.
 - Type accuracy, macro-F1, Pt MAE, Max. Force MAE, and curve RMSE are reported.
 - Type probability calibration is reported with ECE and Brier score.
 - Pt uncertainty is reported with empirical coverage and interval width.
@@ -67,8 +69,13 @@ current point predictors:
 1. Fit probability calibration using a calibration split taken only from the
    development partition.
 2. Fit conformal residual intervals for Pt using the same calibration policy.
-3. Preserve the 546-row grouped holdout for final evaluation.
+3. Use the 546-row grouped partition only as a fixed benchmark after all
+   choices are frozen; it has prior evaluation history and is not pristine
+   external validation.
 4. Add abstention and OOD behavior only after calibration metrics are stable.
 
 This lets us measure whether reliability information improves before taking on
 the larger risk of a new network or inverse-design stack.
+
+Publication-grade validation requires a newly generated untouched simulation
+set collected after the final model and calibration protocol are frozen.

@@ -1,0 +1,79 @@
+{
+  "status": "ready",
+  "experiment_id": "20260811-uq-mondrian-ood-tree-v2",
+  "git": {
+    "branch": "codex/dd-aicomp2026-uq",
+    "commit": "744dc2b530ebc36f00d8fd5eee2c33a4bb932c33"
+  },
+  "checks": {
+    "baseline_quick_verification": "passed",
+    "group_overlap": 0,
+    "feature_matrix_finite": true,
+    "benchmark_status": "reused_fixed_benchmark_not_pristine_external_holdout"
+  },
+  "dataset": {
+    "rows": 2700,
+    "feature_columns": 40,
+    "feature_set": "theta_physics_geometry_v1"
+  },
+  "partitions": {
+    "fit": {
+      "rows": 1725,
+      "groups": 575,
+      "cases": {
+        "Case2": 576,
+        "Case3": 576,
+        "Case4": 573
+      },
+      "geometries": {
+        "6x4": 575,
+        "6x8": 575,
+        "8x8": 575
+      }
+    },
+    "calibration": {
+      "rows": 429,
+      "groups": 143,
+      "cases": {
+        "Case2": 141,
+        "Case3": 141,
+        "Case4": 147
+      },
+      "geometries": {
+        "6x4": 143,
+        "6x8": 143,
+        "8x8": 143
+      }
+    },
+    "fixed_benchmark": {
+      "rows": 546,
+      "groups": 182,
+      "cases": {
+        "Case2": 183,
+        "Case3": 183,
+        "Case4": 180
+      },
+      "geometries": {
+        "6x4": 182,
+        "6x8": 182,
+        "8x8": 182
+      }
+    }
+  },
+  "mondrian": {
+    "minimum_group_size": 30,
+    "calibration_rows_by_geometry": {
+      "6x4": 143,
+      "6x8": 143,
+      "8x8": 143
+    },
+    "eligible_by_geometry": {
+      "6x4": true,
+      "6x8": true,
+      "8x8": true
+    },
+    "fallback": "pooled"
+  },
+  "production_changes": false,
+  "publication_external_validation_required": true
+}

@@ -1,0 +1,73 @@
+{
+  "experiment_id": "20260811-uq-mondrian-ood-tree-v2",
+  "status": "prepared_not_run",
+  "parent_experiment": "20260811-uq-calibration-tree-v1",
+  "production_changes": false,
+  "data_dir": "data/datasets/DD_cases_2_3_4_geometry_3size_v1",
+  "split_manifest": "data/datasets/DD_cases_2_3_4_geometry_grouped_v1/split_manifest.csv",
+  "feature_set": "theta_physics_geometry_v1",
+  "selection_protocol": {
+    "partition": "development_only",
+    "rows": 2154,
+    "group_key": [
+      "case",
+      "theta1",
+      "theta2"
+    ],
+    "grouped_folds": 5,
+    "seed": 42,
+    "forbid_fixed_benchmark_selection": true
+  },
+  "classification": {
+    "selected_calibration": "identity",
+    "candidate_methods": [
+      "identity",
+      "temperature_scaling"
+    ],
+    "guard_metrics": [
+      "negative_log_likelihood",
+      "brier_score",
+      "expected_calibration_error"
+    ]
+  },
+  "regression_intervals": {
+    "targets": [
+      "pt",
+      "max_force"
+    ],
+    "levels": [
+      0.8,
+      0.9,
+      0.95
+    ],
+    "candidate_methods": [
+      "pooled_split_conformal",
+      "panel_geometry_mondrian_conformal"
+    ],
+    "mondrian_group": "panel_geometry",
+    "minimum_group_size": 30,
+    "unsupported_group_fallback": "pooled"
+  },
+  "design_space_distance": {
+    "method": "standard_scaler_knn_mean_distance",
+    "neighbor_count": 5,
+    "reference_quantile": 0.95,
+    "role": "coverage_indicator_not_combined_confidence"
+  },
+  "failure_case_report": {
+    "top_rows_per_target": 20,
+    "risk_bins": 5,
+    "subgroups": [
+      "case",
+      "type",
+      "panel_geometry"
+    ]
+  },
+  "fixed_benchmark": {
+    "rows": 546,
+    "status": "reused_fixed_benchmark_not_pristine_external_holdout",
+    "allowed_use": "report_frozen_configuration_only",
+    "forbidden_use": "method_or_hyperparameter_selection"
+  },
+  "report_dir": "reports/dd_aicomp2026_v1/20260811-uq-mondrian-ood-tree-v2"
+}

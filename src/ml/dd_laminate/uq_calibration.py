@@ -154,6 +154,72 @@ def symmetric_conformal_interval(
     return lower, upper
 
 
+def mondrian_conformal_quantiles(
+    residuals: np.ndarray,
+    groups: np.ndarray,
+    coverage: float,
+    *,
+    minimum_group_size: int = 30,
+) -> dict[str, float]:
+    """Fit pooled and group-conditional split-conformal quantiles.
+
+    Groups smaller than ``minimum_group_size`` deliberately fall back to the
+    pooled quantile at prediction time. This keeps sparse categories from
+    producing unstable intervals while preserving an auditable fallback.
+    """
+    values = np.asarray(residuals, dtype=float).reshape(-1)
+    labels = np.asarray(groups).reshape(-1)
+    if len(values) != len(labels):
+        raise ValueError("residuals and groups must contain the same samples")
+    if minimum_group_size < 1:
+        raise ValueError("minimum_group_size must be positive")
+
+    quantiles = {"__pooled__": conformal_quantile(values, coverage)}
+    for group in sorted({str(value) for value in labels.tolist()}):
+        mask = np.asarray([str(value) == group for value in labels], dtype=bool)
+        if int(np.sum(mask)) >= minimum_group_size:
+            quantiles[group] = conformal_quantile(values[mask], coverage)
+    return quantiles
+
+
+def mondrian_symmetric_conformal_interval(
+    predictions: np.ndarray,
+    groups: np.ndarray,
+    quantiles: dict[str, float],
+    *,
+    lower_bound: float | None = None,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Apply group-conditional intervals with a recorded pooled fallback.
+
+    Returns lower and upper bounds, the quantile used for every row, and a
+    boolean mask indicating rows that used the pooled fallback.
+    """
+    predictions = np.asarray(predictions, dtype=float).reshape(-1)
+    labels = np.asarray(groups).reshape(-1)
+    if len(predictions) != len(labels):
+        raise ValueError("predictions and groups must contain the same samples")
+    if "__pooled__" not in quantiles:
+        raise ValueError("quantiles must include a '__pooled__' fallback")
+
+    pooled = float(quantiles["__pooled__"])
+    applied = np.asarray(
+        [float(quantiles.get(str(group), pooled)) for group in labels],
+        dtype=float,
+    )
+    fallback = np.asarray(
+        [str(group) not in quantiles for group in labels],
+        dtype=bool,
+    )
+    if not np.all(np.isfinite(applied)) or np.any(applied < 0):
+        raise ValueError("quantiles must contain finite non-negative values")
+
+    lower = predictions - applied
+    upper = predictions + applied
+    if lower_bound is not None:
+        lower = np.maximum(lower, lower_bound)
+    return lower, upper, applied, fallback
+
+
 def interval_metrics(
     targets: np.ndarray,
     lower: np.ndarray,

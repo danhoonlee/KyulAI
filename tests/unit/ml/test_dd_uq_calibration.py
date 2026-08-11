@@ -8,6 +8,8 @@ from src.ml.dd_laminate.uq_calibration import (
     conformal_quantile,
     fit_temperature,
     interval_metrics,
+    mondrian_conformal_quantiles,
+    mondrian_symmetric_conformal_interval,
     symmetric_conformal_interval,
     temperature_scale_probabilities,
 )
@@ -64,3 +66,33 @@ def test_interval_metrics_report_coverage_and_width() -> None:
 
     assert metrics["empirical_coverage"] == pytest.approx(2.0 / 3.0)
     assert metrics["mean_width"] == pytest.approx(4.0)
+
+
+def test_mondrian_quantiles_preserve_group_specific_residual_scale() -> None:
+    residuals = np.asarray([1.0, 2.0, 2.0, 3.0, 10.0, 11.0, 12.0, 13.0])
+    groups = np.asarray(["6x4"] * 4 + ["8x8"] * 4)
+
+    quantiles = mondrian_conformal_quantiles(
+        residuals,
+        groups,
+        coverage=0.75,
+        minimum_group_size=4,
+    )
+
+    assert quantiles["6x4"] == pytest.approx(3.0)
+    assert quantiles["8x8"] == pytest.approx(13.0)
+    assert quantiles["__pooled__"] == pytest.approx(12.0)
+
+
+def test_mondrian_interval_records_unseen_group_fallback() -> None:
+    lower, upper, applied, fallback = mondrian_symmetric_conformal_interval(
+        np.asarray([100.0, 200.0]),
+        np.asarray(["6x4", "unseen"]),
+        {"__pooled__": 20.0, "6x4": 10.0},
+        lower_bound=0.0,
+    )
+
+    assert lower.tolist() == pytest.approx([90.0, 180.0])
+    assert upper.tolist() == pytest.approx([110.0, 220.0])
+    assert applied.tolist() == pytest.approx([10.0, 20.0])
+    assert fallback.tolist() == [False, True]

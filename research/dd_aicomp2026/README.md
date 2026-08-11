@@ -38,13 +38,20 @@ Recommended experiment IDs use `YYYYMMDD-topic-model-vN`, for example
 
 ## First upgrade sequence
 
-1. Preserve the grouped 546-row holdout as the final comparison gate.
+1. Treat the grouped 546-row partition as a fixed historical benchmark and log
+   every use in `holdout_usage_ledger.json`.
 2. Split the 2,154-row development set again for calibration fitting.
 3. Add calibrated Type probabilities and conformal Pt intervals without
    changing the current production endpoints.
 4. Measure coverage, interval width, ECE, Brier score, and abstention behavior.
-5. Promote only after a report compares the challenger against this frozen
-   baseline on the same holdout.
+5. Promote only after a frozen challenger is compared with the baseline on the
+   same benchmark; require a new untouched simulation set for publication-grade
+   external validation.
+
+The prepared Phase 1 v2 scope is documented in
+`docs/DD_UQ_PHASE1_IMMEDIATE_SCOPE.md`. It adds development-only method
+selection, panel-geometry-conditioned conformal intervals, and separate
+design-space-distance/failure-case reporting without changing production.
 
 See `docs/DD_MODEL_LIFECYCLE.md` and
 `docs/reviews/2026-08-11-aicomp-2026-dd-laminate-review.md` for the full policy

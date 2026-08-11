@@ -15926,3 +15926,24 @@ Follow-up in same debugging pass:
   decisions on the locked Holdout.
 - Strict-split point performance was lower than the production model because 429 rows were reserved
   for calibration: Type accuracy 0.9176, Pt MAE 236.01 kips, Max. Force MAE 218.94 kips.
+
+## 2026-08-11 - Prepared DD Phase 1 Immediate-Scope UQ v2
+
+- Kept all production model paths and API/UI behavior unchanged. New work remains on branch
+  `codex/dd-aicomp2026-uq` under experiment ID
+  `20260811-uq-mondrian-ood-tree-v2` with status `prepared_not_run`.
+- Added the execution contract in `docs/DD_UQ_PHASE1_IMMEDIATE_SCOPE.md`: all pooled-versus-Mondrian
+  interval selection must use grouped out-of-fold development predictions, and the fixed benchmark
+  cannot influence method or hyperparameter choices.
+- Added panel-geometry-conditioned conformal utilities with an explicit pooled fallback for sparse or
+  unseen geometry. Added separate design-space-distance, residual-risk, and largest-failure-case
+  utilities so probability, interval width, coverage, and OOD risk are not compressed into one score.
+- Added `research/dd_aicomp2026/holdout_usage_ledger.json`. The historical 546-row partition is now
+  described as a reused fixed benchmark, not a pristine external holdout. Publication-grade claims
+  require a new untouched simulation set collected after the final protocol is frozen.
+- Ran `scripts/dd_uq_phase1_preflight.py` against all 2,700 rows. Baseline quick verification passed,
+  Case+theta group overlap was zero, every model feature was finite, and the prepared split contained
+  1,725 fit rows / 575 groups, 429 calibration rows / 143 groups, and 546 fixed-benchmark rows / 182
+  groups.
+- Every geometry has 143 calibration rows, exceeding the configured minimum of 30 for 6x4, 6x8, and
+  8x8 Mondrian intervals. The experiment is ready for the development-only grouped OOF run.
