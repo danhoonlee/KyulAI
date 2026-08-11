@@ -46,7 +46,7 @@
       "recorded_at": "2026-08-11",
       "purpose": "Evaluate the frozen development-only geometry-plus-Case conformal challenger.",
       "experiment_or_baseline": "20260811-uq-geometry-case-tree-v3",
-      "git_commit": "pending-result-commit",
+      "git_commit": "98bbd0a572207ead5006ccd01a5b39a21f6db831",
       "git_parent_commit": "60e0029ce3b4b9bbd773586f8a21c7bee58ca787",
       "selection_freeze_path": "reports/dd_aicomp2026_v1/20260811-uq-geometry-case-tree-v3/selection_freeze.json",
       "selection_freeze_sha256": "be9505a69edbf63ff191cca85bdf46b098f7ae82cf5d8af5261186435bb62370",
