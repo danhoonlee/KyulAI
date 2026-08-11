@@ -1,0 +1,19 @@
+{
+  "experiment_id": "20260811-uq-deep-force-robust-v3c",
+  "status": "uq_challenger",
+  "source_experiment_id": "20260811-uq-deep-force-head-v3b",
+  "point_model": {
+    "path": "models/dd_laminate_aicomp2026_v1/20260811-uq-deep-force-head-v3b/hybrid/response_goint.pt",
+    "sha256": "80dadb85a5a460eb923850538a12e26c0f05834d91d8413bce2e36329fe15bc9"
+  },
+  "sidecar": {
+    "path": "models/dd_laminate_aicomp2026_v1/20260811-uq-deep-force-robust-v3c/hybrid/uncertainty_sidecar.joblib",
+    "sha256": "89c071bbe0a654976380f218f0cea8daf24c5a07f669e9d2789edc34b5cdae1b",
+    "bytes": 1954
+  },
+  "selection_freeze": {
+    "path": "reports/dd_aicomp2026_v1/20260811-uq-deep-force-robust-v3c/selection_freeze.json",
+    "sha256": "de953d5a7f23ff74fd40a0288f4c52563beef5a5dd2a404e356f65721fe95728"
+  },
+  "production_changes": false
+}

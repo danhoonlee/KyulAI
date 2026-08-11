@@ -16102,3 +16102,25 @@ Follow-up in same debugging pass:
 - No production checkpoint, API endpoint, or UI was changed. Complete evidence is stored under
   `reports/dd_aicomp2026_v1/20260811-uq-deep-force-head-v3b/`, with the immutable challenger under
   `models/dd_laminate_aicomp2026_v1/20260811-uq-deep-force-head-v3b/`.
+
+## 2026-08-11 - Hybrid v3c OOF-Robust Max. Force Interval Result
+
+- Added an uncertainty-only v3c challenger around the frozen Hybrid v3b point model. No neural model
+  was retrained. Type probabilities, Pt, Max. Force point predictions, the 128-point curve, and Pt
+  intervals remain byte-for-byte or numerically unchanged from v3b.
+- The candidate uses the maximum supported fold-wise conformal residual quantile for each geometry +
+  Case subgroup. It was selected from 2,154 development OOF rows only. At 90% nominal coverage, the
+  development OOF result improved from 89.46% coverage / 2,302.06-kip width to 95.13% coverage /
+  2,972.15-kip width, passing all predeclared undercoverage and width guards.
+- The reused 546-row fixed benchmark was opened only after `selection_freeze.json` was written. v3c
+  achieved 87.91%, 94.87%, and 98.35% Max. Force coverage at nominal 80%, 90%, and 95%, with mean
+  widths of 2,278.16, 3,058.64, and 3,996.58 kips.
+- Relative to v3b at 90%, v3c recovered 7.14 percentage points of coverage but widened the interval by
+  33.87%. Relative to Hybrid v2, it recovered 3.66 percentage points and widened the interval by
+  9.86%.
+- `6x8 | Case2` remains the only 90% geometry + Case subgroup below nominal coverage at 86.89%.
+  Therefore v3c is retained as a conservative research challenger, not approved for deployment.
+- The Pt-Consistent Tree remains the deployment leader. No production model, API endpoint, or UI was
+  changed. Full evidence is stored under
+  `reports/dd_aicomp2026_v1/20260811-uq-deep-force-robust-v3c/` and the sidecar metadata under
+  `models/dd_laminate_aicomp2026_v1/20260811-uq-deep-force-robust-v3c/`.

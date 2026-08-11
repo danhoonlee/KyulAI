@@ -81,6 +81,16 @@
       "selection_freeze_path": "reports/dd_aicomp2026_v1/20260811-uq-deep-force-head-v3b/selection_freeze.json",
       "selection_freeze_sha256": "ada1fefa3e55888b05eed26f104196419aecb7b0457c978bc153199111628b2a",
       "decision_role": "fixed benchmark reporting only; no model or UQ selection"
+    },
+    {
+      "recorded_at": "2026-08-11",
+      "purpose": "Evaluate the frozen OOF-only fold-robust Max. Force interval sidecar.",
+      "experiment_or_baseline": "20260811-uq-deep-force-robust-v3c",
+      "git_commit": "pending-result-commit",
+      "git_parent_commit": "f9585cafcaf668cb922c9e96a4caa41cae6dccdb",
+      "selection_freeze_path": "reports/dd_aicomp2026_v1/20260811-uq-deep-force-robust-v3c/selection_freeze.json",
+      "selection_freeze_sha256": "de953d5a7f23ff74fd40a0288f4c52563beef5a5dd2a404e356f65721fe95728",
+      "decision_role": "fixed benchmark reporting only; no interval selection"
     }
   ]
 }
