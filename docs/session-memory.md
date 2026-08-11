@@ -15947,3 +15947,15 @@ Follow-up in same debugging pass:
   groups.
 - Every geometry has 143 calibration rows, exceeding the configured minimum of 30 for 6x4, 6x8, and
   8x8 Mondrian intervals. The experiment is ready for the development-only grouped OOF run.
+
+## 2026-08-11 - Clarified Immediate UQ Scope Status
+
+- Completed in UQ v1: frozen baseline dataset/model manifest, grouped development-only calibration
+  split, Type probability calibration evaluation, pooled Pt/Max. Force split-conformal intervals, and
+  empirical interval coverage evaluation on the historical 546-row fixed benchmark.
+- Type calibration selected the raw Tree probabilities (`identity`) because temperature scaling failed
+  the calibration-only NLL/Brier/ECE guard.
+- Prepared but not yet executed in UQ v2: development-only grouped OOF comparison of pooled versus
+  panel-geometry-conditioned Mondrian intervals, plus OOD and failure-case reporting.
+- Not yet implemented: an API/UI comparison between the existing heuristic Reliability indicator and
+  the new statistical uncertainty outputs. Production UI remains unchanged.
