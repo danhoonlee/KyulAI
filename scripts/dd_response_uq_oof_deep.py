@@ -103,6 +103,8 @@ def _training_args(config: dict[str, Any], device: torch.device) -> Namespace:
     training = config["training"]
     pretraining = config.get("pretraining", {})
     pretraining_enabled = bool(pretraining.get("enabled", False))
+    force_head = config.get("force_head_calibration", {})
+    force_head_enabled = bool(force_head.get("enabled", False))
     synthetic = config["synthetic_teacher"]
     return Namespace(
         batch_size=int(training["batch_size"]),
@@ -140,6 +142,10 @@ def _training_args(config: dict[str, Any], device: torch.device) -> Namespace:
         ),
         pretrain_scalar_weight=float(pretraining.get("scalar_weight", training["scalar_weight"])),
         pretrain_curve_weight=float(pretraining.get("curve_weight", training["curve_weight"])),
+        force_head_epochs=int(force_head.get("epochs", 0)) if force_head_enabled else 0,
+        force_head_lr=float(force_head.get("learning_rate", 5e-4)),
+        force_head_huber_beta=float(force_head.get("huber_beta", 1.0)),
+        force_head_anchor_weight=float(force_head.get("anchor_weight", 0.0)),
         synthetic_grid_step=float(synthetic["grid_step"]),
         synthetic_theta_min=float(synthetic["theta_min"]),
         synthetic_theta_max=float(synthetic["theta_max"]),
@@ -320,6 +326,21 @@ def _validate_preflight(
         ):
             raise ValueError("enabled pretraining requires positive epochs for every mode")
 
+    force_head = config.get("force_head_calibration", {})
+    if force_head.get("enabled", False):
+        if "hybrid" not in config.get("modes", []):
+            raise ValueError("Max. Force head calibration requires hybrid mode")
+        if force_head.get("scope") != "fold_fit_rows_only":
+            raise ValueError("Max. Force calibration scope must be fold_fit_rows_only")
+        if force_head.get("target") != "max_force":
+            raise ValueError("Max. Force calibration target must be max_force")
+        if force_head.get("teacher_targets") is not False:
+            raise ValueError("Max. Force calibration cannot use teacher targets")
+        if force_head.get("synthetic_rows") is not False:
+            raise ValueError("Max. Force calibration cannot use synthetic rows")
+        if int(force_head.get("epochs", 0)) <= 0:
+            raise ValueError("enabled Max. Force calibration requires positive epochs")
+
     expected_development = int(config["selection_protocol"]["rows"])
     expected_benchmark = int(config["fixed_benchmark"]["rows"])
     if len(development_idx) != expected_development:
@@ -383,7 +404,69 @@ def _validate_preflight(
             "teacher_targets": pretraining.get("teacher_targets", False),
             "synthetic_rows": pretraining.get("synthetic_rows", False),
         },
+        "force_head_calibration": {
+            "enabled": bool(force_head.get("enabled", False)),
+            "scope": force_head.get("scope"),
+            "target": force_head.get("target"),
+            "teacher_targets": force_head.get("teacher_targets", False),
+            "synthetic_rows": force_head.get("synthetic_rows", False),
+        },
         "architectures": architecture_rows,
+    }
+
+
+def _development_gate(
+    mode: str,
+    point_metrics: dict[str, Any],
+    config: dict[str, Any],
+) -> dict[str, Any]:
+    """Evaluate a predeclared OOF-only gate before any fixed-benchmark scoring."""
+    gate = config.get("development_gate", {})
+    if not gate.get("enabled", False):
+        return {"enabled": False, "passed": True}
+    baseline = gate["baseline"][mode]
+    thresholds = gate["thresholds"]
+
+    force_improvement = (
+        float(baseline["max_force_mae"]) - float(point_metrics["max_force_mae"])
+    ) / max(float(baseline["max_force_mae"]), 1e-9)
+    pt_regression = (float(point_metrics["pt_mae"]) - float(baseline["pt_mae"])) / max(
+        float(baseline["pt_mae"]), 1e-9
+    )
+    curve_regression = (
+        float(point_metrics["curve_force_rmse_mean"]) - float(baseline["curve_force_rmse_mean"])
+    ) / max(float(baseline["curve_force_rmse_mean"]), 1e-9)
+    accuracy_regression = float(baseline["accuracy"]) - float(point_metrics["accuracy"])
+    checks = {
+        "max_force_mae_improvement": force_improvement
+        >= float(thresholds["minimum_max_force_mae_improvement_ratio"]),
+        "pt_mae_regression": pt_regression <= float(thresholds["maximum_pt_mae_regression_ratio"]),
+        "curve_force_rmse_mean_regression": curve_regression
+        <= float(thresholds["maximum_curve_force_rmse_mean_regression_ratio"]),
+        "accuracy_regression": accuracy_regression
+        <= float(thresholds["maximum_accuracy_regression"]),
+    }
+    return {
+        "enabled": True,
+        "selection_partition": "development_grouped_oof_only",
+        "baseline_experiment_id": gate["baseline_experiment_id"],
+        "baseline": baseline,
+        "candidate": {
+            "accuracy": float(point_metrics["accuracy"]),
+            "pt_mae": float(point_metrics["pt_mae"]),
+            "max_force_mae": float(point_metrics["max_force_mae"]),
+            "curve_force_rmse_mean": float(point_metrics["curve_force_rmse_mean"]),
+        },
+        "deltas": {
+            "max_force_mae_improvement_ratio": force_improvement,
+            "pt_mae_regression_ratio": pt_regression,
+            "curve_force_rmse_mean_regression_ratio": curve_regression,
+            "accuracy_regression": accuracy_regression,
+        },
+        "thresholds": thresholds,
+        "checks": checks,
+        "passed": all(checks.values()),
+        "fixed_benchmark_used": False,
     }
 
 
@@ -773,6 +856,7 @@ def main() -> int:
 
     model_results: dict[str, Any] = {}
     frozen_models: dict[str, Path] = {}
+    development_gates: dict[str, Any] = {}
     for mode_position, mode in enumerate(modes):
         print(f"\n=== {mode.upper()} grouped OOF ===", flush=True)
         architecture_path = ROOT / config["architectures"][mode]
@@ -873,6 +957,16 @@ def main() -> int:
                 "curve_force_rmse_median": float(np.median(dev_curve_errors)),
             }
         )
+        development_gate = _development_gate(mode, point_metrics, config)
+        development_gates[mode] = development_gate
+        (report_dir / f"development_gate_{mode}.json").write_text(
+            json.dumps(json_ready(development_gate), indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        if not development_gate["passed"]:
+            raise SystemExit(
+                f"{mode} failed the frozen development-only gate; fixed benchmark was not evaluated"
+            )
         classification = _cross_fitted_temperature(
             labels[development_idx], oof_probabilities, oof_fold_ids, config
         )
@@ -942,6 +1036,7 @@ def main() -> int:
         model_results[mode] = {
             "development_oof": {
                 "point_metrics": point_metrics,
+                "development_gate": development_gate,
                 "classification": classification,
                 "intervals": intervals,
                 "folds": fold_rows,
@@ -961,6 +1056,8 @@ def main() -> int:
         "git_parent_commit": parent_commit,
         "selection_partition": "development_grouped_oof_only",
         "training_strategy": config.get("pretraining", {"enabled": False}),
+        "force_head_calibration": config.get("force_head_calibration", {"enabled": False}),
+        "development_gate": development_gates,
         "point_models": {mode: model_results[mode]["point_model"] for mode in modes},
         "oof_training_provenance": {
             mode: [

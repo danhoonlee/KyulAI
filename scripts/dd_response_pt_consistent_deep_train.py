@@ -378,6 +378,120 @@ def run_hybrid_epoch(
     return total_loss / max(total_weight, 1e-9)
 
 
+def _scalar_output_layer(model: DDResponseGointSurrogate) -> torch.nn.Linear:
+    layer = model.scalar_head[-1]
+    if not isinstance(layer, torch.nn.Linear) or layer.out_features < 3:
+        raise TypeError(
+            "Max. Force calibration requires a scalar output Linear with three outputs."
+        )
+    return layer
+
+
+def run_force_head_calibration_epoch(
+    model: DDResponseGointSurrogate,
+    loader: DataLoader,
+    optimizer: torch.optim.Optimizer,
+    args: argparse.Namespace,
+    *,
+    reference_weight: torch.Tensor,
+    reference_bias: torch.Tensor,
+) -> float:
+    """Calibrate only the Max. Force scalar row on real fold-fit targets."""
+    model.train()
+    layer = _scalar_output_layer(model)
+    total_loss = 0.0
+    total_weight = 0.0
+    beta = float(getattr(args, "force_head_huber_beta", 1.0))
+    anchor_weight = float(getattr(args, "force_head_anchor_weight", 0.0))
+    for batch in loader:
+        x = batch["x"].to(args.device_torch, non_blocking=True)
+        scalars = batch["scalars"].to(args.device_torch, non_blocking=True)
+        weights = batch["sample_weight"].to(args.device_torch, non_blocking=True)
+        optimizer.zero_grad(set_to_none=True)
+        _, _, pred_scalars, _ = model(x)
+        per_sample = F.smooth_l1_loss(
+            pred_scalars[:, 2], scalars[:, 2], beta=beta, reduction="none"
+        )
+        data_loss = (per_sample * weights).sum() / torch.clamp(weights.sum(), min=1e-6)
+        anchor_loss = (
+            torch.mean((layer.weight[2] - reference_weight) ** 2)
+            + (layer.bias[2] - reference_bias) ** 2
+        )
+        loss = data_loss + anchor_weight * anchor_loss
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_([layer.weight, layer.bias], 3.0)
+        optimizer.step()
+        batch_weight = float(weights.sum().detach().cpu())
+        total_loss += float(loss.detach().cpu()) * batch_weight
+        total_weight += batch_weight
+    return total_loss / max(total_weight, 1e-9)
+
+
+def calibrate_force_head(
+    model: DDResponseGointSurrogate,
+    dataset: PtConsistentDataset,
+    args: argparse.Namespace,
+) -> tuple[list[float], dict[str, float]]:
+    """Apply an anchored residual update to only scalar-head row 2 (Max. Force)."""
+    epochs = int(getattr(args, "force_head_epochs", 0))
+    if epochs <= 0:
+        return [], {"weight_delta_l2": 0.0, "bias_delta": 0.0}
+
+    layer = _scalar_output_layer(model)
+    reference_weight = layer.weight[2].detach().clone()
+    reference_bias = layer.bias[2].detach().clone()
+    original_requires_grad = {
+        name: parameter.requires_grad for name, parameter in model.named_parameters()
+    }
+    for parameter in model.parameters():
+        parameter.requires_grad_(False)
+    layer.weight.requires_grad_(True)
+    layer.bias.requires_grad_(True)
+
+    weight_mask = torch.zeros_like(layer.weight)
+    weight_mask[2] = 1.0
+    bias_mask = torch.zeros_like(layer.bias)
+    bias_mask[2] = 1.0
+    weight_hook = layer.weight.register_hook(lambda gradient: gradient * weight_mask)
+    bias_hook = layer.bias.register_hook(lambda gradient: gradient * bias_mask)
+    optimizer = torch.optim.AdamW(
+        [layer.weight, layer.bias],
+        lr=float(getattr(args, "force_head_lr", 5e-4)),
+        weight_decay=0.0,
+    )
+    loader = make_loader(dataset, args, shuffle=True)
+    history: list[float] = []
+    try:
+        for epoch in range(1, epochs + 1):
+            loss = run_force_head_calibration_epoch(
+                model,
+                loader,
+                optimizer,
+                args,
+                reference_weight=reference_weight,
+                reference_bias=reference_bias,
+            )
+            history.append(float(loss))
+            if epoch == 1 or epoch % 10 == 0 or epoch == epochs:
+                print(
+                    f"[hybrid] Max. Force head {epoch}/{epochs}: loss={loss:.6f}",
+                    flush=True,
+                )
+    finally:
+        weight_hook.remove()
+        bias_hook.remove()
+        for name, parameter in model.named_parameters():
+            parameter.requires_grad_(original_requires_grad[name])
+
+    audit = {
+        "weight_delta_l2": float(
+            torch.linalg.vector_norm(layer.weight[2] - reference_weight).detach()
+        ),
+        "bias_delta": float((layer.bias[2] - reference_bias).detach()),
+    }
+    return history, audit
+
+
 def predict_model(
     model: DDResponseGointSurrogate,
     x: np.ndarray,
@@ -655,6 +769,7 @@ def train_model(
                     flush=True,
                 )
 
+    force_calibration_dataset: PtConsistentDataset | None = None
     if mode == "goint":
         dataset = PtConsistentDataset(x_norm, y_class, y_scalars_norm, y_curves)
         epoch_runner = run_goint_epoch
@@ -671,6 +786,12 @@ def train_model(
             y_scalars_norm,
             y_curves,
             teacher=teacher_outputs,
+        )
+        force_calibration_dataset = PtConsistentDataset(
+            x_norm,
+            y_class,
+            y_scalars_norm,
+            y_curves,
         )
         synthetic_dataset = synthetic_teacher_dataset(
             bundle=teacher_bundle,
@@ -694,6 +815,17 @@ def train_model(
         history.append(float(loss))
         if epoch == 1 or epoch % 10 == 0 or epoch == epochs:
             print(f"[{mode}] epoch {epoch}/{epochs}: loss={loss:.6f}", flush=True)
+    force_history: list[float] = []
+    force_audit = {"weight_delta_l2": 0.0, "bias_delta": 0.0}
+    force_epochs = int(getattr(args, "force_head_epochs", 0)) if mode == "hybrid" else 0
+    if force_epochs > 0:
+        if force_calibration_dataset is None:
+            raise ValueError("Hybrid Max. Force calibration requires real fold-fit rows.")
+        force_history, force_audit = calibrate_force_head(
+            model,
+            force_calibration_dataset,
+            args,
+        )
     return model, {
         "mode": mode,
         "provenance": dict(training_context or {}),
@@ -723,6 +855,23 @@ def train_model(
                 "synthetic_rows": synthetic_rows,
                 "uses_p1_targets": True,
                 "uses_teacher_targets": mode == "hybrid",
+            },
+            {
+                "stage": "fold_local_max_force_head_calibration",
+                "enabled": force_epochs > 0,
+                "epochs": force_epochs,
+                "learning_rate": float(getattr(args, "force_head_lr", 0.0)),
+                "real_rows": len(y_class),
+                "target": "max_force",
+                "scalar_output_row": 2,
+                "uses_teacher_targets": False,
+                "uses_synthetic_rows": False,
+                "huber_beta": float(getattr(args, "force_head_huber_beta", 1.0)),
+                "anchor_weight": float(getattr(args, "force_head_anchor_weight", 0.0)),
+                "weight_delta_l2": force_audit["weight_delta_l2"],
+                "bias_delta": force_audit["bias_delta"],
+                "loss_first": force_history[0] if force_history else None,
+                "loss_final": force_history[-1] if force_history else None,
             },
         ],
         "synthetic_rows": synthetic_rows,
