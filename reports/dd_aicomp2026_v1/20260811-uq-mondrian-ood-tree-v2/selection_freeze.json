@@ -1,0 +1,91 @@
+{
+  "experiment_id": "20260811-uq-mondrian-ood-tree-v2",
+  "status": "frozen_before_fixed_benchmark",
+  "git_parent_commit": "06210e5f64cdc1766b94e987218c797dd1d82da0",
+  "selection_partition": "development_oof_only",
+  "point_model": "models/dd_laminate_response_pt_consistent_tree_3size_grouped_v1/response_surrogate.joblib",
+  "classification_calibration": "identity",
+  "interval_decisions": {
+    "pt": {
+      "selected_method": "mondrian",
+      "mondrian_accepted": true,
+      "gap_improvement": 0.08755803156917363,
+      "width_ratio": 0.9379580396624895,
+      "worst_gap_regression": -0.19888579387186645,
+      "guards": {
+        "minimum_gap_improvement": true,
+        "maximum_width_ratio": true,
+        "maximum_worst_gap_regression": true
+      },
+      "reason": "Mondrian passed every development-only coverage and width guard."
+    },
+    "max_force": {
+      "selected_method": "mondrian",
+      "mondrian_accepted": true,
+      "gap_improvement": 0.014113277623026894,
+      "width_ratio": 1.0179032921682118,
+      "worst_gap_regression": -0.022005571030640714,
+      "guards": {
+        "minimum_gap_improvement": true,
+        "maximum_width_ratio": true,
+        "maximum_worst_gap_regression": true
+      },
+      "reason": "Mondrian passed every development-only coverage and width guard."
+    }
+  },
+  "interval_calibration": {
+    "pt": {
+      "method": "mondrian",
+      "quantiles": {
+        "0.80": {
+          "__pooled__": 211.9250265354858,
+          "6x4": 439.93524528677517,
+          "6x8": 147.78012936927098,
+          "8x8": 136.02314335506435
+        },
+        "0.90": {
+          "__pooled__": 389.8211448568982,
+          "6x4": 619.2986409791029,
+          "6x8": 226.57741820181036,
+          "8x8": 197.3993987286931
+        },
+        "0.95": {
+          "__pooled__": 568.5237327974501,
+          "6x4": 939.1915088733149,
+          "6x8": 356.10758724847256,
+          "8x8": 272.11949138572436
+        }
+      }
+    },
+    "max_force": {
+      "method": "mondrian",
+      "quantiles": {
+        "0.80": {
+          "__pooled__": 264.76455531246756,
+          "6x4": 311.4248558804975,
+          "6x8": 259.1077497899896,
+          "8x8": 253.00520356628476
+        },
+        "0.90": {
+          "__pooled__": 450.86980197143566,
+          "6x4": 532.066463626863,
+          "6x8": 412.42496373136237,
+          "8x8": 435.40737853945757
+        },
+        "0.95": {
+          "__pooled__": 694.3181944687858,
+          "6x4": 856.4259819030776,
+          "6x8": 569.6211265662132,
+          "8x8": 688.3912862371362
+        }
+      }
+    }
+  },
+  "selection_rule": {
+    "allow_per_target_selection": true,
+    "primary_metric": "mean_absolute_geometry_coverage_gap",
+    "minimum_gap_improvement": 0.005,
+    "maximum_mean_width_ratio": 1.25,
+    "maximum_worst_gap_regression": 0.02
+  }
+}

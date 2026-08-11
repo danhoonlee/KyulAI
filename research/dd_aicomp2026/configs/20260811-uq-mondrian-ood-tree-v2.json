@@ -1,11 +1,20 @@
 {
   "experiment_id": "20260811-uq-mondrian-ood-tree-v2",
-  "status": "prepared_not_run",
+  "status": "completed_challenger_not_deployed",
   "parent_experiment": "20260811-uq-calibration-tree-v1",
   "production_changes": false,
   "data_dir": "data/datasets/DD_cases_2_3_4_geometry_3size_v1",
   "split_manifest": "data/datasets/DD_cases_2_3_4_geometry_grouped_v1/split_manifest.csv",
   "feature_set": "theta_physics_geometry_v1",
+  "point_model": {
+    "path": "models/dd_laminate_response_pt_consistent_tree_3size_grouped_v1/response_surrogate.joblib",
+    "family": "pt_consistent_tree",
+    "n_estimators": 500,
+    "n_components": 20,
+    "seq_len": 128,
+    "n_jobs": -1,
+    "target_cache": "reports/dd_response_pt_consistent_deep_3size_grouped_v1/p1_targets.npz"
+  },
   "selection_protocol": {
     "partition": "development_only",
     "rows": 2154,
@@ -46,7 +55,14 @@
     ],
     "mondrian_group": "panel_geometry",
     "minimum_group_size": 30,
-    "unsupported_group_fallback": "pooled"
+    "unsupported_group_fallback": "pooled",
+    "selection_rule": {
+      "allow_per_target_selection": true,
+      "primary_metric": "mean_absolute_geometry_coverage_gap",
+      "minimum_gap_improvement": 0.005,
+      "maximum_mean_width_ratio": 1.25,
+      "maximum_worst_gap_regression": 0.02
+    }
   },
   "design_space_distance": {
     "method": "standard_scaler_knn_mean_distance",
@@ -69,5 +85,11 @@
     "allowed_use": "report_frozen_configuration_only",
     "forbidden_use": "method_or_hyperparameter_selection"
   },
-  "report_dir": "reports/dd_aicomp2026_v1/20260811-uq-mondrian-ood-tree-v2"
+  "report_dir": "reports/dd_aicomp2026_v1/20260811-uq-mondrian-ood-tree-v2",
+  "artifact": "models/dd_laminate_aicomp2026_v1/20260811-uq-mondrian-ood-tree-v2/artifacts/uncertainty_sidecar.joblib",
+  "selected_intervals": {
+    "pt": "panel_geometry_mondrian_conformal",
+    "max_force": "panel_geometry_mondrian_conformal"
+  },
+  "deployment_decision": "hold_for_case_conditioned_interval_challenger"
 }

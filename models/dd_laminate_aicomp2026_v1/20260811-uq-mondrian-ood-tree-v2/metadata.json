@@ -1,0 +1,19 @@
+{
+  "experiment_id": "20260811-uq-mondrian-ood-tree-v2",
+  "status": "challenger",
+  "artifact": {
+    "path": "models/dd_laminate_aicomp2026_v1/20260811-uq-mondrian-ood-tree-v2/artifacts/uncertainty_sidecar.joblib",
+    "size_bytes": 693071,
+    "sha256": "6af10a49d7b994f2622fff0254ead0397ac52913faecbb97bd9c60031faec36a"
+  },
+  "base_point_model": {
+    "path": "models/dd_laminate_response_pt_consistent_tree_3size_grouped_v1/response_surrogate.joblib",
+    "sha256": "d9fe0b66f474e6866af48164dd6ebc7521cb3bdea2f862b71fa02086b6626d84",
+    "curve_representation": "pt_consistent_p1_head_v1"
+  },
+  "selection_freeze": {
+    "path": "reports/dd_aicomp2026_v1/20260811-uq-mondrian-ood-tree-v2/selection_freeze.json",
+    "sha256": "ea4a1c8f6bc066ef8a738bed20fe0c5545420b2b6a91653ce6f3601fc705dbea"
+  },
+  "production_changes": false
+}

@@ -15959,3 +15959,27 @@ Follow-up in same debugging pass:
   panel-geometry-conditioned Mondrian intervals, plus OOD and failure-case reporting.
 - Not yet implemented: an API/UI comparison between the existing heuristic Reliability indicator and
   the new statistical uncertainty outputs. Production UI remains unchanged.
+
+## 2026-08-11 - DD Tree UQ v2 OOF and Fixed-Benchmark Result
+
+- Executed `20260811-uq-mondrian-ood-tree-v2` without changing production models, endpoints, or UI.
+- Generated five-fold grouped OOF predictions for all 2,154 development rows / 718 Case+theta groups.
+  OOF point quality was Type accuracy 0.9475, macro-F1 0.9441, Pt MAE 177.03 kips, Max. Force MAE
+  214.00 kips, and mean per-row curve RMSE 161.12 kips.
+- Development-only guards selected panel-geometry Mondrian conformal intervals independently for Pt
+  and Max. Force. Compared with pooled intervals, mean geometry coverage gap improved from 0.0909 to
+  0.0033 for Pt and from 0.0160 to 0.0019 for Max. Force.
+- On the reused 546-row fixed benchmark, Pt coverage was 83.88%, 91.76%, and 96.70% at nominal
+  80/90/95%; Max. Force coverage was 84.98%, 92.86%, and 97.25%.
+- The overall result hides Case 3 under-coverage at lower levels: Pt coverage was 67.76%/83.61% at
+  80/90%, and Max. Force coverage was 62.30%/82.51%. The sidecar therefore remains a challenger and
+  is not deployed. The next candidate should condition intervals on panel geometry plus Case.
+- Standardized kNN design-space distance had negligible or inverse correlation with Pt, Max. Force,
+  and curve error. It remains a coverage indicator only and must not be shown as an error-confidence
+  score. Type error showed only a weak positive OOF relationship (Spearman rho 0.0671).
+- Saved the statistical sidecar at
+  `models/dd_laminate_aicomp2026_v1/20260811-uq-mondrian-ood-tree-v2/artifacts/uncertainty_sidecar.joblib`
+  and the complete evidence under
+  `reports/dd_aicomp2026_v1/20260811-uq-mondrian-ood-tree-v2/`.
+- The 546-row partition is a reused fixed benchmark rather than a pristine external holdout. A newly
+  generated untouched simulation set remains mandatory for publication-grade external validation.
