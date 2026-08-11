@@ -7,6 +7,7 @@ from src.ml.dd_laminate.uq_calibration import (
     classification_calibration_metrics,
     conformal_quantile,
     fit_temperature,
+    fold_robust_mondrian_conformal_quantiles,
     interval_metrics,
     mondrian_conformal_quantiles,
     mondrian_symmetric_conformal_interval,
@@ -96,3 +97,22 @@ def test_mondrian_interval_records_unseen_group_fallback() -> None:
     assert upper.tolist() == pytest.approx([110.0, 220.0])
     assert applied.tolist() == pytest.approx([10.0, 20.0])
     assert fallback.tolist() == [False, True]
+
+
+def test_fold_robust_quantile_uses_worst_supported_fold_per_group() -> None:
+    residuals = np.asarray([1.0, 2.0, 10.0, 11.0, 3.0, 4.0, 20.0, 21.0])
+    groups = np.asarray(["small"] * 4 + ["large"] * 4)
+    folds = np.asarray([0, 0, 1, 1, 0, 0, 1, 1])
+
+    quantiles = fold_robust_mondrian_conformal_quantiles(
+        residuals,
+        groups,
+        folds,
+        coverage=0.5,
+        minimum_group_size=4,
+        minimum_fold_group_size=2,
+    )
+
+    assert quantiles["small"] == pytest.approx(11.0)
+    assert quantiles["large"] == pytest.approx(21.0)
+    assert quantiles["__pooled__"] == pytest.approx(20.0)

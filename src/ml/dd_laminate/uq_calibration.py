@@ -182,6 +182,58 @@ def mondrian_conformal_quantiles(
     return quantiles
 
 
+def fold_robust_mondrian_conformal_quantiles(
+    residuals: np.ndarray,
+    groups: np.ndarray,
+    fold_ids: np.ndarray,
+    coverage: float,
+    *,
+    minimum_group_size: int = 30,
+    minimum_fold_group_size: int = 8,
+) -> dict[str, float]:
+    """Fit conservative Mondrian quantiles from the worst supported OOF fold.
+
+    Each quantile is the maximum finite-sample conformal quantile observed
+    across the supplied folds. Group-specific estimates require at least two
+    supported folds; otherwise the pooled fold-robust quantile is used at
+    prediction time.
+    """
+    values = np.asarray(residuals, dtype=float).reshape(-1)
+    labels = np.asarray(groups).reshape(-1)
+    folds = np.asarray(fold_ids).reshape(-1)
+    if len(values) != len(labels) or len(values) != len(folds):
+        raise ValueError("residuals, groups, and fold_ids must contain the same samples")
+    if len(values) == 0 or not np.all(np.isfinite(values)):
+        raise ValueError("residuals must contain finite values")
+    if minimum_group_size < 1 or minimum_fold_group_size < 1:
+        raise ValueError("minimum group sizes must be positive")
+    unique_folds = sorted(set(folds.tolist()))
+    if len(unique_folds) < 2:
+        raise ValueError("fold-robust quantiles require at least two folds")
+
+    def supported_fold_quantiles(mask: np.ndarray, minimum_rows: int) -> list[float]:
+        return [
+            conformal_quantile(values[mask & (folds == fold)], coverage)
+            for fold in unique_folds
+            if int(np.sum(mask & (folds == fold))) >= minimum_rows
+        ]
+
+    all_rows = np.ones(len(values), dtype=bool)
+    pooled_by_fold = supported_fold_quantiles(all_rows, minimum_fold_group_size)
+    if len(pooled_by_fold) < 2:
+        raise ValueError("fold-robust pooled quantile requires at least two supported folds")
+    quantiles = {"__pooled__": float(max(pooled_by_fold))}
+
+    for group in sorted({str(value) for value in labels.tolist()}):
+        mask = np.asarray([str(value) == group for value in labels], dtype=bool)
+        if int(np.sum(mask)) < minimum_group_size:
+            continue
+        group_by_fold = supported_fold_quantiles(mask, minimum_fold_group_size)
+        if len(group_by_fold) >= 2:
+            quantiles[group] = float(max(group_by_fold))
+    return quantiles
+
+
 def mondrian_symmetric_conformal_interval(
     predictions: np.ndarray,
     groups: np.ndarray,

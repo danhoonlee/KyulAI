@@ -1,0 +1,39 @@
+{
+  "experiment_id": "20260811-uq-deep-force-robust-v3c",
+  "status": "planned_uq_challenger_not_deployed",
+  "production_changes": false,
+  "source_experiment_id": "20260811-uq-deep-force-head-v3b",
+  "source_report_dir": "reports/dd_aicomp2026_v1/20260811-uq-deep-force-head-v3b",
+  "source_model_metadata": "models/dd_laminate_aicomp2026_v1/20260811-uq-deep-force-head-v3b/metadata.json",
+  "source_sidecar": "models/dd_laminate_aicomp2026_v1/20260811-uq-deep-force-head-v3b/hybrid/uncertainty_sidecar.joblib",
+  "target": "max_force",
+  "selection_protocol": {
+    "partition": "development_oof_only",
+    "rows": 2154,
+    "group_key": "geometry_case",
+    "folds": 5,
+    "forbid_fixed_benchmark_selection": true
+  },
+  "fixed_benchmark": {
+    "rows": 546,
+    "status": "reused_fixed_benchmark_not_pristine_external_holdout",
+    "allowed_use": "report_only_after_selection_freeze",
+    "forbidden_use": "interval_selection"
+  },
+  "intervals": {
+    "levels": [0.8, 0.9, 0.95],
+    "minimum_group_size": 30,
+    "minimum_fold_group_size": 8,
+    "baseline_strategy": "standard_geometry_case",
+    "candidate_strategy": "fold_robust_geometry_case",
+    "selection_rule": {
+      "minimum_mean_undercoverage_improvement": 0.002,
+      "maximum_mean_width_ratio": 1.35,
+      "minimum_overall_coverage_margin": 0.0,
+      "maximum_overall_overcoverage": 0.1
+    }
+  },
+  "report_dir": "reports/dd_aicomp2026_v1/20260811-uq-deep-force-robust-v3c",
+  "model_dir": "models/dd_laminate_aicomp2026_v1/20260811-uq-deep-force-robust-v3c",
+  "deployment_decision": "challenger_only"
+}

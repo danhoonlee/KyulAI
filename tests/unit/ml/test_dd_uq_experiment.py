@@ -5,8 +5,10 @@ import numpy as np
 from src.ml.dd_laminate.uq_experiment import (
     cross_fitted_interval_evaluation,
     interval_selection_summary,
+    interval_undercoverage_summary,
     select_interval_candidate,
     select_interval_method,
+    select_robust_interval_candidate,
 )
 
 
@@ -110,3 +112,91 @@ def test_named_candidate_selection_supports_nested_mondrian_comparison() -> None
     assert decision["selected_method"] == "geometry_case"
     assert decision["candidate_accepted"] is True
     assert decision["width_ratio"] < 1.0
+
+
+def test_fold_robust_cross_fit_increases_coverage_for_shifted_folds() -> None:
+    predictions = np.zeros(24)
+    folds = np.repeat(np.arange(4), 6)
+    groups = np.tile(np.asarray(["a", "a", "a", "b", "b", "b"]), 4)
+    targets = np.asarray(
+        [1, 1, 1, 2, 2, 2, 2, 2, 2, 4, 4, 4, 3, 3, 3, 6, 6, 6, 5, 5, 5, 8, 8, 8],
+        dtype=float,
+    )
+    standard = cross_fitted_interval_evaluation(
+        targets,
+        predictions,
+        groups,
+        folds,
+        levels=(0.5,),
+        report_groups={"group": groups},
+        minimum_group_size=4,
+        minimum_fold_group_size=2,
+        quantile_strategy="standard",
+    )["mondrian"]
+    robust = cross_fitted_interval_evaluation(
+        targets,
+        predictions,
+        groups,
+        folds,
+        levels=(0.5,),
+        report_groups={"group": groups},
+        minimum_group_size=4,
+        minimum_fold_group_size=2,
+        quantile_strategy="fold_max",
+    )["mondrian"]
+
+    assert robust["0.50"]["overall"]["empirical_coverage"] >= standard["0.50"][
+        "overall"
+    ]["empirical_coverage"]
+    assert robust["0.50"]["overall"]["mean_width"] >= standard["0.50"]["overall"][
+        "mean_width"
+    ]
+
+
+def test_robust_selection_prioritizes_undercoverage_with_width_guard() -> None:
+    evidence = {
+        "standard": {
+            "0.90": {
+                "overall": {
+                    "nominal_coverage": 0.9,
+                    "empirical_coverage": 0.89,
+                    "mean_width": 100.0,
+                },
+                "subgroups": {
+                    "geometry_case:a": {
+                        "nominal_coverage": 0.9,
+                        "empirical_coverage": 0.85,
+                    }
+                },
+            }
+        },
+        "robust": {
+            "0.90": {
+                "overall": {
+                    "nominal_coverage": 0.9,
+                    "empirical_coverage": 0.94,
+                    "mean_width": 125.0,
+                },
+                "subgroups": {
+                    "geometry_case:a": {
+                        "nominal_coverage": 0.9,
+                        "empirical_coverage": 0.92,
+                    }
+                },
+            }
+        },
+    }
+    summary = interval_undercoverage_summary(evidence, subgroup_prefix="geometry_case")
+    decision = select_robust_interval_candidate(
+        summary,
+        baseline_name="standard",
+        candidate_name="robust",
+        minimum_mean_undercoverage_improvement=0.01,
+        maximum_width_ratio=1.35,
+        minimum_overall_coverage_margin=0.0,
+        maximum_overall_overcoverage=0.1,
+    )
+
+    assert decision["selected_method"] == "robust"
+    assert decision["candidate_accepted"] is True
+    assert decision["guards"]["maximum_width_ratio"] is True

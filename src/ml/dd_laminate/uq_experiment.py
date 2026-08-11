@@ -8,6 +8,7 @@ import numpy as np
 
 from src.ml.dd_laminate.uq_calibration import (
     conformal_quantile,
+    fold_robust_mondrian_conformal_quantiles,
     interval_metrics,
     mondrian_conformal_quantiles,
     mondrian_symmetric_conformal_interval,
@@ -31,6 +32,8 @@ def cross_fitted_interval_evaluation(
     levels: tuple[float, ...],
     report_groups: dict[str, np.ndarray] | None = None,
     minimum_group_size: int = 30,
+    quantile_strategy: str = "standard",
+    minimum_fold_group_size: int = 8,
     lower_bound: float | None = 0.0,
 ) -> dict[str, Any]:
     """Evaluate pooled and Mondrian intervals without self-calibration leakage."""
@@ -47,6 +50,8 @@ def cross_fitted_interval_evaluation(
     unique_folds = sorted(set(fold_ids.tolist()))
     if len(unique_folds) < 2:
         raise ValueError("cross-fitted evaluation requires at least two folds")
+    if quantile_strategy not in {"standard", "fold_max"}:
+        raise ValueError("quantile_strategy must be 'standard' or 'fold_max'")
 
     normalized_report_groups: dict[str, np.ndarray] = {}
     for name, values in (report_groups or {}).items():
@@ -82,12 +87,22 @@ def cross_fitted_interval_evaluation(
                     upper[assessment] = fold_upper
                     applied_quantiles[assessment] = quantile
                 else:
-                    quantiles = mondrian_conformal_quantiles(
-                        residuals[calibration],
-                        mondrian_groups[calibration],
-                        level,
-                        minimum_group_size=minimum_group_size,
-                    )
+                    if quantile_strategy == "fold_max":
+                        quantiles = fold_robust_mondrian_conformal_quantiles(
+                            residuals[calibration],
+                            mondrian_groups[calibration],
+                            fold_ids[calibration],
+                            level,
+                            minimum_group_size=minimum_group_size,
+                            minimum_fold_group_size=minimum_fold_group_size,
+                        )
+                    else:
+                        quantiles = mondrian_conformal_quantiles(
+                            residuals[calibration],
+                            mondrian_groups[calibration],
+                            level,
+                            minimum_group_size=minimum_group_size,
+                        )
                     fold_lower, fold_upper, fold_quantiles, fold_fallback = (
                         mondrian_symmetric_conformal_interval(
                             predictions[assessment],
@@ -125,6 +140,97 @@ def cross_fitted_interval_evaluation(
             }
         result[method] = level_rows
     return result
+
+
+def interval_undercoverage_summary(
+    results: dict[str, Any],
+    *,
+    subgroup_prefix: str,
+) -> dict[str, dict[str, float]]:
+    """Summarize interval evidence with undercoverage as the primary risk."""
+    summary: dict[str, dict[str, float]] = {}
+    for method, levels in results.items():
+        subgroup_undercoverage: list[float] = []
+        widths: list[float] = []
+        overall_margins: list[float] = []
+        overall_overcoverage: list[float] = []
+        for row in levels.values():
+            overall = row["overall"]
+            nominal = float(overall["nominal_coverage"])
+            empirical = float(overall["empirical_coverage"])
+            widths.append(float(overall["mean_width"]))
+            overall_margins.append(empirical - nominal)
+            overall_overcoverage.append(max(0.0, empirical - nominal))
+            for name, subgroup in row["subgroups"].items():
+                if name.startswith(f"{subgroup_prefix}:"):
+                    subgroup_undercoverage.append(
+                        max(
+                            0.0,
+                            float(subgroup["nominal_coverage"])
+                            - float(subgroup["empirical_coverage"]),
+                        )
+                    )
+        if not subgroup_undercoverage:
+            raise ValueError(f"no subgroups matched prefix {subgroup_prefix!r}")
+        summary[method] = {
+            "mean_subgroup_undercoverage": float(np.mean(subgroup_undercoverage)),
+            "maximum_subgroup_undercoverage": float(np.max(subgroup_undercoverage)),
+            "mean_interval_width": float(np.mean(widths)),
+            "minimum_overall_coverage_margin": float(np.min(overall_margins)),
+            "maximum_overall_overcoverage": float(np.max(overall_overcoverage)),
+        }
+    return summary
+
+
+def select_robust_interval_candidate(
+    summary: dict[str, dict[str, float]],
+    *,
+    baseline_name: str,
+    candidate_name: str,
+    minimum_mean_undercoverage_improvement: float,
+    maximum_width_ratio: float,
+    minimum_overall_coverage_margin: float,
+    maximum_overall_overcoverage: float,
+) -> dict[str, Any]:
+    """Select a conservative interval candidate using development-only guards."""
+    baseline = summary[baseline_name]
+    candidate = summary[candidate_name]
+    improvement = (
+        baseline["mean_subgroup_undercoverage"]
+        - candidate["mean_subgroup_undercoverage"]
+    )
+    width_ratio = candidate["mean_interval_width"] / max(
+        baseline["mean_interval_width"], 1e-12
+    )
+    guards = {
+        "minimum_mean_undercoverage_improvement": (
+            improvement >= minimum_mean_undercoverage_improvement
+        ),
+        "maximum_width_ratio": width_ratio <= maximum_width_ratio,
+        "minimum_overall_coverage_margin": (
+            candidate["minimum_overall_coverage_margin"]
+            >= minimum_overall_coverage_margin
+        ),
+        "maximum_overall_overcoverage": (
+            candidate["maximum_overall_overcoverage"]
+            <= maximum_overall_overcoverage
+        ),
+    }
+    accepted = all(guards.values())
+    return {
+        "baseline_method": baseline_name,
+        "candidate_method": candidate_name,
+        "selected_method": candidate_name if accepted else baseline_name,
+        "candidate_accepted": accepted,
+        "mean_undercoverage_improvement": float(improvement),
+        "width_ratio": float(width_ratio),
+        "guards": guards,
+        "reason": (
+            f"{candidate_name} passed every development-only undercoverage and width guard."
+            if accepted
+            else f"{candidate_name} failed at least one development-only guard."
+        ),
+    }
 
 
 def interval_selection_summary(
