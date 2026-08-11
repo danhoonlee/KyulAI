@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "campaign_id": "UV3S1",
+  "output_dir": "research/dd_aicomp2026/campaigns/20260811-untouched-3size-v1",
+  "source_manifest": "data/datasets/DD_cases_2_3_4_geometry_3size_v1/manifest.csv",
+  "cases": ["Case2", "Case3", "Case4"],
+  "geometries": [
+    {"id": "6x4", "panel_a_in": 6.0, "panel_b_in": 4.0},
+    {"id": "6x8", "panel_a_in": 6.0, "panel_b_in": 8.0},
+    {"id": "8x8", "panel_a_in": 8.0, "panel_b_in": 8.0}
+  ],
+  "angle_design": {
+    "min": -90,
+    "max": 90,
+    "step": 1,
+    "uniform_pairs": 30,
+    "maximin_pairs": 30,
+    "pilot_uniform_pairs": 10,
+    "pilot_maximin_pairs": 10,
+    "seed": 20260811
+  },
+  "primary_weak_subgroup": "6x8|Case2",
+  "frozen_artifacts": [
+    "research/dd_aicomp2026/baselines/dd_3size_pt_consistent_v1.json",
+    "data/datasets/DD_cases_2_3_4_geometry_grouped_v1/split_manifest.csv",
+    "models/dd_laminate_response_pt_consistent_tree_3size_grouped_v1/response_surrogate.joblib",
+    "models/dd_laminate_aicomp2026_v1/20260811-uq-deep-force-head-v3b/hybrid/response_goint.pt",
+    "models/dd_laminate_aicomp2026_v1/20260811-uq-deep-force-robust-v3c/hybrid/uncertainty_sidecar.joblib"
+  ],
+  "predeclared_metrics": {
+    "point": [
+      "Type accuracy and macro-F1",
+      "Pt MAE and RMSE in kips",
+      "Max. Force MAE and RMSE in kips",
+      "mean per-row 128-point curve RMSE in kips"
+    ],
+    "uncertainty": [
+      "Type probability NLL, Brier score, and ECE",
+      "Pt interval coverage and mean width at 80%, 90%, and 95%",
+      "Max. Force interval coverage and mean width at 80%, 90%, and 95%"
+    ],
+    "required_slices": [
+      "overall",
+      "uniform_grid versus maximin_gap",
+      "each geometry",
+      "each Case",
+      "each geometry + Case",
+      "6x8 + Case2 primary weak subgroup"
+    ]
+  },
+  "publication_rule": "No model, calibration, conformal grouping, or threshold may change after any campaign target is read. Any post-result change requires another untouched campaign."
+}
