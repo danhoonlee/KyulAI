@@ -1,3 +1,9 @@
 models/dd_laminate_response_geometry_tree_v1/response_surrogate.joblib filter=lfs diff=lfs merge=lfs -text
 models/dd_laminate_u3_forecast_physics_abd_v1/u3_forecast.joblib filter=lfs diff=lfs merge=lfs -text
+models/dd_laminate_response_pt_consistent_tree_3size_grouped_v1/response_surrogate.joblib filter=lfs diff=lfs merge=lfs -text
+models/dd_laminate_response_pt_consistent_goint_3size_grouped_v1/response_goint.pt filter=lfs diff=lfs merge=lfs -text
+models/dd_laminate_response_pt_consistent_hybrid_3size_grouped_v1/response_goint.pt filter=lfs diff=lfs merge=lfs -text
+models/dd_laminate_aicomp2026_v1/**/artifacts/*.joblib filter=lfs diff=lfs merge=lfs -text
+models/dd_laminate_aicomp2026_v1/**/artifacts/*.pt filter=lfs diff=lfs merge=lfs -text
+models/dd_laminate_aicomp2026_v1/**/artifacts/*.onnx filter=lfs diff=lfs merge=lfs -text
 models/dd_laminate_response_physics_abd_v1/response_surrogate.joblib filter=lfs diff=lfs merge=lfs -text

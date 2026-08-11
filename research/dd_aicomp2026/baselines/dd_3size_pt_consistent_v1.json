@@ -1,0 +1,152 @@
+{
+  "schema_version": 1,
+  "baseline_id": "dd-3size-pt-consistent-v1-20260811",
+  "status": "production_baseline",
+  "immutable": true,
+  "recorded_at": "2026-08-11",
+  "source": {
+    "branch": "codex/dd-laminate-ui-api",
+    "commit": "089ac7ae58553afb869d890b531f979759f0d9c2",
+    "note": "Artifact-level baseline recorded from the current operational worktree. Future research artifacts must use the AIComp namespace and must not overwrite these paths."
+  },
+  "dataset": {
+    "name": "DD Cases 2/3/4 geometry 3-size v1",
+    "rows": 2700,
+    "geometries": ["6x4", "6x8", "8x8"],
+    "cases": ["Case2", "Case3", "Case4"],
+    "manifest": {
+      "path": "data/datasets/DD_cases_2_3_4_geometry_3size_v1/manifest.csv",
+      "size_bytes": 524453,
+      "sha256": "8d99169bbb21df62b182b0a966c4a2d5e146cde3430a7314d0843b8ac2d245e2"
+    },
+    "summary": {
+      "path": "data/datasets/DD_cases_2_3_4_geometry_3size_v1/dataset_summary.json",
+      "size_bytes": 1235,
+      "sha256": "300006f672476658fac8a318b665fc306d86fb8b4aa773261146044a09c44c76"
+    },
+    "label_provenance": {
+      "6x4": "human-reviewed curated labels",
+      "6x8": "curve-classifier labels",
+      "8x8": "curve-classifier pseudo-labels"
+    }
+  },
+  "evaluation_protocol": {
+    "group_key": ["case", "theta1", "theta2"],
+    "development_rows": 2154,
+    "development_groups": 718,
+    "holdout_rows": 546,
+    "holdout_groups": 182,
+    "leakage_rows": 0,
+    "split_manifest": {
+      "path": "data/datasets/DD_cases_2_3_4_geometry_grouped_v1/split_manifest.csv",
+      "size_bytes": 603813,
+      "sha256": "af7b4b020abc943c2ff3b942f7b696c9691d7ca796b686c5fdfeba28d8151ed6"
+    }
+  },
+  "models": [
+    {
+      "id": "pt-consistent-tree-3size-v1",
+      "family": "tree",
+      "deployment_role": "default",
+      "artifact": {
+        "path": "models/dd_laminate_response_pt_consistent_tree_3size_grouped_v1/response_surrogate.joblib",
+        "size_bytes": 483986142,
+        "sha256": "d9fe0b66f474e6866af48164dd6ebc7521cb3bdea2f862b71fa02086b6626d84"
+      },
+      "metrics": {
+        "type_accuracy": 0.9358974358974359,
+        "type_macro_f1": 0.9325047260160401,
+        "pt_mae_kips": 191.7906719435995,
+        "max_force_mae_kips": 155.280872406402,
+        "curve_force_rmse_kips": 291.501167314233,
+        "displayed_p1_direct_pt_gap_kips": 0.0
+      }
+    },
+    {
+      "id": "pt-consistent-gointmlp-3size-v1",
+      "family": "gointmlp",
+      "deployment_role": "deep_learning",
+      "artifact": {
+        "path": "models/dd_laminate_response_pt_consistent_goint_3size_grouped_v1/response_goint.pt",
+        "size_bytes": 1321093,
+        "sha256": "bbdde25185b0b6eab4d23eab4dd383cc2dc23656dd1c22c7d719e3d2a69e7b47"
+      },
+      "metrics": {
+        "type_accuracy": 0.9139194139194139,
+        "type_macro_f1": 0.9108162248821104,
+        "pt_mae_kips": 525.3703057288548,
+        "max_force_mae_kips": 867.3958160801772,
+        "curve_force_rmse_kips": 908.2938185877628,
+        "displayed_p1_direct_pt_gap_kips": 0.0
+      }
+    },
+    {
+      "id": "pt-consistent-hybrid-3size-v1",
+      "family": "teacher_student_hybrid",
+      "deployment_role": "hybrid",
+      "artifact": {
+        "path": "models/dd_laminate_response_pt_consistent_hybrid_3size_grouped_v1/response_goint.pt",
+        "size_bytes": 3387461,
+        "sha256": "cfca6725996df87d8083707153d2bd1d66254a5f175054ef42b8b8144ccb23e6"
+      },
+      "metrics": {
+        "type_accuracy": 0.9322344322344323,
+        "type_macro_f1": 0.928399550843498,
+        "pt_mae_kips": 286.66398783234774,
+        "max_force_mae_kips": 362.37671315334376,
+        "curve_force_rmse_kips": 425.62083819035655,
+        "displayed_p1_direct_pt_gap_kips": 0.0
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "path": "reports/dd_response_pt_consistent_tree_3size_grouped_v1/validation_metrics.json",
+      "size_bytes": 3581,
+      "sha256": "11db6af102ebbc406c6fa3a6ff06882497b26aeff07f8670d6c2e419794fa5b5"
+    },
+    {
+      "path": "reports/dd_response_pt_consistent_deep_3size_grouped_v1/validation_metrics.json",
+      "size_bytes": 3273,
+      "sha256": "211a227e8f17187e3b74090c24880ca542e60d819de9a757217bb18cb785b9ef"
+    },
+    {
+      "path": "reports/dd_response_pt_consistent_tree_3size_grouped_v1/validation_report.md",
+      "size_bytes": 1458,
+      "sha256": "6ab19ad98bb3f929cc0ce9663ae2ef372748f30da6f087c8abcd9337fd77d505"
+    },
+    {
+      "path": "reports/dd_response_pt_consistent_deep_3size_grouped_v1/validation_report.md",
+      "size_bytes": 1130,
+      "sha256": "8ab1315e9a1b682a8d171f7a3b80a395343c4a478e3d24a023578b5f498e13ee"
+    },
+    {
+      "path": "reports/dd_response_pt_consistent_deep_3size_grouped_v1/training.log",
+      "size_bytes": 3867,
+      "sha256": "17923856488b5fcd337c9a649260291e5070c0d2a2e09de6a920d44f74ee1e1c"
+    },
+    {
+      "path": "reports/dd_response_pt_consistent_deep_3size_grouped_v1/p1_targets.npz",
+      "size_bytes": 2663750,
+      "sha256": "6c9a6f6735d38c7f8cd95f3fe8a538944b7e7d7317e349f740521d92836277df"
+    },
+    {
+      "path": "docs/DD_LAMINATE_MODEL_CATALOG.md",
+      "size_bytes": 4630,
+      "sha256": "8b28486c0124343afacfc0801b590f18625a4c9245210e38d4c79870dd4a149f"
+    }
+  ],
+  "promotion_gate": {
+    "required_holdout": "same 546-row grouped holdout",
+    "required_checks": [
+      "Type accuracy and macro-F1",
+      "Pt MAE",
+      "Max. Force MAE",
+      "curve-force RMSE",
+      "P1/Pt display consistency",
+      "probability calibration",
+      "Pt interval coverage and width",
+      "OOD/coverage behavior"
+    ]
+  }
+}

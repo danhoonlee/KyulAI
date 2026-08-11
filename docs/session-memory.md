@@ -14938,3 +14938,972 @@ Follow-up in same debugging pass:
   - Android Gradle `:app:compileDebugKotlin` passed for
     `android/ImperialAXMVP`, `android/DDLaminateMVP`, and
     `android/InjectionMVP`.
+
+## 2026-07-22 - Full Codebase Audit and Stabilization
+- User requested a slow, detailed review and cleanup across the complete repository.
+- Audit report:
+  - `docs/reviews/2026-07-22-codebase-audit.md`.
+- Security repairs:
+  - Removed the broad `/data` static mount that could expose the auth SQLite database.
+  - Removed fixed demo/admin session tokens from backend, web, iOS, and Android.
+  - Made demo login, public signup, self-service password reset, and entitlement overrides
+    default-closed behind explicit `IMPERIALAX_ENABLE_*` flags.
+  - Removed implicit admin-email defaults.
+  - Added shared CSV upload guards: 16 MiB per file and 256 MiB per batch by default, configurable
+    with `IMPERIALAX_MAX_CSV_UPLOAD_BYTES` and `IMPERIALAX_MAX_CSV_BATCH_BYTES`.
+- Correctness and maintenance repairs:
+  - Centralized deep response-model detection and added registry regression tests.
+  - Removed a duplicate public data-loader definition.
+  - Reduced mypy from roughly 350 errors to zero and made CI enforce it.
+  - Ruff lint/format and editable package installation now pass.
+  - Added Gradle 8.9 wrappers for all Android apps.
+- Verification:
+  - Full non-slow/non-GPU Python suite: 210 passed; only two known SciPy precision warnings remain.
+  - mypy: zero errors; Ruff lint/format: passed; frontend JavaScript syntax: passed.
+  - iOS package tests: DD 11, Injection 8, ImperialAX 6, all passed.
+  - Android DD/Injection/ImperialAX Gradle test/compile: passed.
+  - Unified API `/health` and `/ready`: passed; all core DD/u3 and Injection artifacts loaded.
+- Important unresolved items:
+  - Authentication is not yet enforced consistently across unified/standalone APIs.
+  - Native web handoff uses query-string session tokens; mobile storage is not Keychain/Keystore-backed.
+  - Four app composition roots remain, and the DD server still contains wedding routes.
+  - Optimization still hardcodes a 6 x 4 panel.
+  - Generic dataset/training/worker APIs remain explicit HTTP 501/NotImplemented scaffolds.
+  - Roughly 92 active files retain internal `KyulAI` compatibility identifiers; a dedicated migration
+    is needed rather than a blind text replacement.
+- Local ignored `.env.local` contains an OpenAI API key. It was not tracked, but rotate it as a
+  precaution because it was visible during local review.
+- No commit was created. Existing untracked 8 x 8 data and fixed-holdout smoke reports were preserved.
+
+## 2026-07-22 - 8x8 Curve CSV Batch Capacity Check
+- User added `data/New_data/8x8_Case3` and `data/New_data/8x8_Case4` and reported that
+  only 230 files appeared selectable during Curve CSV sorting.
+- Root cause:
+  - Case3 contains only 230 force-displacement CSV files.
+  - `force_disp_Test_031.csv` through `force_disp_Test_100.csv` are missing (70 files).
+  - Case3 still has 300 plot PNGs and 300 transition-load rows.
+  - Case4 contains all 300 force-displacement CSVs, plots, and transition-load rows.
+- Batch-capacity changes:
+  - Backend continues to allow up to 1,000 files per batch request.
+  - Web now accepts up to 1,000 selected CSVs and automatically sends them in sequential chunks of 200.
+  - Added selected file count, total size, and batch progress text in Korean and English.
+  - Added a 256 MiB browser-side total limit, matching the backend cumulative limit; per-file limit is 16 MiB.
+  - Cached the classical curve joblib bundle and deep sequence PyTorch model so batch prediction no
+    longer reloads the same artifact for every CSV.
+- Verification:
+  - Added a regression test that submits 301 CSV files; all 301 are accepted.
+  - Actual Case4 batch test classified all 300 real CSVs successfully in 18.767 seconds: 300 OK, 0 errors.
+  - Full Python suite: 211 passed, 2 known SciPy warnings.
+  - JS syntax, Ruff, mypy, and diff checks passed.
+- Generated upload metadata under `data/New_data/batch_metadata/` using the corrected
+  `scripts/dd_make_curve_batch_metadata.py` defaults.
+- Restarted the DD/Laminate server on port 8000 so model caching and upload guards are live.
+- Public Cloudflare-path verification at `https://laminate.imperialax.com`:
+  - Sent the actual Case4 set in the same 200 + 100 chunks used by the browser.
+  - 300 files classified successfully, 0 errors, total elapsed time 29.657 seconds.
+
+## 2026-07-22 - Home WSL Connectivity and Internet Check
+- Confirmed remote access from the Mac to the home Windows WSL2 host through Tailscale/SSH.
+- Remote host:
+  - Tailscale IP: `100.65.153.56`.
+  - User: `user`.
+  - Hostname: `DESKTOP-6MNJOKL`.
+  - Kernel: WSL2 Linux `6.18.33.2-microsoft-standard-WSL2`.
+- Mac-to-home Tailscale ping:
+  - 0% packet loss.
+  - Warm round trips were approximately 6.8-9.4 ms; the first packet took 146.8 ms.
+- Home WSL internet test using Cloudflare endpoints:
+  - External ping to `1.1.1.1`: 2.87 ms average, 0% loss.
+  - 25 MB single-stream download: 9,545,518 bytes/s, approximately 76.4 Mbps.
+  - Upload tests: approximately 91.1 Mbps at 10 MiB, 92.9 Mbps at 25 MiB, and 93.3 Mbps at 50 MiB.
+- The Cloudflare endpoint returned a one-byte response for the 100 MB and 250 MB download probes,
+  so those invalid samples were excluded. The download figure is a conservative single-stream result.
+- `speedtest`/`speedtest-cli` is not installed in WSL; network checks were completed without installing software.
+
+## 2026-07-22 - Double-Double Technical Overview Review
+- Reviewed the newly added `data/PPT/double_double_composite_laminate_technical_overview.md`
+  against primary DD literature, the current physics feature code, project UI/RAG formulas, and the
+  6x4/6x8/8x8 dataset state.
+- Added the detailed review at `docs/reviews/2026-07-22-double-double-technical-overview-review.md`.
+- Overall finding:
+  - The document is a strong and mostly accurate generic DD overview.
+  - It should not yet be ingested as unquestioned RAG or training ground truth.
+- Required corrections:
+  - The Section 3 building-block definition and the 22.5/67.5 example use different ply-order families.
+  - `unsymmetric -> B != 0` is stated too absolutely.
+  - The 16-ply/four-block claim needs its 2% criterion and stacking-order scope directly attached.
+  - Proposed schema fields such as `B_norm_percent` need reproducible mathematical definitions.
+- Critical project inconsistency:
+  - Physics feature code expands Case3 as `[[±theta1]/[±theta2]/[∓theta2]/[∓theta2]]2`.
+  - Web, iOS, Android, and RAG display `[[±theta1]/[±theta2]/[∓theta1]/[∓theta2]]2`.
+  - The user subsequently confirmed the UI/RAG formula is canonical. Centralize all formulas and
+    expanded sequences in one registry, then retrain the physics-feature model family.
+- Recommended model roadmap:
+  - Physics Feature Pack v3 with full normalized ABD, Tsai trace, A*-D* and B* residuals, and
+    lamination parameters.
+  - A sequence-aware ply encoder for Case5/custom formulas instead of relying only on Case one-hot flags.
+  - Store Force and U3 curves, Pt method/version, fit windows, R2, label source, and confidence.
+  - Add imperfection/eigenmode/BC/load metadata to study why response Types occur.
+  - Use curated 8x8 data first as a true external geometry holdout before adding it to training.
+
+## 2026-07-22 - Canonical Case3 Confirmed and Retraining Impact
+- User confirmed the canonical Case3 formula is
+  `[[±theta1]/[±theta2]/[∓theta1]/[∓theta2]]2`.
+- The UI, app, and RAG formula is correct, but `src/ml/dd_laminate/laminate_physics.py`
+  currently expands Case3 as `(pm1 + pm2 + mp2 + mp2) * 2`, omitting `mp1` and duplicating `mp2`.
+- The correct expansion is `(pm1 + pm2 + mp1 + mp2) * 2`.
+- Active Laminate models requiring corrected-feature retraining:
+  - Geometry ML (`theta_physics_geometry_v1`)
+  - Geometry DL (`theta_physics_geometry_v1`)
+  - Hybrid Student and its physics-feature teacher/distillation chain
+  - Physics XAI artifacts and reports
+- Physics-based u3 ML/DL models also require retraining.
+- Theta/case-only classifiers and Curve CSV classifiers do not require retraining solely for this
+  formula-code correction because they do not calculate ABD features from the generated stack.
+- Do not change only the inference feature builder while serving the old artifacts. Feature names stay
+  the same while their numerical meaning changes, which would create a silent train/serve mismatch.
+- If the original Abaqus analyses used the confirmed canonical sequence, raw curves, Type labels, and
+  Pt targets remain valid. Recompute derived features and retrain; no Abaqus rerun is required.
+
+## 2026-07-22 - Canonical Case3 Retraining and Deployment Promotion Completed
+- Added one canonical case registry at
+  `src/ml/dd_laminate/case_definitions.json` and a typed Python access layer in
+  `src/ml/dd_laminate/case_definitions.py`.
+- Canonical Case3 is now expanded as
+  `[[±theta1]/[±theta2]/[∓theta1]/[∓theta2]]2`, producing 16 balanced plies.
+- Preserved historical artifacts through explicit `legacy_case3_v1` feature semantics. Old saved
+  prediction records remain readable, but no old model is exposed as a deployment default.
+- Added corrected feature families:
+  - `theta_physics_canonical_v2`
+  - `theta_physics_compact_canonical_v2`
+  - `theta_physics_nn_canonical_v2`
+  - `theta_physics_geometry_canonical_v2`
+- Retrained on the home RTX 5070 WSL host:
+  - Geometry Tree: `models/dd_laminate_response_geometry_tree_canonical_v2`
+  - Geometry GointMLP: `models/dd_laminate_response_geometry_goint_canonical_v2`
+  - Hybrid Student: `models/dd_laminate_response_hybrid_student_canonical_v2`
+  - u3 Tree/GointMLP: `models/dd_laminate_u3_forecast_physics_canonical_v2`
+  - model-specific response and u3 XAI reports under corresponding `reports/*canonical_v2` paths.
+- Corrected five-fold grouped CV:
+  - Tree: Type accuracy 0.9639, macro F1 0.9634, Pt MAE 267.79 kips,
+    normalized curve RMSE 0.00570.
+  - GointMLP: Type accuracy 0.9567, macro F1 0.9567, Pt MAE 706.01 kips,
+    normalized curve RMSE 0.03069.
+  - Hybrid: Type accuracy 0.9728, macro F1 0.9720, Pt MAE 393.28 kips,
+    normalized curve RMSE 0.00777.
+- Corrected deterministic grouped holdout:
+  - Tree: Type accuracy 0.9451, Pt MAE 200.21 kips.
+  - GointMLP: Type accuracy 0.9258, Pt MAE 717.14 kips.
+  - Hybrid: Type accuracy 0.9451, Pt MAE 303.19 kips.
+- u3 corrected grouped CV:
+  - Tree: Pt MAE 227.88 kips, Type accuracy 0.979, normalized curve RMSE 0.0064.
+  - GointMLP: Pt MAE 166.16 kips, normalized curve RMSE 0.0102.
+- Deployment policy:
+  - Geometry Tree remains the default because it has the best Pt and curve accuracy.
+  - Hybrid remains the Type-screening challenger.
+  - GointMLP remains the direct deep-learning comparison.
+- Switched backend API defaults, web, iOS, and Android to the corrected canonical model keys.
+  Historical registry entries remain for compatibility only.
+- Verification completed:
+  - canonical/unit tests: 5 passed;
+  - backend DD contract tests: 16 passed;
+  - iOS Swift package tests: 11 passed;
+  - Android Gradle debug unit-test build: successful;
+  - all five corrected prediction endpoints and local XAI endpoints returned HTTP 200.
+
+## 2026-07-22 - Laminate Forecast Curve Label Readability
+- The user reported that the web response curve looked visually broken because the vertical Force
+  axis title overlapped long Y-axis tick labels, and the Predicted Pt callout was too large.
+- Updated the v2 response-curve renderer to:
+  - reserve more left-side space for five- and six-digit force tick labels;
+  - use smaller responsive axis fonts and keep the Force title outside the tick-label column;
+  - reduce the Predicted Pt callout title/value fonts, padding, height, and marker size;
+  - retain a compact variant for narrow/mobile canvases.
+- Updated English and Korean v2 asset cache keys so the deployed page does not reuse the previous
+  chart-rendering script.
+
+## 2026-07-22 - Completed 8x8 Case3 CSV Delivery and External Geometry Baseline
+- The previously missing Case3 CSV files `force_disp_Test_031.csv` through
+  `force_disp_Test_100.csv` were added under `data/New_data/8x8_Case3/csv`.
+- Verified the full delivered 8x8 set before ingestion:
+  - Case3: 300 transition rows, 300 force-displacement CSVs, and 300 plots.
+  - Case4: 300 transition rows, 300 force-displacement CSVs, and 300 plots.
+  - All 600 CSVs were readable, contained finite numeric pairs, and had monotonic displacement.
+- Generalized `scripts/dd_classify_new_data_curves.py` and
+  `scripts/dd_make_curve_batch_metadata.py` so they support both the historical 6x8 folder layout
+  and the new case-local `8x8_Case*/csv` layout.
+- Classified all 600 curves with the established Curve CSV ExtraTrees model:
+  - Case3: Type1 43, Type2 175, Type3 82.
+  - Case4: Type1 22, Type2 210, Type3 68.
+  - 170 rows had confidence >= 0.70; 430 rows remain high-priority human-review candidates.
+  - Outputs: `reports/new_data_8x8_curve_type_classification.csv` and `.md`.
+- Generated browser batch metadata for both cases under `data/New_data/batch_metadata`.
+- Preserved the 8x8 delivery as a quarantined external geometry holdout at
+  `data/datasets/DD_8x8_external_holdout_v1` before using any 8x8 row for training.
+  Type is explicitly stored as a confidence-bearing pseudo-label; provided Pt and curve CSVs are
+  retained as direct evaluation targets.
+- Evaluated all current canonical-v2 deployed models on the untouched 8x8 Case3/Case4 set:
+  - Geometry Tree: Pt MAE 3502.40, normalized curve RMSE 0.02173.
+  - Geometry GointMLP: Pt MAE 6788.33, normalized curve RMSE 0.02068.
+  - Hybrid Student: Pt MAE 2106.87, normalized curve RMSE 0.01726.
+  - Tree pseudo-Type agreement was 78.83% over all rows and 100% over the 170 rows whose Curve CSV
+    pseudo-label confidence was at least 0.70.
+- Interpretation: 8x8 is a material out-of-geometry shift from the 6x4/6x8 training domain. Keep an
+  untouched 8x8 test partition, review ambiguous Type labels, then retrain geometry-aware models
+  with the remaining 8x8 rows rather than contaminating the only external baseline.
+- Detailed metrics: `reports/dd_response_8x8_external_holdout_canonical_v2`.
+
+## 2026-07-22 - WSL Remote Connectivity Recheck
+- Rechecked the home WSL host at `100.65.153.56` before discussing a server migration.
+- Tailscale network connectivity is healthy: ICMP returned 0% loss with approximately 9-16 ms latency.
+- A direct SSH probe using the Mac default identity failed because that command did not specify the
+  project key. This was not a WSL outage.
+- The configured remote runner `scripts/remote/Run-WSLGPU.sh`, which uses
+  `~/.ssh/kyulai_wsl_gpu_codex`, connected successfully and returned host `DESKTOP-6MNJOKL`, user
+  `user`.
+- Current serving remains on the Mac; WSL is reachable and ready for a planned serving migration.
+
+## 2026-07-22 - ImperialAX Production Serving Migrated to WSL
+- Migrated ImperialAX Laminate and Injection production serving from the office Mac to the home
+  Windows PC's Ubuntu WSL2 environment at `/home/user/projects/KyulAI`.
+- Backed up the existing remote source and synchronized the current backend, web assets, model
+  registries and artifacts, RAG data, reports, authentication database, environment configuration,
+  and required runtime credentials over the dedicated SSH/Tailscale path.
+- Added and enabled three WSL user systemd services:
+  - `imperialax-laminate.service` on port 8000;
+  - `imperialax-injection.service` on port 8010;
+  - `imperialax-cloudflared.service` for the public tunnel.
+- Created the dedicated Cloudflare Tunnel `imperialax-wsl-serving`, ID
+  `e8928d27-7518-4ba9-ac36-108ca3a78718`, and moved all seven ImperialAX hostnames to it.
+- Kept the former Mac tunnel running because it still serves unrelated `cafedecafe.co.kr` and
+  other domains. ImperialAX DNS no longer routes through the Mac tunnel.
+- Verified WSL-local `/health` and `/ready` for both APIs, all canonical Laminate/u3 and Injection
+  model readiness checks, and real Laminate and Injection prediction requests.
+- Verified all public ImperialAX routes, both external readiness endpoints, and real external
+  predictions. The new tunnel registered four connectors, received production requests, and
+  reported zero request errors during cutover validation.
+- Added Windows login startup and health-check scripts plus the operations and rollback guide at
+  `docs/IMPERIALAX_WSL_SERVING.md`.
+
+## 2026-07-22 - CafeDeCafe and Nangman Production Serving Migrated to WSL
+- Migrated all seven `cafedecafe.co.kr` hostnames from the office Mac to the home Windows WSL host.
+- Reused the WSL Laminate and Injection origins for wedding, DD/Laminate, and Injection routes.
+- Migrated `/Users/danlee/nangman-rag` to `/home/user/projects/nangman-rag`, including a consistent
+  SQLite snapshot, private runtime configuration, source, and tests.
+- Built an independent Python 3.11 environment on WSL; all 17 Nangman tests passed.
+- Added `cafedecafe-nangman.service` on port 8020 and a persistent 15-minute
+  `cafedecafe-nangman-sync.timer`. The first WSL sync completed with zero failures and added the
+  latest selected DCInside documents and chunks.
+- Created the dedicated Tunnel `cafedecafe-wsl-serving`, ID
+  `68025491-2fa9-48a3-bc61-9caf6bd8e6d5`, using the CafeDeCafe zone certificate and routed all
+  seven production hostnames to it.
+- Used the former tunnel as a temporary WSL migration bridge, disabled the old Mac launch agent,
+  then removed the bridge after the new tunnel began receiving traffic.
+- Verified all public pages, Laminate and Injection readiness, Nangman authentication behavior,
+  a real Nangman RAG answer with sources, and Cloudflare metrics with zero request errors.
+- Updated the Windows login startup script to restore ImperialAX and CafeDeCafe services together.
+- Added operations and emergency rollback instructions at `docs/CAFEDECAFE_WSL_SERVING.md`.
+
+## 2026-07-22 - Wedding Runtime Restored and Samsung Internet Fonts Fixed
+- Confirmed that the wedding migration had copied the UI but not its persistent runtime files.
+  The original Mac data was still intact at `runtime/wedding/rsvp-submissions.jsonl` and
+  `runtime/wedding/admin-token.txt`; no record had been deleted.
+- Backed up the WSL wedding runtime, briefly stopped the Laminate service, and restored both files
+  with owner-only permissions. Source and destination SHA-256 hashes match exactly.
+- Verified the restored production state without exposing private content:
+  - 2 total stored records;
+  - 1 RSVP record;
+  - 1 guestbook record;
+  - the public guestbook and authenticated admin totals both return the restored data.
+- Removed Google Fonts runtime requests from the main invitation, parents page, RSVP page, bus
+  page, and share-test page.
+- Added compact self-hosted subsets of Gowun Batang, Cormorant Garamond, and Pinyon Script under
+  `src/frontend/wedding/assets/fonts`, with their SIL Open Font License files.
+- Replaced the generic `cursive` fallback with readable Korean and Latin serif fallbacks, and added
+  an extra narrow-screen rule so the scripted couple name does not clip on small Galaxy Flip views.
+- Synchronized the complete wedding frontend directory to WSL. Mac and WSL directory digests match
+  across all 23 files.
+- Production verification used a Galaxy Flip/Samsung Internet user agent at 412 px:
+  - all local CSS and WOFF resources returned HTTP 200;
+  - both the script and Korean fonts loaded through the FontFace API;
+  - no Google font links remained;
+  - body width matched the viewport with no horizontal overflow;
+  - the restored guestbook entry rendered in the page.
+
+## 2026-07-22 - Wedding Signature Made Independent of Web Fonts
+- The user reported that the scripted couple name still did not appear correctly on a physical
+  Galaxy Flip Samsung Internet browser after the self-hosted font deployment.
+- Confirmed production was already served from WSL, HTML responses used `no-store`, and Cloudflare
+  was not serving stale invitation HTML.
+- Replaced the first-cover scripted couple name with a transparent high-resolution PNG rendered
+  from the same Pinyon Script font. The heading keeps meaningful alt text for accessibility.
+- Deployed the asset to the main invitation, parents page, and share-test page with an explicit
+  cache-busting URL and eager/high-priority loading.
+- Verified production with the Samsung Internet user agent while forcibly blocking every web-font
+  request: the signature image still loaded at its intended size, the page had no horizontal
+  overflow, and the restored guestbook entry remained visible. Mac rollback was therefore not
+  required for this rendering issue.
+
+## 2026-07-22 - Wedding Root URL Asset Paths Corrected
+- A physical Galaxy screenshot showed the couple-name image's alt text instead of the rendered
+  signature. This proved that the issue was a failed image request, not Samsung Internet's font
+  rendering.
+- Identified the root cause: the invitation is also served at `https://cafedecafe.co.kr`, while its
+  `./assets/...` references resolved to `/assets/...`; the files are mounted at
+  `/wedding/assets/...`, so fonts, the signature, map icons, and calendar download returned 404 at
+  the root URL.
+- Changed all wedding asset references to absolute `/wedding/assets/...` paths and added cache
+  versions to the font stylesheet and signature image URLs. The same fix covers the main,
+  parents, share-test, RSVP, and bus pages.
+- Deployed the corrected frontend to WSL and verified the public root route with a 412 px mobile
+  viewport: the signature image loaded at its full natural width, no images failed, all local font
+  families were available, there was no horizontal overflow or console error, and the preserved
+  guestbook entry remained available. Both the application and CafeDeCafe tunnel services stayed
+  active, so no rollback to the Mac was needed.
+
+## 2026-07-22 - Wedding Typography Parity and Forced-Dark Opt-Out
+- A second physical Galaxy screenshot showed that the signature image was fixed but the remaining
+  Latin typography still fell back to a sans-serif face. Comparing the current files with the
+  original committed invitation confirmed that the migration repair had replaced the original
+  Google Fonts setup with a locally generated variable-font subset.
+- Restored the original Google Fonts declarations and original font-family priority for Cormorant
+  Garamond, Gowun Batang, and Pinyon Script. Kept self-hosting as a fallback, but replaced the
+  Cormorant variable WOFF with static WOFF2 files for weights 400, 500, and 600; also added static
+  WOFF2 fallbacks for Gowun Batang and Pinyon Script for broader Samsung Internet compatibility.
+- Added `<meta name="color-scheme" content="only light">`, the legacy supported-color-schemes
+  declaration, and `color-scheme: only light` to the main invitation, parents, RSVP, bus, share
+  test, and admin pages. This explicitly opts the invitation out of Samsung/Chromium automatic
+  dark-theme color overrides while retaining the original light palette.
+- Audited every wedding page at 412 px after deployment. All pages returned HTTP 200, had no failed
+  images, no horizontal overflow, no browser console errors, and computed `light only`. All six
+  static WOFF2 assets and the Samsung-targeted Google Fonts stylesheet returned HTTP 200. The WSL
+  frontend digest matched the Mac source digest, both services remained active, and the existing
+  guestbook record was preserved.
+
+## 2026-07-22 - Wedding Cover Protected from Samsung Device-Font Override
+- The physical Galaxy screenshot still showed sans-serif Latin text even though the CSS fallback
+  chain ended in Georgia/Times/serif and both Google-hosted and self-hosted fonts returned HTTP 200.
+  This is consistent with Samsung Internet applying a device-font preference over the page's own
+  `font-family`, rather than the handset simply lacking the requested fonts.
+- Rendered the cover's remaining static Latin typography from the original Cormorant Garamond font
+  into high-resolution transparent PNG assets: the invitation kicker, date/time/venue group, and
+  three-line footer. Meaningful `alt` text remains in the markup.
+- Applied the assets to the main invitation, parents page, and share-test page. The scripted names
+  were already protected by the same raster approach, so the complete first cover is now immune to
+  browser or accessibility settings that forcibly replace page fonts.
+- Deployed the frontend to WSL after creating a remote rollback archive. Public verification used a
+  Samsung Internet user agent plus a deliberately forced Arial override: all four cover typography
+  images remained correct, loaded at their intended dimensions, had no failed requests, and caused
+  no horizontal overflow. Both the application and CafeDeCafe tunnel services remained active.
+
+## 2026-07-22 - Kakao Share Card Updated to the Current Wedding Cover
+- The Kakao/Open Graph card still referenced `og-classic-v2.png`, whose cover used shortened names
+  and an older venue treatment.
+- Captured the current first screen as a dedicated 1200 x 630 social preview and added it as
+  `src/frontend/wedding/assets/og-classic-v3.png`. The card now shows the full scripted names,
+  current English date/time/venue typography, and the current footer treatment.
+- Updated Open Graph, Twitter card, and Kakao SDK `imageUrl` references across the main invitation,
+  parents, share-test, RSVP, and bus pages. The new filename also avoids reuse of the old cached
+  image object.
+- Deployed the updated frontend to WSL after creating a rollback archive. Both the root and
+  `/wedding/` routes expose the v3 image to a Kakao crawler user agent; the public asset is 1200 x
+  630 and its SHA-256 digest matches the local source. Both serving services remained active.
+
+## 2026-07-22 - Parents Kakao Card Copy Restored
+- Restored the parents-only Kakao card wording requested by the family.
+- The card title is `저희 자녀의 결혼식에 초대합니다`; the description is
+  `승찬·재효 장남 성용·순이 장녀 모바일 청첩장`.
+- Updated both the parents page Open Graph metadata and the Kakao SDK feed payload while leaving
+  the standard invitation card unchanged.
+- Deployed the single parents page to WSL after saving a rollback copy. A Kakao crawler request and
+  the live JavaScript payload both returned the requested wording, and both serving services stayed
+  active.
+
+## 2026-07-22 - Samsung Internet Body Typography Hardened
+- The physical Samsung Internet browser preserved the rasterized first cover but continued to
+  replace live HTML text in the remaining invitation sections with the device sans-serif font.
+- Kept the body as accessible, selectable HTML rather than converting the entire invitation and
+  forms into images. Strengthened every existing public-page font-family declaration with author
+  priority and added a direct serif assignment to all descendant elements; more-specific Latin
+  label rules continue to select Cormorant Garamond.
+- Applied the compatibility rules to the main invitation, parents page, share-test page, RSVP form,
+  and bus form. The admin UI was intentionally left unchanged.
+- The restored Gowun Batang metrics exposed an existing RSVP radio input overflow. Reduced the
+  visually hidden radio controls to 1 x 1 px so the RSVP page no longer extends beyond the viewport.
+- Deployed the public wedding frontend to WSL after creating a rollback archive. Production tests
+  used a Samsung Internet user agent, blocked Google Fonts, and injected a later forced Arial rule.
+  The main, parents, RSVP, and bus pages still computed to the self-hosted Gowun Batang/Cormorant
+  families, returned no failed requests, and matched the 412 px viewport without overflow. Both
+  serving services remained active.
+## 2026-07-22 - Samsung Internet Font Setting Guidance Corrected
+
+- The previously mentioned Samsung Internet path `Settings > Labs > Apply device font settings to web pages` is historical guidance from Samsung Internet 14.0.1.62 (2021), not a reliable path for current Samsung Internet versions.
+- Current Galaxy checks relevant to font rendering are `Settings > Display > Font size and style` and `Settings > Accessibility > Vision enhancements > High contrast fonts`.
+- Do not rely on a Samsung Internet `Labs` toggle when diagnosing the wedding invitation typography on current devices.
+## 2026-07-22 - Mac-to-WSL Serving Migration Audited
+
+- Completed a checksum and runtime audit of the wedding, DD Laminate, Injection, ImperialAX auth,
+  Laminate RAG, Nangman RAG, model artifacts, environment configuration, and public CafeDeCafe
+  routes after the Mac-to-WSL migration.
+- Found no missing production assets or persistent records. Wedding frontend/runtime, auth DB,
+  deployed UI trees, RAG index, and deployed model directories match their Mac sources.
+- Nangman WSL data is newer rather than incomplete: 310 documents and 1,628 chunks versus 284
+  documents and 1,602 chunks on the former Mac database.
+- All WSL serving services and the Nangman sync timer are active and enabled; public readiness
+  checks report all Laminate and Injection models loaded.
+- Recorded three operational follow-ups: add rotating WSL data backups, remove the Windows-login
+  dependency caused by `Linger=no`, and decide whether to keep or stop the Mac rollback origins.
+- Full evidence is recorded in `docs/reviews/2026-07-22-wsl-serving-migration-audit.md`.
+
+## 2026-07-22 - WSL Serving Resilience Completed
+
+- Added `scripts/backup_wsl_serving_state.sh` and a daily systemd user timer that back up wedding
+  submissions/admin state, ImperialAX auth state, private environment files, Nangman SQLite data,
+  Cloudflare credentials, and installed service definitions to the Windows disk.
+- Backups are stored under `C:\Users\user\ImperialAX-Backups`, retain 14 generations, and include a
+  SHA-256 sidecar. The first real archive was extracted and all three SQLite snapshots passed
+  `PRAGMA integrity_check`; the wedding JSONL restored with both records intact.
+- Enabled WSL user lingering (`Linger=yes`) and added the backup timer to the Windows login startup
+  script.
+- Prepared `Install-ImperialAX-WSL-BootTask.cmd` and its PowerShell installer on the Windows desktop.
+  Registering an at-startup Windows task requires one interactive UAC approval and cannot be
+  completed from the non-elevated remote WSL session.
+- Disabled and stopped the former Mac DD, Injection, Nangman API, and Nangman sync launch agents.
+  The Mac Cloudflare Tunnel was already disabled. All public ImperialAX and CafeDeCafe endpoints
+  remained healthy after the Mac listeners on ports 8000, 8010, and 8020 stopped.
+
+## 2026-07-23 - 8x8 Case 2 Curve Dataset Sorted
+
+- Inspected the new `data/New_data/8x8_Case2` delivery. It contains 300 transition rows, 300
+  force-displacement CSV files, and 300 plot images covering `Test_001` through `Test_300` with no
+  missing or duplicate IDs. All curve files contain two numeric columns; curve lengths range from
+  255 to 1,001 points.
+- Extended `scripts/dd_classify_new_data_curves.py` to accept both the established `Original` plot
+  folder and the new Case 2 delivery's `Ori` folder. Added a regression test for the `Ori` layout;
+  all four ingestion tests pass.
+- Generated `data/New_data/batch_metadata/curve_batch_metadata_8x8_Case2.csv` and reran the complete
+  8x8 Case 2/3/4 sorting pipeline so the combined manifest remains coherent at 900 curves.
+- Case 2 pseudo-label counts are Type 1: 41, Type 2: 177, Type 3: 82. The classifier is the existing
+  `models/dd_laminate_cases_2_3_4_csv_v1/curve_classifier.joblib` ExtraTrees model using theta,
+  Case, Pt, and force-displacement curve features. These are model-assisted pseudo-labels, not
+  human-confirmed ground truth.
+- Sorted Case 2 files are under `data/New_data/classified_8x8_curve_csv_v1/Case2`; the combined
+  manifest and review report are `reports/new_data_8x8_curve_type_classification.csv` and `.md`.
+  Case 2 confidence averages 0.622: 224 records are marked high review priority, 51 medium, and 25
+  low, so the high-priority queue should be manually checked before using these labels for training.
+- Verified that each Case 2 source ID appears exactly once in the manifest, each sorted CSV has a
+  matching plot and type manifest entry, no copied file is empty, and the source checksum remained
+  `595b6c5fd712ec040240fb10f15099d41633228eb460847a26e1adc3b5763010` before and after sorting.
+
+## 2026-07-23 - Clarified 8x8 Training Inclusion
+
+- None of the 900 delivered 8x8 curves are currently included in the deployed Laminate Forecast
+  model training set.
+- The earlier 600-row 8x8 set consists of Case3 and Case4, 300 rows each. It was classified and
+  evaluated as `external_holdout_not_for_training`; it was not used to fit the models.
+- The newly delivered 300-row 8x8 Case2 set has only been validated and sorted so far. It has not
+  yet been added to either the preserved holdout dataset or a training dataset.
+- Current geometry-aware Tree/GointMLP/Hybrid training uses 1,800 rows: 900 curated 6x4 rows plus
+  900 6x8 rows. The phrase `600 rows per Case` in that dataset means 300 rows at 6x4 plus 300 rows
+  at 6x8 for each of Case2, Case3, and Case4; it does not refer to the 8x8 delivery.
+- Before 8x8 retraining, preserve a final untouched 8x8 test partition across all three Cases and
+  review low-confidence pseudo-labels in the remaining training partition.
+
+## 2026-07-23 - Clarified 6x4/6x8 Holdout Policy
+
+- A deterministic 20% fixed evaluation split exists for the combined 6x4/6x8 dataset at
+  `reports/dd_response_geometry_canonical_v2_fixed_holdout/fixed_holdout_manifest.csv`.
+- The split contains 364 rows: 182 from 6x4 and 182 from 6x8. Its paired train side contains 1,436
+  rows: 718 from each geometry. It is grouped by `Case + theta1 + theta2`, so identical angle/Case
+  combinations do not cross between train and holdout during that evaluation.
+- This fixed split was used to train temporary evaluation models and compare Tree, GointMLP, and
+  Hybrid performance on stable rows. It is not a permanently untouched external holdout for the
+  deployed models.
+- The deployed final geometry-aware models were subsequently fit on all 1,800 available 6x4/6x8
+  rows. Therefore no 6x4 or 6x8 row remains completely unseen by the current deployed final model.
+- The quarantined 8x8 dataset is currently the only geometry-level external holdout that the
+  deployed models have not used for fitting.
+
+## 2026-07-23 - Recommended Final 8x8 Validation Policy
+
+- Because future independent DD data is not guaranteed, do not retrain the validated deployment
+  model on all 2,700 rows.
+- Lock 180 of the 900 8x8 records as a permanent final test set: 60 records per Case, stratified by
+  pseudo-Type and classifier-confidence band. Manually review the selected Type labels because the
+  Type targets are pseudo-labels; Pt and force-displacement curves remain direct evaluation targets.
+- Use the remaining 720 8x8 records together with all 1,800 existing 6x4/6x8 records. The resulting
+  2,520-row development set can use grouped cross-validation for feature, model, and hyperparameter
+  selection.
+- After model selection, fit the validated deployment artifact on those same 2,520 development
+  rows and evaluate the locked 180 rows exactly once for the release report. Keep the locked split
+  manifest versioned and never use those rows for fitting, tuning, early stopping, or model choice.
+- Prioritize Pt MAE and normalized curve RMSE on the final test set. Report Type agreement as a
+  secondary metric until the selected 8x8 Type labels have been human-reviewed.
+- An optional 2,700-row all-data model may be retained as an explicitly unvalidated challenger, but
+  it should not replace the validated default unless a genuinely new external test set arrives.
+
+## 2026-07-23 - Unified Permanent Holdout Across 6x4, 6x8, and 8x8
+
+- Confirmed that all three panel geometries contain the exact same 900 unique
+  `Case + theta1 + theta2` design groups. There are no design groups missing from or added to the
+  8x8 delivery relative to the existing 6x4/6x8 dataset.
+- The permanent split must therefore be assigned at the design-group level, not independently by
+  row or geometry. Otherwise the same Case/angle design could appear in training at one panel size
+  and in the final test set at another size, producing optimistic leakage.
+- Reuse the existing deterministic fixed split: 718 design groups for development and 182 locked
+  design groups for final testing. Apply each group assignment to all three panel sizes.
+- Resulting row counts across the 2,700 available curves:
+  - development: 718 rows per geometry, 2,154 rows total;
+  - permanent final test: 182 rows per geometry, 546 rows total.
+- Use grouped cross-validation only inside the 2,154-row development partition. After model and
+  hyperparameters are frozen, train the release model on all 2,154 development rows and evaluate
+  the 546 locked rows once. Do not retrain the validated release artifact on the locked rows.
+- This split measures generalization to unseen Case/angle design groups within the three observed
+  panel sizes. It does not prove extrapolation to a completely unseen fourth panel geometry; that
+  would require future data at another size.
+
+## 2026-07-23 - One Locked Holdout Plus Geometry Cross-Validation
+
+- Do not create two disjoint permanent holdout datasets. Maintain one locked grouped final test set
+  and use a separate evaluation protocol for geometry transfer.
+- Permanent release gate: the 546-row grouped holdout containing the same 182 locked
+  `Case + theta1 + theta2` groups at 6x4, 6x8, and 8x8. This tests unseen laminate designs within
+  the three supported sizes.
+- Geometry benchmark: run leave-one-panel-size-out evaluation only on the 2,154-row development
+  partition. Train on two sizes and test on the third, rotating through 6x4, 6x8, and 8x8. This
+  intentionally tests size transfer without consuming another permanent data partition.
+- Model and hyperparameter selection may use grouped CV and leave-one-size-out results from the
+  development partition. The 546 locked rows must remain outside both workflows and be evaluated
+  only after the release configuration is frozen.
+- The earlier Case3/Case4 8x8 external evaluation remains an archived historical baseline. The new
+  strict protocol requires retraining from scratch on the 2,154-row development partition because
+  current deployed models have already seen all 6x4/6x8 rows.
+
+## 2026-07-23 - Three-Geometry Strict Validation And Retraining Completed
+
+- Built `data/datasets/DD_cases_2_3_4_geometry_3size_v1` with 2,700 curves: 900 each at 6x4, 6x8,
+  and 8x8. Case2, Case3, and Case4 each contribute 900 rows.
+- Froze `data/datasets/DD_cases_2_3_4_geometry_grouped_v1/split_manifest.csv` using the shared
+  `Case + theta1 + theta2` group key. It contains 718 development groups (2,154 rows) and 182
+  locked groups (546 rows), with no group leakage. The split manifest SHA-256 is
+  `af7b4b020abc943c2ff3b942f7b696c9691d7ca796b686c5fdfeba28d8151ed6`.
+- Updated response training so grouped CV includes Case in the group key and GointMLP fold
+  normalization is fitted on training folds only. GointMLP early stopping now considers Type F1,
+  Pt MAE, and curve RMSE instead of Type F1 alone.
+- Updated Hybrid distillation so all locked design groups are excluded from synthetic grids and
+  validation-near synthetic samples are removed independently inside every strict CV fold.
+- Retrained Tree, GointMLP, and Hybrid artifacts on the 2,154-row development partition using the
+  RTX 5070 WSL training environment. Grouped CV Type accuracy / Pt MAE results were Tree
+  `0.9461 / 176.51`, GointMLP `0.9536 / 641.09`, and Hybrid `0.9582 / 365.67`.
+- Evaluated the saved artifacts on the 546 locked rows. Raw Type agreement / Pt MAE / curve-force
+  RMSE were Tree `0.9377 / 190.12 / 291.36`, GointMLP `0.9048 / 532.84 / 1,017.90`, and Hybrid
+  `0.9341 / 305.64 / 438.50`. Tree is the recommended release candidate for Pt and curve quality;
+  Hybrid remains the stronger neural challenger for Type classification.
+- Ran leave-one-geometry-out tests inside development. Pt MAE for Tree / GointMLP / Hybrid was
+  `9,828.99 / 10,362.35 / 9,950.89` for held 6x4, `1,393.86 / 1,009.84 / 884.15` for held 6x8,
+  and `3,643.59 / 7,569.93 / 3,821.11` for held 8x8. This demonstrates acceptable interpolation
+  at 6x8 but weak extrapolation to a geometry outside the observed range.
+- Separated raw model evaluation from web/app `Pt-curve consistency` post-processing. The current
+  force-rescaling post-process preserves Pt but severely distorts max force and force-scale curve
+  metrics. Do not use those post-processed force metrics as surrogate-model accuracy claims; replace
+  the rescaling approach before release.
+- Full results and artifact hashes are recorded in
+  `reports/dd_response_geometry_3size_grouped_v1/validation_summary.md`.
+
+## 2026-07-23 - Raw Model Response Restored In Web And Apps
+
+- User chose to show the model prediction directly instead of forcing the curve-fit intersection
+  to equal the separately predicted Pt scalar.
+- Removed Pt-driven force scaling from the serving paths for Laminate Tree, GointMLP, Hybrid, and
+  u3 Tree/GointMLP forecasts. `predicted_max_force` and every returned curve force now retain the
+  model output scale.
+- The previous `enforce_pt_curve_consistency()` helper remains available only for archived
+  comparison and research diagnostics. Serving uses `measure_pt_curve_consistency()`, which records
+  the Pt/curve gap without modifying the curve or Max. Force.
+- Prediction metrics now identify `response_output_mode=raw_model_prediction` and
+  `pt_curve_force_postprocessing_applied=0`.
+- Web, iOS, and Android graph semantics were separated: the purple marker is the linear-fit
+  intersection, while the red marker is the model-predicted Pt. A disagreement is shown rather than
+  hidden by rescaling the force axis.
+
+## 2026-07-23 - Isolated 3-Size Raw-Curve Preview Deployed
+
+- Deployed a temporary research page at
+  `https://laminate.imperialax.com/preview/3size` without adding the new models to the production
+  Laminate model selector.
+- The preview exposes exactly three grouped-holdout artifacts trained on the 2,154-row development
+  split: `response_geometry_tree_3size_grouped_v1`,
+  `response_geometry_goint_3size_grouped_v1`, and
+  `response_hybrid_student_3size_grouped_v1`.
+- Added a dedicated `/api/v1/dd-laminate/predict/response/3size-preview` endpoint. It accepts only
+  the three preview model keys and returns `raw_model_prediction` with force scale correction
+  fixed at `1.0`. The regular production response endpoint retains its existing Pt-aligned
+  post-processing until the graph review is complete.
+- The graph displays the raw predicted curve, two independently fitted slope segments, their
+  purple fit-intersection marker, and the separately predicted red Pt marker. It also supports
+  zoom, pan, hover readout, and explicit Pt-versus-fit gap diagnostics.
+- Public checks confirmed HTTP 200 for both the main page and preview page, the production model
+  registry remains the canonical three models, all preview artifacts are available, and all three
+  preview models return 128-point raw curves without force rescaling.
+- Verification: Ruff and JavaScript syntax checks passed; targeted backend/model tests completed
+  with `23 passed`.
+- Restored direct panel geometry entry on the preview page while retaining 6x4, 6x8, and 8x8
+  quick presets. Length and width now post directly as `panel_a_in` and `panel_b_in`; changing a
+  preset synchronizes the numeric fields, while a custom size clears the preset selection. The
+  public page was verified with a 7x5-inch prediction and with 8x8 preset resynchronization.
+- Dataset audit found no measured `Case2, theta1=30, theta2=-30` design group at 6x4 or either of
+  the other two panel sizes. Predictions at this input are therefore unseen-design surrogate
+  estimates, not retrieval of a training curve. The nearest 6x4 Case2 sample is `(30, -25)`
+  (`Test_274`, Type 3, Pt 18,587.12 kips), followed by `(36, -31)` (`Test_028`, Type 2,
+  Pt 16,320.79 kips).
+
+## 2026-07-23 - Original P1 Plot Fitting Restored In 3-Size Preview
+
+- Confirmed that the 3-size Tree prediction for measured design `Case2, theta1=30, theta2=-25,
+  6x4` reproduces the Test 274 curve extremely closely: force RMSE is approximately `8.16 kips`,
+  or `0.025%` of the measured peak force. The large visual mismatch came from fit-window selection,
+  not the surrogate curve itself.
+- Recovered the original P1 plotting method from the user-provided script. On the 1,001-point Test
+  274 CSV it selects initial rows `38-44`, second rows `936-940`, and reproduces Pt
+  `18,587.1203737 kips` exactly.
+- Added `p1_transition_fit_details()` for the temporary preview. Full-resolution data follows the
+  original maximum-R2 P1 selection. For reduced 128-point surrogate curves, the independently
+  predicted Pt resolves near-tied high-R2 post-kink windows; this changes only the display fit and
+  never rescales or edits the predicted curve or Max. Force.
+- For the public Test 274 preview, the P1-style fit now uses curve windows `1-7` and `118-122`,
+  producing `18,567.26 kips` versus model Pt `18,587.12 kips` (gap `19.86 kips`, `0.1%`). Max.
+  Force remains `32,590.47 kips` and force scale correction remains `1.000`.
+- Updated graph semantics on `https://laminate.imperialax.com/preview/3size`: red dashed lines are
+  the initial/late P1 fits, the purple vertical line is detected kink start, the amber diamond is
+  P1 fit Pt, and the red dot is the independent model Pt. Production model selection remains
+  unchanged.
+- Verification: `23 passed`, Ruff clean, JavaScript syntax clean, public API HTTP 200, and browser
+  visual verification completed for the Korean preview page.
+
+## 2026-07-23 - Negative Theta Entry Fixed Across Laminate Web UI
+
+- Fixed the production Laminate Forecast, u3, stack preview, Curve CSV, and temporary 3-size
+  preview angle controls so a leading minus sign is preserved while users type negative theta
+  values. Previously the preview `input` handler converted the transient empty value produced by a
+  lone `-` into `0`, while browser-native number-field behavior could also discard the sign.
+- Angle fields use signed text entry with explicit integer validation because some browsers expose
+  a lone minus in `type=number` as an empty value. They keep in-progress text untouched,
+  synchronize sliders/readouts only after a finite angle exists, and normalize/clamp the completed
+  value on change. Range-slider behavior is unchanged.
+
+## 2026-07-23 - Pt-Consistent 3-Size Tree Challenger Deployed
+
+- Added preview model `response_pt_consistent_tree_3size_grouped_v1` without replacing any of the
+  three existing 3-size preview models or the production model registry. The artifact is stored at
+  `models/dd_laminate_response_pt_consistent_tree_3size_grouped_v1/response_surrogate.joblib`.
+- The scalar Tree head jointly predicts Pt, Max. Displacement, Max. Force, normalized Pt
+  displacement, and both normalized P1 slopes. The two P1 intercepts are then solved analytically
+  so their displayed intersection is exactly the predicted Pt. The PCA response curve remains the
+  raw model output; neither the curve nor the force axis is rescaled to pass through Pt.
+- Locked 546-row grouped Holdout results were: Type accuracy `0.9359`, macro F1 `0.9325`, Pt MAE
+  `191.79 kips`, Max. Force MAE `155.28 kips`, normalized-curve RMSE `0.00603`, and force-curve RMSE
+  `291.50 kips`. The displayed P1/Pt gap is `0.0`. Existing 3-size Tree references are Type accuracy
+  `0.9377`, Pt MAE `190.12 kips`, Max. Force MAE `153.70 kips`, and force-curve RMSE `291.36 kips`.
+  The challenger therefore improves display consistency without a material accuracy change, but it
+  does not outperform the existing Tree on raw Holdout regression.
+- A full data audit showed that the independent legacy P1 window selector reproduces almost all
+  stored 6x4 Pt labels but not most 6x8/8x8 labels. The overall independent fit versus source-Pt
+  median gap was `2,417.93 kips`; the geometry medians were approximately `0`, `6,763.75`, and
+  `8,896.17 kips` for 6x4, 6x8, and 8x8. Therefore the independent fit remains a diagnostic and is
+  not allowed to overwrite the supplied Pt training targets.
+- Fixed `_best_p1_second_window()` so a target-guided fit with no candidate above the strict R2
+  threshold falls back to the near-best R2 set instead of failing on an empty candidate list.
+- The public research preview at `https://laminate.imperialax.com/preview/3size?lang=ko` now lists
+  four models. For the Pt-consistent challenger it shows one purple P1 intersection as
+  `Predicted Pt`, hides the redundant raw-curve force-crossing marker, and explicitly states that
+  the raw response curve is not modified.
+- Validation report:
+  `reports/dd_response_pt_consistent_tree_3size_grouped_v1/validation_report.md`.
+- Verification: targeted ML tests `11 passed`, backend/API contract tests `18 passed`, Ruff and
+  Python/JavaScript syntax checks passed, WSL service is active, public API returns the challenger,
+  and the public
+  Test 274 input produced predicted Pt and displayed P1 Pt of `18,587.12 kips` with gap `0.0` and
+  force scale correction `1.000`.
+
+## 2026-07-23 - Pt-Consistent GointMLP And Hybrid Challengers Deployed
+
+- Extended the 3-size Pt-consistent P1 contract to both GointMLP and the distilled Hybrid model.
+  The new scalar head predicts Pt, Max. Displacement, Max. Force, normalized Pt displacement, and
+  the two normalized P1 slopes. P1 intercepts are solved analytically so both displayed lines meet
+  exactly at the predicted Pt; the 128-point neural response curve and Max. Force remain raw model
+  outputs with no force-axis rescaling.
+- Preserved backward compatibility: existing neural checkpoints still use the original three
+  scalar outputs unless `scalar_dim: 6` and `curve_representation: pt_consistent_p1_head_v1` are
+  present in the checkpoint.
+- Trained both challengers on the WSL RTX 5070 using the fixed grouped protocol: 2,154 development
+  rows and 546 locked-Holdout rows, split by Case + theta1 + theta2 across 6x4, 6x8, and 8x8.
+  The Hybrid additionally used 45,300 holdout-excluded synthetic design rows distilled from the
+  Pt-consistent Tree teacher.
+- Locked-Holdout results:
+  - Existing GointMLP: Type accuracy `0.9048`, Pt MAE `532.84`, Max. Force MAE `1011.54`,
+    force-curve RMSE `1017.90` kips.
+  - Pt-Consistent GointMLP: Type accuracy `0.9139`, Pt MAE `525.37`, Max. Force MAE `867.40`,
+    force-curve RMSE `908.29` kips, displayed P1/Pt gap `0.0`.
+  - Existing Hybrid: Type accuracy `0.9341`, Pt MAE `305.64`, Max. Force MAE `389.45`,
+    force-curve RMSE `438.50` kips.
+  - Pt-Consistent Hybrid: Type accuracy `0.9322`, Pt MAE `286.66`, Max. Force MAE `362.38`,
+    force-curve RMSE `425.62` kips, displayed P1/Pt gap `0.0`.
+- Added the two challengers to the isolated public 3-size preview only. The production registry is
+  unchanged. `https://laminate.imperialax.com/preview/3size?lang=ko` now exposes six comparison
+  models: original and Pt-consistent Tree, GointMLP, and Hybrid pairs.
+- Public browser verification at Case 2, theta1 30, theta2 -30, 6x4 produced:
+  - GointMLP: predicted Pt and displayed P1 Pt both `17,679.54 kips`.
+  - Hybrid: predicted Pt and displayed P1 Pt both `17,319.65 kips`.
+  Both returned `response_output_mode=pt_consistent_p1_head_v1`, 128 curve points, force
+  post-processing disabled, and no browser console errors.
+- Artifacts:
+  `models/dd_laminate_response_pt_consistent_goint_3size_grouped_v1/response_goint.pt` and
+  `models/dd_laminate_response_pt_consistent_hybrid_3size_grouped_v1/response_goint.pt`.
+  Validation report:
+  `reports/dd_response_pt_consistent_deep_3size_grouped_v1/validation_report.md`.
+- Verification: Ruff clean; targeted ML/backend tests `25 passed`; WSL service active; public model
+  registry and prediction requests returned HTTP 200.
+
+## 2026-07-23 - Neural Upgrade Diagnosis And Recommended V2
+
+- A locked-Holdout error breakdown showed that neural errors are concentrated rather than uniform.
+  Pt-Consistent GointMLP Pt MAE was `1051.2 / 313.8 / 211.1 kips` for 6x4 / 6x8 / 8x8;
+  Pt-Consistent Hybrid was `558.1 / 176.8 / 125.2 kips`. Type 3 remained the hardest response
+  family: GointMLP Pt MAE `843.0` and force-curve RMSE `1367.6 kips`; Hybrid Pt MAE `603.0` and
+  force-curve RMSE `655.0 kips`.
+- The current model sends the same 40-feature vector through 8-10 parallel dense branches and
+  directly predicts all 128 normalized curve points. Training uses fixed epochs and fixed loss
+  weights without a grouped inner-validation early-stop loop. The Hybrid distillation applies a
+  temperature to student logits while using unsoftened Tree probabilities as the teacher target;
+  this is a concrete calibration target for v2.
+- Recommended first upgrade is `Residual Hybrid v2`: keep the strong Tree prediction as a base and
+  train a physics-structured neural network to predict out-of-fold residual corrections for Type,
+  Pt, Max. Force, P1 parameters, and a compressed curve representation. This has a better chance of
+  beating the Tree than replacing it with a larger standalone MLP.
+- Recommended structured branches: theta/trigonometric features, actual ply-sequence encoder,
+  normalized CLT ABD descriptors, and geometry/slenderness features. Fuse the branches with a
+  gated residual trunk rather than duplicating the full input in every branch.
+- Training protocol for v2: keep the 546-row Holdout locked; create grouped inner CV only from the
+  2,154 development rows; use early stopping and learning-rate scheduling; correct distillation
+  temperature handling; add 6x4 and Type-3-aware weighting; compare 3-5 random seeds. Curve output
+  should use a small PCA/autoencoder coefficient head plus Pt/P1 consistency losses instead of an
+  unconstrained 128-value head.
+- Promotion targets for the neural challenger: Type accuracy at least `0.934`, Pt MAE below
+  `250 kips`, Max. Force MAE below `330 kips`, force-curve RMSE below `390 kips`, and no panel-size
+  subgroup regression above 10% relative to the current Hybrid.
+
+## 2026-07-23 - Laminate Model Portfolio Decision
+
+- Added the canonical model inventory and decision record at
+  `docs/DD_LAMINATE_MODEL_CATALOG.md`.
+- On the common 546-row three-size locked Holdout, the original 3-Size Tree remains the strict raw
+  metric winner (`93.77%` Type accuracy, `190.12 kips` Pt MAE). The Pt-Consistent Tree is a near
+  tie (`93.59%`, `191.79 kips`) and adds exact displayed P1/Pt agreement without altering the raw
+  curve, so it is the recommended product-facing default rather than an unconditional numerical
+  winner.
+- Pt-Consistent GointMLP improves every main metric over its matching original GointMLP.
+  Pt-Consistent Hybrid improves Pt, Max. Force, and curve regression over the original Hybrid while
+  losing 0.18 percentage points of Type accuracy. It is the best current neural model.
+- Recommended future visible set: Pt-Consistent Tree as default, Pt-Consistent Hybrid as the neural
+  comparison, and Pt-Consistent GointMLP only when a standalone-DL option is useful. Preserve the
+  original three-size models as hidden baselines and archive older generations after recording
+  reproducibility metadata.
+- The main production page still exposes the older `canonical_v2` Tree/GointMLP/Hybrid set trained
+  on the different 1,800-row 6x4 + 6x8 protocol. Those scores are not directly comparable to the
+  2,700-row three-size benchmark, and production has not yet been switched.
+
+## 2026-07-23 - 3-Size Preview Predicted Pt Label Fix
+
+- Fixed the canvas marker label in `app-3size-preview.js` by explicitly resetting `textAlign` and
+  `textBaseline` inside `drawMarkerLabel`. The label had inherited the Y-axis tick alignment, which
+  placed the purple `Predicted Pt` title and value to the left of their bordered box.
+- Updated the preview script cache key and deployed the two frontend files to the WSL-hosted
+  `imperialax-laminate.service`.
+- Verified on `https://laminate.imperialax.com/preview/3size?lang=ko` using the Pt-Consistent Tree:
+  both label lines render inside the purple box, the connector remains visible, and browser logs
+  contain no errors. Local verification: `node --check` and 19 backend contract tests passed.
+
+## 2026-07-23 - Production-UI 3-Size Preview Integration
+
+- Replaced the isolated 3-size demo layout at `/preview/3size` with the existing production V2
+  Laminate UI. The preview now keeps the complete result flow: Type probabilities, reliability,
+  curve metrics, XAI, Research Insight, prediction history, report export, and RAG assistant.
+- Preview mode remains isolated from production. It loads only the six 3-size comparison models
+  from `/models/3size-preview` and predicts through `/predict/response/3size-preview`; the main
+  `/` page still uses the existing canonical production registry.
+- Pt-consistent preview models preserve the raw 128-point model curve and display two red P1 fit
+  lines with their purple diamond intersection labeled `Predicted Pt`. The duplicate red Pt marker
+  and purple vertical guide are omitted only for this fit mode.
+- Added live local XAI fallback for all six 3-size models. Each explanation masks the 40 canonical
+  angle, normalized CLT, Case, and panel-geometry features in the selected deployed model instead
+  of borrowing an older global XAI report. Korean summary, method, notes, feature names, and feature
+  set labels are localized in the existing UI.
+- The preview reliability and Research Insight now use only the 900 simulations matching the
+  selected panel size (6x4, 6x8, or 8x8). Production and u3 design-space contracts remain backward
+  compatible.
+- Added a compact validation banner for the locked protocol: 2,154 development rows / 718 design
+  groups and 546 Holdout rows / 182 unseen groups. Both `/preview/3size` and the trailing-slash form
+  resolve the production assets correctly and return `X-Robots-Tag: noindex, nofollow`.
+- Verification: JavaScript and Python syntax clean, `git diff --check` clean, targeted backend tests
+  `21 passed`, all six preview models returned HTTP 200 with 128 curve points and 40 local XAI
+  features, WSL service active, and public browser QA at 8x8 completed with no console errors.
+- Review URL: `https://laminate.imperialax.com/preview/3size?lang=ko`. Do not switch the main site
+  until the user approves this preview.
+
+## 2026-07-23 - 3-Size Preview Simplification And Language Parity
+
+- Reduced the `/preview/3size` model selector to the three product-facing Pt-Consistent models:
+  Tree, GointMLP, and Teacher-Student Hybrid. The original three-size models remain preserved as
+  hidden benchmark artifacts and are not exposed by the preview API.
+- Restored the compact hero description: Korean uses `Case와 theta 입력으로 적층 Type, Pt, 응답
+  곡선을 예측합니다.` and English uses `Forecast laminate Type, Pt, and response curve from case
+  and theta inputs.`
+- Removed the development/Holdout count banner from the public preview UI. The validation protocol
+  remains documented in project reports and session memory for research and review use.
+- Added Korean display names for all three Pt-Consistent models and localized their result notes
+  and XAI model references. Prediction history now stores a language-neutral model name and
+  renders it in the active language, so switching between Korean and English no longer leaves the
+  previous language in history cards.
+- Verification: targeted backend contract tests `21 passed`, JavaScript/Python syntax checks and
+  `git diff --check` passed, the public preview API returned exactly three available models, and
+  browser QA confirmed both `?lang=ko` and `?lang=en` with no validation banner.
+- The main production page remains unchanged pending explicit approval.
+
+## 2026-07-23 - 3-Size Pt-Consistent Web Promotion
+
+- Promoted the validated three-size Pt-Consistent model set to the main web Laminate Forecast at
+  `https://laminate.imperialax.com/`: Tree, GointMLP, and Teacher-Student Hybrid.
+- Kept the backend mobile model registry and the existing iOS/Android API contract unchanged. The
+  web client now obtains only its Laminate response models from `/models/3size-preview` and sends
+  those forecasts through `/predict/response/3size-preview`.
+- Main-web response predictions therefore preserve the raw 128-point model curve and use the
+  Pt-consistent P1 fit display. XAI uses the live local three-size explanation, while Research
+  Insight requests the panel-matched three-size design space.
+- Existing `u3 Forecast`, `Stack Lab`, and `Curve CSV` modes remain available. Previous canonical
+  response-history cards are retained in browser storage but hidden from the promoted response
+  history so unavailable legacy choices are not presented as current runs.
+- Verified the public English and Korean pages. Both list exactly the three Pt-Consistent response
+  models, preserve their respective translations, and keep the two existing u3 models. A live
+  Case 2, theta 30/-30, 6x4 Tree prediction returned Type 2, Pt 17,190.1, visible XAI, P1 legend,
+  and the 6x4-specific three-size design-space note without a UI error.
+- Verification: JavaScript syntax clean, `git diff --check` clean, and targeted backend/mobile
+  contract tests `22 passed`.
+
+## 2026-07-24 - Reconfirmed 8x8 Curve Classification Lineage
+
+- The `31-100` delivery was the previously missing 70 force-displacement CSV files for
+  `data/New_data/8x8_Case3/csv`. Adding them completed Case 3 at 300 curves; Case 4 was already
+  complete at 300 curves.
+- Case 3 and Case 4 were then classified together with the established Curve CSV ExtraTrees model:
+  Case 3 = Type 1/2/3 counts 43/175/82, Case 4 = 22/210/68.
+- The last separate 300-file delivery was `data/New_data/8x8_Case2`. It was also fully classified:
+  Type 1/2/3 counts 41/177/82.
+- The combined 8x8 sorting manifest therefore contains 900 unique curves with no missing Test IDs:
+  Type 1/2/3 totals 106/562/232. These Type values are model-assisted pseudo-labels produced from
+  theta, Case, provided Pt, and force-displacement curve features, not human-confirmed labels.
+- Canonical outputs remain at `data/New_data/classified_8x8_curve_csv_v1/classification_manifest.csv`
+  and `reports/new_data_8x8_curve_type_classification.{csv,md}`. The 900 rows were later combined
+  with 6x4 and 6x8 data to form the 2,700-row three-size dataset; the strict model protocol uses
+  2,154 development rows and keeps 546 rows in the locked Holdout.
+
+## 2026-07-24 - Predicted Pt Callout Moved Above The Curve
+
+- Moved the purple `Predicted Pt` canvas callout out of the response-curve plotting rectangle and
+  into a dedicated upper-left callout band. The data plot keeps its previous height; the canvas
+  grows only by the added callout-band height.
+- The callout remains fixed while zooming or panning. Its connector still points to the purple Pt
+  diamond, or to the nearest plot boundary when the Pt is temporarily outside the zoomed viewport.
+- Kept the existing u3 dual-marker layout unchanged; the new callout band applies only to the
+  deployed Pt-consistent P1 fit mode.
+- Deployed the updated `app-v2.js` to the WSL-hosted ImperialAX Laminate site. Public browser QA at
+  100% and 182% zoom confirmed that the callout stays above the curve, remains inside its box, and
+  produces no browser console errors.
+- Verification: `node --check`, `git diff --check`, and the DD Laminate backend/web contract suite
+  passed (`22 passed`).
+
+## 2026-07-24 - Pt-Consistent First P1 Line Upper-Envelope Display
+
+- Identified why the left red P1 line could begin below the green predicted curve: Pt-consistent
+  models predict the raw curve, Pt displacement, and P1 slopes with separate heads. The two red
+  lines meet exactly at predicted Pt, but small head-to-head differences can make the first slope
+  slightly too steep near the origin.
+- Added a shared display-only upper-envelope adjustment for the Pt-consistent Tree, GointMLP, and
+  Teacher-Student Hybrid predictors. It preserves predicted Pt, the raw green curve, and the second
+  P1 line, and only reduces the first P1 slope when required to keep it above the pre-Pt curve.
+- The API preserves the model's original first line as `curve_fit.first_line_model` and records the
+  applied method and slope ratio under `curve_fit.first_line_display_adjustment` for auditability.
+- For the default Case 2, theta 30/-30, 6x4 input, the Tree display slope changed by about 10.4%,
+  while predicted Pt remained 17,190.10 and the minimum pre-Pt line/curve gap became +112.48 kips.
+  GointMLP and Hybrid also retained zero Pt-intersection gap and positive pre-Pt gaps.
+- Deployed the shared predictor update to `laminate.imperialax.com` and restarted the WSL user
+  service successfully. Public browser QA confirmed the left red line starts above the green curve,
+  both P1 lines still meet at the purple Pt marker, and no browser errors were emitted.
+- Verification: Python compilation, `git diff --check`, and targeted Pt-consistent plus DD web/API
+  contract tests passed (`26 passed`).
+
+## 2026-07-24 - Locked-Holdout Manual Smoke Samples
+
+- Selected three reusable model/UI smoke inputs from the locked grouped Holdout, covering every
+  panel geometry, Case 2/3/4, and Type 1/2/3:
+  - `6x4_003`: Case 2, theta -44/65, panel 6x4, observed Type 1, Pt 15,283.10.
+  - `6x8_216`: Case 3, theta -10/59, panel 6x8, pseudo-labeled Type 2, Pt 7,240.70.
+  - `8x8_140`: Case 4, theta 1/-3, panel 8x8, pseudo-labeled Type 3, Pt 9,812.45.
+- Current Pt-Consistent Tree predictions for those inputs were respectively Type 1 / 15,208.13,
+  Type 2 / 7,084.15, and Type 3 / 5,840.35. The third sample is intentionally a difficult Pt case
+  and is useful for detecting whether future model changes improve geometry generalization.
+- `observed Pt` means the Pt derived from the stored simulation response. Only the 6x4 Type label is
+  human-reviewed; the two newer geometry Type labels are curve-classifier pseudo-labels.
+
+## 2026-08-11 - AIComp 2026 Relevance Review
+
+- Reviewed the official AIComp 2026 agenda, speakers, workshops, and 99-page book of abstracts for
+  directions applicable to the Double-Double Laminate project.
+- The current project already aligns with the conference in forward surrogate modelling, CLT-based
+  physics features, XAI, grouped Holdout validation, Teacher-Student modelling, Pt-consistent output,
+  and composites-oriented RAG.
+- The highest-priority gap is formal uncertainty quantification. The current UI reliability score blends
+  model confidence, design-space distance, and local Type agreement, while its Pt band is explicitly a
+  screening band rather than a calibrated statistical interval.
+- Recommended immediate work: calibrated Type probabilities and Pt/Max. Force intervals, coverage
+  and calibration metrics on the locked Holdout, subgroup analysis, and OOD/failure-case reporting.
+- Recommended next work: an active-learning/Bayesian-optimization simulation planner that balances
+  expected improvement, uncertainty reduction, design-space coverage, and feasibility.
+- Recommended architectural research: encode the explicit ordered ply stack using a sequence model
+  fused with CLT/ABD and panel-geometry branches. This is the most promising route for Case 5 and
+  arbitrary custom stacking patterns beyond Case 2/3/4.
+- RAG improvements suggested by the KPC-RAG presentation: retrieval similarity cutoff, evidence-aware
+  abstention, source version/review metadata, and a reviewed DD QA benchmark measuring faithfulness
+  and citation correctness.
+- Full review saved at `docs/reviews/2026-08-11-aicomp-2026-dd-laminate-review.md`.
+
+## 2026-08-11 - AIComp-Informed DD Upgrade Order
+
+- Detailed implementation order was added to the AIComp review. The main dependency chain is:
+  freeze reproducible baseline -> formal calibration and intervals -> separate OOD/coverage signals ->
+  offline active-learning replay -> researcher-approved simulation loop -> explicit ply-sequence model ->
+  constrained inverse design -> broader physics/geometry conditions -> RAG benchmark -> staged rollout.
+- The 546-row locked Holdout must not be used for calibration or tuning. Calibration choices are made
+  only inside grouped development folds and then evaluated once on the locked Holdout.
+- The first implementation target is calibrated Type probability plus 80/90/95% Pt and Max. Force
+  intervals. The current Reliability card remains a screening indicator until empirical coverage is
+  available.
+- Active learning must first be validated retrospectively against random selection using existing rows.
+  Its first operational output is an approval-ready next-simulation CSV, not automatic solver execution.
+- The ply-sequence model must be evaluated on unseen pattern families. Case 5 claims require at least a
+  small independent Case 5 simulation set even if Case 2/3/4 are used for pretraining.
+
+## 2026-08-11 - DD Model Baseline Freeze and Research Branch
+
+- The current DD production reference was frozen as
+  `dd-3size-pt-consistent-v1-20260811` in
+  `research/dd_aicomp2026/baselines/dd_3size_pt_consistent_v1.json`.
+- The baseline contains the 2,700-row 6x4/6x8/8x8 dataset, the grouped 2,154-row development and
+  546-row Holdout protocol, and the deployed Pt-Consistent Tree, GointMLP, and Teacher-Student Hybrid
+  artifacts with SHA-256 hashes and comparable metrics.
+- Future AIComp-inspired work is isolated on Git branch `codex/dd-aicomp2026-uq` and model namespace
+  `models/dd_laminate_aicomp2026_v1/<experiment-id>/`.
+- New runs must never overwrite frozen model paths. Each run receives an immutable experiment ID with
+  matching config, model, and report directories.
+- The first challenger will add calibrated Type probabilities and conformal Pt/Max. Force intervals
+  using only the development partition for calibration; the locked Holdout remains the final gate.
+- Baseline integrity can be checked with `python scripts/dd_verify_model_baseline.py`.
