@@ -16077,3 +16077,28 @@ Follow-up in same debugging pass:
 - Full evidence is stored under
   `reports/dd_aicomp2026_v1/20260811-uq-deep-fold-pretrain-v2/`, with immutable checkpoints under
   `models/dd_laminate_aicomp2026_v1/20260811-uq-deep-fold-pretrain-v2/`.
+
+## 2026-08-11 - Hybrid v3b Max. Force Head Calibration Result
+
+- Added a third, isolated training stage to the Hybrid challenger. After fold-local response
+  pretraining and Pt-consistent fine-tuning, the stage updates only the Max. Force row of the final
+  scalar output layer. It uses real fold-fit rows only and excludes Tree-teacher targets, synthetic
+  rows, assessment rows, and the fixed benchmark.
+- Added regression tests proving that the stage leaves every non-Max.-Force output row unchanged and
+  rejects teacher targets. A development-only gate requires at least 3% Max. Force MAE improvement
+  while limiting Pt, curve, and Type regressions before the fixed benchmark can be read.
+- The first v3a run stopped before fixed-benchmark evaluation. It exposed a reproducibility issue in
+  which the Hybrid seed depended on whether GointMLP was also present in the mode list. Stable
+  model-name seed offsets were added, and the corrected experiment was recorded as v3b.
+- v3b passed every development gate. Versus Hybrid v2 OOF, Max. Force MAE improved from 652.31 to
+  565.56 kips (13.30%) and mean row curve RMSE improved from 507.98 to 450.33 kips (11.35%). Type
+  accuracy remained 95.17%, and Pt MAE remained 391.56 kips.
+- On the reused fixed benchmark, Max. Force MAE improved from 660.35 to 624.17 kips (5.48%) and mean
+  row curve RMSE improved from 492.31 to 468.45 kips (4.85%). Type accuracy remained 93.22%, and Pt
+  MAE remained 411.74 kips. Development-to-benchmark Case+theta group overlap was zero.
+- The 90% Max. Force interval narrowed from 2,784.16 to 2,284.70 kips, but fixed-benchmark coverage
+  fell from 91.21% to 87.73%. v3b is therefore the primary neural point-model challenger, not an
+  approved deployment model. The Pt-Consistent Tree remains the deployment leader.
+- No production checkpoint, API endpoint, or UI was changed. Complete evidence is stored under
+  `reports/dd_aicomp2026_v1/20260811-uq-deep-force-head-v3b/`, with the immutable challenger under
+  `models/dd_laminate_aicomp2026_v1/20260811-uq-deep-force-head-v3b/`.

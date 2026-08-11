@@ -1,0 +1,36 @@
+{
+  "experiment_id": "20260811-uq-deep-force-head-v3b",
+  "status": "challenger",
+  "point_models": {
+    "hybrid": {
+      "path": "models/dd_laminate_aicomp2026_v1/20260811-uq-deep-force-head-v3b/hybrid/response_goint.pt",
+      "sha256": "80dadb85a5a460eb923850538a12e26c0f05834d91d8413bce2e36329fe15bc9"
+    }
+  },
+  "sidecars": {
+    "hybrid": {
+      "path": "models/dd_laminate_aicomp2026_v1/20260811-uq-deep-force-head-v3b/hybrid/uncertainty_sidecar.joblib",
+      "sha256": "66e1121591c4b028c3f25829b2d7617557b8a08a766fe8ab97153341b64f4bb9",
+      "bytes": 1825
+    }
+  },
+  "selection_freeze": {
+    "path": "reports/dd_aicomp2026_v1/20260811-uq-deep-force-head-v3b/selection_freeze.json",
+    "sha256": "ada1fefa3e55888b05eed26f104196419aecb7b0457c978bc153199111628b2a"
+  },
+  "training_strategy": {
+    "enabled": true,
+    "scope": "fold_fit_rows_only",
+    "objective": "type_ordinal_response_scalars_curve_without_p1_or_teacher",
+    "goint_epochs": 45,
+    "hybrid_epochs": 45,
+    "goint_lr": 0.00035,
+    "hybrid_lr": 0.0003,
+    "ordinal_weight": 0.25,
+    "scalar_weight": 0.55,
+    "curve_weight": 0.4,
+    "teacher_targets": false,
+    "synthetic_rows": false
+  },
+  "production_changes": false
+}

@@ -1,0 +1,37 @@
+{
+  "enabled": true,
+  "selection_partition": "development_grouped_oof_only",
+  "baseline_experiment_id": "20260811-uq-deep-fold-pretrain-v2",
+  "baseline": {
+    "accuracy": 0.9517177344475395,
+    "pt_mae": 391.564151218152,
+    "max_force_mae": 652.3069070003074,
+    "curve_force_rmse_mean": 507.9774897504013
+  },
+  "candidate": {
+    "accuracy": 0.9517177344475395,
+    "pt_mae": 391.564151218152,
+    "max_force_mae": 565.5551918372556,
+    "curve_force_rmse_mean": 450.33120044079476
+  },
+  "deltas": {
+    "max_force_mae_improvement_ratio": 0.132992176277862,
+    "pt_mae_regression_ratio": 0.0,
+    "curve_force_rmse_mean_regression_ratio": -0.11348197601813315,
+    "accuracy_regression": 0.0
+  },
+  "thresholds": {
+    "minimum_max_force_mae_improvement_ratio": 0.03,
+    "maximum_pt_mae_regression_ratio": 0.002,
+    "maximum_curve_force_rmse_mean_regression_ratio": 0.01,
+    "maximum_accuracy_regression": 0.001
+  },
+  "checks": {
+    "max_force_mae_improvement": true,
+    "pt_mae_regression": true,
+    "curve_force_rmse_mean_regression": true,
+    "accuracy_regression": true
+  },
+  "passed": true,
+  "fixed_benchmark_used": false
+}
