@@ -44,3 +44,28 @@ src/frontend/   — Next.js app
 agents/         — Agent team definitions
 research/       — Paper analysis outputs
 ```
+
+## Serving Host (WSL) — Working Branch
+
+This checkout at `~/projects/KyulAI` on the WSL PC **is** the live server for
+imperialax.com. uvicorn loads this working tree directly, so edits here reach
+production on the next service restart — there is no separate deploy step.
+
+- Working branch: **`wsl-live-20260826`** — the current, latest code. Build on this.
+- `origin/codex/dd-laminate-ui-api` stopped at 2026-07-22 and has since diverged;
+  it is NOT the source of truth for the running service.
+- `origin/main` is stale (2026-04).
+
+Services (systemd `--user`):
+
+| Unit | Port | Hosts |
+|---|---|---|
+| `imperialax-laminate` | 8000 | ai / laminate / dd / app.imperialax.com |
+| `imperialax-injection` | 8010 | injection.imperialax.com |
+| `imperialax-cloudflared` | — | tunnel for the above |
+
+Restart with `systemctl --user restart <unit>`; check with
+`curl https://ai.imperialax.com/health`.
+
+The repo is **public**. Never commit `data/imperialax_auth.sqlite3` (real
+accounts), `runs/`, or model artifacts under `models/` — see `.gitignore`.
