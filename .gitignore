@@ -59,8 +59,6 @@ CAE-AI_Injection_Laminate_1hour*.pptx.inspect.ndjson
 data/Logo/Original/
 data/PPT/*.pptx
 data/PPT/Samples/
-data/New_data/8x8_Case*/
-data/New_data/classified_8x8_curve_csv_v1/
 data/New_data/classified_8x8_curve_csv_v1.zip
 models/dd_laminate_response_geometry_tree_3size_grouped_v1/
 models/dd_laminate_response_geometry_goint_3size_grouped_v1/

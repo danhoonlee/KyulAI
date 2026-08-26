@@ -7,3 +7,5 @@ models/dd_laminate_aicomp2026_v1/**/artifacts/*.joblib filter=lfs diff=lfs merge
 models/dd_laminate_aicomp2026_v1/**/artifacts/*.pt filter=lfs diff=lfs merge=lfs -text
 models/dd_laminate_aicomp2026_v1/**/artifacts/*.onnx filter=lfs diff=lfs merge=lfs -text
 models/dd_laminate_response_physics_abd_v1/response_surrogate.joblib filter=lfs diff=lfs merge=lfs -text
+data/New_data/8x8_Case*/** filter=lfs diff=lfs merge=lfs -text
+data/New_data/classified_8x8_curve_csv_v1/** filter=lfs diff=lfs merge=lfs -text
