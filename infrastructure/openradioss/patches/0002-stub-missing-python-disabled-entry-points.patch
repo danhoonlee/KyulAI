@@ -1,0 +1,18 @@
+diff --git a/common_source/modules/cpp_python_funct.cpp b/common_source/modules/cpp_python_funct.cpp
+index d4538ad..50bc56b 100644
+--- a/common_source/modules/cpp_python_funct.cpp
++++ b/common_source/modules/cpp_python_funct.cpp
+@@ -1597,6 +1597,13 @@ extern "C"
+     void cpp_python_update_sensors(int types, int *uids, int *statuses, double *results, int *num_sensors) {}
+     void *py_begin_allow_threads() { return nullptr; }
+     void py_end_allow_threads(void *saved_state) {}
++    void *cpp_python_create_context() { return nullptr; }
++    void cpp_python_free_context(void *context) {}
++    void cpp_python_sync(void *pcontext) {}
++    void cpp_python_update_active_node(int name_len, char *name, double *values) {}
++    void cpp_python_update_active_node_ids(int id, int uid) {}
++    void cpp_python_add_ints_to_dict(void *context_ptr, const char *name, int len_name, int *values, int nvalues) {}
++    void cpp_python_add_doubles_to_dict(void *context_ptr, const char *name, int len_name, double *values, int nvalues) {}
+ }
+ 
+ #endif
