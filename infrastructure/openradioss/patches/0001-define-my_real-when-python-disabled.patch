@@ -1,0 +1,33 @@
+diff --git a/common_source/modules/cpp_python_funct.cpp b/common_source/modules/cpp_python_funct.cpp
+index d4538ad..9a41ae5 100644
+--- a/common_source/modules/cpp_python_funct.cpp
++++ b/common_source/modules/cpp_python_funct.cpp
+@@ -33,6 +33,14 @@
+ #include <regex>
+ #include <iomanip>
+ #include <limits>
++
++#ifdef MYREAL8
++// double precision define my_real as double
++typedef double my_real;
++#else
++typedef float my_real;
++#endif
++
+ #ifndef PYTHON_DISABLED
+ #ifdef _WIN32
+ /* Windows includes */
+@@ -43,13 +51,6 @@
+ #include <dirent.h>
+ #endif
+ 
+-#ifdef MYREAL8
+-// double precision define my_real as double
+-typedef double my_real;
+-#else
+-typedef float my_real;
+-#endif
+-
+ #include "cpp_python_funct.h"
+ #include "cpp_python_sampling.h"
+ #include "python_signal.h"
