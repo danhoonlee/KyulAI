@@ -142,7 +142,9 @@ class SimpleInjectionDeepONetSurrogate(nn.Module):
         t = grid.reshape(-1, 1)
         if self.fourier_features <= 0:
             return t
-        freqs = torch.arange(1, self.fourier_features + 1, dtype=t.dtype, device=t.device).reshape(1, -1)
+        freqs = torch.arange(1, self.fourier_features + 1, dtype=t.dtype, device=t.device).reshape(
+            1, -1
+        )
         angles = 2.0 * torch.pi * t * freqs
         return torch.cat([t, torch.sin(angles), torch.cos(angles)], dim=-1)
 
@@ -199,7 +201,9 @@ class SimpleInjectionHistogramDeepONetRegressor(nn.Module):
         t = grid.reshape(-1, 1)
         if self.fourier_features <= 0:
             return t
-        freqs = torch.arange(1, self.fourier_features + 1, dtype=t.dtype, device=t.device).reshape(1, -1)
+        freqs = torch.arange(1, self.fourier_features + 1, dtype=t.dtype, device=t.device).reshape(
+            1, -1
+        )
         angles = 2.0 * torch.pi * t * freqs
         return torch.cat([t, torch.sin(angles), torch.cos(angles)], dim=-1)
 

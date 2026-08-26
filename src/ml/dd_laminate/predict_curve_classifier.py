@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import argparse
 import os
+from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
 os.environ.setdefault("LOKY_MAX_CPU_COUNT", "8")
 
@@ -21,6 +23,11 @@ from .train_cases_2_3_4_classical import (
 )
 
 
+@lru_cache(maxsize=4)
+def _load_bundle(model_path: str) -> dict[str, Any]:
+    return joblib.load(model_path)
+
+
 def predict_curve_type(
     model_path: str | Path,
     csv_path: str | Path,
@@ -31,7 +38,7 @@ def predict_curve_type(
     theta2: float = 0.0,
 ) -> dict:
     """Predict Type 1/2/3 from a raw force-displacement CSV and transition load."""
-    bundle = joblib.load(model_path)
+    bundle = _load_bundle(str(Path(model_path).resolve()))
     feature_columns = bundle["feature_columns"]
     if "case_case2" in feature_columns:
         theta_record = DDRecord(
@@ -63,13 +70,17 @@ def predict_curve_type(
         probs = bundle["model"].predict_proba(x)[0]
     return {
         "predicted_type": pred,
-        "probabilities": {f"type{i + 1}": float(p) for i, p in enumerate(probs)} if probs is not None else None,
+        "probabilities": {f"type{i + 1}": float(p) for i, p in enumerate(probs)}
+        if probs is not None
+        else None,
         "features": {col: row[col] for col in feature_columns},
     }
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Predict DD response type from a force-displacement CSV")
+    parser = argparse.ArgumentParser(
+        description="Predict DD response type from a force-displacement CSV"
+    )
     parser.add_argument("csv_path")
     parser.add_argument("--pt", type=float, required=True)
     parser.add_argument("--model", default="models/dd_laminate_csv_v1/curve_classifier.joblib")

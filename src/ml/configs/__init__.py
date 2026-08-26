@@ -8,8 +8,8 @@ from src.ml.configs.config import (
 )
 
 __all__ = [
-    "ExperimentConfig",
-    "TrainerConfig",
     "DataConfig",
+    "ExperimentConfig",
     "MLflowConfig",
+    "TrainerConfig",
 ]

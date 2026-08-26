@@ -7,6 +7,8 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
 import android.text.InputType
 import android.text.TextUtils
 import android.text.method.PasswordTransformationMethod
@@ -17,18 +19,29 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.Toast
+import android.util.Base64
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.security.KeyStore
+import java.time.Instant
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
+import javax.crypto.spec.GCMParameterSpec
 
 private const val CATALOG_URL = "https://laminate.imperialax.com/api/v1/modules/me"
 private const val LOGIN_URL = "https://laminate.imperialax.com/api/v1/modules/auth/login"
-private const val SIGNUP_URL = "https://laminate.imperialax.com/api/v1/modules/auth/signup"
 private const val DEMO_LOGIN_URL = "https://laminate.imperialax.com/api/v1/modules/auth/demo-login"
+private const val SIGNUP_URL = "https://laminate.imperialax.com/api/v1/modules/auth/signup"
 private const val REQUEST_ACCESS_URL = "https://laminate.imperialax.com/api/v1/modules/request-access"
+private const val LAUNCH_CODE_URL = "https://laminate.imperialax.com/api/v1/modules/auth/launch-code"
 private const val SESSION_PREFS = "imperialax_auth"
-private const val SESSION_SAVED_AT_KEY = "saved_at_ms"
+private const val SECURE_SESSION_KEY = "secure_session"
+private const val SESSION_KEY_ALIAS = "imperialax_session_key"
 private const val SESSION_LIFETIME_MS = 24L * 60L * 60L * 1000L
+const val EXTRA_AUTH_TOKEN = "com.imperialax.app.EXTRA_AUTH_TOKEN"
 
 data class ModuleRoute(
     val webUrl: String,
@@ -58,7 +71,11 @@ data class AccountSession(
     val email: String,
     val name: String,
     val entitlements: List<String>,
+    val expiresAt: String? = null,
+    val savedAtMs: Long = System.currentTimeMillis(),
 )
+
+private class AuthenticationExpiredException : RuntimeException()
 
 class MainActivity : Activity() {
     private lateinit var root: LinearLayout
@@ -134,7 +151,7 @@ class MainActivity : Activity() {
         }
         card.addView(nameField, margin(top = 12))
         card.addView(companyField, margin(top = 10))
-        val emailField = input("demo@imperialax.com").apply {
+        val emailField = input("Email").apply {
             setSingleLine(true)
         }
         val passwordField = input("Password").apply {
@@ -177,7 +194,7 @@ class MainActivity : Activity() {
             useAppFont(Typeface.BOLD)
             background = commandButtonBackground()
             setOnClickListener {
-                val email = emailField.text.toString().ifBlank { "demo@imperialax.com" }
+                val email = emailField.text.toString().trim()
                 if (signupMode) {
                     signUp(
                         email = email,
@@ -201,15 +218,16 @@ class MainActivity : Activity() {
                 render()
             }
         }, margin(top = 10))
-        card.addView(Button(this).apply {
-            text = "Continue with demo account"
-            setTextColor(V2.teal)
-            useAppFont(Typeface.BOLD)
-            background = softBackground(V2.tealSoft, V2.tealSoft, dp(8))
-            setOnClickListener {
-                demoLogin(errorLabel)
-            }
-        }, margin(top = 10))
+        if (!signupMode) {
+            card.addView(Button(this).apply {
+                text = "Try demo workspace"
+                setTextColor(V2.blue)
+                useAppFont(Typeface.BOLD)
+                minHeight = dp(48)
+                background = softBackground(Color.WHITE, V2.blueLine, dp(8))
+                setOnClickListener { signInDemo(errorLabel) }
+            }, margin(top = 10))
+        }
         card.addView(label(
             if (signupMode) "Use at least 8 characters to create an account." else "New accounts include Laminate and Injection access.",
             V2.muted,
@@ -429,15 +447,35 @@ class MainActivity : Activity() {
     private fun openModule(module: ImperialAXModule) {
         if (expireSessionIfNeeded()) return
         when (module.id) {
-            "laminate" -> startActivity(Intent(this@MainActivity, LaminateActivity::class.java))
-            "injection" -> startActivity(Intent(this@MainActivity, InjectionActivity::class.java))
+            "laminate" -> startActivity(
+                Intent(this@MainActivity, LaminateActivity::class.java)
+                    .putExtra(EXTRA_AUTH_TOKEN, session?.token.orEmpty())
+            )
+            "injection" -> startActivity(
+                Intent(this@MainActivity, InjectionActivity::class.java)
+                    .putExtra(EXTRA_AUTH_TOKEN, session?.token.orEmpty())
+            )
             "admin", "optimization" -> {
-                val url = Uri.parse(module.route.webUrl)
-                    .buildUpon()
-                    .appendQueryParameter("session_token", session?.token.orEmpty())
-                    .build()
-                    .toString()
-                startActivity(Intent(this@MainActivity, AdminWebActivity::class.java).putExtra("url", url))
+                val activeSession = session ?: return
+                Thread {
+                    val launchUrl = runCatching {
+                        createLaunchUrl(module.id, activeSession.token)
+                    }.getOrNull()
+                    runOnUiThread {
+                        if (launchUrl == null) {
+                            Toast.makeText(
+                                this@MainActivity,
+                                "Could not open this page securely. Sign in and try again.",
+                                Toast.LENGTH_LONG,
+                            ).show()
+                        } else {
+                            startActivity(
+                                Intent(this@MainActivity, AdminWebActivity::class.java)
+                                    .putExtra("url", launchUrl)
+                            )
+                        }
+                    }
+                }.start()
             }
             else -> startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(module.route.webUrl)))
         }
@@ -518,6 +556,13 @@ class MainActivity : Activity() {
             val fetched = runCatching { fetchModules(activeSession) }
             val loaded = fetched.getOrElse { fallbackModules() }
             runOnUiThread {
+                if (fetched.exceptionOrNull() is AuthenticationExpiredException) {
+                    clearSavedSession()
+                    session = null
+                    authNotice = "Session expired. Please sign in again."
+                    render()
+                    return@runOnUiThread
+                }
                 modules = loaded
                 statusText.text = if (fetched.isFailure) "Offline fallback shown" else "Modules refreshed"
                 if (::refreshButton.isInitialized) {
@@ -536,13 +581,15 @@ class MainActivity : Activity() {
         connection.readTimeout = 5000
         connection.setRequestProperty("Accept", "application/json")
         connection.setRequestProperty("Authorization", "Bearer ${account.token}")
-        if (connection.responseCode !in 200..299) error("Unexpected status ${connection.responseCode}")
+        val status = connection.responseCode
+        if (status == 401 || status == 403) throw AuthenticationExpiredException()
+        if (status !in 200..299) error("Unexpected status $status")
         val body = connection.inputStream.bufferedReader().use { it.readText() }
         val modulesJson = JSONObject(body).getJSONArray("modules")
         return List(modulesJson.length()) { index ->
             val item = modulesJson.getJSONObject(index)
             val route = item.getJSONObject("route")
-            normalizeModuleCopy(ImperialAXModule(
+            ImperialAXModule(
                 id = item.getString("id"),
                 name = item.getString("name"),
                 shortName = item.getString("short_name"),
@@ -559,18 +606,40 @@ class MainActivity : Activity() {
                     webUrl = route.getString("web_url"),
                     apiPrefix = route.getString("api_prefix"),
                 )
-            ))
+            )
         }
     }
 
     private fun signIn(email: String, password: String, errorLabel: TextView) {
         errorLabel.text = ""
         authNotice = null
+        if (email.isBlank() || password.isBlank()) {
+            errorLabel.text = "Enter your email and password."
+            return
+        }
         Thread {
             val account = runCatching { login(email, password) }.getOrNull()
             runOnUiThread {
                 if (account == null) {
                     errorLabel.text = "Check your email and password."
+                } else {
+                    session = account
+                    saveSession(account)
+                    render()
+                    loadModules()
+                }
+            }
+        }.start()
+    }
+
+    private fun signInDemo(errorLabel: TextView) {
+        errorLabel.text = ""
+        authNotice = null
+        Thread {
+            val account = runCatching { demoLogin() }.getOrNull()
+            runOnUiThread {
+                if (account == null) {
+                    errorLabel.text = "The demo workspace is temporarily unavailable."
                 } else {
                     session = account
                     saveSession(account)
@@ -610,26 +679,6 @@ class MainActivity : Activity() {
         }.start()
     }
 
-    private fun demoLogin(errorLabel: TextView) {
-        errorLabel.text = ""
-        authNotice = null
-        Thread {
-            val account = runCatching { login("demo@imperialax.com", "") }.getOrNull()
-                ?: runCatching { demoLoginRequest("demo@imperialax.com") }.getOrNull()
-                ?: localSession("demo@imperialax.com")
-            runOnUiThread {
-                if (account == null) {
-                    errorLabel.text = "Demo account is not available."
-                } else {
-                    session = account
-                    saveSession(account)
-                    render()
-                    loadModules()
-                }
-            }
-        }.start()
-    }
-
     private fun login(email: String, password: String): AccountSession {
         val connection = URL(LOGIN_URL).openConnection() as HttpURLConnection
         connection.requestMethod = "POST"
@@ -641,6 +690,25 @@ class MainActivity : Activity() {
         val payload = JSONObject()
             .put("email", email.trim().lowercase())
             .put("password", password)
+            .toString()
+        connection.outputStream.use { stream ->
+            stream.write(payload.toByteArray(Charsets.UTF_8))
+        }
+        if (connection.responseCode !in 200..299) error("Unexpected status ${connection.responseCode}")
+        return parseSession(JSONObject(connection.inputStream.bufferedReader().use { it.readText() }))
+    }
+
+    private fun demoLogin(): AccountSession {
+        val connection = URL(DEMO_LOGIN_URL).openConnection() as HttpURLConnection
+        connection.requestMethod = "POST"
+        connection.connectTimeout = 5000
+        connection.readTimeout = 5000
+        connection.setRequestProperty("Accept", "application/json")
+        connection.setRequestProperty("Content-Type", "application/json")
+        connection.doOutput = true
+        val payload = JSONObject()
+            .put("email", "demo@imperialax.com")
+            .put("password", "")
             .toString()
         connection.outputStream.use { stream ->
             stream.write(payload.toByteArray(Charsets.UTF_8))
@@ -671,25 +739,6 @@ class MainActivity : Activity() {
         return parseSession(JSONObject(connection.inputStream.bufferedReader().use { it.readText() }))
     }
 
-    private fun demoLoginRequest(email: String): AccountSession {
-        val connection = URL(DEMO_LOGIN_URL).openConnection() as HttpURLConnection
-        connection.requestMethod = "POST"
-        connection.connectTimeout = 5000
-        connection.readTimeout = 5000
-        connection.setRequestProperty("Accept", "application/json")
-        connection.setRequestProperty("Content-Type", "application/json")
-        connection.doOutput = true
-        val payload = JSONObject()
-            .put("email", email.trim().lowercase())
-            .put("password", "")
-            .toString()
-        connection.outputStream.use { stream ->
-            stream.write(payload.toByteArray(Charsets.UTF_8))
-        }
-        if (connection.responseCode !in 200..299) error("Unexpected status ${connection.responseCode}")
-        return parseSession(JSONObject(connection.inputStream.bufferedReader().use { it.readText() }))
-    }
-
     private fun parseSession(body: JSONObject): AccountSession {
         val user = body.getJSONObject("user")
         return AccountSession(
@@ -697,73 +746,140 @@ class MainActivity : Activity() {
             email = user.getString("email"),
             name = cleanAccountName(user.getString("name")),
             entitlements = body.getJSONArray("entitlements").toStringList(),
+            expiresAt = body.optString("expires_at").ifBlank { null },
         )
     }
 
-    private fun localSession(email: String): AccountSession? {
-        return when (email.trim().lowercase()) {
-            "", "demo@imperialax.com" -> AccountSession(
-                token = "demo-token",
-                email = "demo@imperialax.com",
-                name = "Demo Account",
-                entitlements = listOf("module.laminate", "module.injection"),
-            )
-            "danlee@imperialax.com" -> AccountSession(
-                token = "danlee-token",
-                email = "danlee@imperialax.com",
-                name = "Dan Lee",
-                entitlements = listOf("module.laminate", "module.injection", "module.optimization", "module.admin"),
-            )
-            else -> null
+    private fun createLaunchUrl(target: String, token: String): String {
+        val connection = URL(LAUNCH_CODE_URL).openConnection() as HttpURLConnection
+        connection.requestMethod = "POST"
+        connection.connectTimeout = 5_000
+        connection.readTimeout = 8_000
+        connection.setRequestProperty("Accept", "application/json")
+        connection.setRequestProperty("Content-Type", "application/json")
+        connection.setRequestProperty("Authorization", "Bearer $token")
+        connection.doOutput = true
+        connection.outputStream.use { stream ->
+            stream.write(JSONObject().put("target", target).toString().toByteArray(Charsets.UTF_8))
         }
+        if (connection.responseCode !in 200..299) error("Unexpected status ${connection.responseCode}")
+        val body = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
+        return body.getString("launch_url")
     }
 
     private fun saveSession(account: AccountSession) {
-        getSharedPreferences(SESSION_PREFS, MODE_PRIVATE)
-            .edit()
-            .putString("token", account.token)
-            .putString("email", account.email)
-            .putString("name", account.name)
-            .putString("entitlements", account.entitlements.joinToString(","))
-            .putLong(SESSION_SAVED_AT_KEY, System.currentTimeMillis())
+        val payload = JSONObject()
+            .put("token", account.token)
+            .put("email", account.email)
+            .put("name", account.name)
+            .put("entitlements", account.entitlements.joinToString(","))
+            .put("expires_at", account.expiresAt ?: "")
+            .put("saved_at_ms", account.savedAtMs)
+            .toString()
+        val encrypted = encryptSession(payload)
+        getSharedPreferences(SESSION_PREFS, MODE_PRIVATE).edit()
+            .clear()
+            .putString(SECURE_SESSION_KEY, encrypted)
             .apply()
     }
 
     private fun loadSession(): AccountSession? {
         val prefs = getSharedPreferences(SESSION_PREFS, MODE_PRIVATE)
-        val token = prefs.getString("token", null) ?: return null
-        val savedAtMs = prefs.getLong(SESSION_SAVED_AT_KEY, 0L)
-        if (savedAtMs == 0L) {
-            prefs.edit().putLong(SESSION_SAVED_AT_KEY, System.currentTimeMillis()).apply()
-        } else if (isSessionExpired(savedAtMs)) {
-            prefs.edit().clear().apply()
+        val encrypted = prefs.getString(SECURE_SESSION_KEY, null)
+        val account = if (encrypted != null) {
+            runCatching { accountFromStoredJson(JSONObject(decryptSession(encrypted))) }.getOrNull()
+        } else {
+            migrateLegacySession()
+        } ?: return null
+        if (isSessionExpired(account)) {
+            clearSavedSession()
             authNotice = "Session expired. Please sign in again."
             return null
         }
-        val email = prefs.getString("email", "") ?: ""
-        val name = cleanAccountName(prefs.getString("name", "ImperialAX Account") ?: "ImperialAX Account")
-        val entitlements = prefs.getString("entitlements", "")?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
-        return AccountSession(token, email, name, entitlements)
+        return account
     }
 
     private fun expireSessionIfNeeded(): Boolean {
-        if (session == null) return false
-        val prefs = getSharedPreferences(SESSION_PREFS, MODE_PRIVATE)
-        val savedAtMs = prefs.getLong(SESSION_SAVED_AT_KEY, 0L)
-        if (savedAtMs == 0L) {
-            prefs.edit().putLong(SESSION_SAVED_AT_KEY, System.currentTimeMillis()).apply()
-            return false
-        }
-        if (!isSessionExpired(savedAtMs)) return false
-        prefs.edit().clear().apply()
+        val activeSession = session ?: return false
+        if (!isSessionExpired(activeSession)) return false
+        clearSavedSession()
         session = null
         authNotice = "Session expired. Please sign in again."
         render()
         return true
     }
 
-    private fun isSessionExpired(savedAtMs: Long): Boolean {
-        return System.currentTimeMillis() - savedAtMs >= SESSION_LIFETIME_MS
+    private fun isSessionExpired(account: AccountSession): Boolean {
+        val serverExpired = account.expiresAt?.let { value ->
+            runCatching { Instant.parse(value).toEpochMilli() <= System.currentTimeMillis() }
+                .getOrDefault(false)
+        } ?: false
+        return serverExpired || System.currentTimeMillis() - account.savedAtMs >= SESSION_LIFETIME_MS
+    }
+
+    private fun accountFromStoredJson(body: JSONObject): AccountSession = AccountSession(
+        token = body.getString("token"),
+        email = body.optString("email"),
+        name = cleanAccountName(body.optString("name", "ImperialAX Account")),
+        entitlements = body.optString("entitlements").split(",").filter { it.isNotBlank() },
+        expiresAt = body.optString("expires_at").ifBlank { null },
+        savedAtMs = body.optLong("saved_at_ms", System.currentTimeMillis()),
+    )
+
+    private fun migrateLegacySession(): AccountSession? {
+        val prefs = getSharedPreferences(SESSION_PREFS, MODE_PRIVATE)
+        val token = prefs.getString("token", null) ?: return null
+        val account = AccountSession(
+            token = token,
+            email = prefs.getString("email", "") ?: "",
+            name = cleanAccountName(prefs.getString("name", "ImperialAX Account") ?: "ImperialAX Account"),
+            entitlements = prefs.getString("entitlements", "")
+                ?.split(",")?.filter { it.isNotBlank() } ?: emptyList(),
+            savedAtMs = prefs.getLong("saved_at_ms", System.currentTimeMillis()),
+        )
+        saveSession(account)
+        return account
+    }
+
+    private fun sessionKey(): SecretKey {
+        val keyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+        (keyStore.getKey(SESSION_KEY_ALIAS, null) as? SecretKey)?.let { return it }
+        return KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore").run {
+            init(
+                KeyGenParameterSpec.Builder(
+                    SESSION_KEY_ALIAS,
+                    KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
+                )
+                    .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                    .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                    .build()
+            )
+            generateKey()
+        }
+    }
+
+    private fun encryptSession(value: String): String {
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, sessionKey())
+        return JSONObject()
+            .put("iv", Base64.encodeToString(cipher.iv, Base64.NO_WRAP))
+            .put("data", Base64.encodeToString(cipher.doFinal(value.toByteArray()), Base64.NO_WRAP))
+            .toString()
+    }
+
+    private fun decryptSession(value: String): String {
+        val envelope = JSONObject(value)
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        val iv = Base64.decode(envelope.getString("iv"), Base64.NO_WRAP)
+        cipher.init(Cipher.DECRYPT_MODE, sessionKey(), GCMParameterSpec(128, iv))
+        return String(
+            cipher.doFinal(Base64.decode(envelope.getString("data"), Base64.NO_WRAP)),
+            Charsets.UTF_8,
+        )
+    }
+
+    private fun clearSavedSession() {
+        getSharedPreferences(SESSION_PREFS, MODE_PRIVATE).edit().clear().apply()
     }
 
     private fun cleanAccountName(name: String): String {
@@ -776,7 +892,7 @@ class MainActivity : Activity() {
     }
 
     private fun signOut() {
-        getSharedPreferences(SESSION_PREFS, MODE_PRIVATE).edit().clear().apply()
+        clearSavedSession()
         session = null
         authNotice = null
         render()
@@ -829,46 +945,6 @@ class MainActivity : Activity() {
             route = ModuleRoute("https://ai.imperialax.com/optimization.html", "/api/v1/optimization"),
         ),
     )
-
-    private fun normalizeModuleCopy(module: ImperialAXModule): ImperialAXModule {
-        return when (module.id) {
-            "laminate" -> module.copy(
-                name = "Laminate",
-                shortName = "Laminate",
-                category = "Composite",
-                summary = "Predict Type, Pt, and response curve.",
-                accessReason = "Available in the ImperialAX MVP workspace.",
-                tags = listOf("Double-Double", "Pt", "Force-displacement"),
-            )
-            "injection" -> module.copy(
-                name = "Injection",
-                shortName = "Injection",
-                category = "Molding",
-                summary = "Predict sprue and filling pressure.",
-                accessReason = "Available in the ImperialAX MVP workspace.",
-                tags = listOf("Moldex3D", "Sprue pressure", "Filling pressure"),
-            )
-            "optimization" -> module.copy(
-                name = "Optimization",
-                shortName = "Optimize",
-                category = "Design",
-                summary = "Rank promising design candidates.",
-                accessReason = if (module.isGranted) "Available in the ImperialAX workspace." else "Requires Optimization module access.",
-                tags = listOf("DOE", "Ranking", "Design space"),
-                route = module.route.copy(webUrl = "https://ai.imperialax.com/optimization.html"),
-            )
-            "admin" -> module.copy(
-                name = "Admin",
-                shortName = "Admin",
-                category = "Account",
-                summary = "Manage users and module access.",
-                accessReason = "Visible only to ImperialAX admin accounts.",
-                tags = listOf("Users", "Access", "Admin"),
-                route = module.route.copy(webUrl = "https://ai.imperialax.com/admin.html"),
-            )
-            else -> module
-        }
-    }
 
     private fun showAccountDialog() {
         val account = session ?: return
@@ -963,7 +1039,7 @@ class MainActivity : Activity() {
             setPadding(dp(14), dp(12), dp(14), dp(12))
             background = strokedRounded(Color.WHITE, V2.line, dp(8))
             listOf(
-                Triple("01", "Account", "Demo access ready."),
+                Triple("01", "Account", "Sign in once to open your modules."),
                 Triple("02", "Choose module", "Laminate, Injection, Optimization"),
                 Triple("03", "Forecast", "Open a focused model workspace."),
             ).forEachIndexed { index, item ->

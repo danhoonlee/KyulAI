@@ -1,0 +1,21 @@
+[Unit]
+Description=ImperialAX Laminate API
+After=network-online.target imperialax-redis.service
+Wants=network-online.target imperialax-redis.service
+
+[Service]
+Type=simple
+WorkingDirectory=%h/projects/KyulAI
+Environment=HOME=%h
+Environment=PYTHONPATH=%h/projects/KyulAI
+Environment=IMPERIALAX_ENV=production
+Environment=IMPERIALAX_RATE_LIMIT_BACKEND=redis
+Environment=REDIS_URL=unix://%S/imperialax-redis/redis.sock?db=0
+ExecStart=%h/projects/KyulAI/scripts/run_public_ai_server.sh
+Restart=always
+RestartSec=5
+StandardOutput=append:%h/projects/KyulAI/logs/imperialax-laminate.log
+StandardError=append:%h/projects/KyulAI/logs/imperialax-laminate.err.log
+
+[Install]
+WantedBy=default.target

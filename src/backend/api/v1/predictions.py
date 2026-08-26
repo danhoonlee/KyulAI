@@ -80,7 +80,7 @@ async def get_prediction(
     try:
         prediction = await svc.get(prediction_id)
     except NotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     return PredictionResponse.model_validate(prediction)
 
 
@@ -96,5 +96,5 @@ async def get_prediction_status(
     try:
         prediction = await svc.get(prediction_id)
     except NotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     return PredictionStatusResponse.model_validate(prediction)

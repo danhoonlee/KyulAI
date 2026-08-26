@@ -8,41 +8,55 @@ from __future__ import annotations
 
 import hmac
 import os
+from datetime import datetime
 from typing import Literal
+from urllib.parse import urlencode
 
-from fastapi import APIRouter, Header, HTTPException, Query
+from fastapi import APIRouter, Header, HTTPException, Query, Request, Response
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 
+from src.backend.security.module_access import (
+    SESSION_COOKIE_NAME,
+    is_production,
+    request_session_token,
+)
 from src.backend.services.imperialax_auth_store import (
     DEFAULT_ENTITLEMENTS,
     AuthSession,
     DuplicateAccountError,
     InvalidCredentialsError,
     WeakPasswordError,
+    consume_launch_code,
     create_account,
     create_account_by_admin,
+    issue_launch_code,
     list_admin_users,
     login,
     record_access_request,
-    reset_password_by_identity,
     reset_password_by_user_id,
+    revoke_session,
     session_from_token,
     set_user_entitlements,
     update_user_profile,
 )
+
+try:
+    from datetime import UTC as _UTC
+except ImportError:  # pragma: no cover - Python 3.10 compatibility
+    from datetime import timezone as _timezone
+
+    _UTC = _timezone.utc
 
 router = APIRouter(prefix="/modules", tags=["modules"])
 
 ModuleStatus = Literal["active", "preview", "planned"]
 ModuleAccess = Literal["granted", "locked", "hidden"]
 ADMIN_ENTITLEMENT = "module.admin"
-DEFAULT_ADMIN_EMAILS = (
-    "danlee@imperialax.com",
-    "dannylee9295@gmail.com",
-)
+DEFAULT_ADMIN_EMAILS: tuple[str, ...] = ()
 DEMO_EMAIL_ALIASES = {
     "demo@imperialax.com": "demo@imperialax.com",
-    "danlee@imperialax.com": "danlee@imperialax.com",
+    "dannylee@imperialax.com": "dannylee@imperialax.com",
 }
 
 
@@ -145,8 +159,27 @@ class AdminEntitlementUpdateRequest(BaseModel):
 class LoginResponse(BaseModel):
     access_token: str
     token_type: Literal["bearer"] = "bearer"
+    expires_at: str
     user: AccountUser
     entitlements: list[str]
+
+
+class AuthCapabilitiesResponse(BaseModel):
+    public_signup: bool
+    self_service_password_reset: bool
+    demo_login: bool
+
+
+LaunchTarget = Literal["laminate", "injection", "optimization", "admin"]
+
+
+class LaunchCodeRequest(BaseModel):
+    target: LaunchTarget
+
+
+class LaunchCodeResponse(BaseModel):
+    launch_url: str
+    expires_at: str
 
 
 class AccessRequest(BaseModel):
@@ -223,7 +256,13 @@ MODULE_CATALOG: tuple[ModuleDefinition, ...] = (
         entitlement_key="module.laminate",
         default_enabled=True,
         tags=["Double-Double", "Pt", "Force-displacement"],
-        capabilities=["response_prediction", "curve_chart", "history", "comparison", "share_report"],
+        capabilities=[
+            "response_prediction",
+            "curve_chart",
+            "history",
+            "comparison",
+            "share_report",
+        ],
         route=ModuleRoute(
             base_url="https://laminate.imperialax.com",
             web_url="https://laminate.imperialax.com",
@@ -243,7 +282,13 @@ MODULE_CATALOG: tuple[ModuleDefinition, ...] = (
         entitlement_key="module.injection",
         default_enabled=True,
         tags=["Moldex3D", "Sprue pressure", "Filling pressure"],
-        capabilities=["sprue_pressure", "filling_histogram", "filling_animation", "history", "share_report"],
+        capabilities=[
+            "sprue_pressure",
+            "filling_histogram",
+            "filling_animation",
+            "history",
+            "share_report",
+        ],
         route=ModuleRoute(
             base_url="https://injection.imperialax.com",
             web_url="https://injection.imperialax.com",
@@ -302,6 +347,10 @@ def _admin_emails() -> set[str]:
     return {value.strip().lower() for value in values if value.strip()}
 
 
+def _env_flag(name: str) -> bool:
+    return os.getenv(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 def _parse_entitlements(raw_value: str | None) -> set[str]:
     if not raw_value:
         return set()
@@ -326,8 +375,8 @@ def _display_email(email: str) -> str:
     canonical = _canonical_email(email)
     if canonical == "demo@imperialax.com":
         return "demo@imperialax.com"
-    if canonical == "danlee@imperialax.com":
-        return "danlee@imperialax.com"
+    if canonical == "dannylee@imperialax.com":
+        return "dannylee@imperialax.com"
     return email
 
 
@@ -335,7 +384,7 @@ def _display_company(email: str, company: str | None) -> str | None:
     canonical = _canonical_email(email)
     if canonical == "demo@imperialax.com":
         return "ImperialAX Demo"
-    if canonical == "danlee@imperialax.com" and company == "ImperialAX":
+    if canonical == "dannylee@imperialax.com" and company == "ImperialAX":
         return "ImperialAX"
     return company
 
@@ -344,7 +393,11 @@ def _session_is_admin(session: AuthSession | None) -> bool:
     if not session:
         return False
     email = session.user.email.strip().lower()
-    return email in _admin_emails() or _canonical_email(email) in _admin_emails() or ADMIN_ENTITLEMENT in session.entitlements
+    return (
+        email in _admin_emails()
+        or _canonical_email(email) in _admin_emails()
+        or ADMIN_ENTITLEMENT in session.entitlements
+    )
 
 
 def _effective_entitlements(session: AuthSession) -> set[str]:
@@ -372,8 +425,38 @@ def _require_admin_token(
         raise HTTPException(status_code=401, detail="Invalid ImperialAX admin token.")
 
 
-def _account_for_request(authorization: str | None) -> tuple[AccountUser | None, set[str]]:
-    token = _bearer_token(authorization)
+def _request_token(request: Request | None, authorization: str | None) -> str | None:
+    if request is not None:
+        return request_session_token(request)
+    return _bearer_token(authorization)
+
+
+def _account_session_for_request(
+    request: Request | None,
+    authorization: str | None,
+) -> AuthSession | None:
+    return session_from_token(_request_token(request, authorization))
+
+
+def _require_admin_request(
+    request: Request,
+    *,
+    x_imperialax_admin_token: str | None,
+    authorization: str | None,
+) -> None:
+    if _session_is_admin(_account_session_for_request(request, authorization)):
+        return
+    _require_admin_token(
+        x_imperialax_admin_token=x_imperialax_admin_token,
+        authorization=authorization,
+    )
+
+
+def _account_for_request(
+    authorization: str | None,
+    request: Request | None = None,
+) -> tuple[AccountUser | None, set[str]]:
+    token = _request_token(request, authorization)
     session = session_from_token(token)
     if not session:
         return None, set()
@@ -394,9 +477,54 @@ def _account_user(session: AuthSession) -> AccountUser:
 def _login_response(session: AuthSession) -> LoginResponse:
     return LoginResponse(
         access_token=session.token,
+        expires_at=session.expires_at,
         user=_account_user(session),
         entitlements=sorted(_effective_entitlements(session)),
     )
+
+
+def _cookie_domain(request: Request) -> str | None:
+    host = request.url.hostname or ""
+    return (
+        ".imperialax.com" if host == "imperialax.com" or host.endswith(".imperialax.com") else None
+    )
+
+
+def _session_max_age(session: AuthSession) -> int:
+    expires_at = datetime.fromisoformat(session.expires_at)
+    return max(1, int((expires_at - datetime.now(_UTC)).total_seconds()))
+
+
+def _set_session_cookie(response: Response, request: Request, session: AuthSession) -> None:
+    response.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=session.token,
+        max_age=_session_max_age(session),
+        httponly=True,
+        secure=is_production() or request.url.scheme == "https",
+        samesite="lax",
+        domain=_cookie_domain(request),
+        path="/",
+    )
+
+
+def _clear_session_cookie(response: Response, request: Request) -> None:
+    response.delete_cookie(
+        key=SESSION_COOKIE_NAME,
+        domain=_cookie_domain(request),
+        path="/",
+        httponly=True,
+        secure=is_production() or request.url.scheme == "https",
+        samesite="lax",
+    )
+
+
+LAUNCH_TARGETS: dict[LaunchTarget, tuple[str, str, str]] = {
+    "laminate": ("module.laminate", "https://laminate.imperialax.com", "/"),
+    "injection": ("module.injection", "https://injection.imperialax.com", "/"),
+    "optimization": ("module.optimization", "https://ai.imperialax.com", "/optimization.html"),
+    "admin": (ADMIN_ENTITLEMENT, "https://ai.imperialax.com", "/admin.html"),
+}
 
 
 def _module_access(
@@ -432,7 +560,9 @@ def _validate_admin_entitlements(entitlements: list[str]) -> tuple[str, ...]:
     requested = set(entitlements)
     unknown = sorted(requested - allowed_entitlements)
     if unknown:
-        raise HTTPException(status_code=422, detail=f"Unknown entitlement key: {', '.join(unknown)}")
+        raise HTTPException(
+            status_code=422, detail=f"Unknown entitlement key: {', '.join(unknown)}"
+        )
     return tuple(entitlements)
 
 
@@ -441,21 +571,25 @@ async def list_modules() -> ModuleCatalogResponse:
     return ModuleCatalogResponse(modules=list(MODULE_CATALOG))
 
 
-@router.get("/me", response_model=UserModulesResponse, summary="List modules visible to the current user")
+@router.get(
+    "/me", response_model=UserModulesResponse, summary="List modules visible to the current user"
+)
 async def list_my_modules(
+    request: Request,
     authorization: str | None = Header(default=None, alias="Authorization"),
     x_imperialax_entitlements: str | None = Header(default=None, alias="X-ImperialAX-Entitlements"),
-    entitlements: str | None = Query(default=None, description="Demo override: comma-separated entitlement keys."),
+    entitlements: str | None = Query(
+        default=None, description="Demo override: comma-separated entitlement keys."
+    ),
 ) -> UserModulesResponse:
-    user, account_entitlements = _account_for_request(authorization)
-    granted = (
-        account_entitlements
-        | _parse_entitlements(x_imperialax_entitlements)
-        | _parse_entitlements(entitlements)
-    )
+    user, account_entitlements = _account_for_request(authorization, request)
+    granted = set(account_entitlements)
+    if _env_flag("IMPERIALAX_ENABLE_DEV_ENTITLEMENT_OVERRIDE"):
+        granted |= _parse_entitlements(x_imperialax_entitlements)
+        granted |= _parse_entitlements(entitlements)
     user_modules = []
     for module in MODULE_CATALOG:
-        access, reason = _module_access(module, granted, allow_default_enabled=user is None)
+        access, reason = _module_access(module, granted, allow_default_enabled=False)
         if access == "hidden":
             continue
         user_modules.append(UserModule(**module.model_dump(), access=access, access_reason=reason))
@@ -474,12 +608,16 @@ async def list_my_modules(
     )
 
 
-@router.get("/admin/users", response_model=AdminUsersResponse, summary="List ImperialAX account users")
+@router.get(
+    "/admin/users", response_model=AdminUsersResponse, summary="List ImperialAX account users"
+)
 async def admin_users(
+    request: Request,
     x_imperialax_admin_token: str | None = Header(default=None, alias="X-ImperialAX-Admin-Token"),
     authorization: str | None = Header(default=None, alias="Authorization"),
 ) -> AdminUsersResponse:
-    _require_admin_token(
+    _require_admin_request(
+        request,
         x_imperialax_admin_token=x_imperialax_admin_token,
         authorization=authorization,
     )
@@ -509,14 +647,18 @@ async def admin_users(
 )
 async def admin_create_user(
     payload: AdminAccountCreateRequest,
+    request: Request,
     x_imperialax_admin_token: str | None = Header(default=None, alias="X-ImperialAX-Admin-Token"),
     authorization: str | None = Header(default=None, alias="Authorization"),
 ) -> AdminAccountCreateResponse:
-    _require_admin_token(
+    _require_admin_request(
+        request,
         x_imperialax_admin_token=x_imperialax_admin_token,
         authorization=authorization,
     )
-    raw_entitlements = payload.entitlements if payload.entitlements is not None else list(DEFAULT_ENTITLEMENTS)
+    raw_entitlements = (
+        payload.entitlements if payload.entitlements is not None else list(DEFAULT_ENTITLEMENTS)
+    )
     entitlements = _validate_admin_entitlements(raw_entitlements)
     try:
         user = create_account_by_admin(
@@ -553,10 +695,12 @@ async def admin_create_user(
 async def admin_update_profile(
     user_id: str,
     payload: AdminAccountUpdateRequest,
+    request: Request,
     x_imperialax_admin_token: str | None = Header(default=None, alias="X-ImperialAX-Admin-Token"),
     authorization: str | None = Header(default=None, alias="Authorization"),
 ) -> AdminAccountUpdateResponse:
-    _require_admin_token(
+    _require_admin_request(
+        request,
         x_imperialax_admin_token=x_imperialax_admin_token,
         authorization=authorization,
     )
@@ -592,10 +736,12 @@ async def admin_update_profile(
 async def admin_reset_password(
     user_id: str,
     payload: AdminPasswordResetRequest,
+    request: Request,
     x_imperialax_admin_token: str | None = Header(default=None, alias="X-ImperialAX-Admin-Token"),
     authorization: str | None = Header(default=None, alias="Authorization"),
 ) -> AdminPasswordResetResponse:
-    _require_admin_token(
+    _require_admin_request(
+        request,
         x_imperialax_admin_token=x_imperialax_admin_token,
         authorization=authorization,
     )
@@ -625,10 +771,12 @@ async def admin_reset_password(
 async def admin_update_entitlements(
     user_id: str,
     payload: AdminEntitlementUpdateRequest,
+    request: Request,
     x_imperialax_admin_token: str | None = Header(default=None, alias="X-ImperialAX-Admin-Token"),
     authorization: str | None = Header(default=None, alias="Authorization"),
 ) -> AdminEntitlementUpdateResponse:
-    _require_admin_token(
+    _require_admin_request(
+        request,
         x_imperialax_admin_token=x_imperialax_admin_token,
         authorization=authorization,
     )
@@ -640,17 +788,38 @@ async def admin_update_entitlements(
     return AdminEntitlementUpdateResponse(user_id=user_id, entitlements=list(entitlements))
 
 
-@router.post("/auth/login", response_model=LoginResponse, summary="Sign in to an ImperialAX account")
-async def account_login(payload: LoginRequest) -> LoginResponse:
+@router.post(
+    "/auth/login", response_model=LoginResponse, summary="Sign in to an ImperialAX account"
+)
+async def account_login(
+    payload: LoginRequest, request: Request, response: Response
+) -> LoginResponse:
     normalized_email = _canonical_email(payload.email)
     try:
-        return _login_response(login(email=normalized_email, password=payload.password))
+        session = login(email=normalized_email, password=payload.password)
+        _set_session_cookie(response, request, session)
+        return _login_response(session)
     except InvalidCredentialsError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
 
 
+@router.get(
+    "/auth/capabilities",
+    response_model=AuthCapabilitiesResponse,
+    summary="List enabled ImperialAX account capabilities",
+)
+async def auth_capabilities() -> AuthCapabilitiesResponse:
+    return AuthCapabilitiesResponse(
+        public_signup=_env_flag("IMPERIALAX_ENABLE_PUBLIC_SIGNUP"),
+        self_service_password_reset=False,
+        demo_login=_env_flag("IMPERIALAX_ENABLE_DEMO_LOGIN"),
+    )
+
+
 @router.post("/auth/signup", response_model=LoginResponse, summary="Create an ImperialAX account")
-async def signup(payload: SignupRequest) -> LoginResponse:
+async def signup(payload: SignupRequest, request: Request, response: Response) -> LoginResponse:
+    if not _env_flag("IMPERIALAX_ENABLE_PUBLIC_SIGNUP"):
+        raise HTTPException(status_code=403, detail="Public account signup is disabled.")
     try:
         session = create_account(
             email=payload.email,
@@ -659,52 +828,119 @@ async def signup(payload: SignupRequest) -> LoginResponse:
             company=payload.company,
             location=payload.location,
             mobile=payload.mobile,
+            entitlements=(),
         )
     except DuplicateAccountError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except WeakPasswordError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    _set_session_cookie(response, request, session)
     return _login_response(session)
 
 
-@router.post("/auth/forgot-password", response_model=LoginResponse, summary="Reset an ImperialAX account password")
-async def forgot_password(payload: PasswordRecoveryRequest) -> LoginResponse:
-    try:
-        session = reset_password_by_identity(
-            email=payload.email,
-            name=payload.name,
-            password=payload.password,
-        )
-    except InvalidCredentialsError as exc:
-        raise HTTPException(status_code=401, detail=str(exc)) from exc
-    except WeakPasswordError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-    return _login_response(session)
+@router.post(
+    "/auth/forgot-password",
+    response_model=LoginResponse,
+    summary="Reset an ImperialAX account password",
+)
+async def forgot_password(
+    payload: PasswordRecoveryRequest,
+    request: Request,
+    response: Response,
+) -> LoginResponse:
+    raise HTTPException(
+        status_code=403,
+        detail=(
+            "Self-service password reset is unavailable until verified email delivery is "
+            "configured. Contact an ImperialAX administrator."
+        ),
+    )
 
 
-@router.post("/auth/demo-login", response_model=LoginResponse, summary="Create a demo ImperialAX account session")
-async def demo_login(payload: LoginRequest) -> LoginResponse:
-    if os.getenv("IMPERIALAX_DISABLE_DEMO_LOGIN", "").strip().lower() in {"1", "true", "yes", "on"}:
+@router.post(
+    "/auth/demo-login",
+    response_model=LoginResponse,
+    summary="Create a demo ImperialAX account session",
+)
+async def demo_login(payload: LoginRequest, request: Request, response: Response) -> LoginResponse:
+    if not _env_flag("IMPERIALAX_ENABLE_DEMO_LOGIN"):
         raise HTTPException(status_code=403, detail="Demo login is disabled for this build.")
     normalized_email = _canonical_email(payload.email or "demo@imperialax.com")
-    if normalized_email not in {"demo@imperialax.com", "danlee@imperialax.com"}:
+    if normalized_email != "demo@imperialax.com":
         raise HTTPException(status_code=401, detail="Unknown ImperialAX demo account.")
-    token = "danlee-token" if normalized_email == "danlee@imperialax.com" else "demo-token"
-    session = session_from_token(token)
-    if session is None:
-        raise HTTPException(status_code=500, detail="Demo account is not initialized.")
+    try:
+        session = login(email=normalized_email, password="", allow_demo=True)
+    except InvalidCredentialsError as exc:
+        raise HTTPException(status_code=500, detail="Demo account is not initialized.") from exc
+    _set_session_cookie(response, request, session)
     return _login_response(session)
 
 
-@router.post("/request-access", response_model=AccessRequestResponse, summary="Request access to an ImperialAX module")
+@router.post(
+    "/auth/launch-code",
+    response_model=LaunchCodeResponse,
+    summary="Create a short-lived one-time native-to-web launch URL",
+)
+async def create_launch_code(
+    payload: LaunchCodeRequest,
+    request: Request,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+) -> LaunchCodeResponse:
+    session = _account_session_for_request(request, authorization)
+    if session is None:
+        raise HTTPException(status_code=401, detail="Sign in before opening this page.")
+    entitlement, base_url, _ = LAUNCH_TARGETS[payload.target]
+    effective = _effective_entitlements(session)
+    if entitlement not in effective:
+        raise HTTPException(status_code=403, detail="This page is not included in your account.")
+    code, expires_at = issue_launch_code(session_token=session.token, target=payload.target)
+    query = urlencode({"code": code, "target": payload.target})
+    return LaunchCodeResponse(
+        launch_url=f"{base_url}/api/v1/modules/auth/launch?{query}",
+        expires_at=expires_at,
+    )
+
+
+@router.get("/auth/launch", include_in_schema=False)
+async def consume_web_launch(request: Request, code: str, target: LaunchTarget) -> RedirectResponse:
+    session = consume_launch_code(code=code, target=target)
+    if session is None:
+        raise HTTPException(status_code=401, detail="This launch link is invalid or expired.")
+    entitlement, _, clean_path = LAUNCH_TARGETS[target]
+    if entitlement not in _effective_entitlements(session):
+        revoke_session(session.token)
+        raise HTTPException(status_code=403, detail="This page is not included in your account.")
+    response = RedirectResponse(url=clean_path, status_code=303)
+    _set_session_cookie(response, request, session)
+    return response
+
+
+@router.post("/auth/logout", status_code=204, summary="Sign out and revoke the current session")
+async def logout(
+    request: Request,
+    response: Response,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+) -> Response:
+    revoke_session(_request_token(request, authorization))
+    _clear_session_cookie(response, request)
+    response.status_code = 204
+    return response
+
+
+@router.post(
+    "/request-access",
+    response_model=AccessRequestResponse,
+    summary="Request access to an ImperialAX module",
+)
 async def request_module_access(
     payload: AccessRequest,
+    request: Request,
     authorization: str | None = Header(default=None, alias="Authorization"),
 ) -> AccessRequestResponse:
     module_ids = {module.id for module in MODULE_CATALOG}
     if payload.module_id not in module_ids:
         raise HTTPException(status_code=404, detail="Unknown ImperialAX module.")
-    user, _ = _account_for_request(authorization)
+    user, _ = _account_for_request(authorization, request)
     record_access_request(
         user_id=user.id if user else None,
         module_id=payload.module_id,

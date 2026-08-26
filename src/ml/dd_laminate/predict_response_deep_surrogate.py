@@ -10,7 +10,17 @@ import numpy as np
 import torch
 
 from .curve_features import DDCurveRecord
-from .pt_curve_consistency import enforce_pt_curve_consistency, kink_fit_details
+from .pt_consistent_tree import (
+    CURVE_REPRESENTATION,
+    align_first_p1_line_to_curve_upper_envelope,
+    inverse_transform_pt_consistent_scalars,
+    p1_fit_from_parameters,
+)
+from .pt_curve_consistency import (
+    enforce_pt_curve_consistency,
+    kink_fit_details,
+    measure_pt_curve_consistency,
+)
 from .response_deep import DDResponseGointSurrogate, predict_from_logits
 from .response_feature_sets import feature_set_from_columns, prediction_feature_matrix
 from .train_response_surrogate import make_feature_matrix
@@ -39,6 +49,7 @@ def build_response_deep_model(checkpoint: dict, device: str = "cpu") -> DDRespon
         hidden_dim=cfg["hidden_dim"],
         num_branches=cfg["num_branches"],
         dropout=cfg["dropout"],
+        scalar_dim=int(cfg.get("scalar_dim", 3)),
     ).to(device)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
@@ -56,7 +67,9 @@ def predict_response_deep(
 ) -> dict:
     checkpoint = torch.load(model_path, map_location=device, weights_only=False)
     model = build_response_deep_model(checkpoint, device)
-    return predict_response_deep_from_artifacts(checkpoint, model, theta1, theta2, case, device, panel_a_in, panel_b_in)
+    return predict_response_deep_from_artifacts(
+        checkpoint, model, theta1, theta2, case, device, panel_a_in, panel_b_in
+    )
 
 
 def predict_response_deep_from_artifacts(
@@ -68,13 +81,19 @@ def predict_response_deep_from_artifacts(
     device: str = "cpu",
     panel_a_in: float = 6.0,
     panel_b_in: float = 4.0,
+    *,
+    postprocess_curve: bool = True,
 ) -> dict:
     feature_columns = list(checkpoint.get("feature_columns") or [])
     feature_builder = str(checkpoint.get("feature_builder") or "")
     if feature_builder:
-        x_raw = prediction_feature_matrix(theta1, theta2, case, feature_builder, panel_a_in, panel_b_in)
+        x_raw = prediction_feature_matrix(
+            theta1, theta2, case, feature_builder, panel_a_in, panel_b_in
+        )
     elif "case_case2" in feature_columns:
-        x_raw = prediction_feature_matrix(theta1, theta2, case, feature_set_from_columns(feature_columns), panel_a_in, panel_b_in)
+        x_raw = prediction_feature_matrix(
+            theta1, theta2, case, feature_set_from_columns(feature_columns), panel_a_in, panel_b_in
+        )
     else:
         record = DDCurveRecord(
             case=case,
@@ -98,14 +117,24 @@ def predict_response_deep_from_artifacts(
 
     scalar_log_mean = np.asarray(checkpoint["scalar_log_mean"], dtype=float)
     scalar_log_std = np.asarray(checkpoint["scalar_log_std"], dtype=float)
-    scalars = np.expm1(scalar_norm.squeeze(0).cpu().numpy() * scalar_log_std + scalar_log_mean)
+    scalar_transformed = scalar_norm.squeeze(0).cpu().numpy() * scalar_log_std + scalar_log_mean
+    curve_representation = str(checkpoint.get("curve_representation") or "")
+    if curve_representation == CURVE_REPRESENTATION:
+        scalars = inverse_transform_pt_consistent_scalars(scalar_transformed)
+    else:
+        scalars = np.expm1(scalar_transformed)
     pt = max(float(scalars[0]), 0.0)
     max_displacement = max(float(scalars[1]), 1e-9)
     max_force = max(float(scalars[2]), 1e-9)
 
     grid = np.asarray(checkpoint["grid"], dtype=float)
     force_norm = _smooth_monotonic_curve(curve_norm.squeeze(0).cpu().numpy())
-    consistency = enforce_pt_curve_consistency(
+    consistency_fn = (
+        enforce_pt_curve_consistency if postprocess_curve else measure_pt_curve_consistency
+    )
+    if curve_representation == CURVE_REPRESENTATION:
+        consistency_fn = measure_pt_curve_consistency
+    consistency = consistency_fn(
         curve_norm=force_norm,
         grid=grid,
         max_displacement=max_displacement,
@@ -118,6 +147,40 @@ def predict_response_deep_from_artifacts(
     force = force_norm * max_force
     metrics = dict(checkpoint.get("metrics", {}))
     metrics.update(consistency.flat_metrics())
+    metrics.update(
+        {
+            "response_output_mode": (
+                CURVE_REPRESENTATION
+                if curve_representation == CURVE_REPRESENTATION
+                else ("pt_aligned_postprocessing" if postprocess_curve else "raw_model_prediction")
+            ),
+            "pt_curve_force_postprocessing_applied": int(
+                postprocess_curve and curve_representation != CURVE_REPRESENTATION
+            ),
+        }
+    )
+
+    curve_fit = kink_fit_details(displacement, force)
+    if curve_representation == CURVE_REPRESENTATION:
+        fit = p1_fit_from_parameters(
+            pt=pt,
+            max_displacement=max_displacement,
+            max_force=max_force,
+            pt_displacement_norm=float(scalars[3]),
+            first_slope_norm=float(scalars[4]),
+            second_slope_norm=float(scalars[5]),
+        )
+        curve_fit = align_first_p1_line_to_curve_upper_envelope(
+            fit.details,
+            displacement,
+            force,
+        )
+        metrics.update(
+            {
+                "displayed_p1_direct_pt_gap": 0.0,
+                "curve_representation": CURVE_REPRESENTATION,
+            }
+        )
 
     return {
         "predicted_type": pred_type,
@@ -129,14 +192,16 @@ def predict_response_deep_from_artifacts(
             {"displacement": float(d), "force": float(f)}
             for d, f in zip(displacement, force, strict=True)
         ],
-        "curve_fit": kink_fit_details(displacement, force),
+        "curve_fit": curve_fit,
         "model_name": "response_goint",
         "metrics": metrics,
     }
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Predict DD response with GointMLP-style surrogate")
+    parser = argparse.ArgumentParser(
+        description="Predict DD response with GointMLP-style surrogate"
+    )
     parser.add_argument("--theta1", type=float, required=True)
     parser.add_argument("--theta2", type=float, required=True)
     parser.add_argument("--case", choices=["Case2", "Case3", "Case4"], required=True)

@@ -23,6 +23,8 @@ from .train_cases_2_3_4_classical import (
     make_theta_matrix,
 )
 
+MetricRow = dict[str, float | int]
+
 
 class ThetaDataset(Dataset):
     def __init__(self, x: np.ndarray, labels: np.ndarray):
@@ -37,7 +39,9 @@ class ThetaDataset(Dataset):
 
 
 class ResponseDataset(Dataset):
-    def __init__(self, x: np.ndarray, y_class: np.ndarray, y_scalars_norm: np.ndarray, y_curve: np.ndarray):
+    def __init__(
+        self, x: np.ndarray, y_class: np.ndarray, y_scalars_norm: np.ndarray, y_curve: np.ndarray
+    ):
         self.x = torch.tensor(x, dtype=torch.float32)
         self.y_class = torch.tensor(y_class - 1, dtype=torch.long)
         self.y_scalars_norm = torch.tensor(y_scalars_norm, dtype=torch.float32)
@@ -90,7 +94,9 @@ def run_theta_epoch(model, loader, optimizer, weights, device: torch.device, tra
             if train:
                 optimizer.zero_grad(set_to_none=True)
             class_logits, ordinal_logits = model(x)
-            loss = combined_loss(class_logits, ordinal_logits, labels, ordinal_weight=0.35, class_weights=weights)
+            loss = combined_loss(
+                class_logits, ordinal_logits, labels, ordinal_weight=0.35, class_weights=weights
+            )
             if train:
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 3.0)
@@ -107,7 +113,9 @@ def run_theta_epoch(model, loader, optimizer, weights, device: torch.device, tra
     }
 
 
-def run_response_epoch(model, loader, optimizer, weights, device: torch.device, train: bool, args) -> dict:
+def run_response_epoch(
+    model, loader, optimizer, weights, device: torch.device, train: bool, args
+) -> dict:
     model.train(mode=train)
     y_true: list[int] = []
     y_pred: list[int] = []
@@ -128,10 +136,17 @@ def run_response_epoch(model, loader, optimizer, weights, device: torch.device, 
                 optimizer.zero_grad(set_to_none=True)
             class_logits, ordinal_logits, pred_scalars, pred_curve = model(x)
             class_loss = F.cross_entropy(class_logits, labels, weight=weights)
-            ordinal_loss = F.binary_cross_entropy_with_logits(ordinal_logits, ordinal_targets(labels))
+            ordinal_loss = F.binary_cross_entropy_with_logits(
+                ordinal_logits, ordinal_targets(labels)
+            )
             scalar_loss = F.smooth_l1_loss(pred_scalars, scalars)
             curve_loss = F.smooth_l1_loss(pred_curve, curve)
-            loss = class_loss + args.ordinal_weight * ordinal_loss + args.scalar_weight * scalar_loss + args.curve_weight * curve_loss
+            loss = (
+                class_loss
+                + args.ordinal_weight * ordinal_loss
+                + args.scalar_weight * scalar_loss
+                + args.curve_weight * curve_loss
+            )
             if train:
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 3.0)
@@ -169,7 +184,9 @@ def response_metric_row(eval_out: dict, scalar_mean: np.ndarray, scalar_std: np.
     true_force = true_curve_norm * np.maximum(true_scalars[:, 2:3], 1e-9)
     return {
         "accuracy": float(accuracy_score(eval_out["y_true"], eval_out["y_pred"])),
-        "macro_f1": float(f1_score(eval_out["y_true"], eval_out["y_pred"], average="macro", zero_division=0)),
+        "macro_f1": float(
+            f1_score(eval_out["y_true"], eval_out["y_pred"], average="macro", zero_division=0)
+        ),
         "pt_mae": float(mean_absolute_error(true_scalars[:, 0], pred_scalars[:, 0])),
         "max_displacement_mae": float(mean_absolute_error(true_scalars[:, 1], pred_scalars[:, 1])),
         "max_force_mae": float(mean_absolute_error(true_scalars[:, 2], pred_scalars[:, 2])),
@@ -187,7 +204,9 @@ def make_theta_model(input_dim: int, args, device: torch.device) -> DDThetaGoint
     ).to(device)
 
 
-def make_response_model(input_dim: int, seq_len: int, args, device: torch.device) -> DDResponseGointSurrogate:
+def make_response_model(
+    input_dim: int, seq_len: int, args, device: torch.device
+) -> DDResponseGointSurrogate:
     return DDResponseGointSurrogate(
         input_dim=input_dim,
         seq_len=seq_len,
@@ -197,28 +216,45 @@ def make_response_model(input_dim: int, seq_len: int, args, device: torch.device
     ).to(device)
 
 
-def train_theta_model(x_norm: np.ndarray, y_class: np.ndarray, groups: np.ndarray, feature_mean: np.ndarray, feature_std: np.ndarray, args) -> dict:
+def train_theta_model(
+    x_norm: np.ndarray,
+    y_class: np.ndarray,
+    groups: np.ndarray,
+    feature_mean: np.ndarray,
+    feature_std: np.ndarray,
+    args,
+) -> dict:
     dataset = ThetaDataset(x_norm, y_class)
     splitter = GroupKFold(n_splits=args.splits)
-    fold_rows = []
+    fold_rows: list[MetricRow] = []
     for fold, (train_idx, val_idx) in enumerate(splitter.split(x_norm, y_class, groups), start=1):
-        train_loader = DataLoader(Subset(dataset, train_idx.tolist()), batch_size=args.batch_size, shuffle=True)
-        val_loader = DataLoader(Subset(dataset, val_idx.tolist()), batch_size=args.batch_size, shuffle=False)
+        train_loader = DataLoader(
+            Subset(dataset, train_idx.tolist()), batch_size=args.batch_size, shuffle=True
+        )
+        val_loader = DataLoader(
+            Subset(dataset, val_idx.tolist()), batch_size=args.batch_size, shuffle=False
+        )
         model = make_theta_model(x_norm.shape[1], args, args.device_torch)
         weights = class_weights(y_class[train_idx] - 1, args.device_torch)
-        optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+        optimizer = torch.optim.AdamW(
+            model.parameters(), lr=args.lr, weight_decay=args.weight_decay
+        )
         best_state = None
         best_score = -1.0
         best_epoch = 0
         stale = 0
         for epoch in range(1, args.epochs + 1):
             run_theta_epoch(model, train_loader, optimizer, weights, args.device_torch, train=True)
-            out = run_theta_epoch(model, val_loader, optimizer, weights, args.device_torch, train=False)
+            out = run_theta_epoch(
+                model, val_loader, optimizer, weights, args.device_torch, train=False
+            )
             score = f1_score(out["y_true"], out["y_pred"], average="macro", zero_division=0)
             if score > best_score:
                 best_score = score
                 best_epoch = epoch
-                best_state = {key: value.detach().cpu().clone() for key, value in model.state_dict().items()}
+                best_state = {
+                    key: value.detach().cpu().clone() for key, value in model.state_dict().items()
+                }
                 stale = 0
             else:
                 stale += 1
@@ -231,21 +267,29 @@ def train_theta_model(x_norm: np.ndarray, y_class: np.ndarray, groups: np.ndarra
             "fold": fold,
             "best_epoch": best_epoch,
             "accuracy": float(accuracy_score(out["y_true"], out["y_pred"])),
-            "macro_f1": float(f1_score(out["y_true"], out["y_pred"], average="macro", zero_division=0)),
+            "macro_f1": float(
+                f1_score(out["y_true"], out["y_pred"], average="macro", zero_division=0)
+            ),
         }
         fold_rows.append(row)
-        print(f"theta fold {fold}: acc={row['accuracy']:.4f}, macro_f1={row['macro_f1']:.4f}, best_epoch={best_epoch}")
+        print(
+            f"theta fold {fold}: acc={row['accuracy']:.4f}, macro_f1={row['macro_f1']:.4f}, best_epoch={best_epoch}"
+        )
 
     final_model = make_theta_model(x_norm.shape[1], args, args.device_torch)
     final_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
     weights = class_weights(y_class - 1, args.device_torch)
-    optimizer = torch.optim.AdamW(final_model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+    optimizer = torch.optim.AdamW(
+        final_model.parameters(), lr=args.lr, weight_decay=args.weight_decay
+    )
     for _ in range(args.final_epochs):
-        run_theta_epoch(final_model, final_loader, optimizer, weights, args.device_torch, train=True)
+        run_theta_epoch(
+            final_model, final_loader, optimizer, weights, args.device_torch, train=True
+        )
 
-    metrics = {"n_samples": int(len(y_class)), "input_dim": int(x_norm.shape[1])}
+    metrics: dict[str, float | int] = {"n_samples": len(y_class), "input_dim": int(x_norm.shape[1])}
     for key in ("accuracy", "macro_f1"):
-        values = [row[key] for row in fold_rows]
+        values = [float(row[key]) for row in fold_rows]
         metrics[f"cv_{key}_mean"] = float(np.mean(values))
         metrics[f"cv_{key}_std"] = float(np.std(values))
 
@@ -269,7 +313,9 @@ def train_theta_model(x_norm: np.ndarray, y_class: np.ndarray, groups: np.ndarra
         },
         output_dir / "theta_goint.pt",
     )
-    (output_dir / "theta_goint_metrics.json").write_text(json.dumps({"metrics": metrics, "fold_metrics": fold_rows}, indent=2), encoding="utf-8")
+    (output_dir / "theta_goint_metrics.json").write_text(
+        json.dumps({"metrics": metrics, "fold_metrics": fold_rows}, indent=2), encoding="utf-8"
+    )
     return {"metrics": metrics, "fold_metrics": fold_rows}
 
 
@@ -288,25 +334,37 @@ def train_response_model(
     y_scalars_norm, scalar_mean, scalar_std = normalize(y_scalars_log, y_scalars_log)
     dataset = ResponseDataset(x_norm, y_class, y_scalars_norm, y_curve)
     splitter = GroupKFold(n_splits=args.splits)
-    fold_rows = []
+    fold_rows: list[MetricRow] = []
     for fold, (train_idx, val_idx) in enumerate(splitter.split(x_norm, y_class, groups), start=1):
-        train_loader = DataLoader(Subset(dataset, train_idx.tolist()), batch_size=args.batch_size, shuffle=True)
-        val_loader = DataLoader(Subset(dataset, val_idx.tolist()), batch_size=args.batch_size, shuffle=False)
+        train_loader = DataLoader(
+            Subset(dataset, train_idx.tolist()), batch_size=args.batch_size, shuffle=True
+        )
+        val_loader = DataLoader(
+            Subset(dataset, val_idx.tolist()), batch_size=args.batch_size, shuffle=False
+        )
         model = make_response_model(x_norm.shape[1], y_curve.shape[1], args, args.device_torch)
         weights = class_weights(y_class[train_idx] - 1, args.device_torch)
-        optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+        optimizer = torch.optim.AdamW(
+            model.parameters(), lr=args.lr, weight_decay=args.weight_decay
+        )
         best_state = None
         best_score = -1.0
         best_epoch = 0
         stale = 0
         for epoch in range(1, args.epochs + 1):
-            run_response_epoch(model, train_loader, optimizer, weights, args.device_torch, train=True, args=args)
-            out = run_response_epoch(model, val_loader, optimizer, weights, args.device_torch, train=False, args=args)
+            run_response_epoch(
+                model, train_loader, optimizer, weights, args.device_torch, train=True, args=args
+            )
+            out = run_response_epoch(
+                model, val_loader, optimizer, weights, args.device_torch, train=False, args=args
+            )
             score = f1_score(out["y_true"], out["y_pred"], average="macro", zero_division=0)
             if score > best_score:
                 best_score = score
                 best_epoch = epoch
-                best_state = {key: value.detach().cpu().clone() for key, value in model.state_dict().items()}
+                best_state = {
+                    key: value.detach().cpu().clone() for key, value in model.state_dict().items()
+                }
                 stale = 0
             else:
                 stale += 1
@@ -314,23 +372,43 @@ def train_response_model(
                 break
         if best_state is not None:
             model.load_state_dict(best_state)
-        out = run_response_epoch(model, val_loader, optimizer, weights, args.device_torch, train=False, args=args)
+        out = run_response_epoch(
+            model, val_loader, optimizer, weights, args.device_torch, train=False, args=args
+        )
         row = response_metric_row(out, scalar_mean, scalar_std)
         row["fold"] = fold
         row["best_epoch"] = best_epoch
         fold_rows.append(row)
-        print(f"response fold {fold}: acc={row['accuracy']:.4f}, macro_f1={row['macro_f1']:.4f}, pt_mae={row['pt_mae']:.2f}")
+        print(
+            f"response fold {fold}: acc={row['accuracy']:.4f}, macro_f1={row['macro_f1']:.4f}, pt_mae={row['pt_mae']:.2f}"
+        )
 
     final_model = make_response_model(x_norm.shape[1], y_curve.shape[1], args, args.device_torch)
     final_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
     weights = class_weights(y_class - 1, args.device_torch)
-    optimizer = torch.optim.AdamW(final_model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+    optimizer = torch.optim.AdamW(
+        final_model.parameters(), lr=args.lr, weight_decay=args.weight_decay
+    )
     for _ in range(args.final_epochs):
-        run_response_epoch(final_model, final_loader, optimizer, weights, args.device_torch, train=True, args=args)
+        run_response_epoch(
+            final_model, final_loader, optimizer, weights, args.device_torch, train=True, args=args
+        )
 
-    metrics = {"n_samples": int(len(y_class)), "seq_len": int(y_curve.shape[1]), "input_dim": int(x_norm.shape[1])}
-    for key in ("accuracy", "macro_f1", "pt_mae", "max_displacement_mae", "max_force_mae", "curve_norm_rmse", "curve_force_rmse"):
-        values = [row[key] for row in fold_rows]
+    metrics: dict[str, float | int] = {
+        "n_samples": len(y_class),
+        "seq_len": int(y_curve.shape[1]),
+        "input_dim": int(x_norm.shape[1]),
+    }
+    for key in (
+        "accuracy",
+        "macro_f1",
+        "pt_mae",
+        "max_displacement_mae",
+        "max_force_mae",
+        "curve_norm_rmse",
+        "curve_force_rmse",
+    ):
+        values = [float(row[key]) for row in fold_rows]
         metrics[f"cv_{key}_mean"] = float(np.mean(values))
         metrics[f"cv_{key}_std"] = float(np.std(values))
 
@@ -359,7 +437,9 @@ def train_response_model(
         },
         output_dir / "response_goint.pt",
     )
-    (output_dir / "response_goint_metrics.json").write_text(json.dumps({"metrics": metrics, "fold_metrics": fold_rows}, indent=2), encoding="utf-8")
+    (output_dir / "response_goint_metrics.json").write_text(
+        json.dumps({"metrics": metrics, "fold_metrics": fold_rows}, indent=2), encoding="utf-8"
+    )
     return {"metrics": metrics, "fold_metrics": fold_rows}
 
 
@@ -388,14 +468,20 @@ def write_report(output_dir: Path, theta_result: dict, response_result: dict) ->
         "The Tree models remain the safer default when they score higher; these models provide the matched deep-learning option.",
     ]
     output_dir.mkdir(parents=True, exist_ok=True)
-    (output_dir / "cases_2_3_4_goint_training_report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (output_dir / "cases_2_3_4_goint_training_report.md").write_text(
+        "\n".join(lines) + "\n", encoding="utf-8"
+    )
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train Case2/Case3/Case4 GointMLP-style DD models")
     parser.add_argument("--data-dir", default="data/datasets/DD_cases_2_3_4_curated_v1")
-    parser.add_argument("--theta-output-dir", default="models/dd_laminate_cases_2_3_4_theta_goint_v1")
-    parser.add_argument("--response-output-dir", default="models/dd_laminate_cases_2_3_4_response_goint_v1")
+    parser.add_argument(
+        "--theta-output-dir", default="models/dd_laminate_cases_2_3_4_theta_goint_v1"
+    )
+    parser.add_argument(
+        "--response-output-dir", default="models/dd_laminate_cases_2_3_4_response_goint_v1"
+    )
     parser.add_argument("--report-dir", default="models/dd_laminate_cases_2_3_4_response_goint_v1")
     parser.add_argument("--splits", type=int, default=5)
     parser.add_argument("--epochs", type=int, default=160)
@@ -426,9 +512,15 @@ def main() -> None:
     y_scalars, y_curve, grid, _ = make_response_arrays(records)
 
     theta_result = train_theta_model(x_norm, y_class, groups, feature_mean, feature_std, args)
-    response_result = train_response_model(x_norm, y_class, y_scalars, y_curve, grid, groups, feature_mean, feature_std, args)
+    response_result = train_response_model(
+        x_norm, y_class, y_scalars, y_curve, grid, groups, feature_mean, feature_std, args
+    )
     write_report(Path(args.report_dir), theta_result, response_result)
-    print(json.dumps({"theta": theta_result["metrics"], "response": response_result["metrics"]}, indent=2))
+    print(
+        json.dumps(
+            {"theta": theta_result["metrics"], "response": response_result["metrics"]}, indent=2
+        )
+    )
 
 
 if __name__ == "__main__":

@@ -5,6 +5,30 @@ final class ImperialAXAppTests: XCTestCase {
     private let sessionKey = "imperialax.auth.session.v1"
     private let sessionSavedAtKey = "imperialax.auth.saved_at.v1"
 
+    private final class MemorySessionStore: SessionDataStore {
+        var data: Data?
+        func load() -> Data? { data }
+        func save(_ data: Data) -> Bool {
+            self.data = data
+            return true
+        }
+        func delete() { data = nil }
+    }
+
+    private func makeSession() -> ImperialAXAuthSession {
+        ImperialAXAuthSession(
+            accessToken: "server-issued-token",
+            tokenType: "bearer",
+            user: ImperialAXAccountUser(
+                id: "test-user",
+                email: "test@imperialax.com",
+                name: "Test Account",
+                company: "ImperialAX"
+            ),
+            entitlements: ["module.laminate", "module.injection"]
+        )
+    }
+
     func testModuleContractDecodesServerShape() throws {
         let json = """
         {
@@ -52,7 +76,7 @@ final class ImperialAXAppTests: XCTestCase {
     func testAuthSessionDecodesDemoLoginResponse() throws {
         let json = """
         {
-          "access_token": "demo-token",
+          "access_token": "server-issued-token",
           "token_type": "bearer",
           "user": {
             "id": "demo-user",
@@ -66,7 +90,7 @@ final class ImperialAXAppTests: XCTestCase {
 
         let session = try JSONDecoder().decode(ImperialAXAuthSession.self, from: json)
 
-        XCTAssertEqual(session.accessToken, "demo-token")
+        XCTAssertEqual(session.accessToken, "server-issued-token")
         XCTAssertEqual(session.tokenType, "bearer")
         XCTAssertEqual(session.user.email, "demo@imperialax.com")
         XCTAssertEqual(session.entitlements.count, 2)
@@ -75,34 +99,40 @@ final class ImperialAXAppTests: XCTestCase {
     @MainActor
     func testExpiredStoredSessionIsClearedOnStartup() throws {
         let defaults = try makeIsolatedUserDefaults()
-        try defaults.set(JSONEncoder().encode(ImperialAXAuthSession.demo), forKey: sessionKey)
+        let store = MemorySessionStore()
+        store.data = try JSONEncoder().encode(makeSession())
         let now = Date(timeIntervalSince1970: 1_000_000)
         defaults.set(now.addingTimeInterval(-25 * 60 * 60), forKey: sessionSavedAtKey)
 
         let viewModel = ImperialAXHomeViewModel(
             userDefaults: defaults,
+            sessionStore: store,
             sessionLifetime: 24 * 60 * 60,
             now: { now }
         )
 
         XCTAssertNil(viewModel.authSession)
-        XCTAssertNil(defaults.data(forKey: sessionKey))
+        XCTAssertNil(store.data)
         XCTAssertNil(defaults.object(forKey: sessionSavedAtKey))
     }
 
     @MainActor
     func testLegacyStoredSessionGetsTimestampOnStartup() throws {
         let defaults = try makeIsolatedUserDefaults()
-        try defaults.set(JSONEncoder().encode(ImperialAXAuthSession.demo), forKey: sessionKey)
+        let store = MemorySessionStore()
+        try defaults.set(JSONEncoder().encode(makeSession()), forKey: sessionKey)
         let now = Date(timeIntervalSince1970: 1_000_000)
 
         let viewModel = ImperialAXHomeViewModel(
             userDefaults: defaults,
+            sessionStore: store,
             sessionLifetime: 24 * 60 * 60,
             now: { now }
         )
 
         XCTAssertNotNil(viewModel.authSession)
+        XCTAssertNotNil(store.data)
+        XCTAssertNil(defaults.data(forKey: sessionKey))
         XCTAssertEqual(defaults.object(forKey: sessionSavedAtKey) as? Date, now)
     }
 
@@ -135,6 +165,45 @@ final class ImperialAXAppTests: XCTestCase {
         )
 
         XCTAssertEqual(url.absoluteString, "https://laminate.imperialax.com/api/v1/modules/me")
+    }
+
+    func testDemoLoginUsesDedicatedFixedAccountEndpoint() throws {
+        let request = try ModuleCatalogClient.demoLoginRequest(
+            baseURL: URL(string: "https://laminate.imperialax.com/anything")!
+        )
+        let payload = try XCTUnwrap(request.httpBody)
+        let body = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: payload) as? [String: String]
+        )
+
+        XCTAssertEqual(request.httpMethod, "POST")
+        XCTAssertEqual(
+            request.url?.absoluteString,
+            "https://laminate.imperialax.com/api/v1/modules/auth/demo-login"
+        )
+        XCTAssertEqual(body["email"], "demo@imperialax.com")
+        XCTAssertEqual(body["password"], "")
+    }
+
+    func testWebLaunchUsesBearerRequestAndNeverPlacesSessionTokenInURL() throws {
+        let request = try ModuleCatalogClient.launchCodeRequest(
+            baseURL: URL(string: "https://laminate.imperialax.com")!,
+            target: "admin",
+            accessToken: "sensitive-session-token"
+        )
+        let payload = try XCTUnwrap(request.httpBody)
+        let body = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: payload) as? [String: String]
+        )
+
+        XCTAssertEqual(request.httpMethod, "POST")
+        XCTAssertEqual(
+            request.url?.absoluteString,
+            "https://laminate.imperialax.com/api/v1/modules/auth/launch-code"
+        )
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer sensitive-session-token")
+        XCTAssertFalse(request.url?.absoluteString.contains("sensitive-session-token") == true)
+        XCTAssertEqual(body["target"], "admin")
     }
 
     private func makeIsolatedUserDefaults() throws -> UserDefaults {

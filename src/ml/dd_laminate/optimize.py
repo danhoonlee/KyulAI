@@ -64,11 +64,13 @@ def optimize_angles(
     theta2_flat = theta2_grid.flatten()
 
     features = torch.tensor(
-        np.column_stack([
-            theta1_flat,
-            theta2_flat,
-            np.full_like(theta1_flat, float(case_id)),
-        ]),
+        np.column_stack(
+            [
+                theta1_flat,
+                theta2_flat,
+                np.full_like(theta1_flat, float(case_id)),
+            ]
+        ),
         dtype=torch.float32,
     ).to(device)
 
@@ -80,7 +82,7 @@ def optimize_angles(
 
         # Pt predictions
         if pt_model is not None:
-            pt_pred = (pt_model(features).cpu().numpy() * pt_std + pt_mean)
+            pt_pred = pt_model(features).cpu().numpy() * pt_std + pt_mean
             pt_normalized = (pt_pred - pt_pred.min()) / (pt_pred.max() - pt_pred.min() + 1e-8)
         else:
             pt_pred = np.zeros_like(type1_prob)
@@ -104,13 +106,15 @@ def optimize_angles(
         if masked_combined[idx] < 0:
             break
         i, j = np.unravel_index(idx, theta1_grid.shape)
-        top_results.append({
-            "theta1": theta_range[j],
-            "theta2": theta_range[i],
-            "type1_prob": type1_prob[idx],
-            "pt_predicted": pt_pred[idx],
-            "combined_score": combined[idx],
-        })
+        top_results.append(
+            {
+                "theta1": theta_range[j],
+                "theta2": theta_range[i],
+                "type1_prob": type1_prob[idx],
+                "pt_predicted": pt_pred[idx],
+                "combined_score": combined[idx],
+            }
+        )
 
     case_name = "Case3" if case_id == 0 else "Case4"
     print(f"\nTop {len(top_results)} angles for Type 1 + high Pt ({case_name}):")
@@ -143,12 +147,11 @@ def plot_optimization_surface(
     theta_range = results["theta_range"]
     top = results["top_results"]
 
-    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+    _fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 
     # Type 1 probability
     ax = axes[0]
-    c = ax.contourf(theta_range, theta_range, results["type1_prob_grid"],
-                     levels=20, cmap="RdYlGn")
+    c = ax.contourf(theta_range, theta_range, results["type1_prob_grid"], levels=20, cmap="RdYlGn")
     plt.colorbar(c, ax=ax, label="P(Type 1)")
     for r in top[:5]:
         ax.plot(r["theta1"], r["theta2"], "k*", markersize=10)
@@ -158,8 +161,7 @@ def plot_optimization_surface(
 
     # Pt surface
     ax = axes[1]
-    c = ax.contourf(theta_range, theta_range, results["pt_grid"],
-                     levels=20, cmap="hot")
+    c = ax.contourf(theta_range, theta_range, results["pt_grid"], levels=20, cmap="hot")
     plt.colorbar(c, ax=ax, label="Pt (kips)")
     for r in top[:5]:
         ax.plot(r["theta1"], r["theta2"], "k*", markersize=10)
@@ -169,8 +171,7 @@ def plot_optimization_surface(
 
     # Combined score
     ax = axes[2]
-    c = ax.contourf(theta_range, theta_range, results["combined_grid"],
-                     levels=20, cmap="viridis")
+    c = ax.contourf(theta_range, theta_range, results["combined_grid"], levels=20, cmap="viridis")
     plt.colorbar(c, ax=ax, label="Combined Score")
     for r in top[:5]:
         ax.plot(r["theta1"], r["theta2"], "k*", markersize=10)

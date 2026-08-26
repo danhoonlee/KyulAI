@@ -1,0 +1,15 @@
+[Unit]
+Description=ImperialAX Cloudflare Tunnel
+After=network-online.target imperialax-laminate.service imperialax-injection.service
+Wants=network-online.target imperialax-laminate.service imperialax-injection.service
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/cloudflared --config %h/projects/KyulAI/infrastructure/cloudflare/imperialax-wsl.yml tunnel run
+Restart=always
+RestartSec=5
+StandardOutput=append:%h/projects/KyulAI/logs/imperialax-cloudflared.log
+StandardError=append:%h/projects/KyulAI/logs/imperialax-cloudflared.err.log
+
+[Install]
+WantedBy=default.target

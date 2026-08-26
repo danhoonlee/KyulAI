@@ -32,6 +32,7 @@ def _mpl():
     """Lazy import matplotlib to avoid mandatory dependency at module load."""
     try:
         import matplotlib.pyplot as plt
+
         return plt
     except ImportError as e:
         raise ImportError(
@@ -100,8 +101,12 @@ def plot_prediction_vs_truth(
     ax.set_title(title or f"{field_name}: Prediction vs Ground Truth")
     ax.legend(fontsize=9)
     ax.text(
-        0.05, 0.93, f"R² = {r2_val:.4f}",
-        transform=ax.transAxes, fontsize=11, color="darkred",
+        0.05,
+        0.93,
+        f"R² = {r2_val:.4f}",
+        transform=ax.transAxes,
+        fontsize=11,
+        color="darkred",
         va="top",
     )
     ax.set_aspect("equal", "box")
@@ -246,12 +251,14 @@ def plot_per_field_r2(
     ax.legend(fontsize=9)
     plt.xticks(rotation=30, ha="right", fontsize=9)
 
-    for bar, score in zip(bars, scores):
+    for bar, score in zip(bars, scores, strict=False):
         ax.text(
             bar.get_x() + bar.get_width() / 2,
             bar.get_height() + 0.01,
             f"{score:.3f}",
-            ha="center", va="bottom", fontsize=8,
+            ha="center",
+            va="bottom",
+            fontsize=8,
         )
 
     fig.tight_layout()

@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>ImperialAX 3-Size Laminate Preview</title>
+    <link rel="stylesheet" href="/styles-3size-preview.css?v=20260723-raw-curve-1" />
+  </head>
+  <body>
+    <main class="preview-shell">
+      <header class="preview-header">
+        <div>
+          <p class="eyebrow" data-copy="previewEyebrow">Research preview</p>
+          <h1 data-copy="title">3-Size Laminate Forecast</h1>
+          <p class="header-copy" data-copy="subtitle">
+            Compare the grouped-holdout models trained across 6x4, 6x8, and 8x8 panels.
+          </p>
+        </div>
+        <div class="header-actions">
+          <span class="status" id="api-status">Checking API</span>
+          <button class="language-button" id="language-button" type="button">한국어</button>
+          <a class="icon-link" href="/" aria-label="Open current production page" title="Current production page">↗</a>
+        </div>
+      </header>
+
+      <section class="validation-strip" aria-label="Validation protocol">
+        <div><span data-copy="training">Development</span><strong>2,154</strong><small data-copy="trainingNote">718 design groups</small></div>
+        <div><span data-copy="holdout">Locked holdout</span><strong>546</strong><small data-copy="holdoutNote">182 unseen groups</small></div>
+        <div><span data-copy="geometry">Panel sizes</span><strong>3</strong><small>6×4 · 6×8 · 8×8</small></div>
+        <div class="raw-output"><span data-copy="curveMode">Curve mode</span><strong data-copy="rawOutput">Raw model output</strong><small data-copy="rawNote">No force rescaling</small></div>
+      </section>
+
+      <div class="preview-grid">
+        <section class="control-panel" aria-labelledby="setup-title">
+          <div class="section-heading">
+            <p class="eyebrow">01 / SETUP</p>
+            <h2 id="setup-title" data-copy="setupTitle">Forecast inputs</h2>
+          </div>
+
+          <form id="preview-form">
+            <label class="field">
+              <span data-copy="model">Model</span>
+              <select id="model-select" name="model" required></select>
+              <small id="model-description"></small>
+            </label>
+
+            <div class="angle-grid">
+              <label class="angle-field">
+                <span><b>θ₁</b><output id="theta1-output">+30°</output></span>
+                <input name="theta1" type="text" inputmode="text" pattern="[+-]?(?:90|[0-8]?[0-9])" value="30" required />
+                <input data-angle="theta1" type="range" min="-90" max="90" step="1" value="30" />
+              </label>
+              <label class="angle-field">
+                <span><b>θ₂</b><output id="theta2-output">−30°</output></span>
+                <input name="theta2" type="text" inputmode="text" pattern="[+-]?(?:90|[0-8]?[0-9])" value="-30" required />
+                <input data-angle="theta2" type="range" min="-90" max="90" step="1" value="-30" />
+              </label>
+            </div>
+
+            <label class="field">
+              <span data-copy="case">Case</span>
+              <select name="case" id="case-select">
+                <option value="Case2">Case 2</option>
+                <option value="Case3">Case 3</option>
+                <option value="Case4">Case 4</option>
+              </select>
+            </label>
+            <div class="formula" id="case-formula">[[±θ₁]/[±θ₂]]₄</div>
+
+            <fieldset class="geometry-field">
+              <legend data-copy="panelSize">Panel size (in)</legend>
+              <span class="geometry-caption" data-copy="quickPresets">Quick presets</span>
+              <div class="segmented">
+                <label><input type="radio" name="panel" value="6x4" checked /><span>6 × 4</span></label>
+                <label><input type="radio" name="panel" value="6x8" /><span>6 × 8</span></label>
+                <label><input type="radio" name="panel" value="8x8" /><span>8 × 8</span></label>
+              </div>
+              <div class="geometry-inputs">
+                <label>
+                  <span data-copy="panelLength">Length</span>
+                  <div class="unit-input">
+                    <input id="panel-a-input" name="panel_a_in" type="number" min="0.1" step="0.1" value="6" required />
+                    <span>in</span>
+                  </div>
+                </label>
+                <label>
+                  <span data-copy="panelWidth">Width</span>
+                  <div class="unit-input">
+                    <input id="panel-b-input" name="panel_b_in" type="number" min="0.1" step="0.1" value="4" required />
+                    <span>in</span>
+                  </div>
+                </label>
+              </div>
+              <small class="geometry-note" data-copy="geometryNote">
+                The model was trained on 6×4, 6×8, and 8×8 panels. Other sizes are exploratory interpolation or extrapolation.
+              </small>
+            </fieldset>
+
+            <button class="run-button" type="submit" data-copy="run">Run preview forecast</button>
+          </form>
+
+          <div class="model-note">
+            <strong data-copy="previewOnly">Preview only</strong>
+            <p data-copy="previewOnlyNote">This page is isolated from the current production model selection.</p>
+          </div>
+        </section>
+
+        <section class="result-panel" aria-labelledby="result-title">
+          <div class="section-heading result-heading">
+            <div>
+              <p class="eyebrow">02 / RESULT</p>
+              <h2 id="result-title" data-copy="resultTitle">Raw response forecast</h2>
+            </div>
+            <span class="result-model" id="result-model">Ready for input</span>
+          </div>
+
+          <div class="empty-state" id="empty-state">
+            <strong data-copy="emptyTitle">Ready for a 3-size prediction</strong>
+            <p data-copy="emptyCopy">Choose a model and supported panel size, then run the forecast.</p>
+          </div>
+
+          <div class="result-content hidden" id="result-content">
+            <section class="prediction-summary">
+              <div class="type-summary">
+                <span data-copy="prediction">Prediction</span>
+                <strong id="predicted-type">Type 2</strong>
+                <small id="confidence-value">0%</small>
+              </div>
+              <div class="probabilities" id="probabilities"></div>
+            </section>
+
+            <section class="metric-grid">
+              <div><span>Predicted Pt</span><strong id="predicted-pt">–</strong><small>kips</small></div>
+              <div><span data-copy="maxDisplacement">Max. Displacement</span><strong id="max-displacement">–</strong><small>in</small></div>
+              <div><span data-copy="maxForce">Max. Force</span><strong id="max-force">–</strong><small>kips</small></div>
+              <div><span id="fit-force-label" data-copy="fitIntersection">Fit intersection</span><strong id="fit-force">–</strong><small>kips</small></div>
+            </section>
+
+            <section class="curve-workbench">
+              <div class="curve-toolbar">
+                <div>
+                  <span class="toolbar-label" data-copy="curveView">Curve view</span>
+                  <small id="curve-delta"></small>
+                </div>
+                <div class="curve-actions" aria-label="Curve zoom controls">
+                  <button type="button" id="zoom-out" title="Zoom out">−</button>
+                  <output id="zoom-value">100%</output>
+                  <button type="button" id="zoom-in" title="Zoom in">+</button>
+                  <button type="button" id="zoom-reset" data-copy="reset">Reset</button>
+                </div>
+              </div>
+
+              <div class="canvas-wrap" id="canvas-wrap">
+                <canvas id="response-canvas" width="1280" height="760"></canvas>
+                <div class="curve-tooltip hidden" id="curve-tooltip"></div>
+              </div>
+
+              <div class="curve-legend" aria-label="Curve legend">
+                <span><i class="curve"></i><b data-copy="predictedCurve">Predicted curve</b></span>
+                <span><i class="fits"></i><b data-copy="linearFits">Linear fits</b></span>
+                <span id="fit-point-legend"><i class="fit-point"></i><b data-copy="fitIntersection">Fit intersection</b></span>
+                <span id="kink-line-legend"><i class="kink-line"></i><b data-copy="kinkStart">Kink start</b></span>
+                <span id="model-pt-legend"><i class="pt-point"></i><b data-copy="modelPt">Model Pt</b></span>
+              </div>
+              <p class="curve-note" id="curve-note" data-copy="curveNote">
+                The dashed lines follow the original P1 method: an initial linear window and a late linear window. The amber diamond is their intersection, the purple line is the detected kink start, and the red point is the independently predicted model Pt. The curve and force scale are not modified.
+              </p>
+            </section>
+
+            <section class="diagnostics">
+              <div><span data-copy="outputMode">Output mode</span><strong id="output-mode">–</strong></div>
+              <div><span data-copy="forceScale">Force scale correction</span><strong id="force-scale">–</strong></div>
+              <div><span data-copy="sampleCount">Training samples</span><strong id="sample-count">–</strong></div>
+            </section>
+          </div>
+          <div class="error hidden" id="error-panel"></div>
+        </section>
+      </div>
+    </main>
+    <script src="/app-3size-preview.js?v=20260723-label-box-2"></script>
+  </body>
+</html>

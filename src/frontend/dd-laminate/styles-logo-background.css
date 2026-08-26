@@ -1,0 +1,79 @@
+.theme-logo-background {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 14% 0%, rgba(22, 99, 255, 0.10), transparent 32%),
+    linear-gradient(180deg, #fbfcfd 0%, #f4f6f8 62%, #edf1f4 100%);
+}
+
+.theme-logo-background::before,
+.theme-logo-background::after {
+  content: "";
+  position: fixed;
+  z-index: 0;
+  aspect-ratio: 1;
+  background: url("./assets/imperialax-mark-black.png") center / contain no-repeat;
+  pointer-events: none;
+}
+
+.theme-logo-background::before {
+  top: 86px;
+  right: -92px;
+  width: min(38vw, 560px);
+  opacity: 0.045;
+  transform: rotate(-9deg);
+}
+
+.theme-logo-background::after {
+  left: -150px;
+  bottom: -120px;
+  width: min(42vw, 620px);
+  opacity: 0.028;
+  transform: rotate(11deg);
+}
+
+.theme-logo-background .shell {
+  position: relative;
+  z-index: 1;
+}
+
+.theme-logo-background .topbar {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.theme-logo-background .topbar::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 44px;
+  z-index: -1;
+  width: 260px;
+  aspect-ratio: 1;
+  background: url("./assets/imperialax-mark-black.png") center / contain no-repeat;
+  opacity: 0.035;
+  transform: translateY(-50%) rotate(-8deg);
+  pointer-events: none;
+}
+
+@media (max-width: 760px) {
+  .theme-logo-background::before {
+    top: 112px;
+    right: -84px;
+    width: 310px;
+    opacity: 0.04;
+  }
+
+  .theme-logo-background::after {
+    left: -110px;
+    bottom: -60px;
+    width: 330px;
+  }
+
+  .theme-logo-background .topbar::after {
+    right: -34px;
+    width: 230px;
+    opacity: 0.03;
+  }
+}

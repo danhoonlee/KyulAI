@@ -64,7 +64,7 @@ class StrainCompatibilityValidator(Validator):
 
         spacing = data.get("grid_spacing", 1.0)
         if np.isscalar(spacing):
-            spacing = [float(spacing)] * (strain.ndim - 1)
+            spacing = [float(np.asarray(spacing).item())] * (strain.ndim - 1)
         dx = float(spacing[0])
         dy = float(spacing[1])
 

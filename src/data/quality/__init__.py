@@ -9,4 +9,4 @@ from src.data.quality.validators import (
     validate_record,
 )
 
-__all__ = ["validate_record", "ValidationResult", "ValidationSeverity"]
+__all__ = ["ValidationResult", "ValidationSeverity", "validate_record"]

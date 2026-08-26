@@ -48,6 +48,27 @@ xcuserdata/
 .env.*.local
 data/luvelox_auth.sqlite3
 data/luvelox_auth.sqlite3-*
+data/imperialax_auth.sqlite3
+data/imperialax_auth.sqlite3-*
+
+# Local or generated engineering artifacts (reproducible from tracked sources)
+.tmp/
+deliverables/
+CAE-AI_Injection_Laminate_1hour*.pptx
+CAE-AI_Injection_Laminate_1hour*.pptx.inspect.ndjson
+data/Logo/Original/
+data/PPT/*.pptx
+data/PPT/Samples/
+data/New_data/8x8_Case*/
+data/New_data/classified_8x8_curve_csv_v1/
+data/New_data/classified_8x8_curve_csv_v1.zip
+models/dd_laminate_response_geometry_tree_3size_grouped_v1/
+models/dd_laminate_response_geometry_goint_3size_grouped_v1/
+models/dd_laminate_response_hybrid_student_3size_grouped_v1/
+models/dd_laminate_response_geometry_tree_canonical_v2/
+models/dd_laminate_response_geometry_goint_canonical_v2/
+models/dd_laminate_response_hybrid_student_canonical_v2/
+models/dd_laminate_u3_forecast_physics_canonical_v2/
 
 # Local agent runtime
 .agent-bus/

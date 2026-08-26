@@ -9,7 +9,7 @@ from __future__ import annotations
 from pydantic import BaseModel, Field, model_validator
 
 from src.data.schemas.enums import BCType, ElementType, MeshType
-from src.data.schemas.fields import NumpyArray, NumpyArrayCoords, NumpyArrayInt
+from src.data.schemas.fields import NumpyArrayCoords, NumpyArrayInt
 
 
 class BoundaryCondition(BaseModel):
@@ -69,9 +69,7 @@ class Geometry(BaseModel):
     )
 
     # Surface normals — useful for shell meshes and forming
-    node_normals: NumpyArrayCoords | None = Field(
-        None, description="Node normals, shape (N, 3)"
-    )
+    node_normals: NumpyArrayCoords | None = Field(None, description="Node normals, shape (N, 3)")
 
     # Boundary conditions
     boundary_conditions: list[BoundaryCondition] = Field(default_factory=list)

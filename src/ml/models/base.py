@@ -64,8 +64,8 @@ class ModelBatch:
     target_tensors: dict[str, torch.Tensor] = field(default_factory=dict)
 
     # ── Metadata (non-tensor, for per-tool / per-record evaluation) ──────────
-    source_tools: list[str] = field(default_factory=list)   # len == B
-    record_ids: list[str] = field(default_factory=list)      # len == B
+    source_tools: list[str] = field(default_factory=list)  # len == B
+    record_ids: list[str] = field(default_factory=list)  # len == B
 
     # ── Helpers ───────────────────────────────────────────────────────────────
     def to(self, device: torch.device | str) -> ModelBatch:
@@ -91,11 +91,7 @@ class ModelBatch:
 
     @property
     def all_target_names(self) -> list[str]:
-        return (
-            list(self.target_scalars)
-            + list(self.target_vectors)
-            + list(self.target_tensors)
-        )
+        return list(self.target_scalars) + list(self.target_vectors) + list(self.target_tensors)
 
 
 @dataclass

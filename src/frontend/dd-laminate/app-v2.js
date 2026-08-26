@@ -5,6 +5,7 @@ const API_BASE = isLocalStaticHost
   : `${window.location.origin}/api/v1/dd-laminate`;
 const RAG_BASE = API_BASE.replace(/\/dd-laminate$/, "/rag");
 const IS_KO = document.documentElement.lang.toLowerCase().startsWith("ko");
+const IS_THREE_SIZE_PREVIEW = window.location.pathname.startsWith("/preview/3size");
 const TEXT = {
   predicting: IS_KO ? "예측 중..." : "Predicting...",
   apiConnected: IS_KO ? "API 준비됨" : "API ready",
@@ -19,7 +20,7 @@ const TEXT = {
   forceAxis: IS_KO ? "하중" : "Force",
   predictedPtLabel: IS_KO ? "예측 Pt" : "Predicted Pt",
   curveFitPtLabel: IS_KO ? "곡선 Pt" : "Curve-fit Pt",
-  fitIntersectionLabel: IS_KO ? "Fit Intersection" : "Fit Intersection",
+  fitIntersectionLabel: IS_KO ? "피팅 교점" : "Fit intersection",
   kinkGuideLabel: IS_KO ? "Kink 기준선" : "Kink guide",
   selectCsv: IS_KO
     ? "두 열로 된 force-displacement CSV를 선택해 주세요."
@@ -35,6 +36,18 @@ const TEXT = {
   batchMetadataHint: IS_KO
     ? "metadata CSV가 없으면 화면 입력값을 모든 파일에 공통 적용했습니다."
     : "Without metadata CSV, the shared form inputs were reused for every file.",
+  batchSelection: (count, size) => IS_KO
+    ? `${count}개 CSV 선택 · ${size} · 최대 200개씩 자동 분할 전송`
+    : `${count} CSV files selected · ${size} · automatically sent in chunks of up to 200`,
+  batchProgress: (done, total) => IS_KO
+    ? `일괄 예측 중... ${done}/${total}`
+    : `Batch predicting... ${done}/${total}`,
+  batchTooMany: IS_KO
+    ? "한 번에 최대 1,000개의 CSV를 선택할 수 있습니다."
+    : "Select no more than 1,000 CSV files at once.",
+  batchTooLarge: IS_KO
+    ? "선택한 CSV의 전체 용량은 256 MiB 이하여야 합니다."
+    : "The selected CSV files must total no more than 256 MiB.",
   stackSequenceFailed: IS_KO
     ? "Ply sequence를 읽을 수 없습니다. 예: 30,-30,-60,60 형식으로 입력해 주세요."
     : "Could not parse the ply sequence. Use a format like 30,-30,-60,60.",
@@ -177,6 +190,10 @@ const MODEL_LABELS_KO = {
   "Laminate Forecast - Geometry DL": "적층 예측 - Geometry DL",
   "Laminate Forecast - Machine Learning": "적층 예측 - Machine Learning",
   "Laminate Forecast - Deep Learning": "적층 예측 - Deep Learning",
+  "3-Size Pt-Consistent Machine Learning (Tree)": "3-Size Pt 일치 머신러닝 (Tree)",
+  "3-Size Pt-Consistent Deep Learning (GointMLP)": "3-Size Pt 일치 딥러닝 (GointMLP)",
+  "3-Size Pt-Consistent Hybrid (Teacher-Student)":
+    "3-Size Pt 일치 하이브리드 (Teacher-Student)",
   "u3 Forecast - ExtraTrees + PCA": "u3 예측 - ExtraTrees + PCA",
   "u3 Forecast - Physics XAI": "u3 예측 - Physics XAI",
   "u3 Forecast - GointMLP NN": "u3 예측 - GointMLP 신경망",
@@ -209,6 +226,22 @@ const NOTE_LABELS_KO = {
   "This u3 forecast uses only theta and case inputs; u3 Type is predicted, not user-selected.":
     "이 u3 Forecast는 θ/Case만 사용하며, u3 Type은 사용자가 고르는 값이 아니라 모델이 예측합니다.",
 };
+
+function localizePredictionNote(note) {
+  if (!IS_KO) {
+    return note;
+  }
+  if (NOTE_LABELS_KO[note]) {
+    return NOTE_LABELS_KO[note];
+  }
+  const previewPrediction = String(note).match(
+    /^(.+) prediction; validate promising candidates with simulation\.$/,
+  );
+  if (previewPrediction) {
+    return `${displayModelLabel(previewPrediction[1])} 예측 결과입니다. 유망한 후보는 해석으로 검증해 주세요.`;
+  }
+  return note;
+}
 
 const apiStatus = document.querySelector("#api-status");
 const workspaceGrid = document.querySelector("#workspace-grid");
@@ -247,6 +280,7 @@ const modelLabel = document.querySelector("#model-label");
 const inputSummary = document.querySelector("#input-summary");
 const notes = document.querySelector("#notes");
 const curveFile = document.querySelector("#curve-file");
+const curveFileSummary = document.querySelector("#curve-file-summary");
 const curveMetadataFile = document.querySelector("#curve-metadata-file");
 const curveBatchResults = document.querySelector("#curve-batch-results");
 const curvePreviewPanel = document.querySelector("#curve-preview-panel");
@@ -298,11 +332,17 @@ const ragForm = document.querySelector("#rag-form");
 const ragAnswer = document.querySelector("#rag-answer");
 const ragQueryInput = ragForm?.querySelector('textarea[name="query"]');
 let latestPredictionData = null;
+let predictionProgressTimer = 0;
+let standardResultTabs = null;
 const RESPONSE_CURVE_MIN_ZOOM = 1;
 const RESPONSE_CURVE_MAX_ZOOM = 6;
+const CURVE_BATCH_MAX_FILES = 1000;
+const CURVE_BATCH_CHUNK_SIZE = 200;
+const CURVE_BATCH_MAX_BYTES = 256 * 1024 * 1024;
 const responseCurveView = {
   points: null,
   predictedPtValue: null,
+  playbackProgress: null,
   fitMode: "standard",
   backendFit: null,
   scale: 1,
@@ -314,17 +354,57 @@ const responseCurveView = {
   plot: null,
   drag: null,
 };
+let laminateViewerPanel = null;
+let laminateViewerModulesPromise = null;
+const laminateViewerState = {
+  initialized: false,
+  initializing: false,
+  visible: false,
+  playing: false,
+  animationFrame: 0,
+  lastFrameTime: 0,
+  progress: 0,
+  scale: 5,
+  data: null,
+  THREE: null,
+  renderer: null,
+  scene: null,
+  camera: null,
+  orbit: {
+    theta: -0.82,
+    phi: 0.92,
+    distance: 11,
+    targetZ: 0.15,
+    pointers: new Map(),
+    lastCenter: null,
+    lastDistance: null,
+  },
+  plyGroup: null,
+  plyMeshes: [],
+  orientationGroup: null,
+  orientationLines: [],
+  orientationVisible: false,
+  wireframe: null,
+  wireframeBasePositions: null,
+  undeformedOutline: null,
+  resizeObserver: null,
+};
+const LAMINATE_VIEWER_PLY_COUNT = 16;
+const LAMINATE_VIEWER_PLY_THICKNESS = 0.034;
+const LAMINATE_VIEWER_FIBER_SUBDIVISIONS = 28;
 let responseCurveResizeTimer = null;
 let xaiRequestSerial = 0;
 let researchRequestSerial = 0;
 let researchMapState = { hoverPoints: [], inputs: null };
 
 const PRIMARY_RESPONSE_MODEL_KEYS = [
-  "response_geometry_tree_v1",
-  "response_geometry_goint_v1",
-  "response_hybrid_student_deploy_quick_v1",
+  "response_pt_consistent_tree_3size_grouped_v1",
+  "response_pt_consistent_goint_3size_grouped_v1",
+  "response_pt_consistent_hybrid_3size_grouped_v1",
 ];
-const PREDICTION_HISTORY_KEY = "ddLaminate.predictionHistory.v1";
+const PREDICTION_HISTORY_KEY = IS_THREE_SIZE_PREVIEW
+  ? "ddLaminate.predictionHistory.3sizePreview.v1"
+  : "ddLaminate.predictionHistory.v1";
 const PREDICTION_HISTORY_LIMIT = 5;
 const selectedHistorySignatures = new Set();
 let historyDeleteMode = false;
@@ -350,6 +430,34 @@ const STACK_COLORS = {
     edge: "#8e684f",
   },
 };
+
+function configureThreeSizePreviewUi() {
+  if (!IS_THREE_SIZE_PREVIEW) {
+    return;
+  }
+  document.body.classList.add("three-size-preview-mode");
+  document.title = IS_KO
+    ? "ImperialAX 3-Size 적층 예측 프리뷰"
+    : "ImperialAX 3-Size Laminate Forecast Preview";
+
+  const eyebrow = document.querySelector(".brand-lockup .eyebrow");
+  if (eyebrow) {
+    eyebrow.textContent = IS_KO ? "3-Size 연구용 프리뷰" : "3-Size Research Preview";
+  }
+
+  document.querySelectorAll(".mode-button").forEach((button) => {
+    if (button.dataset.mode !== "response") {
+      button.hidden = true;
+    }
+  });
+  document.querySelector(".mode-switch")?.classList.add("preview-response-only");
+
+  const languageLinks = Array.from(document.querySelectorAll(".top-actions .language-link"));
+  const languageLink = languageLinks.at(-1);
+  if (languageLink) {
+    languageLink.href = IS_KO ? "/preview/3size?lang=en" : "/preview/3size?lang=ko";
+  }
+}
 
 if ("scrollRestoration" in history) {
   history.scrollRestoration = "manual";
@@ -450,6 +558,10 @@ function cleanModelLabel(label) {
     "Extra trees + PCA": "ExtraTrees + PCA",
     "GointMLP-style NN": "GointMLP NN",
     "u3 Forecast - ExtraTrees + PCA": "ExtraTrees + PCA",
+    "3-Size Pt 일치 머신러닝 (Tree)": "3-Size Pt-Consistent Machine Learning (Tree)",
+    "3-Size Pt 일치 딥러닝 (GointMLP)": "3-Size Pt-Consistent Deep Learning (GointMLP)",
+    "3-Size Pt 일치 하이브리드 (Teacher-Student)":
+      "3-Size Pt-Consistent Hybrid (Teacher-Student)",
   };
   return aliases[cleaned] || cleaned;
 }
@@ -462,6 +574,10 @@ function displayModelLabel(label) {
 function primaryModels(models, keys) {
   const byKey = new Map((models || []).map((model) => [model.key, model]));
   return keys.map((key) => byKey.get(key)).filter(Boolean);
+}
+
+function isThreeSizeResponseModel(modelKey) {
+  return PRIMARY_RESPONSE_MODEL_KEYS.includes(String(modelKey || ""));
 }
 
 function clampStackAngle(value) {
@@ -509,7 +625,10 @@ function historySignature(run) {
 function currentPredictionHistoryRuns() {
   const kind = historyKindForMode();
   return kind
-    ? loadPredictionHistory().filter((run) => run.kind === kind).slice(0, PREDICTION_HISTORY_LIMIT)
+    ? loadPredictionHistory()
+      .filter((run) => run.kind === kind)
+      .filter((run) => run.kind !== "response" || isThreeSizeResponseModel(run.modelKey))
+      .slice(0, PREDICTION_HISTORY_LIMIT)
     : [];
 }
 
@@ -550,7 +669,7 @@ function savePredictionHistory(kind, data) {
     panelAIn: kind === "response" ? Number(inputs.panel_a_in || 6) : null,
     panelBIn: kind === "response" ? Number(inputs.panel_b_in || 4) : null,
     modelKey: data.model_key || historyFormForKind(kind)?.querySelector('select[name="model"]')?.value || "",
-    modelLabel: displayModelLabel(data.model_label || ""),
+    modelLabel: cleanModelLabel(data.model_label || ""),
     predictedType: data.predicted_type ?? null,
     confidence: data.confidence ?? null,
     predictedPt: data.predicted_pt ?? null,
@@ -707,7 +826,7 @@ function renderPredictionHistory() {
         <span class="prediction-history-index">${index === 0 ? TEXT.latest : `#${index + 1}`}</span>
         <strong class="prediction-history-case">${run.caseName || "Case2"}</strong>
       </div>
-      <div class="prediction-history-model">${run.modelLabel || "-"}</div>
+      <div class="prediction-history-model">${displayModelLabel(run.modelLabel) || "-"}</div>
       <div class="prediction-history-chips">
         <span>θ₁ ${signedTheta(run.theta1)}</span>
         <span>θ₂ ${signedTheta(run.theta2)}</span>
@@ -745,7 +864,7 @@ function setupThetaSliders(form) {
   }
 
   ["theta1", "theta2"].forEach((thetaName) => {
-    const numberInput = form.querySelector(`input[name="${thetaName}"][type="number"]`);
+    const numberInput = form.querySelector(`input[name="${thetaName}"]`);
     const rangeInput = form.querySelector(`[data-theta-range="${thetaName}"]`);
     const readout = form.querySelector(`[data-theta-readout="${thetaName}"]`);
 
@@ -1012,7 +1131,7 @@ function customStackSequenceFromForm(form) {
   };
 }
 
-function renderStackPly(ply, index, uid) {
+function renderStackPly(ply, index, total, uid) {
   const palette = STACK_COLORS[ply.family];
   const x = 555 - index * 30;
   const y = 470 - index * 28;
@@ -1020,8 +1139,7 @@ function renderStackPly(ply, index, uid) {
   const topPoints = "0,130 138,210 420,52 282,-28";
   const sideLeft = "0,130 138,210 138,230 0,150";
   const sideRight = "138,210 420,52 420,72 138,230";
-  const labelX = 426;
-  const labelY = 36;
+  const endpointLabel = index === 0 ? "P1" : index === total - 1 ? `P${total}` : "";
 
   return `
     <g transform="translate(${x} ${y})">
@@ -1035,17 +1153,14 @@ function renderStackPly(ply, index, uid) {
       <polygon points="${topPoints}" fill="url(#${uid}-top-${ply.family})" stroke="${palette.edge}" stroke-width="1.4" />
       <polygon points="${topPoints}" fill="url(#${uid}-ply-hatch-${index})" opacity="0.88" />
       <polygon points="${topPoints}" fill="transparent" stroke="rgba(255,255,255,0.64)" stroke-width="1" />
-      <line x1="400" y1="61" x2="${labelX}" y2="${labelY + 15}" stroke="#f4ff17" stroke-width="2.2" opacity="0.92" />
-      <rect x="${labelX}" y="${labelY}" width="126" height="34" rx="7" fill="#102033" opacity="0.96" stroke="#f4ff17" stroke-width="1.8" />
-      <text x="${labelX + 11}" y="${labelY + 24}" fill="#f4ff17" font-size="22" font-weight="950">Ply-${index + 1}</text>
-      <text x="12" y="143" fill="#ffffff" font-size="12" font-weight="900">P${index + 1}</text>
+      ${endpointLabel ? `<rect x="8" y="126" width="36" height="22" rx="11" fill="#102033" opacity="0.9" /><text x="26" y="142" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="900">${endpointLabel}</text>` : ""}
     </g>
   `;
 }
 
 function renderStackSvg(sequence, uid = "app-stack") {
   const safeUid = uid.replace(/[^a-zA-Z0-9_-]/g, "-");
-  const plies = sequence.map((ply, index) => renderStackPly(ply, index, safeUid)).join("");
+  const plies = sequence.map((ply, index) => renderStackPly(ply, index, sequence.length, safeUid)).join("");
   return `
     <svg viewBox="0 0 1160 760" role="img" aria-label="Angle-aware Double-Double laminate ply stack">
       <defs>
@@ -1068,23 +1183,6 @@ function renderStackSvg(sequence, uid = "app-stack") {
       </defs>
 
       <rect x="34" y="34" width="1092" height="700" rx="8" fill="url(#${safeUid}-bg-plane)" />
-      <g opacity="0.22" stroke="#edf7ff" stroke-width="1">
-        <path d="M118 42 L992 524" />
-        <path d="M70 94 L944 576" />
-        <path d="M22 146 L896 628" />
-        <path d="M214 660 L1088 178" />
-        <path d="M48 536 L742 150" />
-        <path d="M122 578 L816 192" />
-        <path d="M196 620 L890 234" />
-        <path d="M270 662 L964 276" />
-      </g>
-
-      <g filter="url(#${safeUid}-stack-shadow)" opacity="0.96">
-        <polygon points="98,456 574,704 1018,458 542,210" fill="#b9977f" />
-        <polygon points="98,456 574,704 574,728 98,480" fill="#c8a78e" />
-        <polygon points="574,704 1018,458 1018,482 574,728" fill="#98765f" />
-        <path d="M138 468 L574 706 L976 482" fill="none" stroke="#ead3c2" stroke-width="2" opacity="0.44" />
-      </g>
 
       <g filter="url(#${safeUid}-stack-shadow)">
         ${plies}
@@ -1154,6 +1252,890 @@ function clearError() {
   errorPanel.classList.add("hidden");
 }
 
+function ensurePredictionProgress() {
+  let progress = document.querySelector("#prediction-progress");
+  if (progress || !resultPanel?.parentElement) return progress;
+  progress = document.createElement("section");
+  progress.id = "prediction-progress";
+  progress.className = "prediction-progress hidden";
+  progress.setAttribute("role", "status");
+  progress.setAttribute("aria-live", "polite");
+  progress.setAttribute("aria-atomic", "true");
+  progress.innerHTML = `
+    <span class="prediction-progress-spinner" aria-hidden="true"></span>
+    <div><strong>${IS_KO ? "예측 진행 중" : "Forecast in progress"}</strong><span id="prediction-progress-detail"></span></div>
+    <i aria-hidden="true"></i>
+  `;
+  resultPanel.parentElement.insertBefore(progress, emptyState);
+  return progress;
+}
+
+function setPredictionProgress(loading) {
+  const progress = ensurePredictionProgress();
+  if (!progress) return;
+  window.clearInterval(predictionProgressTimer);
+  predictionProgressTimer = 0;
+  progress.classList.toggle("hidden", !loading);
+  resultPanel?.parentElement?.setAttribute("aria-busy", String(loading));
+  if (!loading) return;
+  const messages = IS_KO
+    ? ["입력 조건을 확인하고 있습니다.", "예측 모델을 실행하고 있습니다.", "곡선과 설명 결과를 준비하고 있습니다."]
+    : ["Checking the input conditions.", "Running the prediction model.", "Preparing curve and explanation results."];
+  let messageIndex = 0;
+  const detail = progress.querySelector("#prediction-progress-detail");
+  if (detail) detail.textContent = messages[messageIndex];
+  predictionProgressTimer = window.setInterval(() => {
+    messageIndex = Math.min(messageIndex + 1, messages.length - 1);
+    if (detail) detail.textContent = messages[messageIndex];
+  }, 2400);
+}
+
+function laminateViewerCopy() {
+  return IS_KO
+    ? {
+      eyebrow: "Response visualization",
+      title: "3D 변형 Viewer",
+      badge: "16-ply 접합 적층",
+      description: "16개 ply가 서로 맞닿은 전체 적층판으로 함께 좌굴되는 모습을 보여줍니다.",
+      disclaimer: "모든 ply에 동일한 전역 변형장을 적용하며 층 사이 간격은 없습니다. 두께는 층 구분을 위해 확대했으며, 절점별 변형장이나 응력 해석 결과는 아닙니다.",
+      play: "재생",
+      pause: "일시정지",
+      loadStep: "하중 단계",
+      deformationScale: "변형 배율",
+      undeformed: "원래 형상",
+      fiberDirection: "섬유 방향 표시",
+      isometric: "등각",
+      top: "상단",
+      reset: "화면 초기화",
+      displacement: "현재 변위",
+      force: "현재 하중",
+      predictedPt: "예측 Pt",
+      ptRatio: "최대하중 대비",
+      phase: "응답 구간",
+      prePt: "Pt 이전",
+      postPt: "Pt 이후",
+      atPt: "Pt 부근",
+      loading: "3D Viewer 준비 중",
+      failed: "3D Viewer를 불러오지 못했습니다.",
+      canvasLabel: "예측 응답과 동기화되어 함께 변형되는 16-ply 접합 적층판 Viewer",
+      firstPly: "P1 · 상면",
+      lastPly: "P16 · 하면",
+    }
+    : {
+      eyebrow: "Response visualization",
+      title: "3D Deformation Viewer",
+      badge: "16-ply bonded stack",
+      description: "Shows all 16 bonded plies buckling together as one laminate without inter-ply gaps.",
+      disclaimer: "Every ply follows the same global deformation field with no inter-ply gap. Thickness is exaggerated for layer visibility; this is not a nodal deformation or stress solution.",
+      play: "Play",
+      pause: "Pause",
+      loadStep: "Load step",
+      deformationScale: "Deformation scale",
+      undeformed: "Undeformed shape",
+      fiberDirection: "Fiber direction",
+      isometric: "Isometric",
+      top: "Top",
+      reset: "Reset view",
+      displacement: "Displacement",
+      force: "Force",
+      predictedPt: "Predicted Pt",
+      ptRatio: "of max force",
+      phase: "Response phase",
+      prePt: "Before Pt",
+      postPt: "After Pt",
+      atPt: "Near Pt",
+      loading: "Preparing 3D Viewer",
+      failed: "Could not load the 3D Viewer.",
+      canvasLabel: "Bonded 16-ply laminate deforming together with the predicted response",
+      firstPly: "P1 · top",
+      lastPly: "P16 · bottom",
+    };
+}
+
+function createLaminateViewerPanel() {
+  if (laminateViewerPanel) return laminateViewerPanel;
+  const copy = laminateViewerCopy();
+  const panel = document.createElement("section");
+  panel.className = "laminate-viewer-panel hidden";
+  panel.id = "laminate-response-viewer";
+  panel.innerHTML = `
+    <div class="laminate-viewer-head">
+      <div>
+        <p class="eyebrow">${copy.eyebrow}</p>
+        <div class="laminate-viewer-title-row">
+          <h2>${copy.title}</h2>
+          <span class="laminate-viewer-badge">${copy.badge}</span>
+        </div>
+        <p>${copy.description}</p>
+      </div>
+      <div class="laminate-viewer-camera-tools" aria-label="${copy.reset}">
+        <button type="button" data-viewer-camera="iso">${copy.isometric}</button>
+        <button type="button" data-viewer-camera="top">${copy.top}</button>
+        <button type="button" data-viewer-camera="reset">${copy.reset}</button>
+      </div>
+    </div>
+    <div class="laminate-viewer-stage">
+      <div class="laminate-viewer-mount" data-viewer-mount>
+        <div class="laminate-viewer-loading" data-viewer-loading>${copy.loading}</div>
+      </div>
+      <div class="laminate-viewer-overlay" aria-hidden="true">
+        <span>${copy.firstPly}</span><span>${copy.lastPly}</span>
+      </div>
+    </div>
+    <div class="laminate-viewer-readout" aria-live="polite">
+      <div><span>${copy.displacement}</span><strong data-viewer-displacement>-</strong></div>
+      <div><span>${copy.force}</span><strong data-viewer-force>-</strong></div>
+      <div>
+        <span>${copy.predictedPt}</span>
+        <strong class="laminate-viewer-pt-value"><b data-viewer-pt>-</b><small data-viewer-pt-ratio>-</small></strong>
+      </div>
+      <div><span>${copy.phase}</span><strong data-viewer-phase>-</strong></div>
+    </div>
+    <div class="laminate-viewer-controls">
+      <button type="button" class="laminate-viewer-play" data-viewer-play aria-pressed="false">${copy.play}</button>
+      <label class="laminate-viewer-scrubber">
+        <span>${copy.loadStep}</span>
+        <input type="range" min="0" max="100" step="1" value="0" data-viewer-progress />
+        <output data-viewer-progress-label>0%</output>
+      </label>
+      <label class="laminate-viewer-scale">
+        <span>${copy.deformationScale}</span>
+        <select data-viewer-scale>
+          <option value="1">1×</option>
+          <option value="5" selected>5×</option>
+          <option value="10">10×</option>
+        </select>
+      </label>
+      <label class="laminate-viewer-toggle laminate-viewer-outline-toggle">
+        <input type="checkbox" data-viewer-undeformed checked />
+        <span>${copy.undeformed}</span>
+      </label>
+      <label class="laminate-viewer-toggle laminate-viewer-orientation-toggle">
+        <input type="checkbox" data-viewer-orientation />
+        <span>${copy.fiberDirection}</span>
+      </label>
+    </div>
+    <p class="laminate-viewer-disclaimer">${copy.disclaimer}</p>
+  `;
+  panel.querySelector("[data-viewer-progress]")?.addEventListener("input", (event) => {
+    setLaminateViewerPlaying(false);
+    setLaminateViewerProgress(Number(event.target.value) / 100);
+  });
+  panel.querySelector("[data-viewer-play]")?.addEventListener("click", () => {
+    if (laminateViewerState.progress >= 0.999) setLaminateViewerProgress(0);
+    setLaminateViewerPlaying(!laminateViewerState.playing);
+  });
+  panel.querySelector("[data-viewer-scale]")?.addEventListener("change", (event) => {
+    laminateViewerState.scale = Number(event.target.value) || 5;
+    updateLaminateViewerGeometry();
+  });
+  panel.querySelector("[data-viewer-undeformed]")?.addEventListener("change", (event) => {
+    if (laminateViewerState.undeformedOutline) {
+      laminateViewerState.undeformedOutline.visible = event.target.checked;
+      renderLaminateViewerScene();
+    }
+  });
+  panel.querySelector("[data-viewer-orientation]")?.addEventListener("change", (event) => {
+    laminateViewerState.orientationVisible = event.target.checked;
+    if (laminateViewerState.orientationGroup) {
+      laminateViewerState.orientationGroup.visible = event.target.checked;
+    }
+    if (laminateViewerState.wireframe?.material) {
+      laminateViewerState.wireframe.material.opacity = event.target.checked ? 0.06 : 0.14;
+    }
+    renderLaminateViewerScene();
+  });
+  panel.querySelectorAll("[data-viewer-camera]").forEach((button) => {
+    button.addEventListener("click", () => setLaminateViewerCamera(button.dataset.viewerCamera));
+  });
+  laminateViewerPanel = panel;
+  return panel;
+}
+
+function loadLaminateViewerModules() {
+  if (!laminateViewerModulesPromise) {
+    laminateViewerModulesPromise = import("/laminate-viewer/vendor/three.module.r160.js");
+  }
+  return laminateViewerModulesPromise;
+}
+
+function resizeLaminateViewer() {
+  const mount = laminateViewerPanel?.querySelector("[data-viewer-mount]");
+  const { renderer, camera } = laminateViewerState;
+  if (!mount || !renderer || !camera) return;
+  const width = Math.max(280, mount.clientWidth);
+  const height = Math.max(240, mount.clientHeight);
+  renderer.setSize(width, height, false);
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+  renderLaminateViewerScene();
+}
+
+function renderLaminateViewerScene() {
+  if (!laminateViewerState.renderer || !laminateViewerState.scene || !laminateViewerState.camera) return;
+  laminateViewerState.renderer.render(laminateViewerState.scene, laminateViewerState.camera);
+}
+
+function setLaminateViewerCamera(view = "iso") {
+  const { camera, orbit } = laminateViewerState;
+  if (!camera || !orbit) return;
+  if (view === "top") {
+    orbit.theta = -Math.PI / 2;
+    orbit.phi = 0.03;
+    orbit.distance = 9.5;
+  } else {
+    orbit.theta = -0.82;
+    orbit.phi = 0.92;
+    orbit.distance = 11;
+  }
+  updateLaminateViewerCameraFromOrbit();
+}
+
+function updateLaminateViewerCameraFromOrbit() {
+  const { camera, orbit } = laminateViewerState;
+  if (!camera || !orbit) return;
+  const sinPhi = Math.sin(orbit.phi);
+  camera.up.set(0, 0, 1);
+  camera.position.set(
+    orbit.distance * sinPhi * Math.cos(orbit.theta),
+    orbit.distance * sinPhi * Math.sin(orbit.theta),
+    orbit.targetZ + orbit.distance * Math.cos(orbit.phi),
+  );
+  camera.lookAt(0, 0, orbit.targetZ);
+  renderLaminateViewerScene();
+}
+
+function laminateViewerPointerCenter(pointers) {
+  const values = Array.from(pointers.values());
+  if (!values.length) return null;
+  return {
+    x: values.reduce((sum, point) => sum + point.x, 0) / values.length,
+    y: values.reduce((sum, point) => sum + point.y, 0) / values.length,
+  };
+}
+
+function laminateViewerPointerDistance(pointers) {
+  const values = Array.from(pointers.values());
+  if (values.length < 2) return null;
+  return Math.hypot(values[0].x - values[1].x, values[0].y - values[1].y);
+}
+
+function attachLaminateViewerOrbit(canvas) {
+  const orbit = laminateViewerState.orbit;
+  const resetGesture = () => {
+    orbit.lastCenter = laminateViewerPointerCenter(orbit.pointers);
+    orbit.lastDistance = laminateViewerPointerDistance(orbit.pointers);
+  };
+  canvas.addEventListener("pointerdown", (event) => {
+    orbit.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    canvas.setPointerCapture?.(event.pointerId);
+    resetGesture();
+  });
+  canvas.addEventListener("pointermove", (event) => {
+    if (!orbit.pointers.has(event.pointerId)) return;
+    orbit.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    const center = laminateViewerPointerCenter(orbit.pointers);
+    const distance = laminateViewerPointerDistance(orbit.pointers);
+    if (orbit.pointers.size === 1 && center && orbit.lastCenter) {
+      orbit.theta -= (center.x - orbit.lastCenter.x) * 0.008;
+      orbit.phi = clampNumber(orbit.phi + (center.y - orbit.lastCenter.y) * 0.008, 0.03, Math.PI * 0.96);
+    } else if (distance && orbit.lastDistance) {
+      orbit.distance = clampNumber(orbit.distance * (orbit.lastDistance / distance), 5.5, 16);
+    }
+    orbit.lastCenter = center;
+    orbit.lastDistance = distance;
+    updateLaminateViewerCameraFromOrbit();
+  });
+  ["pointerup", "pointercancel", "lostpointercapture"].forEach((eventName) => {
+    canvas.addEventListener(eventName, (event) => {
+      orbit.pointers.delete(event.pointerId);
+      resetGesture();
+    });
+  });
+  canvas.addEventListener("wheel", (event) => {
+    event.preventDefault();
+    orbit.distance = clampNumber(orbit.distance * (event.deltaY > 0 ? 1.08 : 0.92), 5.5, 16);
+    updateLaminateViewerCameraFromOrbit();
+  }, { passive: false });
+  canvas.addEventListener("keydown", (event) => {
+    if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "+", "-"].includes(event.key)) return;
+    event.preventDefault();
+    if (event.key === "ArrowLeft") orbit.theta -= 0.08;
+    if (event.key === "ArrowRight") orbit.theta += 0.08;
+    if (event.key === "ArrowUp") orbit.phi = clampNumber(orbit.phi - 0.08, 0.03, Math.PI * 0.96);
+    if (event.key === "ArrowDown") orbit.phi = clampNumber(orbit.phi + 0.08, 0.03, Math.PI * 0.96);
+    if (event.key === "+") orbit.distance = clampNumber(orbit.distance * 0.92, 5.5, 16);
+    if (event.key === "-") orbit.distance = clampNumber(orbit.distance * 1.08, 5.5, 16);
+    updateLaminateViewerCameraFromOrbit();
+  });
+}
+
+function laminateViewerClipFiberLine(originX, originY, directionX, directionY) {
+  let start = -Infinity;
+  let end = Infinity;
+  const clipAxis = (origin, direction, minimum, maximum) => {
+    if (Math.abs(direction) < 1e-8) {
+      return origin >= minimum && origin <= maximum;
+    }
+    const first = (minimum - origin) / direction;
+    const second = (maximum - origin) / direction;
+    start = Math.max(start, Math.min(first, second));
+    end = Math.min(end, Math.max(first, second));
+    return start <= end;
+  };
+  if (!clipAxis(originX, directionX, -3, 3) || !clipAxis(originY, directionY, -2, 2)) {
+    return null;
+  }
+  return [
+    originX + directionX * start,
+    originY + directionY * start,
+    originX + directionX * end,
+    originY + directionY * end,
+  ];
+}
+
+function laminateViewerFiberBasePositions(angle, lineCount) {
+  const radians = (Number(angle) || 0) * Math.PI / 180;
+  const directionX = Math.cos(radians);
+  const directionY = Math.sin(radians);
+  const normalX = -directionY;
+  const normalY = directionX;
+  const normalExtent = Math.abs(normalX) * 3 + Math.abs(normalY) * 2;
+  const positions = [];
+  for (let index = 1; index <= lineCount; index += 1) {
+    const offset = -normalExtent + (2 * normalExtent * index) / (lineCount + 1);
+    const segment = laminateViewerClipFiberLine(
+      normalX * offset,
+      normalY * offset,
+      directionX,
+      directionY,
+    );
+    if (!segment) continue;
+    for (let step = 0; step < LAMINATE_VIEWER_FIBER_SUBDIVISIONS; step += 1) {
+      const startRatio = step / LAMINATE_VIEWER_FIBER_SUBDIVISIONS;
+      const endRatio = (step + 1) / LAMINATE_VIEWER_FIBER_SUBDIVISIONS;
+      positions.push(
+        segment[0] + (segment[2] - segment[0]) * startRatio,
+        segment[1] + (segment[3] - segment[1]) * startRatio,
+        0,
+        segment[0] + (segment[2] - segment[0]) * endRatio,
+        segment[1] + (segment[3] - segment[1]) * endRatio,
+        0,
+      );
+    }
+  }
+  return new Float32Array(positions);
+}
+
+function updateLaminateViewerFiberLine(line, ply, plyIndex, type, progress, amplitude) {
+  const angle = Number(ply.angle) || 0;
+  if (line.userData.angle !== angle) {
+    const basePositions = laminateViewerFiberBasePositions(angle, plyIndex === 0 ? 11 : 7);
+    line.geometry.setAttribute("position", new laminateViewerState.THREE.BufferAttribute(basePositions.slice(), 3));
+    line.userData.basePositions = basePositions;
+    line.userData.angle = angle;
+  }
+  line.material.color.set(angle >= 0 ? "#087443" : "#b42318");
+  const position = line.geometry.attributes.position;
+  const basePositions = line.userData.basePositions;
+  const layerCenter = Number(line.userData.layerCenter) || 0;
+  const surfaceOffset = LAMINATE_VIEWER_PLY_THICKNESS / 2 + (plyIndex === 0 ? 0.006 : 0.002);
+  for (let index = 0; index < position.count; index += 1) {
+    const offset = index * 3;
+    const baseX = basePositions[offset];
+    const baseY = basePositions[offset + 1];
+    const { u, modeShape } = laminateViewerModeAt(baseX, baseY, type);
+    position.setXYZ(
+      index,
+      baseX - progress * 0.1 * (u - 0.5),
+      baseY,
+      layerCenter + surfaceOffset + amplitude * modeShape,
+    );
+  }
+  position.needsUpdate = true;
+}
+
+async function ensureLaminateViewer() {
+  if (laminateViewerState.initialized || laminateViewerState.initializing) return;
+  const mount = laminateViewerPanel?.querySelector("[data-viewer-mount]");
+  if (!mount) return;
+  laminateViewerState.initializing = true;
+  const copy = laminateViewerCopy();
+  try {
+    const THREE = await loadLaminateViewerModules();
+    laminateViewerState.THREE = THREE;
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xf3f6fa);
+    scene.fog = new THREE.Fog(0xf3f6fa, 12, 22);
+    const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.domElement.className = "laminate-viewer-canvas";
+    renderer.domElement.setAttribute("role", "img");
+    renderer.domElement.setAttribute("aria-label", copy.canvasLabel);
+    renderer.domElement.tabIndex = 0;
+    mount.replaceChildren(renderer.domElement);
+    attachLaminateViewerOrbit(renderer.domElement);
+
+    const plyGroup = new THREE.Group();
+    const plyMeshes = Array.from({ length: LAMINATE_VIEWER_PLY_COUNT }, (_, plyIndex) => {
+      const geometry = new THREE.BoxGeometry(6, 4, LAMINATE_VIEWER_PLY_THICKNESS, 28, 18, 1);
+      const mesh = new THREE.Mesh(
+        geometry,
+        new THREE.MeshStandardMaterial({ color: 0x91a4e8, roughness: 0.7, metalness: 0.01 }),
+      );
+      mesh.userData.basePositions = new Float32Array(geometry.attributes.position.array);
+      mesh.userData.plyIndex = plyIndex;
+      mesh.userData.layerCenter = ((LAMINATE_VIEWER_PLY_COUNT - 1) / 2 - plyIndex)
+        * LAMINATE_VIEWER_PLY_THICKNESS;
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      plyGroup.add(mesh);
+      return mesh;
+    });
+    scene.add(plyGroup);
+
+    const orientationGroup = new THREE.Group();
+    const orientationLines = Array.from({ length: LAMINATE_VIEWER_PLY_COUNT }, (_, plyIndex) => {
+      const line = new THREE.LineSegments(
+        new THREE.BufferGeometry(),
+        new THREE.LineBasicMaterial({
+          color: 0x087443,
+          transparent: true,
+          opacity: plyIndex === 0 ? 0.72 : 0.22,
+          depthTest: true,
+          depthWrite: false,
+        }),
+      );
+      line.userData.plyIndex = plyIndex;
+      line.userData.layerCenter = ((LAMINATE_VIEWER_PLY_COUNT - 1) / 2 - plyIndex)
+        * LAMINATE_VIEWER_PLY_THICKNESS;
+      line.renderOrder = 3;
+      orientationGroup.add(line);
+      return line;
+    });
+    orientationGroup.visible = laminateViewerState.orientationVisible;
+    plyGroup.add(orientationGroup);
+
+    const wireframeGeometry = new THREE.PlaneGeometry(6, 4, 28, 18);
+    const wireframeBasePositions = new Float32Array(wireframeGeometry.attributes.position.array);
+    const wireframe = new THREE.Mesh(
+      wireframeGeometry,
+      new THREE.MeshBasicMaterial({ color: 0x234a78, wireframe: true, transparent: true, opacity: 0.14, depthWrite: false }),
+    );
+    scene.add(wireframe);
+
+    const totalStackThickness = LAMINATE_VIEWER_PLY_COUNT * LAMINATE_VIEWER_PLY_THICKNESS;
+    const undeformedOutline = new THREE.LineSegments(
+      new THREE.EdgesGeometry(new THREE.BoxGeometry(6, 4, totalStackThickness)),
+      new THREE.LineDashedMaterial({ color: 0x64748b, dashSize: 0.13, gapSize: 0.08, transparent: true, opacity: 0.72 }),
+    );
+    undeformedOutline.computeLineDistances();
+    scene.add(undeformedOutline);
+
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(15, 11),
+      new THREE.ShadowMaterial({ color: 0x0f172a, opacity: 0.12 }),
+    );
+    floor.position.z = -1.2;
+    floor.receiveShadow = true;
+    scene.add(floor);
+    const grid = new THREE.GridHelper(14, 14, 0xcbd5e1, 0xdfe7ef);
+    grid.rotation.x = Math.PI / 2;
+    grid.position.z = -1.18;
+    grid.material.transparent = true;
+    grid.material.opacity = 0.48;
+    scene.add(grid);
+
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x9eafc1, 2.3));
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.7);
+    keyLight.position.set(-4, -5, 9);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.set(1024, 1024);
+    scene.add(keyLight);
+    const rimLight = new THREE.DirectionalLight(0x90b8ff, 1.2);
+    rimLight.position.set(7, 4, 5);
+    scene.add(rimLight);
+
+    Object.assign(laminateViewerState, {
+      initialized: true,
+      THREE,
+      renderer,
+      scene,
+      camera,
+      plyGroup,
+      plyMeshes,
+      orientationGroup,
+      orientationLines,
+      wireframe,
+      wireframeBasePositions,
+      undeformedOutline,
+    });
+    laminateViewerState.resizeObserver = new ResizeObserver(resizeLaminateViewer);
+    laminateViewerState.resizeObserver.observe(mount);
+    setLaminateViewerCamera("iso");
+    resizeLaminateViewer();
+    updateLaminateViewerGeometry();
+  } catch (error) {
+    const loading = laminateViewerPanel?.querySelector("[data-viewer-loading]");
+    if (loading) loading.textContent = copy.failed;
+    console.error(error);
+  } finally {
+    laminateViewerState.initializing = false;
+  }
+}
+
+function laminateCurvePointAtProgress(progress) {
+  const points = laminateViewerState.data?.curve;
+  if (!Array.isArray(points) || !points.length) return { displacement: 0, force: 0 };
+  if (points.length === 1) return points[0];
+  const scaled = clampNumber(progress, 0, 1) * (points.length - 1);
+  const startIndex = Math.floor(scaled);
+  const endIndex = Math.min(points.length - 1, startIndex + 1);
+  const local = scaled - startIndex;
+  const start = points[startIndex];
+  const end = points[endIndex];
+  return {
+    displacement: Number(start.displacement) + (Number(end.displacement) - Number(start.displacement)) * local,
+    force: Number(start.force) + (Number(end.force) - Number(start.force)) * local,
+  };
+}
+
+function laminatePtProgress() {
+  const points = laminateViewerState.data?.curve;
+  const pt = Number(laminateViewerState.data?.predicted_pt);
+  if (!Array.isArray(points) || points.length < 2 || !Number.isFinite(pt)) return 0.5;
+  for (let index = 1; index < points.length; index += 1) {
+    const previousForce = Number(points[index - 1].force);
+    const nextForce = Number(points[index].force);
+    if ((previousForce <= pt && nextForce >= pt) || (previousForce >= pt && nextForce <= pt)) {
+      const local = Math.abs(nextForce - previousForce) < 1e-9 ? 0 : (pt - previousForce) / (nextForce - previousForce);
+      return clampNumber((index - 1 + local) / (points.length - 1), 0.05, 0.95);
+    }
+  }
+  return 0.5;
+}
+
+function updateLaminateViewerReadout() {
+  if (!laminateViewerPanel) return;
+  const copy = laminateViewerCopy();
+  const point = laminateCurvePointAtProgress(laminateViewerState.progress);
+  const delta = laminateViewerState.progress - laminatePtProgress();
+  const phase = Math.abs(delta) < 0.025 ? copy.atPt : delta < 0 ? copy.prePt : copy.postPt;
+  const displacement = laminateViewerPanel.querySelector("[data-viewer-displacement]");
+  const force = laminateViewerPanel.querySelector("[data-viewer-force]");
+  const predictedPt = laminateViewerPanel.querySelector("[data-viewer-pt]");
+  const ptRatio = laminateViewerPanel.querySelector("[data-viewer-pt-ratio]");
+  const phaseEl = laminateViewerPanel.querySelector("[data-viewer-phase]");
+  const range = laminateViewerPanel.querySelector("[data-viewer-progress]");
+  const output = laminateViewerPanel.querySelector("[data-viewer-progress-label]");
+  if (displacement) displacement.textContent = formatMetric(point.displacement, 5);
+  if (force) force.textContent = formatMetric(point.force, 2);
+  const ptValue = Number(laminateViewerState.data?.predicted_pt);
+  const curveMaxForce = Math.max(
+    0,
+    ...(laminateViewerState.data?.curve || []).map((curvePoint) => Number(curvePoint.force) || 0),
+  );
+  const maxForce = Math.max(Number(laminateViewerState.data?.predicted_max_force) || 0, curveMaxForce);
+  if (predictedPt) predictedPt.textContent = formatMetric(ptValue, 2);
+  if (ptRatio) {
+    const ratio = Number.isFinite(ptValue) && maxForce > 0 ? (ptValue / maxForce) * 100 : null;
+    ptRatio.textContent = ratio === null
+      ? "-"
+      : `${copy.ptRatio} ${formatMetric(ratio, 1)}%`;
+  }
+  if (phaseEl) {
+    phaseEl.textContent = phase;
+    phaseEl.classList.toggle("is-pt", Math.abs(delta) < 0.025);
+    phaseEl.classList.toggle("is-post", delta >= 0.025);
+  }
+  if (range) range.value = String(Math.round(laminateViewerState.progress * 100));
+  if (output) output.textContent = `${Math.round(laminateViewerState.progress * 100)}%`;
+}
+
+function laminateViewerPlySequence(data) {
+  const rawCase = String(data?.inputs?.case || "Case2").replace(/\s+/g, "");
+  const caseName = ["Case2", "Case3", "Case4"].includes(rawCase) ? rawCase : "Case2";
+  const theta1 = Number(data?.inputs?.theta1);
+  const theta2 = Number(data?.inputs?.theta2);
+  return buildStackSequence({
+    caseName,
+    theta1: Number.isFinite(theta1) ? theta1 : 30,
+    theta2: Number.isFinite(theta2) ? theta2 : -30,
+  });
+}
+
+function laminateViewerModeAt(baseX, baseY, type) {
+  const u = (baseX + 3) / 6;
+  const v = (baseY + 2) / 4;
+  const primaryMode = Math.sin(Math.PI * u) * Math.sin(Math.PI * v);
+  const twist = primaryMode * (v - 0.5) * 1.2;
+  const higherMode = Math.sin(2 * Math.PI * u) * Math.sin(Math.PI * v) * 0.32;
+  return {
+    u,
+    modeShape: type === 2 ? primaryMode + twist : type === 3 ? primaryMode + higherMode : primaryMode,
+  };
+}
+
+function updateLaminateViewerGeometry() {
+  const {
+    THREE,
+    plyGroup,
+    plyMeshes,
+    orientationGroup,
+    orientationLines,
+    wireframe,
+    wireframeBasePositions,
+    undeformedOutline,
+    data,
+  } = laminateViewerState;
+  if (
+    !THREE
+    || !plyGroup
+    || !plyMeshes?.length
+    || !orientationGroup
+    || !orientationLines?.length
+    || !wireframe
+    || !wireframeBasePositions
+    || !undeformedOutline
+    || !data
+  ) {
+    updateLaminateViewerReadout();
+    return;
+  }
+  const progress = clampNumber(laminateViewerState.progress, 0, 1);
+  const ptProgress = laminatePtProgress();
+  const post = clampNumber((progress - ptProgress) / Math.max(0.08, 1 - ptProgress), 0, 1);
+  const type = Number(data.predicted_type) || 1;
+  const amplitude = (0.018 * progress + 0.62 * Math.pow(post, 1.35)) * (laminateViewerState.scale / 5);
+  const plySequence = laminateViewerPlySequence(data);
+  plyMeshes.forEach((mesh, plyIndex) => {
+    const position = mesh.geometry.attributes.position;
+    const basePositions = mesh.userData.basePositions;
+    const layerCenter = Number(mesh.userData.layerCenter) || 0;
+    const ply = plySequence[plyIndex] || { angle: 0, family: plyIndex % 2 ? "theta2" : "theta1" };
+    const palette = STACK_COLORS[ply.family] || STACK_COLORS.theta1;
+    mesh.material.color.set(Number(ply.angle) >= 0 ? palette.topA : palette.topB);
+    for (let index = 0; index < position.count; index += 1) {
+      const offset = index * 3;
+      const baseX = basePositions[offset];
+      const baseY = basePositions[offset + 1];
+      const baseZ = basePositions[offset + 2] + layerCenter;
+      const { u, modeShape } = laminateViewerModeAt(baseX, baseY, type);
+      position.setXYZ(
+        index,
+        baseX - progress * 0.1 * (u - 0.5),
+        baseY,
+        baseZ + amplitude * modeShape,
+      );
+    }
+    position.needsUpdate = true;
+    mesh.geometry.computeVertexNormals();
+  });
+  orientationLines.forEach((line, plyIndex) => {
+    const ply = plySequence[plyIndex] || { angle: 0, family: plyIndex % 2 ? "theta2" : "theta1" };
+    updateLaminateViewerFiberLine(line, ply, plyIndex, type, progress, amplitude);
+  });
+  orientationGroup.visible = laminateViewerState.orientationVisible;
+
+  const wireframePosition = wireframe.geometry.attributes.position;
+  const topSurfaceZ = (LAMINATE_VIEWER_PLY_COUNT * LAMINATE_VIEWER_PLY_THICKNESS) / 2 + 0.004;
+  for (let index = 0; index < wireframePosition.count; index += 1) {
+    const offset = index * 3;
+    const baseX = wireframeBasePositions[offset];
+    const baseY = wireframeBasePositions[offset + 1];
+    const { u, modeShape } = laminateViewerModeAt(baseX, baseY, type);
+    wireframePosition.setXYZ(
+      index,
+      baseX - progress * 0.1 * (u - 0.5),
+      baseY,
+      topSurfaceZ + amplitude * modeShape,
+    );
+  }
+  wireframePosition.needsUpdate = true;
+  const panelA = clampNumber(Number(data.inputs?.panel_a_in) || 6, 2, 12);
+  const panelB = clampNumber(Number(data.inputs?.panel_b_in) || 4, 2, 12);
+  const xScale = clampNumber(panelA / 6, 0.62, 1.55);
+  const yScale = clampNumber(panelB / 4, 0.62, 1.55);
+  [plyGroup, wireframe, undeformedOutline].forEach((object) => object.scale.set(xScale, yScale, 1));
+  updateLaminateViewerReadout();
+  renderLaminateViewerScene();
+}
+
+let laminateViewerCurveRedrawAt = 0;
+function setLaminateViewerProgress(progress) {
+  laminateViewerState.progress = clampNumber(progress, 0, 1);
+  responseCurveView.playbackProgress = laminateViewerState.progress;
+  updateLaminateViewerGeometry();
+  const now = performance.now();
+  if (now - laminateViewerCurveRedrawAt > 48 || !laminateViewerState.playing) {
+    laminateViewerCurveRedrawAt = now;
+    redrawResponseCurve();
+  }
+}
+
+function animateLaminateViewer(timestamp) {
+  laminateViewerState.animationFrame = 0;
+  if (!laminateViewerState.playing || !laminateViewerState.visible) return;
+  const previous = laminateViewerState.lastFrameTime || timestamp;
+  const elapsed = Math.min(80, timestamp - previous);
+  laminateViewerState.lastFrameTime = timestamp;
+  const next = laminateViewerState.progress + elapsed / 9000;
+  if (next >= 1) {
+    setLaminateViewerProgress(1);
+    setLaminateViewerPlaying(false);
+    return;
+  }
+  setLaminateViewerProgress(next);
+  laminateViewerState.animationFrame = requestAnimationFrame(animateLaminateViewer);
+}
+
+function setLaminateViewerPlaying(playing) {
+  const next = Boolean(playing && laminateViewerState.visible);
+  laminateViewerState.playing = next;
+  laminateViewerState.lastFrameTime = 0;
+  const copy = laminateViewerCopy();
+  const button = laminateViewerPanel?.querySelector("[data-viewer-play]");
+  if (button) {
+    button.textContent = next ? copy.pause : copy.play;
+    button.setAttribute("aria-pressed", String(next));
+  }
+  if (laminateViewerState.animationFrame) {
+    cancelAnimationFrame(laminateViewerState.animationFrame);
+    laminateViewerState.animationFrame = 0;
+  }
+  if (next) laminateViewerState.animationFrame = requestAnimationFrame(animateLaminateViewer);
+}
+
+function setLaminateViewerVisible(visible) {
+  laminateViewerState.visible = visible;
+  if (!visible) {
+    setLaminateViewerPlaying(false);
+    return;
+  }
+  ensureLaminateViewer().then(() => {
+    resizeLaminateViewer();
+    updateLaminateViewerGeometry();
+  });
+}
+
+function setLaminateViewerData(data) {
+  const panel = createLaminateViewerPanel();
+  laminateViewerState.data = data;
+  panel.classList.toggle("hidden", !data?.curve?.length);
+  setLaminateViewerPlaying(false);
+  setLaminateViewerProgress(0);
+  if (laminateViewerState.visible && data?.curve?.length) ensureLaminateViewer();
+}
+
+function setupStandardResultTabs() {
+  if (!resultPanel || document.querySelector("[data-standard-result-tabs]")) return null;
+  const viewerPanel = createLaminateViewerPanel();
+  const definitions = [
+    ["summary", IS_KO ? "요약" : "Summary"],
+    ["curve", IS_KO ? "곡선" : "Curve"],
+    ["viewer", "3D Viewer"],
+    ["xai", "XAI"],
+    ["space", IS_KO ? "디자인 스페이스" : "Design Space"],
+  ];
+  const tabList = document.createElement("div");
+  tabList.className = "standard-result-tabs";
+  tabList.dataset.standardResultTabs = "true";
+  tabList.setAttribute("role", "tablist");
+  tabList.setAttribute("aria-label", IS_KO ? "예측 결과 보기" : "Prediction result views");
+  const panels = {};
+  definitions.forEach(([key, label], index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.standardResultTab = key;
+    button.id = `standard-laminate-tab-${key}`;
+    button.textContent = label;
+    button.setAttribute("role", "tab");
+    button.setAttribute("aria-selected", String(index === 0));
+    button.setAttribute("aria-controls", `standard-laminate-panel-${key}`);
+    button.tabIndex = index === 0 ? 0 : -1;
+    tabList.appendChild(button);
+    const panel = document.createElement("section");
+    panel.id = `standard-laminate-panel-${key}`;
+    panel.className = "standard-result-panel";
+    panel.dataset.standardResultPanel = key;
+    panel.setAttribute("role", "tabpanel");
+    panel.setAttribute("aria-labelledby", button.id);
+    panel.hidden = index !== 0;
+    panels[key] = panel;
+  });
+  const summaryNodes = [
+    resultPanel.querySelector(":scope > .result-head"),
+    resultPanel.querySelector(":scope > .bars"),
+    uncertaintyPanel,
+    teacherStudentPanel,
+    resultPanel.querySelector(":scope > .meta"),
+    notes,
+  ].filter(Boolean);
+  summaryNodes.forEach((node) => panels.summary.appendChild(node));
+  if (responseEstimate) panels.curve.appendChild(responseEstimate);
+  panels.viewer.appendChild(viewerPanel);
+  if (xaiPanel) panels.xai.appendChild(xaiPanel);
+  if (researchPanel) panels.space.appendChild(researchPanel);
+  resultPanel.append(tabList, ...definitions.map(([key]) => panels[key]));
+
+  const buttons = [...tabList.querySelectorAll("[data-standard-result-tab]")];
+  const select = (key, focus = false) => {
+    const target = buttons.find((button) => button.dataset.standardResultTab === key);
+    if (!target || target.getAttribute("aria-disabled") === "true") return;
+    buttons.forEach((button) => {
+      const selected = button === target;
+      button.setAttribute("aria-selected", String(selected));
+      button.tabIndex = selected ? 0 : -1;
+    });
+    Object.entries(panels).forEach(([panelKey, panel]) => { panel.hidden = panelKey !== key; });
+    if (key === "curve") requestAnimationFrame(redrawResponseCurve);
+    setLaminateViewerVisible(key === "viewer");
+    if (focus) target.focus();
+  };
+  buttons.forEach((button) => {
+    button.addEventListener("click", () => select(button.dataset.standardResultTab));
+    button.addEventListener("keydown", (event) => {
+      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+      event.preventDefault();
+      const enabled = buttons.filter((item) => item.getAttribute("aria-disabled") !== "true");
+      const current = enabled.indexOf(button);
+      const next = event.key === "Home" ? 0 : event.key === "End" ? enabled.length - 1
+        : event.key === "ArrowRight" ? (current + 1) % enabled.length
+          : (current - 1 + enabled.length) % enabled.length;
+      select(enabled[next].dataset.standardResultTab, true);
+    });
+  });
+  const updateAvailability = () => {
+    const sources = { curve: responseEstimate, viewer: viewerPanel, xai: xaiPanel, space: researchPanel };
+    buttons.forEach((button) => {
+      const source = sources[button.dataset.standardResultTab];
+      const disabled = Boolean(source?.classList.contains("hidden"));
+      button.setAttribute("aria-disabled", String(disabled));
+    });
+  };
+  [responseEstimate, viewerPanel, xaiPanel, researchPanel].filter(Boolean).forEach((node) => {
+    new MutationObserver(updateAvailability).observe(node, { attributes: true, attributeFilter: ["class"] });
+  });
+  updateAvailability();
+  return { select, updateAvailability };
+}
+
+function installModelDisagreementGuidance() {
+  const label = responseModel?.closest("label");
+  if (!label || document.querySelector("#model-disagreement-guidance")) return;
+  const guidance = document.createElement("details");
+  guidance.id = "model-disagreement-guidance";
+  guidance.className = "model-guidance";
+  guidance.innerHTML = IS_KO
+    ? "<summary>모델별 Type이 다를 때</summary><p>각 모델은 서로 다른 방식으로 경계를 학습하므로 경계 조건에서는 Type이 달라질 수 있습니다. Machine Learning 결과를 1차 스크리닝 기준으로 사용하고, 다른 모델은 민감도 확인용으로 비교하세요. Type이 다르면 검토 필요 상태로 보고 CAE 또는 실험으로 확인하는 것을 권장합니다.</p>"
+    : "<summary>When model Types disagree</summary><p>Each model learns the decision boundary differently, so Types can differ near a boundary. Use Machine Learning as the primary screening result and compare other models as sensitivity checks. Treat disagreement as review required and confirm with CAE or experiment.</p>";
+  label.insertAdjacentElement("afterend", guidance);
+}
+
 function setLoading(form, loading) {
   const button = form.querySelector("button[type='submit']");
   if (!button.dataset.defaultText) {
@@ -1161,6 +2143,44 @@ function setLoading(form, loading) {
   }
   button.disabled = loading;
   button.textContent = loading ? TEXT.predicting : button.dataset.defaultText;
+  if (form !== ragForm) setPredictionProgress(loading);
+}
+
+function formatSelectedFileSize(bytes) {
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KiB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
+}
+
+function updateCurveFileSummary() {
+  if (!curveFileSummary) {
+    return;
+  }
+  const files = Array.from(curveFile?.files || []);
+  if (!files.length) {
+    curveFileSummary.textContent = TEXT.noFileSelected;
+    return;
+  }
+  const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
+  curveFileSummary.textContent = TEXT.batchSelection(files.length, formatSelectedFileSize(totalBytes));
+}
+
+function mergeCurveBatchResult(current, incoming) {
+  if (!current) {
+    return {
+      ...incoming,
+      total_files: Number(incoming.total_files || 0),
+      ok_count: Number(incoming.ok_count || 0),
+      error_count: Number(incoming.error_count || 0),
+      results: [...(incoming.results || [])],
+    };
+  }
+  current.total_files += Number(incoming.total_files || 0);
+  current.ok_count += Number(incoming.ok_count || 0);
+  current.error_count += Number(incoming.error_count || 0);
+  current.results.push(...(incoming.results || []));
+  return current;
 }
 
 function fillModelSelect(select, models) {
@@ -1191,7 +2211,11 @@ async function loadModels() {
     const data = await response.json();
     fillModelSelect(thetaModel, data.theta_models);
     fillModelSelect(curveModel, data.curve_models);
-    fillModelSelect(responseModel, primaryModels(data.response_models, PRIMARY_RESPONSE_MODEL_KEYS));
+    const threeSizeResponse = await fetch(`${API_BASE}/models/3size-preview`);
+    if (!threeSizeResponse.ok) {
+      throw new Error(`HTTP ${threeSizeResponse.status}`);
+    }
+    fillModelSelect(responseModel, primaryModels(await threeSizeResponse.json(), PRIMARY_RESPONSE_MODEL_KEYS));
     fillModelSelect(u3PtModel, data.u3_pt_models || []);
     apiStatus.textContent = TEXT.apiConnected;
     apiStatus.classList.add("ok");
@@ -1393,6 +2417,7 @@ function renderResult(data) {
   resultPanel.classList.remove("hidden");
   resultPanel.classList.remove("type-1", "type-2", "type-3");
   resultPanel.classList.add(`type-${data.predicted_type}`);
+  standardResultTabs?.select("summary");
   predictedType.textContent = `Type ${data.predicted_type}`;
   confidenceEl.textContent = percent(data.confidence);
   modelLabel.textContent = displayModelLabel(data.model_label);
@@ -1429,6 +2454,7 @@ function renderResult(data) {
   renderUncertainty(data.uncertainty);
   renderTeacherStudentAgreement(data.teacher_student);
   responseEstimate.classList.add("hidden");
+  setLaminateViewerData(null);
   xaiRequestSerial += 1;
   renderXai(null);
   renderResearchHidden();
@@ -1436,9 +2462,12 @@ function renderResult(data) {
   notes.innerHTML = "";
   data.notes.forEach((note) => {
     const item = document.createElement("li");
-    item.textContent = IS_KO ? (NOTE_LABELS_KO[note] || note) : note;
+    item.textContent = localizePredictionNote(note);
     notes.appendChild(item);
   });
+  if (standardResultTabs) {
+    requestAnimationFrame(() => resultPanel.parentElement?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }
 }
 
 function curveBatchCsv(data) {
@@ -1497,6 +2526,7 @@ function renderCurveBatchResults(data, usedMetadata) {
   document.body.classList.remove("has-result");
   resultPanel.classList.add("hidden");
   responseEstimate.classList.add("hidden");
+  setLaminateViewerData(null);
   emptyState.classList.remove("hidden");
   renderXai(null);
   renderResearchHidden();
@@ -1754,7 +2784,7 @@ function installResponseCurveZoomControls() {
   updateResponseCurveZoomControls();
 }
 
-function updateResponseCurveLegend(mode = "standard") {
+function updateResponseCurveLegend(mode = "standard", backendFit = null) {
   if (!responseCurveLegend) {
     return;
   }
@@ -1762,18 +2792,21 @@ function updateResponseCurveLegend(mode = "standard") {
   const fitLabel = IS_KO ? "선형 피팅" : "Linear fits";
   const predictedLabel = TEXT.predictedPtLabel;
   const fitIntersectionLabel = TEXT.fitIntersectionLabel;
-  responseCurveLegend.innerHTML = mode === "u3"
-    ? `
-      <span><i class="legend-swatch curve"></i>${curveLabel}</span>
-      <span><i class="legend-swatch guide"></i>${fitLabel}</span>
-      <span><i class="legend-swatch pt"></i>${predictedLabel}</span>
-      <span><i class="legend-swatch kink"></i>${fitIntersectionLabel}</span>
-    `
-    : `
+  const isPtConsistent = backendFit?.fit_method === "pt_consistent_p1_head_v1";
+  if (isPtConsistent) {
+    responseCurveLegend.innerHTML = `
       <span><i class="legend-swatch curve"></i>${curveLabel}</span>
       <span><i class="legend-swatch guide"></i>${fitLabel}</span>
       <span><i class="legend-swatch kink"></i>${predictedLabel}</span>
     `;
+    return;
+  }
+  responseCurveLegend.innerHTML = `
+    <span><i class="legend-swatch curve"></i>${curveLabel}</span>
+    <span><i class="legend-swatch guide"></i>${fitLabel}</span>
+    <span><i class="legend-swatch kink"></i>${fitIntersectionLabel}</span>
+    <span><i class="legend-swatch pt"></i>${predictedLabel}</span>
+  `;
 }
 
 function resetPredictionState() {
@@ -1785,6 +2818,7 @@ function resetPredictionState() {
   stackPreviewResult?.classList.add("hidden");
   resultPanel.classList.remove("type-1", "type-2", "type-3");
   responseEstimate.classList.add("hidden");
+  setLaminateViewerData(null);
   predictedType.textContent = "-";
   confidenceEl.textContent = "-";
   modelLabel.textContent = "-";
@@ -1890,7 +2924,7 @@ function renderStackPreviewResult(data) {
         : "This tab previews physics descriptors and design-space position before the new stack is added to trained forecast models.",
     ].forEach((note) => {
       const item = document.createElement("li");
-      item.textContent = IS_KO ? (NOTE_LABELS_KO[note] || note) : note;
+      item.textContent = localizePredictionNote(note);
       stackPreviewNotes.appendChild(item);
     });
   }
@@ -1919,6 +2953,12 @@ function xaiImportancePercent(value) {
 function localizeXaiText(text) {
   if (!IS_KO || !text) {
     return text || "";
+  }
+  if (text.startsWith("This explanation evaluates ") && text.includes("actual 3-size model")) {
+    const modelLabel = text
+      .replace("This explanation evaluates ", "")
+      .split(" at the current theta")[0];
+    return `${displayModelLabel(modelLabel)} 모델을 현재 θ, Case, 패널 크기에서 직접 설명합니다. 실제 3-size 모델의 CLT, 각도, 패널 형상 feature를 하나씩 가린 뒤 예측 응답이 얼마나 변하는지 측정했습니다.`;
   }
   const map = {
     "Why this prediction?": "왜 이런 예측이 나왔나요?",
@@ -1962,6 +3002,16 @@ function localizeXaiText(text) {
       "Tree ensemble feature importance + 입력별 live feature masking",
     "GointMLP occlusion sensitivity + local finite-difference sensitivity · live local feature masking":
       "GointMLP occlusion sensitivity + 입력별 live feature masking",
+    "Tree ensemble live local feature masking": "Tree ensemble 입력별 local feature masking",
+    "Teacher-Student neural live local feature masking":
+      "Teacher-Student neural 입력별 local feature masking",
+    "GointMLP live local feature masking": "GointMLP 입력별 local feature masking",
+    "Feature importance is local to this exact theta, Case, and panel-size input.":
+      "Feature 중요도는 현재 θ, Case, 패널 크기 입력에 맞춰 계산한 local 결과입니다.",
+    "Each bar measures the relative model-output change after masking one feature.":
+      "각 막대는 feature 하나를 가렸을 때 모델 출력이 상대적으로 얼마나 변하는지 나타냅니다.",
+    "The explanation uses the deployed 3-size model directly rather than borrowing an older global XAI report.":
+      "기존 global XAI 보고서를 가져오지 않고, 현재 배포된 3-size 모델을 직접 설명합니다.",
     "Feature importance is global: it summarizes the trained model, not only this single input.":
       "Feature importance는 global 설명입니다. 현재 입력 하나만이 아니라 학습된 모델 전체의 경향을 요약합니다.",
     "Feature importance is local: values are recomputed for this theta/case input by masking one feature at a time.":
@@ -2160,6 +3210,8 @@ function localizeXaiFeatureSet(featureSet) {
   const map = {
     "theta + case": "θ + Case",
     "theta + CLT physics": "θ + CLT 물리 feature",
+    "theta + canonical CLT physics + panel geometry":
+      "θ + 정규화 CLT 물리 feature + 패널 형상",
   };
   return map[featureSet] || featureSet;
 }
@@ -2348,6 +3400,12 @@ function localizeResearchText(text) {
   if (!IS_KO || !text) {
     return text || "";
   }
+  const threeSizeMatch = text.match(
+    /^3-size Laminate Forecast design-space context uses only simulations matching the selected (.+) in panel\.$/,
+  );
+  if (threeSizeMatch) {
+    return `3-size Laminate Forecast 설계 공간은 선택한 ${threeSizeMatch[1]} 패널과 크기가 같은 해석 데이터만 사용합니다.`;
+  }
   const map = {
     "Laminate Forecast design-space context is based on the curated Case2/3/4 response dataset.":
       "Laminate Forecast 설계 공간은 정리된 Case2/3/4 응답 데이터셋을 기준으로 계산했습니다.",
@@ -2359,6 +3417,8 @@ function localizeResearchText(text) {
       "u3 설계 공간은 정리된 u3 Pt 데이터셋을 기준으로 계산했으며, Type 2/3은 곡선 계열 정보로 표시합니다.",
     "Recommendations are simulation-backed observed candidates, not new finite-element simulations.":
       "추천 후보는 이미 수행된 해석 데이터 기반이며, 새 유한요소 해석 결과는 아닙니다.",
+    "Recommendations are observed candidates from the matching panel geometry, not new simulations.":
+      "추천 후보는 새 해석 결과가 아니라, 선택한 패널 크기와 일치하는 기존 해석 데이터에서 관측된 후보입니다.",
     "Use high-Pt candidates as screening leads and validate final choices with simulation.":
       "Pt가 높은 후보는 선별용 리드로 사용하고, 최종 후보는 해석으로 다시 검증해 주세요.",
     "High observed Pt with Type 1 preference in the curated Case2/3/4 simulations.":
@@ -2460,6 +3520,11 @@ async function requestDesignSpace(data, scope) {
       theta2: Number(inputs.theta2),
       case: inputs.case,
       scope,
+      dataset: scope === "response" && isThreeSizeResponseModel(data.model_key)
+        ? "three_size"
+        : "canonical",
+      panel_a_in: Number(inputs.panel_a_in || 6),
+      panel_b_in: Number(inputs.panel_b_in || 4),
     });
     if (serial === researchRequestSerial) {
       if (latestPredictionData) {
@@ -2621,6 +3686,11 @@ function drawDesignSpaceMap(points, inputs) {
     return;
   }
   const canvas = researchMapCanvas;
+  const mobileMap = window.matchMedia("(max-width: 760px)").matches;
+  const targetHeight = mobileMap ? 500 : 320;
+  if (canvas.height !== targetHeight) {
+    canvas.height = targetHeight;
+  }
   const ctx = canvas.getContext("2d");
   const width = canvas.width;
   const height = canvas.height;
@@ -3068,9 +4138,10 @@ function pointAtForce(points, targetForce) {
       };
     }
   }
-  return points.reduce((closest, point) => (
-    Math.abs(point.force - force) < Math.abs(closest.force - force) ? point : closest
+  const closest = points.reduce((nearest, point) => (
+    Math.abs(point.force - force) < Math.abs(nearest.force - force) ? point : nearest
   ), points[0]);
+  return { displacement: closest.displacement, force };
 }
 
 function linearFit(samples) {
@@ -3156,6 +4227,12 @@ function drawRoundedRect(ctx, x, y, width, height, radius) {
 }
 
 function drawPtLabel(ctx, label, value, ptX, ptY, pad, width, height, options = {}) {
+  const compact = width < 640;
+  const titleFontSize = options.titleFontSize ?? (compact ? 11 : 13);
+  const valueFontSize = options.valueFontSize ?? (compact ? 15 : 18);
+  const horizontalPadding = compact ? 10 : 13;
+  const titleBaseline = compact ? 16 : 19;
+  const valueBaseline = compact ? 36 : 42;
   const colors = {
     line: options.lineColor || "rgba(239, 68, 68, 0.72)",
     fill: options.fillColor || "rgba(255, 247, 237, 0.96)",
@@ -3164,15 +4241,15 @@ function drawPtLabel(ctx, label, value, ptX, ptY, pad, width, height, options = 
     value: options.valueColor || "#7c2d12",
   };
   ctx.save();
-  ctx.font = "700 17px Inter, system-ui, sans-serif";
+  ctx.font = `700 ${titleFontSize}px Inter, system-ui, sans-serif`;
   const titleWidth = ctx.measureText(label).width;
-  ctx.font = "800 22px Inter, system-ui, sans-serif";
+  ctx.font = `800 ${valueFontSize}px Inter, system-ui, sans-serif`;
   const valueWidth = ctx.measureText(value).width;
 
-  const labelWidth = Math.max(titleWidth, valueWidth) + 36;
-  const labelHeight = 66;
-  const gapX = options.gapX ?? 24;
-  const gapY = options.gapY ?? 22;
+  const labelWidth = Math.max(titleWidth, valueWidth) + horizontalPadding * 2;
+  const labelHeight = compact ? 46 : 52;
+  const gapX = options.gapX ?? (compact ? 14 : 18);
+  const gapY = options.gapY ?? (compact ? 12 : 16);
   const autoRight = ptX + gapX + labelWidth < width - pad.right;
   const side = options.side || (autoRight ? "right" : "left");
   const wantsRight = side === "right";
@@ -3187,13 +4264,23 @@ function drawPtLabel(ctx, label, value, ptX, ptY, pad, width, height, options = 
   const preferredLabelY = options.placement === "below"
     ? ptY + gapY
     : ptY - labelHeight - gapY;
+  const minLabelY = Number.isFinite(Number(options.minLabelY))
+    ? Number(options.minLabelY)
+    : pad.top + 8;
+  const maxLabelY = Number.isFinite(Number(options.maxLabelY))
+    ? Number(options.maxLabelY)
+    : height - pad.bottom - labelHeight - 8;
   const labelY = clampNumber(
     Number.isFinite(Number(options.labelY)) ? Number(options.labelY) : preferredLabelY,
-    pad.top + 8,
-    height - pad.bottom - labelHeight - 8,
+    minLabelY,
+    Math.max(minLabelY, maxLabelY),
   );
-  const anchorX = ptX < labelX ? labelX : ptX > labelX + labelWidth ? labelX + labelWidth : labelX + labelWidth / 2;
-  const anchorY = labelY + labelHeight * 0.62;
+  const anchorX = clampNumber(ptX, labelX + 10, labelX + labelWidth - 10);
+  const anchorY = ptY < labelY
+    ? labelY
+    : ptY > labelY + labelHeight
+      ? labelY + labelHeight
+      : labelY + labelHeight * 0.62;
 
   ctx.strokeStyle = colors.line;
   ctx.lineWidth = 1.8;
@@ -3202,7 +4289,7 @@ function drawPtLabel(ctx, label, value, ptX, ptY, pad, width, height, options = 
   ctx.lineTo(anchorX, anchorY);
   ctx.stroke();
 
-  drawRoundedRect(ctx, labelX, labelY, labelWidth, labelHeight, 10);
+  drawRoundedRect(ctx, labelX, labelY, labelWidth, labelHeight, 8);
   ctx.fillStyle = colors.fill;
   ctx.fill();
   ctx.strokeStyle = colors.border;
@@ -3212,20 +4299,22 @@ function drawPtLabel(ctx, label, value, ptX, ptY, pad, width, height, options = 
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
   ctx.fillStyle = colors.title;
-  ctx.font = "700 17px Inter, system-ui, sans-serif";
-  ctx.fillText(label, labelX + 18, labelY + 25);
+  ctx.font = `700 ${titleFontSize}px Inter, system-ui, sans-serif`;
+  ctx.fillText(label, labelX + horizontalPadding, labelY + titleBaseline);
   ctx.fillStyle = colors.value;
-  ctx.font = "800 22px Inter, system-ui, sans-serif";
-  ctx.fillText(value, labelX + 18, labelY + 52);
+  ctx.font = `800 ${valueFontSize}px Inter, system-ui, sans-serif`;
+  ctx.fillText(value, labelX + horizontalPadding, labelY + valueBaseline);
   ctx.restore();
 }
 
-function prepareResponseCurveCanvas() {
+function prepareResponseCurveCanvas(calloutRows = 0) {
   const ctx = responseCurveCanvas.getContext("2d");
   const rect = responseCurveCanvas.getBoundingClientRect();
   const parentWidth = responseCurveCanvas.parentElement?.clientWidth || 720;
   const logicalWidth = Math.max(320, rect.width || parentWidth || 720);
-  const logicalHeight = logicalWidth * 0.6;
+  const compact = logicalWidth < 640;
+  const calloutBandHeight = calloutRows > 0 ? (compact ? 54 : 66) : 0;
+  const logicalHeight = logicalWidth * 0.6 + calloutBandHeight;
   const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
   const pixelWidth = Math.round(logicalWidth * dpr);
   const pixelHeight = Math.round(logicalHeight * dpr);
@@ -3238,7 +4327,7 @@ function prepareResponseCurveCanvas() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   responseCurveView.logicalWidth = logicalWidth;
   responseCurveView.logicalHeight = logicalHeight;
-  return { ctx, width: logicalWidth, height: logicalHeight };
+  return { ctx, width: logicalWidth, height: logicalHeight, calloutBandHeight };
 }
 
 function rightUpperEnvelopeSlope(points, kinkX, kinkForce, proposedSlope) {
@@ -3565,6 +4654,7 @@ function buildBackendBilinearFit(points, predictedPtValue, backendFit) {
     kink,
     detectedKink: backendPoint(backendFit.detected_kink || backendFit.detectedKink),
     predictedPoint,
+    fitMethod: String(backendFit.fit_method || backendFit.fitMethod || ""),
     firstLine,
     secondLine,
     firstStartX: Number.isFinite(firstStartX) ? firstStartX : minX,
@@ -3575,21 +4665,28 @@ function buildBackendBilinearFit(points, predictedPtValue, backendFit) {
 }
 
 function drawResponseCurve(points, predictedPtValue, fitMode = "standard", backendFit = null) {
-  const { ctx, width, height } = prepareResponseCurveCanvas();
-  const pad = { left: 92, right: 28, top: 36, bottom: 76 };
+  const hasPoints = Array.isArray(points) && points.length > 0;
+  const bilinearFit = !hasPoints
+    ? null
+    : fitMode === "u3"
+      ? buildU3BilinearFit(points, predictedPtValue)
+      : (buildBackendBilinearFit(points, predictedPtValue, backendFit) || buildBilinearFit(points, predictedPtValue));
+  const isPtConsistentFit = bilinearFit?.fitMethod === "pt_consistent_p1_head_v1";
+  const { ctx, width, height, calloutBandHeight } = prepareResponseCurveCanvas(isPtConsistentFit ? 1 : 0);
+  const compactChart = width < 640;
+  const pad = compactChart
+    ? { left: 82, right: 18, top: 24 + calloutBandHeight, bottom: 56 }
+    : { left: 118, right: 30, top: 36 + calloutBandHeight, bottom: 76 };
   ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = "#f8fafc";
   ctx.fillRect(0, 0, width, height);
-  if (!points || !points.length) {
+  if (!hasPoints) {
     ctx.fillStyle = "#637184";
     ctx.font = "16px system-ui, sans-serif";
     ctx.textAlign = "center";
     ctx.fillText(TEXT.estimatedCurveEmpty, width / 2, height / 2);
     return;
   }
-  const bilinearFit = fitMode === "u3"
-    ? buildU3BilinearFit(points, predictedPtValue)
-    : (buildBackendBilinearFit(points, predictedPtValue, backendFit) || buildBilinearFit(points, predictedPtValue));
   const xs = points.map((point) => point.displacement);
   const ys = points.map((point) => point.force);
   const rawFitIntersection = bilinearFit ? lineIntersection(bilinearFit.firstLine, bilinearFit.secondLine) : null;
@@ -3687,7 +4784,7 @@ function drawResponseCurve(points, predictedPtValue, fitMode = "standard", backe
   ctx.stroke();
 
   ctx.fillStyle = "#647184";
-  ctx.font = "16px Inter, system-ui, sans-serif";
+  ctx.font = `${compactChart ? 11 : 15}px Inter, system-ui, sans-serif`;
   ctx.textBaseline = "middle";
   ctx.textAlign = "right";
   yTicks.forEach((value) => {
@@ -3700,9 +4797,7 @@ function drawResponseCurve(points, predictedPtValue, fitMode = "standard", backe
   });
 
   if (bilinearFit) {
-    const kinkMarker = fitMode === "u3"
-      ? (fitIntersection || bilinearFit.kink)
-      : (bilinearFit.detectedKink || bilinearFit.kink);
+    const kinkMarker = fitIntersection || bilinearFit.kink;
     const kinkX = scaleX(kinkMarker.displacement);
     ctx.save();
     ctx.setLineDash([6, 4]);
@@ -3718,13 +4813,15 @@ function drawResponseCurve(points, predictedPtValue, fitMode = "standard", backe
     ctx.lineTo(scaleX(bilinearFit.secondEndX), scaleY(lineY(bilinearFit.secondLine, bilinearFit.secondEndX)));
     ctx.stroke();
 
-    ctx.setLineDash([7, 4]);
-    ctx.strokeStyle = "#7c3aed";
-    ctx.lineWidth = 1.8;
-    ctx.beginPath();
-    ctx.moveTo(kinkX, pad.top);
-    ctx.lineTo(kinkX, height - pad.bottom);
-    ctx.stroke();
+    if (!isPtConsistentFit) {
+      ctx.setLineDash([7, 4]);
+      ctx.strokeStyle = "#7c3aed";
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(kinkX, pad.top);
+      ctx.lineTo(kinkX, height - pad.bottom);
+      ctx.stroke();
+    }
     ctx.restore();
   }
 
@@ -3747,13 +4844,45 @@ function drawResponseCurve(points, predictedPtValue, fitMode = "standard", backe
   ctx.stroke();
   ctx.restore();
 
+  if (Number.isFinite(responseCurveView.playbackProgress)) {
+    const scaledIndex = clampNumber(responseCurveView.playbackProgress, 0, 1) * (points.length - 1);
+    const startIndex = Math.floor(scaledIndex);
+    const endIndex = Math.min(points.length - 1, startIndex + 1);
+    const local = scaledIndex - startIndex;
+    const activePoint = {
+      displacement: Number(points[startIndex].displacement)
+        + (Number(points[endIndex].displacement) - Number(points[startIndex].displacement)) * local,
+      force: Number(points[startIndex].force)
+        + (Number(points[endIndex].force) - Number(points[startIndex].force)) * local,
+    };
+    const activeX = scaleX(activePoint.displacement);
+    const activeY = scaleY(activePoint.force);
+    if (activeX >= pad.left && activeX <= width - pad.right && activeY >= pad.top && activeY <= height - pad.bottom) {
+      ctx.save();
+      ctx.setLineDash([4, 5]);
+      ctx.strokeStyle = "rgba(37, 99, 235, 0.48)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(activeX, activeY);
+      ctx.lineTo(activeX, height - pad.bottom);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "#2563eb";
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(activeX, activeY, compactChart ? 5 : 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
   if (bilinearFit) {
-    const marker = fitMode === "u3"
-      ? (fitIntersection || bilinearFit.kink)
-      : bilinearFit.kink;
+    const marker = fitIntersection || bilinearFit.kink;
     const ptX = scaleX(marker.displacement);
     const ptY = scaleY(marker.force);
-    const ptLabel = fitMode === "u3" ? TEXT.fitIntersectionLabel : TEXT.predictedPtLabel;
+    const ptLabel = isPtConsistentFit ? TEXT.predictedPtLabel : TEXT.fitIntersectionLabel;
     const ptValue = formatMetric(marker.force, 2);
     const u3LabelX = fitMode === "u3"
       ? Math.min(width - pad.right - 170, Math.max(pad.left + 18, ptX + 42))
@@ -3768,21 +4897,34 @@ function drawResponseCurve(points, predictedPtValue, fitMode = "standard", backe
     if (ptIsVisible) {
       ctx.fillStyle = "#ffffff";
       ctx.strokeStyle = "#7c3aed";
-      ctx.lineWidth = 3;
+      ctx.lineWidth = compactChart ? 2 : 2.5;
+      const markerRadius = compactChart ? 6 : 7;
       ctx.beginPath();
-      ctx.moveTo(ptX, ptY - 9);
-      ctx.lineTo(ptX + 9, ptY);
-      ctx.lineTo(ptX, ptY + 9);
-      ctx.lineTo(ptX - 9, ptY);
+      ctx.moveTo(ptX, ptY - markerRadius);
+      ctx.lineTo(ptX + markerRadius, ptY);
+      ctx.lineTo(ptX, ptY + markerRadius);
+      ctx.lineTo(ptX - markerRadius, ptY);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
 
-      drawPtLabel(ctx, ptLabel, ptValue, ptX, ptY, pad, width, height, {
+    }
+
+    if (ptIsVisible || isPtConsistentFit) {
+      const connectorX = isPtConsistentFit
+        ? clampNumber(ptX, pad.left, width - pad.right)
+        : ptX;
+      const connectorY = isPtConsistentFit
+        ? clampNumber(ptY, pad.top, height - pad.bottom)
+        : ptY;
+      const calloutLabelHeight = compactChart ? 46 : 52;
+      drawPtLabel(ctx, ptLabel, ptValue, connectorX, connectorY, pad, width, height, {
         placement: "below",
         side: fitMode === "u3" ? "right" : undefined,
-        labelX: u3LabelX,
-        labelY: fitMode === "u3" ? u3FitLabelY : undefined,
+        labelX: isPtConsistentFit ? pad.left + 10 : u3LabelX,
+        labelY: isPtConsistentFit ? (compactChart ? 10 : 14) : (fitMode === "u3" ? u3FitLabelY : undefined),
+        minLabelY: isPtConsistentFit ? 8 : undefined,
+        maxLabelY: isPtConsistentFit ? pad.top - calloutLabelHeight - 8 : undefined,
         gapX: fitMode === "u3" ? 48 : undefined,
         lineColor: "rgba(124, 58, 237, 0.62)",
         fillColor: "rgba(245, 243, 255, 0.96)",
@@ -3792,7 +4934,7 @@ function drawResponseCurve(points, predictedPtValue, fitMode = "standard", backe
       });
     }
 
-    if (fitMode === "u3" && bilinearFit.predictedPoint) {
+    if (bilinearFit.predictedPoint && !isPtConsistentFit) {
       const predictedMarker = bilinearFit.predictedPoint;
       const predictedX = scaleX(predictedMarker.displacement);
       const predictedY = scaleY(predictedMarker.force);
@@ -3805,18 +4947,18 @@ function drawResponseCurve(points, predictedPtValue, fitMode = "standard", backe
       if (predictedIsVisible) {
         ctx.fillStyle = "#ef4444";
         ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 3;
+        ctx.lineWidth = compactChart ? 2 : 2.5;
         ctx.beginPath();
-        ctx.arc(predictedX, predictedY, 8, 0, Math.PI * 2);
+        ctx.arc(predictedX, predictedY, compactChart ? 5 : 6.5, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
 
         drawPtLabel(ctx, TEXT.predictedPtLabel, formatMetric(predictedMarker.force, 2), predictedX, predictedY, pad, width, height, {
           placement: labelIsTooClose ? "above" : "below",
-          side: "right",
+          side: fitMode === "u3" ? "right" : undefined,
           labelX: u3LabelX,
-          labelY: u3PredictedLabelY,
-          gapX: 48,
+          labelY: fitMode === "u3" ? u3PredictedLabelY : undefined,
+          gapX: fitMode === "u3" ? 48 : undefined,
           lineColor: "rgba(239, 68, 68, 0.62)",
           fillColor: "rgba(255, 247, 247, 0.96)",
           borderColor: "#fecaca",
@@ -3828,11 +4970,11 @@ function drawResponseCurve(points, predictedPtValue, fitMode = "standard", backe
   }
 
   ctx.fillStyle = "#637184";
-  ctx.font = "17px Inter, system-ui, sans-serif";
+  ctx.font = `${compactChart ? 12 : 15}px Inter, system-ui, sans-serif`;
   ctx.textAlign = "center";
-  ctx.fillText(TEXT.displacementAxis, pad.left + plotW / 2, height - 18);
+  ctx.fillText(TEXT.displacementAxis, pad.left + plotW / 2, height - (compactChart ? 12 : 18));
   ctx.save();
-  ctx.translate(24, pad.top + plotH / 2 + 24);
+  ctx.translate(compactChart ? 16 : 22, pad.top + plotH / 2);
   ctx.rotate(-Math.PI / 2);
   ctx.fillText(TEXT.forceAxis, 0, 0);
   ctx.restore();
@@ -3845,8 +4987,9 @@ function renderResponseEstimate(data) {
   predictedPt.textContent = formatMetric(data.predicted_pt, 2);
   predictedMaxDisplacement.textContent = formatMetric(data.predicted_max_displacement, 5);
   predictedMaxForce.textContent = formatMetric(data.predicted_max_force, 2);
-  updateResponseCurveLegend("standard");
+  updateResponseCurveLegend("standard", data.curve_fit);
   setResponseCurveSource(data.curve, data.predicted_pt, "standard", data.curve_fit);
+  setLaminateViewerData(data);
   if (data.xai) {
     renderXai(data.xai);
   } else {
@@ -3913,6 +5056,7 @@ function renderU3PtResult(data) {
   predictedMaxForce.textContent = formatMetric(data.predicted_max_force, 2);
   updateResponseCurveLegend("u3");
   setResponseCurveSource(data.curve, data.predicted_pt, "u3", data.curve_fit);
+  setLaminateViewerData(data);
   if (data.xai) {
     renderXai(data.xai);
   } else {
@@ -3923,7 +5067,7 @@ function renderU3PtResult(data) {
   notes.innerHTML = "";
   (data.notes || []).forEach((note) => {
     const item = document.createElement("li");
-    item.textContent = IS_KO ? (NOTE_LABELS_KO[note] || note) : note;
+    item.textContent = localizePredictionNote(note);
     notes.appendChild(item);
   });
   savePredictionHistory("u3", data);
@@ -4275,7 +5419,7 @@ function reportResultNotes(data = {}) {
   if (domNotes.length) {
     return domNotes;
   }
-  return (data.notes || []).map((note) => IS_KO ? (NOTE_LABELS_KO[note] || note) : note);
+  return (data.notes || []).map((note) => localizePredictionNote(note));
 }
 
 function estimateReportHeight(data, sections) {
@@ -4744,18 +5888,35 @@ curveForm.addEventListener("submit", async (event) => {
   try {
     curveBatchResults?.classList.add("hidden");
     const selectedFiles = Array.from(curveFile.files || []);
+    const totalBytes = selectedFiles.reduce((sum, file) => sum + file.size, 0);
+    if (selectedFiles.length > CURVE_BATCH_MAX_FILES) {
+      throw new Error(TEXT.batchTooMany);
+    }
+    if (totalBytes > CURVE_BATCH_MAX_BYTES) {
+      throw new Error(TEXT.batchTooLarge);
+    }
     if (selectedFiles.length > 1) {
-      const batchData = new FormData();
-      selectedFiles.forEach((file) => batchData.append("files", file));
       const metadata = curveMetadataFile?.files?.[0];
-      if (metadata) {
-        batchData.append("metadata_file", metadata);
+      const submitButton = curveForm.querySelector("button[type='submit']");
+      let combined = null;
+      for (let offset = 0; offset < selectedFiles.length; offset += CURVE_BATCH_CHUNK_SIZE) {
+        const chunk = selectedFiles.slice(offset, offset + CURVE_BATCH_CHUNK_SIZE);
+        const batchData = new FormData();
+        chunk.forEach((file) => batchData.append("files", file));
+        if (metadata) {
+          batchData.append("metadata_file", metadata);
+        }
+        ["theta1", "theta2", "pt", "case", "model"].forEach((key) => {
+          batchData.set(key, formData.get(key));
+        });
+        submitButton.textContent = TEXT.batchProgress(
+          Math.min(offset + chunk.length, selectedFiles.length),
+          selectedFiles.length,
+        );
+        const data = await postForm("/predict/curve-batch", batchData);
+        combined = mergeCurveBatchResult(combined, data);
       }
-      ["theta1", "theta2", "pt", "case", "model"].forEach((key) => {
-        batchData.set(key, formData.get(key));
-      });
-      const data = await postForm("/predict/curve-batch", batchData);
-      renderCurveBatchResults(data, Boolean(metadata));
+      renderCurveBatchResults(combined, Boolean(metadata));
     } else {
       const data = await postForm("/predict/curve", formData);
       renderResult(data);
@@ -4773,16 +5934,23 @@ responseForm.addEventListener("submit", async (event) => {
   setLoading(responseForm, true);
   const formData = new FormData(responseForm);
   try {
-    const selectedModel = String(formData.get("model") || "response_geometry_tree_v1");
-    const useTeacherStudent = selectedModel === "response_geometry_tree_v1";
-    const data = await postJson(useTeacherStudent ? "/predict/response-ensemble" : "/predict/response", {
+    const selectedModel = String(
+      formData.get("model") || "response_pt_consistent_tree_3size_grouped_v1",
+    );
+    const useThreeSizeResponse = isThreeSizeResponseModel(selectedModel);
+    const useTeacherStudent = !useThreeSizeResponse
+      && selectedModel === "response_geometry_tree_canonical_v2";
+    const endpoint = useThreeSizeResponse
+      ? "/predict/response/3size-preview"
+      : useTeacherStudent ? "/predict/response-ensemble" : "/predict/response";
+    const data = await postJson(endpoint, {
       theta1: clampStackAngle(formData.get("theta1")),
       theta2: clampStackAngle(formData.get("theta2")),
       case: formData.get("case"),
       ...(useTeacherStudent
         ? {
-          teacher_model: "response_geometry_tree_v1",
-          student_model: "response_hybrid_student_deploy_quick_v1",
+          teacher_model: "response_geometry_tree_canonical_v2",
+          student_model: "response_hybrid_student_canonical_v2",
         }
         : { model: selectedModel }),
       panel_a_in: Number(formData.get("panel_a_in") || 6),
@@ -4870,7 +6038,10 @@ async function previewCsvFile(fileInput) {
   }
 }
 
-curveFile.addEventListener("change", () => previewCsvFile(curveFile));
+curveFile.addEventListener("change", () => {
+  updateCurveFileSummary();
+  previewCsvFile(curveFile);
+});
 
 if (exportReportPng) {
   exportReportPng.addEventListener("click", exportReportAsPng);
@@ -4930,6 +6101,8 @@ attachDynamicStackPreview(u3PtForm);
 attachDynamicStackPreview(stackPreviewForm);
 attachFormulaToolbar(stackPreviewForm);
 
+configureThreeSizePreviewUi();
+
 clearCurvePreview.addEventListener("click", () => {
   curveFile.value = "";
   if (curveMetadataFile) {
@@ -4944,6 +6117,8 @@ clearCurvePreview.addEventListener("click", () => {
 });
 
 installResponseCurveZoomControls();
+standardResultTabs = setupStandardResultTabs();
+installModelDisagreementGuidance();
 updateCurvePreview([]);
 updateDynamicStackPreview();
 renderPredictionHistory();

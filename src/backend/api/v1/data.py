@@ -1,6 +1,5 @@
 """Dataset API routes — /api/v1/data/"""
 
-from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, status
@@ -38,7 +37,7 @@ async def create_dataset(
     try:
         dataset = await svc.create(payload)
     except ConflictError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     return DatasetResponse.model_validate(dataset)
 
 
@@ -78,7 +77,7 @@ async def get_dataset(
     try:
         dataset = await svc.get(dataset_id)
     except NotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     return DatasetResponse.model_validate(dataset)
 
 
@@ -91,7 +90,7 @@ async def update_dataset(
     try:
         dataset = await svc.update(dataset_id, payload)
     except NotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     return DatasetResponse.model_validate(dataset)
 
 
@@ -107,9 +106,9 @@ async def delete_dataset(
     try:
         await svc.delete(dataset_id)
     except NotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except InvalidStateError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
 
 @router.get(
@@ -124,7 +123,7 @@ async def get_parse_status(
     try:
         dataset = await svc.get(dataset_id)
     except NotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     return ParseStatusResponse.model_validate(dataset)
 
 
@@ -145,7 +144,7 @@ async def upload_dataset_file(
     try:
         dataset = await svc.get(dataset_id)
     except NotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
     if dataset.parse_status == "parsing":
         raise HTTPException(

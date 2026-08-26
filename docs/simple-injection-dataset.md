@@ -170,7 +170,7 @@ Validation 결과를 학습에 넣을 경우에는 먼저 DOE 번호를 새로 �
 ## 현재 데이터 한계
 
 - Resin은 현재 모두 PP로 가정하고 있으며, 물성 차이는 feature에 들어가지 않았습니다.
-- Gate type과 gate size는 대부분 동일합니다. 향후 gate 조건을 다양화하면 별도 보강 DOE가 필요합니다.
+- 현재 53개 geometry DOE 정의의 Gate 조건은 모두 `edge_gate`, 폭 `10.0 mm`, 높이 `1.5 mm`로 고정되어 있습니다. 다른 Gate 조건은 현재 모델의 학습 범위가 아니며, 지원하려면 별도 보강 DOE와 재학습이 필요합니다.
 - Filling Pressure CSV는 Moldex3D histogram export라서 mesh point 좌표가 없습니다. 즉, 현재 학습 target은 진짜 spatial contour field가 아니라 pressure distribution summary입니다.
 - Parametric preview의 contour와 filling animation은 histogram을 기반으로 한 surrogate visualization입니다.
 

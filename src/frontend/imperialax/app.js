@@ -12,7 +12,7 @@ const TEXT = {
     loginError: "Check your email and password.",
     loginMode: "Sign in",
     modules: "modules",
-    newAccountHint: "New accounts include Laminate and Injection access.",
+    newAccountHint: "Accounts are issued by an ImperialAX administrator.",
     on: "On",
     open: "Open",
     passwordHint: "Use at least 8 characters to create an account.",
@@ -42,7 +42,7 @@ const TEXT = {
     loginError: "이메일과 비밀번호를 확인하세요.",
     loginMode: "로그인",
     modules: "개 모듈",
-    newAccountHint: "새 계정에는 Laminate와 Injection 접근 권한이 포함됩니다.",
+    newAccountHint: "계정은 ImperialAX 관리자가 발급합니다.",
     on: "사용 가능",
     open: "열기",
     passwordHint: "계정을 만들려면 비밀번호 8자 이상을 입력하세요.",
@@ -182,42 +182,6 @@ const FALLBACK_MODULES = [
   },
 ];
 
-const LOCAL_SESSIONS = {
-  "demo@imperialax.com": {
-    access_token: "demo-token",
-    token_type: "bearer",
-    user: {
-      id: "demo-user",
-      email: "demo@imperialax.com",
-      name: "Demo Account",
-      company: "ImperialAX Demo",
-    },
-    entitlements: ["module.injection", "module.laminate"],
-  },
-  "demo@imperialax.com": {
-    access_token: "demo-token",
-    token_type: "bearer",
-    user: {
-      id: "demo-user",
-      email: "demo@imperialax.com",
-      name: "Demo Account",
-      company: "ImperialAX Demo",
-    },
-    entitlements: ["module.injection", "module.laminate"],
-  },
-  "danlee@imperialax.com": {
-    access_token: "danlee-token",
-    token_type: "bearer",
-    user: {
-      id: "danlee",
-      email: "danlee@imperialax.com",
-      name: "Dan Lee",
-      company: "ImperialAX",
-    },
-    entitlements: ["module.injection", "module.laminate", "module.optimization"],
-  },
-};
-
 const ICONS = {
   layers: `
     <svg viewBox="0 0 48 48" aria-hidden="true" focusable="false">
@@ -271,6 +235,8 @@ const passwordToggle = document.querySelector("#password-toggle");
 const loginError = document.querySelector("#login-error");
 const signinButton = document.querySelector("#signin-button");
 const demoButton = document.querySelector("#demo-button");
+const signupLink = document.querySelector("#signup-link");
+const forgotLinkRow = document.querySelector("#forgot-link-row");
 const grid = document.querySelector("#module-grid");
 const template = document.querySelector("#module-card-template");
 const refreshButton = document.querySelector("#refresh-button");
@@ -307,17 +273,26 @@ function normalizeEmail(email) {
 }
 
 function loadSession() {
+  const signoutRequested = new URLSearchParams(window.location.search).get("signout") === "1";
+  if (signoutRequested) {
+    window.localStorage.removeItem(SESSION_KEY);
+    window.history.replaceState({}, document.title, window.location.pathname);
+    return null;
+  }
   try {
     const raw = window.localStorage.getItem(SESSION_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.user ? { user: parsed.user, entitlements: parsed.entitlements || [] } : null;
   } catch {
     return null;
   }
 }
 
 function saveSession(session) {
-  state.session = session;
-  window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  const metadata = { user: session.user, entitlements: session.entitlements || [] };
+  state.session = metadata;
+  window.localStorage.setItem(SESSION_KEY, JSON.stringify(metadata));
 }
 
 function clearSession() {
@@ -326,16 +301,37 @@ function clearSession() {
 }
 
 function authHeaders() {
-  if (!state.session) return {};
-  const tokenType = state.session.token_type || "bearer";
-  return { Authorization: `${tokenType[0].toUpperCase()}${tokenType.slice(1)} ${state.session.access_token}` };
+  return {};
 }
 
 function setBusy(isBusy) {
   signinButton.disabled = isBusy;
-  demoButton.disabled = isBusy;
+  if (demoButton) demoButton.disabled = isBusy;
   refreshButton.disabled = isBusy;
   requestAccessButton.disabled = isBusy;
+}
+
+async function loadAuthCapabilities() {
+  try {
+    const response = await fetch("/api/v1/modules/auth/capabilities", {
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) throw new Error(`Capabilities failed: ${response.status}`);
+    const capabilities = await response.json();
+    if (signupLink) signupLink.hidden = !capabilities.public_signup;
+    if (forgotLinkRow) forgotLinkRow.hidden = !capabilities.self_service_password_reset;
+    if (demoButton) demoButton.hidden = !capabilities.demo_login;
+    authHint.textContent = capabilities.public_signup
+      ? (LOCALE === "ko"
+        ? "새 계정은 가입 후 관리자가 모듈 권한을 확인합니다."
+        : "New accounts require administrator confirmation for module access.")
+      : TEXT[LOCALE].newAccountHint;
+  } catch {
+    if (signupLink) signupLink.hidden = true;
+    if (forgotLinkRow) forgotLinkRow.hidden = true;
+    if (demoButton) demoButton.hidden = true;
+    authHint.textContent = TEXT[LOCALE].newAccountHint;
+  }
 }
 
 function setRefreshState(stateName) {
@@ -440,25 +436,20 @@ async function signIn(email, password) {
 }
 
 async function demoLogin() {
-  const normalizedEmail = normalizeEmail(emailInput.value) || "demo@imperialax.com";
   loginError.textContent = "";
   setBusy(true);
   try {
     const response = await fetch("/api/v1/modules/auth/demo-login", {
       method: "POST",
       headers: { Accept: "application/json", "Content-Type": "application/json" },
-      body: JSON.stringify({ email: normalizedEmail, password: "" }),
+      body: JSON.stringify({ email: "demo@imperialax.com", password: "" }),
     });
     if (!response.ok) throw new Error(`Demo login failed: ${response.status}`);
     saveSession(await response.json());
   } catch {
-    const localSession = LOCAL_SESSIONS[normalizedEmail];
-    if (!localSession) {
-      loginError.textContent = TEXT[LOCALE].loginError;
-      setBusy(false);
-      return;
-    }
-    saveSession(localSession);
+    loginError.textContent = TEXT[LOCALE].loginError;
+    setBusy(false);
+    return;
   }
   renderShell();
   await loadModules();
@@ -476,6 +467,11 @@ async function loadModules() {
     });
     if (!response.ok) throw new Error(`Module catalog failed: ${response.status}`);
     const payload = await response.json();
+    if (!payload.user) {
+      clearSession();
+      state.modules = [];
+      return;
+    }
     state.modules = payload.modules;
     if (payload.user) {
       state.session = { ...state.session, user: payload.user };
@@ -586,7 +582,7 @@ loginForm.addEventListener("submit", (event) => {
   signIn(emailInput.value, passwordInput.value);
 });
 
-demoButton.addEventListener("click", () => {
+demoButton?.addEventListener("click", () => {
   emailInput.value = "";
   passwordInput.value = "";
   demoLogin();
@@ -604,13 +600,19 @@ passwordToggle.addEventListener("click", () => {
 refreshButton.addEventListener("click", loadModules);
 requestAccessButton.addEventListener("click", requestAccess);
 accountButton.addEventListener("click", openAccountDialog);
-signoutButton.addEventListener("click", () => {
+signoutButton.addEventListener("click", async () => {
+  try {
+    await fetch("/api/v1/modules/auth/logout", { method: "POST" });
+  } catch {
+    // Local metadata is still cleared if the network is unavailable.
+  }
   clearSession();
   renderShell();
   renderModules([]);
 });
 
 renderShell();
+loadAuthCapabilities();
 if (state.session) {
   loadModules();
 }

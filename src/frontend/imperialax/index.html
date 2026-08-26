@@ -5,11 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>ImperialAX Forecast Workspace</title>
     <link rel="alternate" hreflang="ko" href="./index.ko.html" />
-    <link rel="stylesheet" href="./styles.css?v=20260624-auth-placeholder1" />
+    <link rel="stylesheet" href="./styles.css?v=20260815-login-card-height-1" />
   </head>
   <body>
     <main class="app-shell">
       <header class="login-language-bar">
+        <a class="platform-logo-link" href="./index.html" aria-label="ImperialAX workspace home">
+          <img src="/brand/imperialax-logo-black.png?v=20260814-logo-rollout-1" alt="ImperialAX" />
+        </a>
         <a class="language-link" href="./index.ko.html" hreflang="ko">한국어</a>
       </header>
       <section class="login-view" id="login-view">
@@ -59,20 +62,23 @@
               <button class="password-toggle" id="password-toggle" type="button" aria-label="Show password" aria-pressed="false">Show</button>
             </span>
           </label>
-          <div class="form-link-row">
-            <a class="form-link" href="https://ai.imperialax.com/forgot-v2.html">Forgot password?</a>
+          <div class="form-link-row" id="forgot-link-row" hidden>
+            <a class="form-link" id="forgot-link" href="https://ai.imperialax.com/forgot-v2.html">Forgot password?</a>
           </div>
           <p class="form-error" id="login-error" role="alert"></p>
           <button id="signin-button" type="submit">Sign in</button>
-          <a class="secondary-button account-link" href="https://ai.imperialax.com/signup-v2.html">Create account</a>
-          <button class="secondary-button demo-button" id="demo-button" type="button">Demo</button>
-          <p class="login-hint" id="auth-hint">New accounts include Laminate and Injection access.</p>
+          <a class="secondary-button account-link" id="signup-link" href="https://ai.imperialax.com/signup-v2.html" hidden>Create account</a>
+          <button class="secondary-button demo-button" id="demo-button" type="button" hidden>Explore demo</button>
+          <p class="login-hint" id="auth-hint">Accounts are issued by an ImperialAX administrator.</p>
         </form>
       </section>
 
       <section class="workspace-view is-hidden" id="workspace-view">
         <header class="topbar workspace-hero">
           <div class="brand-lockup">
+            <a class="platform-logo-link" href="./index.html" aria-label="ImperialAX workspace home">
+              <img src="/brand/imperialax-logo-black.png?v=20260814-logo-rollout-1" alt="ImperialAX" />
+            </a>
             <p class="eyebrow">ImperialAX AI Workspace</p>
             <h1>
               <span>ImperialAX</span>
@@ -179,6 +185,6 @@
       </form>
     </dialog>
 
-    <script src="./app.js?v=20260624-auth-placeholder1" type="module"></script>
+    <script src="./app.js?v=20260814-central-signout-1" type="module"></script>
   </body>
 </html>

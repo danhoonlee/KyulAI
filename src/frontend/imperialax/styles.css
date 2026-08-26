@@ -68,8 +68,22 @@ input {
 
 .login-language-bar {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   margin-bottom: 14px;
+}
+
+.platform-logo-link {
+  display: inline-flex;
+  width: max-content;
+  align-items: center;
+}
+
+.platform-logo-link img {
+  display: block;
+  width: 142px;
+  height: auto;
 }
 
 .language-link {
@@ -96,6 +110,13 @@ input {
   grid-template-columns: minmax(0, 1fr) minmax(390px, 460px);
   gap: 24px;
   align-items: center;
+}
+
+@media (min-width: 981px) {
+  .login-view {
+    align-content: center;
+    align-items: stretch;
+  }
 }
 
 .login-copy,
@@ -1411,6 +1432,10 @@ button:disabled {
 
   .brand-lockup {
     gap: 8px;
+  }
+
+  .platform-logo-link img {
+    width: 124px;
   }
 
   h1 {

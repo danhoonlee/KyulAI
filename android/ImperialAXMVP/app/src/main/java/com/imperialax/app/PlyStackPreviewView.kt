@@ -87,12 +87,6 @@ class PlyStackPreviewView @JvmOverloads constructor(
             canvas.drawLine(start.first, start.second, end.first, end.second, strokePaint)
         }
 
-        fillPaint.color = Color.rgb(185, 151, 127)
-        canvas.drawPath(pathOf(98f to 456f, 574f to 704f, 1018f to 458f, 542f to 210f), fillPaint)
-        fillPaint.color = Color.rgb(200, 167, 142)
-        canvas.drawPath(pathOf(98f to 456f, 574f to 704f, 574f to 728f, 98f to 480f), fillPaint)
-        fillPaint.color = Color.rgb(152, 118, 95)
-        canvas.drawPath(pathOf(574f to 704f, 1018f to 458f, 1018f to 482f, 574f to 728f), fillPaint)
     }
 
     private fun drawPly(canvas: Canvas, ply: PreviewPly, index: Int) {
@@ -118,6 +112,11 @@ class PlyStackPreviewView @JvmOverloads constructor(
 
         drawAngleHatch(canvas, top, ply.angle)
 
+        if (index != 0 && index != sequence.lastIndex) {
+            canvas.restore()
+            return
+        }
+
         strokePaint.color = Color.argb(235, 244, 255, 23)
         strokePaint.strokeWidth = 2.2f
         canvas.drawLine(400f, 61f, 426f, 51f, strokePaint)
@@ -130,7 +129,7 @@ class PlyStackPreviewView @JvmOverloads constructor(
         canvas.drawRoundRect(labelRect, 7f, 7f, strokePaint)
 
         textPaint.textSize = 22f
-        canvas.drawText("Ply-${index + 1}", labelRect.left + 11f, labelRect.top + 24f, textPaint)
+        canvas.drawText(if (index == 0) "P1" else "P${sequence.size}", labelRect.left + 11f, labelRect.top + 24f, textPaint)
         canvas.restore()
     }
 

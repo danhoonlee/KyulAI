@@ -80,39 +80,42 @@ public struct ImperialAXAccountUser: Codable, Equatable, Sendable {
 public struct ImperialAXAuthSession: Codable, Equatable, Sendable {
     public let accessToken: String
     public let tokenType: String
+    public let expiresAt: String?
     public let user: ImperialAXAccountUser
     public let entitlements: [String]
+
+    public init(
+        accessToken: String,
+        tokenType: String,
+        expiresAt: String? = nil,
+        user: ImperialAXAccountUser,
+        entitlements: [String]
+    ) {
+        self.accessToken = accessToken
+        self.tokenType = tokenType
+        self.expiresAt = expiresAt
+        self.user = user
+        self.entitlements = entitlements
+    }
 
     enum CodingKeys: String, CodingKey {
         case accessToken = "access_token"
         case tokenType = "token_type"
+        case expiresAt = "expires_at"
         case user
         case entitlements
     }
 
-    public static let demo = ImperialAXAuthSession(
-        accessToken: "demo-token",
-        tokenType: "bearer",
-        user: ImperialAXAccountUser(
-            id: "demo-user",
-            email: "demo@imperialax.com",
-            name: "Demo Account",
-            company: "ImperialAX MVP"
-        ),
-        entitlements: ["module.laminate", "module.injection"]
-    )
+}
 
-    public static let danlee = ImperialAXAuthSession(
-        accessToken: "danlee-token",
-        tokenType: "bearer",
-        user: ImperialAXAccountUser(
-            id: "danlee",
-            email: "danlee@imperialax.com",
-            name: "Dan Lee",
-            company: "ImperialAX"
-        ),
-        entitlements: ["module.laminate", "module.injection", "module.optimization", "module.admin"]
-    )
+public struct ImperialAXLaunchCodeResponse: Codable, Equatable, Sendable {
+    public let launchURL: URL
+    public let expiresAt: String
+
+    enum CodingKeys: String, CodingKey {
+        case launchURL = "launch_url"
+        case expiresAt = "expires_at"
+    }
 }
 
 public struct ImperialAXSignupPayload: Encodable, Equatable, Sendable {

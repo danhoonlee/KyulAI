@@ -1,0 +1,18 @@
+[Unit]
+Description=CafeDeCafe Nangman RAG API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/projects/nangman-rag
+Environment=HOME=%h
+Environment=RAG_PROJECT_ROOT=%h/projects/nangman-rag
+ExecStart=%h/projects/nangman-rag/.venv/bin/uvicorn romance_rag.api:app --host 127.0.0.1 --port 8020 --proxy-headers --forwarded-allow-ips 127.0.0.1
+Restart=always
+RestartSec=5
+StandardOutput=append:%h/projects/nangman-rag/logs/server.out.log
+StandardError=append:%h/projects/nangman-rag/logs/server.err.log
+
+[Install]
+WantedBy=default.target

@@ -19,7 +19,7 @@ from typing import Iterable
 import numpy as np
 
 CASE_FORMULAS = {
-    "Case3": "[[+-theta1]/[+-theta2]/[-+theta2]/[-+theta2]]2",
+    "Case3": "[[+-theta1]/[+-theta2]/[-+theta1]/[-+theta2]]2",
     "Case4": "[([+-theta1]/[+-theta2])2 / ([-+theta1]/[-+theta2])2]",
 }
 

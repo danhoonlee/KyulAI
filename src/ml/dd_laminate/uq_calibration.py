@@ -46,9 +46,14 @@ def fit_temperature(
     classes = np.asarray(classes)
     if len(probabilities) != len(labels):
         raise ValueError("probabilities and labels must contain the same samples")
-    class_to_index = {value.item() if hasattr(value, "item") else value: index for index, value in enumerate(classes)}
+    class_to_index = {
+        value.item() if hasattr(value, "item") else value: index
+        for index, value in enumerate(classes)
+    }
     try:
-        label_indices = np.asarray([class_to_index[label.item() if hasattr(label, "item") else label] for label in labels])
+        label_indices = np.asarray(
+            [class_to_index[label.item() if hasattr(label, "item") else label] for label in labels]
+        )
     except KeyError as exc:
         raise ValueError(f"label {exc.args[0]!r} is not present in classes") from exc
 
@@ -93,7 +98,10 @@ def classification_calibration_metrics(
     confidence = np.max(probabilities, axis=1)
     correct = predicted_labels == labels
 
-    class_to_index = {value.item() if hasattr(value, "item") else value: index for index, value in enumerate(classes)}
+    class_to_index = {
+        value.item() if hasattr(value, "item") else value: index
+        for index, value in enumerate(classes)
+    }
     label_indices = np.asarray(
         [class_to_index[label.item() if hasattr(label, "item") else label] for label in labels],
         dtype=int,

@@ -1,6 +1,6 @@
 [build-system]
 requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "kyulai"
@@ -12,28 +12,43 @@ requires-python = ">=3.11"
 where = ["."]
 include = ["src*"]
 
+[tool.setuptools.package-data]
+"src.ml.dd_laminate" = ["case_definitions.json"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "RUF"]
-ignore = ["E501"]  # Line length handled by formatter
+ignore = [
+    "E501",   # Line length is handled by the formatter.
+    "UP017",  # Keep timezone.utc while the local support environment is Python 3.10.
+    "UP042",  # Keep str + Enum compatible with the Python 3.10 support environment.
+]
 
 [tool.ruff.lint.isort]
 known-first-party = ["src"]
 
 [tool.ruff.lint.per-file-ignores]
-"src/backend/api/v1/dd_laminate.py" = ["B008", "RUF001"]
-"src/backend/api/v1/simple_injection.py" = ["B008", "N815"]
+"src/backend/api/v1/*.py" = ["B008"]  # FastAPI Depends/Query defaults are framework idioms.
+"src/backend/api/v1/dd_laminate.py" = ["RUF001"]
+"src/backend/api/v1/simple_injection.py" = ["N815"]
+"src/data/schemas/*.py" = ["N815"]  # Unit suffixes such as _Pa and _K are schema contracts.
+"src/ml/**/*.py" = ["N806", "N812", "RUF001", "RUF002", "RUF003"]
+"src/validation/**/*.py" = ["N803", "N806", "RUF001", "RUF002", "RUF003"]
 "src/ml/dd_laminate/train_u3_forecast_models.py" = ["N812"]
 "src/ml/dd_laminate/train_u3_pt_models.py" = ["N812"]
+"scripts/dd_response_dl_challengers_train.py" = ["E402", "N812"]  # Script bootstraps the repository path before local imports.
+"tests/unit/ml/test_feature_extractor.py" = ["N815", "RUF012"]
+"tests/validation/*.py" = ["N806", "RUF003"]
 
 [tool.mypy]
 python_version = "3.11"
 ignore_missing_imports = true
 strict = false
 explicit_package_bases = true
+plugins = ["pydantic.mypy"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

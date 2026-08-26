@@ -47,7 +47,9 @@ def _class_weights(labels: np.ndarray, device: torch.device) -> torch.Tensor:
     return torch.tensor(weights, dtype=torch.float32, device=device)
 
 
-def _run_epoch(model, loader, optimizer, device, class_weights, train: bool) -> tuple[float, list[int], list[int]]:
+def _run_epoch(
+    model, loader, optimizer, device, class_weights, train: bool
+) -> tuple[float, list[int], list[int]]:
     model.train(mode=train)
     total_loss = 0.0
     total_n = 0
@@ -102,7 +104,9 @@ def train_one_fold(
     ).to(device)
     class_weights = _class_weights(labels[train_idx], device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="max", factor=0.5, patience=12)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode="max", factor=0.5, patience=12
+    )
 
     best_state = None
     best_macro_f1 = -1.0
@@ -111,18 +115,24 @@ def train_one_fold(
     history = []
 
     for epoch in range(1, args.epochs + 1):
-        train_loss, train_true, train_pred = _run_epoch(model, train_loader, optimizer, device, class_weights, train=True)
-        val_loss, val_true, val_pred = _run_epoch(model, val_loader, optimizer, device, class_weights, train=False)
+        train_loss, _train_true, _train_pred = _run_epoch(
+            model, train_loader, optimizer, device, class_weights, train=True
+        )
+        val_loss, val_true, val_pred = _run_epoch(
+            model, val_loader, optimizer, device, class_weights, train=False
+        )
         val_macro_f1 = f1_score(val_true, val_pred, average="macro", zero_division=0)
         val_acc = accuracy_score(val_true, val_pred)
         scheduler.step(val_macro_f1)
-        history.append({
-            "epoch": epoch,
-            "train_loss": train_loss,
-            "val_loss": val_loss,
-            "val_accuracy": val_acc,
-            "val_macro_f1": val_macro_f1,
-        })
+        history.append(
+            {
+                "epoch": epoch,
+                "train_loss": train_loss,
+                "val_loss": val_loss,
+                "val_accuracy": val_acc,
+                "val_macro_f1": val_macro_f1,
+            }
+        )
         if val_macro_f1 > best_macro_f1:
             best_macro_f1 = val_macro_f1
             best_epoch = epoch
@@ -135,7 +145,9 @@ def train_one_fold(
 
     if best_state is not None:
         model.load_state_dict(best_state)
-    _, val_true, val_pred = _run_epoch(model, val_loader, optimizer, device, class_weights, train=False)
+    _, val_true, val_pred = _run_epoch(
+        model, val_loader, optimizer, device, class_weights, train=False
+    )
     metrics = {
         "best_epoch": best_epoch,
         "accuracy": accuracy_score(val_true, val_pred),
@@ -217,16 +229,20 @@ def write_report(out_dir: Path, args, summary: dict, classical: dict | None) -> 
         "```",
     ]
     if classical and "cv_results" in classical:
-        lines.extend([
-            "",
-            "## Comparison With Existing Models",
-            "",
-            "Primary table below is from the existing `models/dd_laminate_csv_meta_v1` combined metadata+curve feature run.",
-            "",
-            "| Model | Accuracy | Macro F1 | Weighted F1 |",
-            "|---|---:|---:|---:|",
-        ])
-        for name, result in sorted(classical["cv_results"].items(), key=lambda item: item[1]["mean_macro_f1"], reverse=True):
+        lines.extend(
+            [
+                "",
+                "## Comparison With Existing Models",
+                "",
+                "Primary table below is from the existing `models/dd_laminate_csv_meta_v1` combined metadata+curve feature run.",
+                "",
+                "| Model | Accuracy | Macro F1 | Weighted F1 |",
+                "|---|---:|---:|---:|",
+            ]
+        )
+        for name, result in sorted(
+            classical["cv_results"].items(), key=lambda item: item[1]["mean_macro_f1"], reverse=True
+        ):
             lines.append(
                 f"| {name} | {result['mean_accuracy']:.4f} ± {result['std_accuracy']:.4f} | "
                 f"{result['mean_macro_f1']:.4f} ± {result['std_macro_f1']:.4f} | {result['mean_weighted_f1']:.4f} |"
@@ -234,17 +250,21 @@ def write_report(out_dir: Path, args, summary: dict, classical: dict | None) -> 
     (out_dir / "deep_sequence_report.md").write_text("\n".join(lines) + "\n")
 
 
-def write_predictions(out_dir: Path, samples: list, labels_true: list[int], labels_pred: list[int]) -> None:
+def write_predictions(
+    out_dir: Path, samples: list, labels_true: list[int], labels_pred: list[int]
+) -> None:
     with (out_dir / "oof_predictions.csv").open("w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=["case", "test_id", "true_type", "predicted_type"])
         writer.writeheader()
-        for sample, true_label, pred_label in zip(samples, labels_true, labels_pred):
-            writer.writerow({
-                "case": sample.case,
-                "test_id": sample.test_id,
-                "true_type": true_label + 1,
-                "predicted_type": pred_label + 1,
-            })
+        for sample, true_label, pred_label in zip(samples, labels_true, labels_pred, strict=False):
+            writer.writerow(
+                {
+                    "case": sample.case,
+                    "test_id": sample.test_id,
+                    "true_type": true_label + 1,
+                    "predicted_type": pred_label + 1,
+                }
+            )
 
 
 def main() -> None:
@@ -267,7 +287,10 @@ def main() -> None:
     parser.add_argument("--lr", type=float, default=8e-4)
     parser.add_argument("--weight-decay", type=float, default=1e-3)
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--classical-metrics", default="models/dd_laminate_csv_meta_v1/curve_classifier_metrics.json")
+    parser.add_argument(
+        "--classical-metrics",
+        default="models/dd_laminate_csv_meta_v1/curve_classifier_metrics.json",
+    )
     parser.add_argument("--device", choices=["auto", "cpu", "mps", "cuda"], default="cpu")
     args = parser.parse_args()
 
@@ -285,7 +308,11 @@ def main() -> None:
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     splitter = _splitter(args.cv_mode, args.splits, args.seed)
-    split_iter = splitter.split(np.zeros(len(labels)), labels, groups) if args.cv_mode == "grouped" else splitter.split(np.zeros(len(labels)), labels)
+    split_iter = (
+        splitter.split(np.zeros(len(labels)), labels, groups)
+        if args.cv_mode == "grouped"
+        else splitter.split(np.zeros(len(labels)), labels)
+    )
 
     fold_metrics = []
     all_true = []
@@ -305,7 +332,12 @@ def main() -> None:
             dropout=args.dropout,
         ).to(device)
         model.load_state_dict(artifact["state_dict"])
-        loader = DataLoader(Subset(dataset, val_idx.tolist()), batch_size=args.batch_size, shuffle=False, num_workers=0)
+        loader = DataLoader(
+            Subset(dataset, val_idx.tolist()),
+            batch_size=args.batch_size,
+            shuffle=False,
+            num_workers=0,
+        )
         model.eval()
         with torch.no_grad():
             for batch in loader:
@@ -315,7 +347,9 @@ def main() -> None:
                 all_true.extend(true)
                 all_pred.extend(pred)
         all_indices.extend(val_idx.tolist())
-        print(f"Fold {fold}: acc={metrics['accuracy']:.4f}, macro_f1={metrics['macro_f1']:.4f}, best_epoch={metrics['best_epoch']}")
+        print(
+            f"Fold {fold}: acc={metrics['accuracy']:.4f}, macro_f1={metrics['macro_f1']:.4f}, best_epoch={metrics['best_epoch']}"
+        )
 
     summary = summarize_results(fold_metrics)
     final_model = train_final_model(dataset, labels, device, args)
@@ -339,8 +373,13 @@ def main() -> None:
     )
 
     (out_dir / "deep_sequence_metrics.json").write_text(json.dumps(summary, indent=2))
-    ordered = sorted(zip(all_indices, all_true, all_pred), key=lambda item: item[0])
-    write_predictions(out_dir, [samples[i] for i, _, _ in ordered], [t for _, t, _ in ordered], [p for _, _, p in ordered])
+    ordered = sorted(zip(all_indices, all_true, all_pred, strict=False), key=lambda item: item[0])
+    write_predictions(
+        out_dir,
+        [samples[i] for i, _, _ in ordered],
+        [t for _, t, _ in ordered],
+        [p for _, _, p in ordered],
+    )
     classical = load_classical_results(Path(args.classical_metrics))
     write_report(out_dir, args, summary, classical)
 

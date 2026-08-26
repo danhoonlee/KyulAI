@@ -1,0 +1,146 @@
+{
+  "dataset": "data/datasets/DD_cases_2_3_4_geometry_3size_v1",
+  "feature_set": "theta_physics_geometry_v1",
+  "feature_columns": [
+    "theta1",
+    "theta2",
+    "case_case2",
+    "case_case3",
+    "case_case4",
+    "abs_theta1",
+    "abs_theta2",
+    "theta_diff",
+    "theta_sum",
+    "theta_product",
+    "theta_abs_diff",
+    "a11",
+    "a22",
+    "a12",
+    "a66",
+    "b16",
+    "b26",
+    "d11",
+    "d22",
+    "d12",
+    "d66",
+    "d16",
+    "d26",
+    "a11_a22_ratio",
+    "d11_d22_ratio",
+    "b_coupling_norm",
+    "d_coupling_norm",
+    "membrane_anisotropy",
+    "bending_anisotropy",
+    "angle_abs_mean",
+    "angle_abs_std",
+    "angle_min_abs",
+    "angle_max_abs",
+    "stack_symmetry_mismatch",
+    "stack_balance_cos_sum",
+    "panel_aspect",
+    "a_slenderness",
+    "b_slenderness",
+    "panel_a_in",
+    "panel_b_in"
+  ],
+  "seed": 42,
+  "holdout_ratio": 0.2,
+  "split_source": "data/datasets/DD_cases_2_3_4_geometry_grouped_v1/split_manifest.csv",
+  "device": "mps",
+  "split_summary": {
+    "train": {
+      "rows": 2154,
+      "groups": 718,
+      "cases": {
+        "Case2": 717,
+        "Case3": 717,
+        "Case4": 720
+      },
+      "labels": {
+        "Type 1": 524,
+        "Type 2": 1212,
+        "Type 3": 418
+      },
+      "sources": {
+        "6x4_curated_v1": 718,
+        "6x8_new_data_curve_classifier_v1": 718,
+        "8x8_new_data_curve_classifier_v1": 718
+      },
+      "panel_sizes": {
+        "6x4": 718,
+        "6x8": 718,
+        "8x8": 718
+      }
+    },
+    "holdout": {
+      "rows": 546,
+      "groups": 182,
+      "cases": {
+        "Case2": 183,
+        "Case3": 183,
+        "Case4": 180
+      },
+      "labels": {
+        "Type 1": 130,
+        "Type 2": 306,
+        "Type 3": 110
+      },
+      "sources": {
+        "6x4_curated_v1": 182,
+        "6x8_new_data_curve_classifier_v1": 182,
+        "8x8_new_data_curve_classifier_v1": 182
+      },
+      "panel_sizes": {
+        "6x4": 182,
+        "6x8": 182,
+        "8x8": 182
+      }
+    }
+  },
+  "models": {
+    "Geometry Tree + Physics XAI": {
+      "accuracy": 0.9322344322344323,
+      "macro_f1": 0.9288130117691669,
+      "pt_mae": 191.28255918175603,
+      "max_displacement_mae": 0.0003952836452151932,
+      "max_force_mae": 153.47836982956815,
+      "curve_norm_rmse": 0.005992818065087044,
+      "curve_force_rmse": 287.8433159918531
+    }
+  },
+  "geometry_leave_one_out": {
+    "6x4": {
+      "Geometry Tree + Physics XAI": {
+        "accuracy": 0.8649025069637883,
+        "macro_f1": 0.869186935467727,
+        "pt_mae": 9829.672569675546,
+        "max_displacement_mae": 0.0003376290756997253,
+        "max_force_mae": 2755.378397185668,
+        "curve_norm_rmse": 0.031192978810680068,
+        "curve_force_rmse": 2175.070496091044
+      }
+    },
+    "6x8": {
+      "Geometry Tree + Physics XAI": {
+        "accuracy": 0.7896935933147632,
+        "macro_f1": 0.7632593186352995,
+        "pt_mae": 1530.867964634129,
+        "max_displacement_mae": 0.0002907526018972399,
+        "max_force_mae": 1226.226319571135,
+        "curve_norm_rmse": 0.014597735236389709,
+        "curve_force_rmse": 1015.1083663195269
+      }
+    },
+    "8x8": {
+      "Geometry Tree + Physics XAI": {
+        "accuracy": 0.7896935933147632,
+        "macro_f1": 0.7632593186352995,
+        "pt_mae": 3522.68438917111,
+        "max_displacement_mae": 0.0003588231251696066,
+        "max_force_mae": 327.72581432081984,
+        "curve_norm_rmse": 0.02224594596416351,
+        "curve_force_rmse": 643.4655225395634
+      }
+    }
+  }
+}

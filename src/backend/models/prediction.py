@@ -20,9 +20,7 @@ from src.backend.db.base import Base
 class Prediction(Base):
     __tablename__ = "predictions"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
     # ── What model and data ───────────────────────────────────────────────────
     model_id: Mapped[uuid.UUID] = mapped_column(
@@ -41,7 +39,8 @@ class Prediction(Base):
     # ── Input ─────────────────────────────────────────────────────────────────
     # For small inputs: inline JSON. For large structured inputs: reference MinIO.
     input_summary: Mapped[dict[str, Any]] = mapped_column(
-        JSON, default=dict,
+        JSON,
+        default=dict,
         comment="Key process parameters / metadata used as input",
     )
     input_storage_path: Mapped[str | None] = mapped_column(
@@ -50,9 +49,7 @@ class Prediction(Base):
 
     # ── Pipeline state ────────────────────────────────────────────────────────
     # Values: 'pending' | 'running' | 'completed' | 'failed'
-    status: Mapped[str] = mapped_column(
-        String(20), nullable=False, default="pending", index=True
-    )
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending", index=True)
     celery_task_id: Mapped[str | None] = mapped_column(String(255))
     error_message: Mapped[str | None] = mapped_column(Text)
 

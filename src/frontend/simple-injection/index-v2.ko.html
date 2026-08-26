@@ -3,72 +3,117 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ImperialAX Injection 예측 v2</title>
-    <link rel="stylesheet" href="./styles-v2.css?v=20260630-injection-xai-more" />
+    <title>ImperialAX 사출 예측</title>
+    <link rel="alternate" hreflang="ko" href="/ko" />
+    <link rel="alternate" hreflang="en" href="/en" />
+    <link rel="stylesheet" href="/styles-v2.css?v=20260816-mobile-polish-1" />
+    <script>
+      (() => {
+        if (!/^\/v2(?:\/(?:ko|en))?\/?$/.test(window.location.pathname)) return;
+        document.querySelector('link[hreflang="ko"]').href = "/v2/ko";
+        document.querySelector('link[hreflang="en"]').href = "/v2/en";
+        document.documentElement.classList.add("injection-rebuild");
+        const stylesheet = document.createElement("link");
+        stylesheet.rel = "stylesheet";
+        stylesheet.href = "/styles-rebuild.css?v=20260816-mobile-polish-2";
+        document.head.appendChild(stylesheet);
+      })();
+    </script>
+    <link rel="stylesheet" href="/imperialax-product-shell.css?v=20260816-mobile-polish-1" />
+    <script defer src="/imperialax-product-shell.js?v=20260814-family-shell-1"></script>
   </head>
-  <body>
+  <body class="product-standard injection-standard">
     <main class="shell">
       <section class="workspace" aria-labelledby="app-title">
         <header class="topbar">
           <div class="brand-lockup">
-            <p class="eyebrow">Moldex3D Surrogate AI</p>
-            <h1 id="app-title"><span>ImperialAX</span> <span>Injection 예측</span></h1>
+            <a class="product-logo-link" href="https://ai.imperialax.com/index.ko.html" aria-label="ImperialAX 모듈 워크스페이스">
+              <img src="/brand/imperialax-logo-black.png?v=20260814-logo-rollout-1" alt="ImperialAX" />
+            </a>
+            <p class="eyebrow">사출 성형 AI</p>
+            <h1 id="app-title"><span>ImperialAX</span> <span>사출 예측</span></h1>
             <p class="hero-copy">
               DOE 형상과 공정 조건으로 Sprue Pressure 곡선과 Filling Pressure 분포를 예측합니다.
             </p>
           </div>
-          <div class="top-actions">
-            <div class="status-pill" id="api-status">확인 중</div>
-            <a class="language-link" href="https://ai.imperialax.com/index.ko.html">모듈 선택</a>
-            <a class="language-link" href="./index-v2.html">English</a>
+          <div class="top-actions" aria-label="빠른 도구">
+            <div class="top-action-group top-action-group-primary">
+              <a class="language-link header-action header-action-module" href="https://ai.imperialax.com/index.ko.html">모듈 선택</a>
+              <button class="utility-trigger header-action header-action-assistant" type="button" data-dialog-target="assistant-dialog">AI Assistant</button>
+            </div>
+            <div class="top-action-group top-action-group-secondary has-account">
+              <button class="utility-trigger header-action header-action-research" type="button" data-dialog-target="research-dialog">연구 목적</button>
+              <a class="language-link header-action header-action-language" href="/en">English</a>
+              <a class="language-link header-action header-action-account" href="https://ai.imperialax.com/index.ko.html?signout=1">로그아웃</a>
+              <div class="status-pill header-action-status" id="api-status">확인 중</div>
+            </div>
           </div>
         </header>
 
-        <section class="rag-assistant" aria-labelledby="rag-title">
-          <div class="rag-assistant-copy">
-            <p class="eyebrow">Injection AI Assistant</p>
-            <h2 id="rag-title">Injection 지식베이스에 질문하기</h2>
-            <p>
-              Moldex3D surrogate 거동, 압력 곡선, Filling 분포, 현재 XAI 결과에 대해 질문할 수 있습니다.
-              답변은 근거 citation과 현재 예측 결과를 함께 참고합니다.
-            </p>
+        <dialog class="utility-dialog" id="research-dialog" aria-labelledby="research-dialog-title">
+          <header class="utility-dialog-head">
+            <div><p class="eyebrow">Research purpose</p><h2 id="research-dialog-title">연구 목적</h2></div>
+            <button class="dialog-close" type="button" data-dialog-close aria-label="연구 목적 닫기">×</button>
+          </header>
+          <div class="utility-dialog-body">
+            <section class="research-brief" aria-label="연구 목적 상세">
+              <div class="research-brief-main">
+                <h2>왜 Injection surrogate 예측을 하나요?</h2>
+                <p>Moldex3D DOE 결과를 학습한 surrogate 모델로 형상과 공정 조건별 Sprue Pressure 곡선과 Filling Pressure 분포를 빠르게 선별합니다. 반복 해석 전에 압력 거동과 공정 민감도를 확인해 검토할 후보를 좁힐 수 있습니다.</p>
+              </div>
+              <div class="research-brief-points">
+                <div><strong>문제</strong><span>모든 DOE 조합을 다시 해석하면 설계 검토 시간이 길어집니다.</span></div>
+                <div><strong>목표</strong><span>형상·공정 조건이 압력 곡선과 충전 분포에 미치는 영향을 빠르게 비교합니다.</span></div>
+                <div><strong>범위</strong><span>학습된 DOE와 고정 게이트 조건 안에서 후보를 선별하고 XAI로 영향 인자를 확인합니다.</span></div>
+              </div>
+              <details class="research-brief-details">
+                <summary>결과를 해석하는 방식</summary>
+                <p>Sprue Pressure 곡선은 시간에 따른 입구 압력 거동을, Filling Pressure 분포는 충전 영역별 압력 비율을 보여줍니다. 두 결과와 XAI를 함께 사용해 공정 후보를 비교합니다.</p>
+              </details>
+            </section>
           </div>
-          <form class="rag-form" id="rag-form">
-            <label>
-              질문
-              <textarea
-                name="query"
-                rows="3"
-                data-default-query="수지 온도가 예측 Sprue Pressure에 왜 영향을 주나요?"
-                required
-              >수지 온도가 예측 Sprue Pressure에 왜 영향을 주나요?</textarea>
-            </label>
-            <div class="rag-actions">
-              <label class="rag-toggle">
-                <input name="use_llm" type="checkbox" checked />
-                <span>API 키가 있으면 LLM 사용</span>
-              </label>
-              <button class="secondary" type="submit">Injection AI에 질문</button>
-            </div>
-          </form>
-          <div class="rag-answer hidden" id="rag-answer" aria-live="polite"></div>
-        </section>
+        </dialog>
+
+        <dialog class="utility-dialog" id="assistant-dialog" aria-labelledby="rag-title">
+          <header class="utility-dialog-head">
+            <div><p class="eyebrow">Injection AI Assistant</p><h2 id="rag-title">Injection 지식베이스에 질문하기</h2></div>
+            <button class="dialog-close" type="button" data-dialog-close aria-label="AI Assistant 닫기">×</button>
+          </header>
+          <div class="utility-dialog-body">
+            <section class="rag-assistant">
+              <div class="rag-assistant-copy"><p>Moldex3D surrogate 거동, 압력 곡선, Filling 분포, 현재 XAI 결과를 근거 citation과 함께 설명합니다.</p></div>
+              <form class="rag-form" id="rag-form">
+                <label>질문<textarea name="query" rows="3" data-default-query="수지 온도가 예측 Sprue Pressure에 왜 영향을 주나요?" required>수지 온도가 예측 Sprue Pressure에 왜 영향을 주나요?</textarea></label>
+                <div class="rag-actions">
+                  <label class="rag-toggle"><input name="use_llm" type="checkbox" checked /><span>API 키가 있으면 LLM 사용</span></label>
+                  <button class="secondary" type="submit">Injection AI에 질문</button>
+                </div>
+              </form>
+              <div class="rag-answer hidden" id="rag-answer" aria-live="polite"></div>
+            </section>
+          </div>
+        </dialog>
 
         <section class="summary-strip" aria-label="작업 흐름">
           <div>
             <span>01</span>
-            <strong>DOE 설정</strong>
-            <p>형상과 공정 Case를 선택합니다.</p>
+            <strong>모델 선택</strong>
+            <p>Sprue Pressure 곡선과 Filling Pressure 분포에 사용할 예측 모델을 각각 선택합니다.</p>
           </div>
           <div>
             <span>02</span>
-            <strong>미리보기</strong>
-            <p>게이트, 홀, 유동 경로를 확인합니다.</p>
+            <strong>공정·형상 DOE 선택</strong>
+            <p>공정 DOE와 형상 DOE Case를 선택해 학습된 기본 조건과 3D 형상을 불러옵니다.</p>
           </div>
           <div>
             <span>03</span>
-            <strong>검토</strong>
-            <p>Sprue 곡선과 Filling 분포를 확인합니다.</p>
+            <strong>세부 조건 확인</strong>
+            <p>온도·사출·보압 조건과 길이·폭·두께·홀 형상을 확인합니다. 게이트는 학습된 고정 조건을 사용합니다.</p>
+          </div>
+          <div>
+            <span>04</span>
+            <strong>예측 결과 검토</strong>
+            <p>최대 Sprue Pressure와 시간 곡선, Filling 분포를 확인하고 XAI·검증에서 영향 인자와 CAE 비교를 검토합니다.</p>
           </div>
         </section>
 
@@ -111,12 +156,12 @@
                 </div>
                 <div class="doe-grid">
                   <label>
-                    Geometry DOE
-                    <select id="geometry-select" name="geometry_id"></select>
+                    공정 DOE
+                    <select id="process-select" name="process_id"></select>
                   </label>
                   <label>
-                    Process DOE
-                    <select id="process-select" name="process_id"></select>
+                    형상 DOE
+                    <select id="geometry-select" name="geometry_id"></select>
                   </label>
                 </div>
               </div>
@@ -125,6 +170,8 @@
                 <span id="prevention-state">준비됨</span>
                 <strong id="prevention-title">Prevention check 통과</strong>
               </section>
+
+              <button class="primary mobile-quick-run" type="submit">현재 DOE로 바로 예측</button>
 
               <div class="setup-block process-block">
                 <div class="setup-block-head">
@@ -138,31 +185,31 @@
                   <div class="advanced-fields-title">공정 세부값</div>
                   <div class="process-panel" aria-label="공정 세부값">
                     <label class="process-control">
-                      <span>Melt temp</span>
+                      <span>수지 온도 (°C)</span>
                       <b data-process-readout="melt_temp_C">-</b>
                       <input name="melt_temp_C" type="number" step="0.1" required />
                       <i data-process-bar="melt_temp_C"></i>
                     </label>
                     <label class="process-control">
-                      <span>Mold temp</span>
+                      <span>금형 온도 (°C)</span>
                       <b data-process-readout="mold_temp_C">-</b>
                       <input name="mold_temp_C" type="number" step="0.1" required />
                       <i data-process-bar="mold_temp_C"></i>
                     </label>
                     <label class="process-control">
-                      <span>Packing pressure</span>
+                      <span>보압 (MPa)</span>
                       <b data-process-readout="packing_pressure_MPa">-</b>
                       <input name="packing_pressure_MPa" type="number" step="0.1" required />
                       <i data-process-bar="packing_pressure_MPa"></i>
                     </label>
                     <label class="process-control">
-                      <span>Injection time</span>
+                      <span>사출 시간 (s)</span>
                       <b data-process-readout="injection_time_s">-</b>
                       <input name="injection_time_s" type="number" step="0.001" required />
                       <i data-process-bar="injection_time_s"></i>
                     </label>
                     <label class="process-control compact">
-                      <span>Packing time</span>
+                      <span>보압 시간 (s)</span>
                       <b data-process-readout="packing_time_s">-</b>
                       <input name="packing_time_s" type="number" step="0.001" required />
                     </label>
@@ -174,52 +221,49 @@
                 <div class="advanced-fields-title">형상 세부값</div>
                 <div class="detail-control-grid">
                   <label class="process-control detail-control">
-                    <span>L</span>
+                    <span>길이 L (mm)</span>
                     <b data-geometry-readout="L_mm">-</b>
                     <input name="L_mm" type="number" step="0.001" required />
                     <i data-geometry-bar="L_mm"></i>
                   </label>
                   <label class="process-control detail-control">
-                    <span>W</span>
+                    <span>폭 W (mm)</span>
                     <b data-geometry-readout="W_mm">-</b>
                     <input name="W_mm" type="number" step="0.001" required />
                     <i data-geometry-bar="W_mm"></i>
                   </label>
                   <label class="process-control detail-control">
-                    <span>Thickness</span>
+                    <span>두께 (mm)</span>
                     <b data-geometry-readout="t_mm">-</b>
                     <input name="t_mm" type="number" step="0.001" required />
                     <i data-geometry-bar="t_mm"></i>
                   </label>
                   <label class="process-control detail-control">
-                    <span>Hole D</span>
+                    <span>홀 직경 D (mm)</span>
                     <b data-geometry-readout="D_mm">-</b>
                     <input name="D_mm" type="number" step="0.001" required />
                     <i data-geometry-bar="D_mm"></i>
                   </label>
                   <label class="process-control detail-control">
-                    <span>Hole R</span>
+                    <span>홀 반경 R (mm)</span>
                     <b data-geometry-readout="R_mm">-</b>
                     <input name="R_mm" type="number" step="0.001" required />
                     <i data-geometry-bar="R_mm"></i>
                   </label>
-                  <label class="process-control detail-control text-control">
-                    <span>Gate type</span>
-                    <b data-geometry-readout="gate_type">-</b>
-                    <input name="gate_type" type="text" value="edge_gate" required />
-                  </label>
-                  <label class="process-control detail-control">
-                    <span>Gate width</span>
-                    <b data-geometry-readout="gate_size_width_mm">-</b>
-                    <input name="gate_size_width_mm" type="number" step="0.001" required />
-                    <i data-geometry-bar="gate_size_width_mm"></i>
-                  </label>
-                  <label class="process-control detail-control">
-                    <span>Gate height</span>
-                    <b data-geometry-readout="gate_size_height_mm">-</b>
-                    <input name="gate_size_height_mm" type="number" step="0.001" required />
-                    <i data-geometry-bar="gate_size_height_mm"></i>
-                  </label>
+                  <div class="fixed-gate-condition" aria-label="고정 게이트 조건">
+                    <div class="fixed-gate-head">
+                      <span>게이트 조건</span>
+                      <span class="fixed-gate-badge">고정</span>
+                    </div>
+                    <div class="fixed-gate-values">
+                      <div class="fixed-gate-type"><span>유형</span><strong>에지 게이트</strong></div>
+                      <div class="fixed-gate-size"><span>크기</span><strong>10 × 1.5 mm</strong></div>
+                    </div>
+                    <small>학습 DOE에 포함된 조건이며 변경할 수 없습니다.</small>
+                    <input name="gate_type" type="hidden" value="edge_gate" />
+                    <input name="gate_size_width_mm" type="hidden" value="10" />
+                    <input name="gate_size_height_mm" type="hidden" value="1.5" />
+                  </div>
                 </div>
               </section>
 
@@ -298,7 +342,12 @@
                   </div>
                   <span id="sprue-model-label">-</span>
                 </div>
-                <canvas id="pressure-canvas" width="760" height="360"></canvas>
+                <div class="result-reading-guide" id="sprue-curve-help">
+                  <strong>읽는 법</strong>
+                  <p>X축은 시간(s), Y축은 스프루 입구 압력(MPa)입니다. 가장 높은 지점은 공정이 요구하는 최대 스프루 압력이며, 급격한 변화는 충전·보압 단계 전환 또는 유동 저항 변화를 보여줍니다.</p>
+                  <span>Surrogate 예측 곡선이므로 최종 금형·설비 판단 전 Moldex3D 또는 실험 결과와 비교하세요.</span>
+                </div>
+                <canvas id="pressure-canvas" width="760" height="360" aria-describedby="sprue-curve-help"></canvas>
               </section>
 
               <section class="filling-card" aria-label="Filling Pressure 분포">
@@ -309,7 +358,12 @@
                   </div>
                   <span id="filling-model-label">-</span>
                 </div>
-                <div class="filling-histogram" id="filling-histogram"></div>
+                <div class="result-reading-guide" id="filling-distribution-help">
+                  <strong>읽는 법</strong>
+                  <p>G1에서 G10으로 갈수록 낮은 압력 구간에서 높은 압력 구간을 뜻합니다. 각 막대는 해당 압력 범위에 포함되는 제품 체적 비율입니다.</p>
+                  <span>높은 번호 구간의 비율이 클수록 고압이 필요한 영역이 많다는 의미입니다. 이 그래프는 공간 위치가 아닌 압력 분포 요약입니다.</span>
+                </div>
+                <div class="filling-histogram" id="filling-histogram" aria-describedby="filling-distribution-help"></div>
               </section>
 
               <section class="xai-card hidden" id="xai-card" aria-label="예측 영향 인자 설명">
@@ -365,6 +419,15 @@
       </section>
     </main>
 
-    <script src="./app-v2.js?v=20260703-shape-preview-loading"></script>
+    <script src="/locales-rebuild.js?v=20260814-gate-refine-1"></script>
+    <script src="/app-v2.js?v=20260816-mobile-polish-1"></script>
+    <script>
+      (() => {
+        if (!/^\/v2(?:\/(?:ko|en))?\/?$/.test(window.location.pathname)) return;
+        const script = document.createElement("script");
+        script.src = "/app-rebuild.js?v=20260816-mobile-polish-1";
+        document.body.appendChild(script);
+      })();
+    </script>
   </body>
 </html>

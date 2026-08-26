@@ -1,0 +1,1090 @@
+html:not(.injection-rebuild) body.product-standard {
+  --family-bg: #f4f6f8;
+  --family-surface: #ffffff;
+  --family-surface-2: #f8fafc;
+  --family-ink: #101214;
+  --family-muted: #66717f;
+  --family-line: #dce3ea;
+  --family-line-strong: #b9c5d1;
+  --family-blue: #1663ff;
+  --family-green: #0a9f69;
+  --family-red: #d92d20;
+  --family-shadow: 0 12px 28px rgba(18, 23, 30, 0.08);
+  --workspace-columns: minmax(300px, 410px) minmax(280px, 0.78fr) minmax(380px, 1.05fr);
+  --workspace-gap: 16px;
+  min-width: 320px;
+  overflow-x: hidden;
+  color: var(--family-ink);
+  background:
+    linear-gradient(90deg, rgba(16, 18, 20, 0.045) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(16, 18, 20, 0.045) 1px, transparent 1px),
+    radial-gradient(circle at 12% 0%, rgba(22, 99, 255, 0.1), transparent 34%),
+    linear-gradient(180deg, #fbfcfd 0%, var(--family-bg) 62%, #eef2f5 100%);
+  background-size: 32px 32px, 32px 32px, auto, auto;
+  font-family: Inter, "SF Pro Text", "Apple SD Gothic Neo", "Noto Sans KR", ui-sans-serif,
+    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-feature-settings: "tnum" 1;
+  font-weight: 400;
+}
+
+html:not(.injection-rebuild) body.product-standard .shell {
+  width: min(1380px, calc(100% - 36px));
+  margin: 0 auto;
+  padding: 28px 0 40px;
+}
+
+html:not(.injection-rebuild) body.product-standard .workspace,
+html:not(.injection-rebuild) body.product-standard .result {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+html:not(.injection-rebuild) body.product-standard .form {
+  gap: 15px;
+  min-width: 0;
+}
+
+html:not(.injection-rebuild) body.product-standard .topbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: start;
+  padding: 22px;
+  border: 1px solid var(--family-line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: var(--family-shadow);
+  backdrop-filter: blur(18px);
+}
+
+html:not(.injection-rebuild) body.product-standard .brand-lockup {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+html:not(.injection-rebuild) body.product-standard .product-logo-link {
+  display: inline-flex;
+  width: max-content;
+  align-items: center;
+  margin-bottom: 3px;
+}
+
+html:not(.injection-rebuild) body.product-standard .product-logo-link img {
+  display: block;
+  width: 126px;
+  height: auto;
+}
+
+html:not(.injection-rebuild) body.product-standard .eyebrow {
+  margin: 0;
+  color: var(--family-blue);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+html:not(.injection-rebuild) body.product-standard h1 {
+  margin: 0;
+  color: var(--family-ink);
+  font-size: clamp(1.85rem, 3.2vw, 3.5rem);
+  font-weight: 900;
+  line-height: 1.02;
+  letter-spacing: 0;
+  text-wrap: balance;
+  white-space: normal;
+}
+
+html:not(.injection-rebuild) body.product-standard h1 span {
+  display: inline;
+}
+
+html:not(.injection-rebuild) body.product-standard h2 {
+  margin: 0 0 5px;
+  font-size: 1.08rem;
+  font-weight: 850;
+  line-height: 1.2;
+}
+
+html:not(.injection-rebuild) body.product-standard h3 {
+  margin: 0;
+  font-size: 0.96rem;
+  font-weight: 850;
+}
+
+html:not(.injection-rebuild) body.product-standard .hero-copy {
+  width: max-content;
+  max-width: none;
+  margin: 0;
+  color: var(--family-muted);
+  font-size: clamp(1rem, 1.5vw, 1.22rem);
+  font-weight: 650;
+  line-height: 1.45;
+  white-space: nowrap;
+}
+
+html:not(.injection-rebuild) body.product-standard .top-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid var(--family-line);
+  border-radius: 10px;
+  background: rgba(244, 246, 248, 0.9);
+}
+
+html:not(.injection-rebuild) body.product-standard .top-action-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+html:not(.injection-rebuild) body.product-standard .top-action-group-secondary {
+  padding-left: 6px;
+  border-left: 1px solid var(--family-line);
+}
+
+html:not(.injection-rebuild) body.product-standard .status-pill,
+html:not(.injection-rebuild) body.product-standard .language-link,
+html:not(.injection-rebuild) body.product-standard .utility-trigger,
+html:not(.injection-rebuild) body.product-standard .secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  border: 1px solid var(--family-line);
+  border-radius: 8px;
+  padding: 0 12px;
+  color: var(--family-ink);
+  background: var(--family-surface);
+  box-shadow: 0 1px 0 rgba(16, 18, 20, 0.04);
+  font-size: 0.84rem;
+  font-weight: 800;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+html:not(.injection-rebuild) body.product-standard .utility-trigger {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+html:not(.injection-rebuild) body.product-standard .header-action {
+  box-sizing: border-box;
+  gap: 7px;
+  min-width: 0;
+}
+
+html:not(.injection-rebuild) body.product-standard .header-action::before {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  align-items: center;
+  justify-content: center;
+  color: currentColor;
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+html:not(.injection-rebuild) body.product-standard .header-action-module {
+  border-color: var(--family-line-strong);
+  background: var(--family-surface);
+}
+
+html:not(.injection-rebuild) body.product-standard .header-action-module::before {
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  background:
+    linear-gradient(90deg, transparent 44%, currentColor 44% 56%, transparent 56%),
+    linear-gradient(180deg, transparent 44%, currentColor 44% 56%, transparent 56%);
+  content: "";
+}
+
+html:not(.injection-rebuild) body.product-standard .header-action-assistant {
+  border-color: #bfd2ff;
+  color: #0e4ed8;
+  background: #edf3ff;
+}
+
+html:not(.injection-rebuild) body.product-standard .header-action-assistant::before {
+  content: "\2726";
+  font-size: 0.9rem;
+}
+
+html:not(.injection-rebuild) body.product-standard .header-action-research,
+html:not(.injection-rebuild) body.product-standard .header-action-language,
+html:not(.injection-rebuild) body.product-standard .header-action-account {
+  border-color: transparent;
+  color: var(--family-muted);
+  background: transparent;
+  box-shadow: none;
+}
+
+html:not(.injection-rebuild) body.product-standard .header-action-research::before {
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  content: "i";
+  font-family: Georgia, serif;
+  font-size: 0.7rem;
+}
+
+html:not(.injection-rebuild) body.product-standard .header-action-language::before {
+  content: "A";
+  font-size: 0.69rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+html:not(.injection-rebuild) body.product-standard .header-action-account::before {
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  content: "";
+  background:
+    radial-gradient(circle at 50% 35%, currentColor 0 2px, transparent 2.5px),
+    radial-gradient(ellipse at 50% 100%, currentColor 0 4px, transparent 4.5px);
+}
+
+html:not(.injection-rebuild) body.product-standard .language-link:hover,
+html:not(.injection-rebuild) body.product-standard .utility-trigger:hover,
+html:not(.injection-rebuild) body.product-standard .secondary:hover {
+  border-color: var(--family-blue);
+  color: var(--family-blue);
+  background: var(--family-surface);
+}
+
+html:not(.injection-rebuild) body.product-standard .header-action-assistant:hover {
+  color: #ffffff;
+  background: var(--family-blue);
+}
+
+html:not(.injection-rebuild) body.product-standard .status-pill.ok {
+  border-color: #a6e8c9;
+  color: #05603a;
+  background: #ecfdf3;
+}
+
+html:not(.injection-rebuild) body.product-standard .status-pill.bad {
+  border-color: #fecaca;
+  color: #b42318;
+  background: #fff1f0;
+}
+
+html:not(.injection-rebuild) body.product-standard .status-pill.ok::before,
+html:not(.injection-rebuild) body.product-standard .status-pill.bad::before {
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border-radius: 999px;
+  background: currentColor;
+  content: "";
+}
+
+html:not(.injection-rebuild) body.product-standard .summary-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--workspace-gap);
+}
+
+html:not(.injection-rebuild) body.product-standard .summary-strip > div {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-column: auto;
+  gap: 3px 12px;
+  align-items: start;
+  min-height: 92px;
+  padding: 16px;
+  border: 1px solid var(--family-line);
+  border-radius: 8px;
+  background: var(--family-surface);
+}
+
+html:not(.injection-rebuild) body.product-standard .summary-strip span {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  color: #fff;
+  background: #111318;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+html:not(.injection-rebuild) body.product-standard .summary-strip strong {
+  font-size: 0.95rem;
+  font-weight: 850;
+}
+
+html:not(.injection-rebuild) body.product-standard .summary-strip p {
+  display: block;
+  margin: 0;
+  color: var(--family-muted);
+  font-size: 0.84rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+html:not(.injection-rebuild) body.product-standard .grid {
+  display: grid;
+  grid-template-columns: var(--workspace-columns);
+  gap: var(--workspace-gap);
+  align-items: start;
+  min-width: 0;
+}
+
+html:not(.injection-rebuild) body.product-standard .panel {
+  min-width: 0;
+  max-width: 100%;
+  border: 1px solid var(--family-line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--family-shadow);
+}
+
+html:not(.injection-rebuild) body.product-standard .input-panel,
+html:not(.injection-rebuild) body.product-standard .visual-panel,
+html:not(.injection-rebuild) body.product-standard .result-panel,
+html:not(.injection-rebuild) body.product-standard .curve-preview-panel {
+  padding: 18px;
+}
+
+html:not(.injection-rebuild) body.product-standard .input-panel {
+  position: sticky;
+  top: 18px;
+}
+
+html:not(.injection-rebuild) body.product-standard .form-header {
+  display: grid;
+  gap: 5px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--family-line);
+}
+
+html:not(.injection-rebuild) body.product-standard .form-header p:not(.eyebrow),
+html:not(.injection-rebuild) body.product-standard .empty-state p,
+html:not(.injection-rebuild) body.product-standard .preview-caption span {
+  display: block;
+  margin: 0;
+  color: var(--family-muted);
+  font-size: 0.9rem;
+  font-weight: 650;
+  line-height: 1.42;
+}
+
+html:not(.injection-rebuild) body.product-standard label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  color: #4f5c6b;
+  font-size: 0.88rem;
+  font-weight: 780;
+}
+
+html:not(.injection-rebuild) body.product-standard input,
+html:not(.injection-rebuild) body.product-standard select,
+html:not(.injection-rebuild) body.product-standard textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  border: 1px solid var(--family-line);
+  border-radius: 8px;
+  padding: 0 12px;
+  color: var(--family-ink);
+  background: var(--family-surface-2);
+  box-shadow: inset 0 1px 0 rgba(16, 18, 20, 0.04);
+  font: inherit;
+}
+
+html:not(.injection-rebuild) body.product-standard textarea {
+  min-height: 104px;
+  padding: 12px;
+  resize: vertical;
+}
+
+html:not(.injection-rebuild) body.product-standard input:focus,
+html:not(.injection-rebuild) body.product-standard select:focus,
+html:not(.injection-rebuild) body.product-standard textarea:focus,
+html:not(.injection-rebuild) body.product-standard button:focus-visible,
+html:not(.injection-rebuild) body.product-standard summary:focus-visible {
+  border-color: var(--family-blue);
+  outline: 3px solid rgba(22, 99, 255, 0.24);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+html:not(.injection-rebuild) body.product-standard .primary {
+  min-height: 46px;
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  background: var(--family-blue);
+  box-shadow: 0 10px 24px rgba(22, 99, 255, 0.2);
+  font-size: 0.92rem;
+  font-weight: 850;
+}
+
+html:not(.injection-rebuild) body.product-standard .primary:hover {
+  background: #0047d4;
+}
+
+html:not(.injection-rebuild) body.product-standard .primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+html:not(.injection-rebuild) body.product-standard .setup-block,
+html:not(.injection-rebuild) body.product-standard .advanced-fields,
+html:not(.injection-rebuild) body.product-standard .chart-card,
+html:not(.injection-rebuild) body.product-standard .filling-card,
+html:not(.injection-rebuild) body.product-standard .xai-card,
+html:not(.injection-rebuild) body.product-standard .compare-card,
+html:not(.injection-rebuild) body.product-standard .history-card {
+  border: 1px solid var(--family-line);
+  border-radius: 8px;
+  background: var(--family-surface-2);
+  box-shadow: none;
+}
+
+html:not(.injection-rebuild) body.product-standard .setup-block {
+  gap: 12px;
+  padding: 12px;
+}
+
+html:not(.injection-rebuild) body.product-standard .setup-block-head {
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 10px;
+}
+
+html:not(.injection-rebuild) body.product-standard .setup-block-head > span {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  color: #fff;
+  background: #111318;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+html:not(.injection-rebuild) body.product-standard .setup-block-head strong {
+  overflow: visible;
+  font-size: 0.9rem;
+  font-weight: 850;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+html:not(.injection-rebuild) body.product-standard .setup-block-head p {
+  display: block;
+  margin: 3px 0 0;
+  color: var(--family-muted);
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+html:not(.injection-rebuild) body.product-standard .process-control,
+html:not(.injection-rebuild) body.product-standard .detail-control {
+  border-color: var(--family-line);
+  background: var(--family-surface);
+}
+
+html:not(.injection-rebuild) body.injection-standard .process-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 7px;
+  padding: 10px;
+}
+
+html:not(.injection-rebuild) body.injection-standard .process-control > span {
+  color: var(--family-muted);
+  font-size: 0.78rem;
+  font-weight: 760;
+  line-height: 1.3;
+}
+
+html:not(.injection-rebuild) body.injection-standard .process-control > b,
+html:not(.injection-rebuild) body.injection-standard .process-control > i {
+  display: none;
+}
+
+html:not(.injection-rebuild) body.injection-standard .process-control > input {
+  grid-column: auto;
+  grid-row: auto;
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid var(--family-line);
+  border-radius: 8px;
+  color: var(--family-ink);
+  background: var(--family-surface-2);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 760;
+  text-align: left;
+}
+
+html:not(.injection-rebuild) body.injection-standard .process-control > input:focus {
+  border-color: var(--family-blue);
+  outline: 3px solid rgba(37, 99, 235, 0.14);
+}
+
+html:not(.injection-rebuild) body.injection-standard .fixed-gate-condition {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 9px;
+  padding: 11px;
+  border: 1px solid var(--family-line);
+  border-radius: 8px;
+  background: var(--family-surface-2);
+}
+
+html:not(.injection-rebuild) body.injection-standard .fixed-gate-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+html:not(.injection-rebuild) body.injection-standard .fixed-gate-head > span:first-child {
+  color: var(--family-ink);
+  font-size: 0.82rem;
+  font-weight: 820;
+}
+
+html:not(.injection-rebuild) body.injection-standard .fixed-gate-badge {
+  padding: 3px 7px;
+  border: 1px solid var(--family-line);
+  border-radius: 999px;
+  color: var(--family-muted);
+  background: var(--family-surface);
+  font-size: 0.66rem;
+  font-weight: 780;
+  line-height: 1;
+}
+
+html:not(.injection-rebuild) body.injection-standard .fixed-gate-values {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+html:not(.injection-rebuild) body.injection-standard .fixed-gate-values > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--family-line);
+  border-radius: 7px;
+  background: var(--family-surface);
+}
+
+html:not(.injection-rebuild) body.injection-standard .fixed-gate-values span,
+html:not(.injection-rebuild) body.injection-standard .fixed-gate-condition > small {
+  color: var(--family-muted);
+  font-size: 0.7rem;
+  font-weight: 680;
+  line-height: 1.35;
+}
+
+html:not(.injection-rebuild) body.injection-standard .fixed-gate-values strong {
+  overflow: hidden;
+  color: var(--family-ink);
+  font-size: 0.88rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 780;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html:not(.injection-rebuild) body.product-standard .process-control i {
+  background:
+    linear-gradient(90deg, var(--family-blue), var(--family-blue)) 0 / var(--value, 50%) 100%
+      no-repeat,
+    #dce3ee;
+}
+
+html:not(.injection-rebuild) body.product-standard .prevention-card {
+  border-color: #bce9d7;
+  color: #06764d;
+  background: #ecfdf3;
+}
+
+html:not(.injection-rebuild) body.product-standard .shape-mode-control {
+  border-color: var(--family-line);
+  background: #edf1f5;
+}
+
+html:not(.injection-rebuild) body.product-standard .shape-mode-control button {
+  color: var(--family-ink);
+  background: var(--family-surface);
+  box-shadow: 0 1px 4px rgba(18, 23, 30, 0.08);
+}
+
+html:not(.injection-rebuild) body.product-standard .shape-preview {
+  border-color: var(--family-line);
+  background: linear-gradient(180deg, #fbfcfd, #edf3f8);
+}
+
+html:not(.injection-rebuild) body.product-standard .shape-view-controls button {
+  border-color: var(--family-line);
+  color: var(--family-blue);
+  background: rgba(255, 255, 255, 0.94);
+}
+
+html:not(.injection-rebuild) body.product-standard .empty-state {
+  min-height: 440px;
+  color: var(--family-ink);
+}
+
+html:not(.injection-rebuild) body.product-standard .empty-state h2 {
+  font-size: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+html:not(.injection-rebuild) body.product-standard .result-hero {
+  border: 1px solid var(--family-line);
+  border-left: 4px solid var(--family-blue);
+  border-radius: 8px;
+  padding: 16px;
+  color: var(--family-ink);
+  background: var(--family-surface-2);
+}
+
+html:not(.injection-rebuild) body.product-standard .result-hero span {
+  color: var(--family-muted);
+  opacity: 1;
+}
+
+html:not(.injection-rebuild) body.product-standard .result-hero strong {
+  color: var(--family-ink);
+}
+
+html:not(.injection-rebuild) body.product-standard .xai-feature,
+html:not(.injection-rebuild) body.product-standard .history-run {
+  border: 1px solid var(--family-line);
+  border-radius: 8px;
+  background: var(--family-surface);
+  box-shadow: none;
+}
+
+html:not(.injection-rebuild) body.product-standard .xai-feature {
+  border-left: 1px solid var(--family-line);
+}
+
+html:not(.injection-rebuild) body.product-standard .xai-feature > i,
+html:not(.injection-rebuild) body.product-standard .xai-bar {
+  height: 7px;
+  background: #dce3ee;
+}
+
+html:not(.injection-rebuild) body.product-standard .xai-feature > i {
+  background:
+    linear-gradient(90deg, var(--family-blue), var(--family-blue)) 0 / var(--bar, 0%) 100%
+      no-repeat,
+    #dce3ee;
+}
+
+html:not(.injection-rebuild) body.product-standard .xai-feature-top b,
+html:not(.injection-rebuild) body.product-standard .xai-feature-head span {
+  color: var(--family-blue);
+}
+
+html:not(.injection-rebuild) body.injection-standard .filling-row > i {
+  position: relative;
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #dce3ee;
+}
+
+html:not(.injection-rebuild) body.injection-standard .filling-row > i::after {
+  display: block;
+  width: var(--bar, 0%);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--family-blue);
+  content: "";
+}
+
+html:not(.injection-rebuild) body.injection-standard .filling-row > strong {
+  color: var(--family-blue);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+html:not(.injection-rebuild) body.product-standard .utility-dialog {
+  width: min(760px, calc(100% - 32px));
+  max-height: min(82vh, 820px);
+  margin: auto;
+  overflow: hidden;
+  border: 1px solid var(--family-line-strong);
+  border-radius: 14px;
+  padding: 0;
+  color: var(--family-ink);
+  background: var(--family-surface);
+  box-shadow: 0 28px 80px rgba(18, 23, 30, 0.22);
+}
+
+html:not(.injection-rebuild) body.product-standard .utility-dialog[open] {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+html:not(.injection-rebuild) body.product-standard .utility-dialog::backdrop {
+  background: rgba(16, 18, 20, 0.44);
+  backdrop-filter: blur(5px);
+}
+
+html:not(.injection-rebuild) body.product-standard .utility-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--family-line);
+  background: var(--family-surface);
+}
+
+html:not(.injection-rebuild) body.product-standard .utility-dialog-head div {
+  display: grid;
+  gap: 4px;
+}
+
+html:not(.injection-rebuild) body.product-standard .utility-dialog-head h2 {
+  margin: 0;
+  font-size: 1.18rem;
+}
+
+html:not(.injection-rebuild) body.product-standard .dialog-close {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--family-line);
+  border-radius: 8px;
+  color: var(--family-ink);
+  background: var(--family-surface-2);
+  font: inherit;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+html:not(.injection-rebuild) body.product-standard .utility-dialog-body {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+html:not(.injection-rebuild) body.product-standard .research-brief,
+html:not(.injection-rebuild) body.product-standard .rag-assistant {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+html:not(.injection-rebuild) body.product-standard .research-brief-main,
+html:not(.injection-rebuild) body.product-standard .rag-assistant-copy {
+  display: grid;
+  gap: 8px;
+}
+
+html:not(.injection-rebuild) body.product-standard .research-brief-main p:not(.eyebrow),
+html:not(.injection-rebuild) body.product-standard .rag-assistant-copy p,
+html:not(.injection-rebuild) body.product-standard .research-brief-details p {
+  margin: 0;
+  color: var(--family-muted);
+  font-size: 0.92rem;
+  font-weight: 650;
+  line-height: 1.55;
+}
+
+html:not(.injection-rebuild) body.product-standard .research-brief-points {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+html:not(.injection-rebuild) body.product-standard .research-brief-points > div {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--family-line);
+  border-radius: 8px;
+  background: var(--family-surface-2);
+}
+
+html:not(.injection-rebuild) body.product-standard .research-brief-points strong {
+  color: var(--family-blue);
+  font-size: 0.78rem;
+}
+
+html:not(.injection-rebuild) body.product-standard .research-brief-points span {
+  color: var(--family-muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+html:not(.injection-rebuild) body.product-standard .research-brief-details {
+  border-top: 1px solid var(--family-line);
+  padding-top: 12px;
+}
+
+html:not(.injection-rebuild) body.product-standard .research-brief-details summary {
+  color: var(--family-ink);
+  font-size: 0.86rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+html:not(.injection-rebuild) body.product-standard .research-brief-details p {
+  margin-top: 10px;
+}
+
+html:not(.injection-rebuild) body.product-standard .rag-form {
+  display: grid;
+  gap: 12px;
+}
+
+html:not(.injection-rebuild) body.product-standard .rag-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+html:not(.injection-rebuild) body.product-standard .rag-toggle {
+  display: flex;
+  grid-template-columns: none;
+  gap: 8px;
+  align-items: center;
+  width: fit-content;
+  color: var(--family-muted);
+  font-size: 0.82rem;
+}
+
+html:not(.injection-rebuild) body.product-standard .rag-toggle input {
+  width: 18px;
+  min-height: 18px;
+}
+
+html:not(.injection-rebuild) body.product-standard .rag-answer {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 12px;
+  min-width: 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--family-line);
+}
+
+html:not(.injection-rebuild) body.product-standard .rag-citation,
+html:not(.injection-rebuild) body.product-standard .rag-answer-paragraph {
+  border-color: var(--family-line);
+  background: var(--family-surface-2);
+}
+
+@media (max-width: 1100px) {
+  html:not(.injection-rebuild) body.product-standard .topbar {
+    grid-template-columns: 1fr;
+  }
+
+  html:not(.injection-rebuild) body.product-standard .top-actions {
+    justify-content: flex-start;
+    justify-self: start;
+  }
+
+  html:not(.injection-rebuild) body.product-standard .grid {
+    grid-template-columns: 1fr;
+  }
+
+  html:not(.injection-rebuild) body.product-standard .summary-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  html:not(.injection-rebuild) body.product-standard .input-panel {
+    position: static;
+  }
+}
+
+@media (max-width: 760px) {
+  html:not(.injection-rebuild) body.product-standard .product-logo-link img {
+    width: 116px;
+  }
+
+  html:not(.injection-rebuild) body.product-standard {
+    min-height: 100svh;
+    background:
+      linear-gradient(90deg, rgba(16, 18, 20, 0.035) 1px, transparent 1px),
+      linear-gradient(180deg, rgba(16, 18, 20, 0.035) 1px, transparent 1px),
+      linear-gradient(180deg, #ffffff 0%, #f3f6f9 100%);
+    background-size: 28px 28px, 28px 28px, auto;
+  }
+
+  html:not(.injection-rebuild) body.product-standard .shell {
+    width: 100%;
+    max-width: 560px;
+    min-height: 100svh;
+    padding: 8px;
+  }
+
+  html:not(.injection-rebuild) body.product-standard .workspace {
+    gap: 8px;
+  }
+
+  html:not(.injection-rebuild) body.product-standard .topbar {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 12px;
+    overflow: hidden;
+  }
+
+  html:not(.injection-rebuild) body.product-standard h1 {
+    font-size: clamp(1.34rem, 5.7vw, 1.66rem);
+    line-height: 1.04;
+  }
+
+  html:not(.injection-rebuild) body.product-standard h2 {
+    font-size: 0.98rem;
+  }
+
+  html:not(.injection-rebuild) body.product-standard .hero-copy {
+    display: none;
+  }
+
+  html:not(.injection-rebuild) body.product-standard .top-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+    width: 100%;
+    padding: 6px;
+    box-sizing: border-box;
+    justify-content: stretch;
+    justify-self: stretch;
+  }
+
+  html:not(.injection-rebuild) body.product-standard .top-action-group {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  html:not(.injection-rebuild) body.product-standard .top-action-group-secondary {
+    padding: 6px 0 0;
+    border-top: 1px solid var(--family-line);
+    border-left: 0;
+  }
+
+  html:not(.injection-rebuild) body.product-standard .top-actions .status-pill,
+  html:not(.injection-rebuild) body.product-standard .top-actions .license-user-status {
+    grid-column: 1 / -1;
+  }
+
+  html:not(.injection-rebuild) body.product-standard .top-action-group-secondary.has-account .status-pill,
+  html:not(.injection-rebuild) body.product-standard .top-action-group-secondary.has-account .license-user-status {
+    grid-column: auto;
+  }
+
+  html:not(.injection-rebuild) body.product-standard .language-link,
+  html:not(.injection-rebuild) body.product-standard .utility-trigger,
+  html:not(.injection-rebuild) body.product-standard .secondary {
+    min-height: 44px;
+    padding: 0 9px;
+    font-size: 0.72rem;
+  }
+
+  html:not(.injection-rebuild) body.product-standard .status-pill {
+    min-height: 36px;
+    padding: 0 9px;
+    font-size: 0.72rem;
+  }
+
+  html:not(.injection-rebuild) body.product-standard .header-action {
+    width: 100%;
+  }
+
+  html:not(.injection-rebuild) body.product-standard .summary-strip {
+    display: none;
+  }
+
+  html:not(.injection-rebuild) body.product-standard .grid {
+    gap: 8px;
+  }
+
+  html:not(.injection-rebuild) body.product-standard .input-panel,
+  html:not(.injection-rebuild) body.product-standard .visual-panel,
+  html:not(.injection-rebuild) body.product-standard .result-panel,
+  html:not(.injection-rebuild) body.product-standard .curve-preview-panel {
+    padding: 12px;
+  }
+
+  html:not(.injection-rebuild) body.product-standard .form-header {
+    display: none;
+  }
+
+  html:not(.injection-rebuild) body.product-standard label {
+    gap: 5px;
+    font-size: 0.74rem;
+  }
+
+  html:not(.injection-rebuild) body.product-standard input,
+  html:not(.injection-rebuild) body.product-standard select {
+    min-height: 36px;
+    padding: 0 9px;
+    font-size: 0.84rem;
+  }
+
+  html:not(.injection-rebuild) body.product-standard .setup-block {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  html:not(.injection-rebuild) body.product-standard .setup-block-head p {
+    display: none;
+  }
+
+  html:not(.injection-rebuild) body.product-standard .primary {
+    min-height: 44px;
+    font-size: 0.86rem;
+  }
+
+  html:not(.injection-rebuild) body.product-standard .utility-dialog {
+    width: calc(100% - 16px);
+    max-height: calc(100svh - 16px);
+    border-radius: 10px;
+  }
+
+  html:not(.injection-rebuild) body.product-standard .utility-dialog-head,
+  html:not(.injection-rebuild) body.product-standard .utility-dialog-body {
+    padding: 14px;
+  }
+
+  html:not(.injection-rebuild) body.product-standard .research-brief-points {
+    grid-template-columns: 1fr;
+  }
+
+  html:not(.injection-rebuild) body.product-standard .rag-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  html:not(.injection-rebuild) body.product-standard .rag-actions .secondary {
+    width: 100%;
+  }
+}

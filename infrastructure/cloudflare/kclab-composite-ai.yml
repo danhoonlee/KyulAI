@@ -15,7 +15,7 @@ ingress:
   - hostname: dd.imperialax.com
     service: http://127.0.0.1:8000
   - hostname: injection.imperialax.com
-    service: http://127.0.0.1:8010
+    service: http_status:410
   - hostname: ai.imperialax.com
     service: http://127.0.0.1:8000
   - hostname: imperialax.com
@@ -25,7 +25,7 @@ ingress:
   - hostname: laminate.imperialax.com
     service: http://127.0.0.1:8000
   - hostname: injection.imperialax.com
-    service: http://127.0.0.1:8010
+    service: http_status:410
   - hostname: cafedecafe.co.kr
     service: http://127.0.0.1:8000
   - hostname: www.cafedecafe.co.kr
@@ -37,7 +37,7 @@ ingress:
   - hostname: dd.cafedecafe.co.kr
     service: http://127.0.0.1:8000
   - hostname: injection.cafedecafe.co.kr
-    service: http://127.0.0.1:8010
+    service: http_status:410
   - hostname: nangman.cafedecafe.co.kr
     service: http://127.0.0.1:8020
   - service: http_status:404

@@ -10,7 +10,6 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.backend.db.session import get_db
-from src.backend.exceptions import NotFoundError
 from src.backend.models.paper import Paper
 from src.backend.schemas.common import PaginatedResponse
 from src.backend.schemas.research import PaperCreate, PaperResponse, PaperSummary, PaperUpdate
@@ -122,11 +121,15 @@ async def get_paper(
     result = await db.execute(select(Paper).where(Paper.id == paper_id))
     paper = result.scalar_one_or_none()
     if paper is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Paper '{paper_id}' not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Paper '{paper_id}' not found"
+        )
     return PaperResponse.model_validate(paper)
 
 
-@router.patch("/papers/{paper_id}", response_model=PaperResponse, summary="Update paper annotations")
+@router.patch(
+    "/papers/{paper_id}", response_model=PaperResponse, summary="Update paper annotations"
+)
 async def update_paper(
     paper_id: UUID,
     payload: PaperUpdate,
@@ -135,7 +138,9 @@ async def update_paper(
     result = await db.execute(select(Paper).where(Paper.id == paper_id))
     paper = result.scalar_one_or_none()
     if paper is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Paper '{paper_id}' not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Paper '{paper_id}' not found"
+        )
 
     update_data = payload.model_dump(exclude_none=True)
     for field, value in update_data.items():

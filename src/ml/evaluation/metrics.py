@@ -19,7 +19,7 @@ and standard ML regression benchmarks for sim-to-real work in composites.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 from pydantic import BaseModel, Field
@@ -31,11 +31,12 @@ if TYPE_CHECKING:
 # ── Internal helpers ──────────────────────────────────────────────────────────
 
 
-def _to_numpy(x: Union[np.ndarray, Any]) -> np.ndarray:  # noqa: F821
+def _to_numpy(x: np.ndarray | torch.Tensor) -> np.ndarray:
     """Convert numpy array or torch Tensor to a numpy float64 array."""
     type_name = type(x).__name__
     if type_name == "Tensor":
-        return x.detach().cpu().numpy()
+        tensor = cast("torch.Tensor", x)
+        return tensor.detach().cpu().numpy()
     return np.asarray(x, dtype=np.float64)
 
 
@@ -100,8 +101,8 @@ def r2(
     division by zero.
     """
     p, t = _flatten(_to_numpy(pred)), _flatten(_to_numpy(target))
-    ss_res = np.sum((t - p) ** 2)
-    ss_tot = np.sum((t - np.mean(t)) ** 2)
+    ss_res = float(np.sum((t - p) ** 2))
+    ss_tot = float(np.sum((t - np.mean(t)) ** 2))
     if ss_tot < 1e-12:
         return 0.0
     return float(1.0 - ss_res / ss_tot)
@@ -257,9 +258,9 @@ def _mape_safe(pred: np.ndarray, target: np.ndarray, eps: float = 1e-8) -> float
 
 
 def compute_metrics(
-    y_true: Union[np.ndarray, Any],
-    y_pred: Union[np.ndarray, Any],
-    y_std: Union[np.ndarray, Any, None] = None,
+    y_true: np.ndarray | Any,
+    y_pred: np.ndarray | Any,
+    y_std: np.ndarray | Any | None = None,
 ) -> MetricsResult:
     """Compute the standard KyulAI regression metric suite.
 
@@ -309,10 +310,10 @@ def compute_metrics(
 
 
 def compute_ood_metrics(
-    y_true: Union[np.ndarray, Any],
-    y_pred: Union[np.ndarray, Any],
-    domain_labels: Union[np.ndarray, list[str]],
-    y_std: Union[np.ndarray, Any, None] = None,
+    y_true: np.ndarray | Any,
+    y_pred: np.ndarray | Any,
+    domain_labels: np.ndarray | list[str],
+    y_std: np.ndarray | Any | None = None,
 ) -> dict[str, OODMetrics]:
     """Compute metrics broken down by OOD domain label.
 

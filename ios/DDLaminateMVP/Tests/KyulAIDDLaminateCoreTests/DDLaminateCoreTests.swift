@@ -87,19 +87,19 @@ final class DDLaminateCoreTests: XCTestCase {
         let u3Models = [
             legacyU3Model,
             ModelInfo(
-                key: "u3_forecast_physics_v2",
+                key: "u3_forecast_physics_canonical_v2",
                 label: "u3 Forecast - Machine Learning",
                 description: "fixture u3 tree model",
                 inputMode: "u3_pt",
-                path: "models/dd_laminate_u3_forecast_physics_abd_v1/u3_forecast.joblib",
+                path: "models/dd_laminate_u3_forecast_physics_canonical_v2/u3_forecast.joblib",
                 available: true
             ),
             ModelInfo(
-                key: "u3_forecast_goint_physics_v2",
+                key: "u3_forecast_goint_physics_canonical_v2",
                 label: "u3 Forecast - Deep Learning",
                 description: "fixture u3 neural model",
                 inputMode: "u3_pt",
-                path: "models/dd_laminate_u3_forecast_physics_abd_v1/u3_forecast_goint.pt",
+                path: "models/dd_laminate_u3_forecast_physics_canonical_v2/u3_forecast_goint.pt",
                 available: true
             ),
         ]

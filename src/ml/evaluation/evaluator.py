@@ -28,7 +28,7 @@ import json
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 import numpy as np
 import torch
@@ -38,6 +38,12 @@ from src.ml.evaluation.metrics import compute_all_metrics
 from src.ml.models.base import KyulBaseModel, ModelBatch
 
 logger = logging.getLogger(__name__)
+
+
+class _EvalAccumulator(TypedDict):
+    pred: list[np.ndarray]
+    target: list[np.ndarray]
+    tools: list[str]
 
 
 # ── Report data structures ────────────────────────────────────────────────────
@@ -193,17 +199,15 @@ class ModelEvaluator:
         self.model.to(self.device)
 
         # Accumulators: {field_name: {"pred": [...], "target": [...], "tools": [...]}}
-        scalar_acc: dict[str, dict[str, list[np.ndarray]]] = {}
-        vector_acc: dict[str, dict[str, list[np.ndarray]]] = {}
+        scalar_acc: dict[str, _EvalAccumulator] = {}
+        vector_acc: dict[str, _EvalAccumulator] = {}
 
         n_total = 0
 
         with torch.no_grad():
             for batch in loader:
                 if not isinstance(batch, ModelBatch):
-                    raise TypeError(
-                        f"Loader must yield ModelBatch, got {type(batch).__name__}"
-                    )
+                    raise TypeError(f"Loader must yield ModelBatch, got {type(batch).__name__}")
                 batch = batch.to(self.device)
                 output = self.model.forward(batch)
                 tools = batch.source_tools
@@ -244,7 +248,7 @@ class ModelEvaluator:
         all_field_targets: list[np.ndarray] = []
 
         for fname, acc in {**scalar_acc, **vector_acc}.items():
-            pred_all = np.concatenate(acc["pred"], axis=0)    # (N_total, ...)
+            pred_all = np.concatenate(acc["pred"], axis=0)  # (N_total, ...)
             gt_all = np.concatenate(acc["target"], axis=0)
             tools_all = acc["tools"]
 
@@ -325,26 +329,26 @@ class ModelEvaluator:
         eval_results.save_json(output_dir / "eval_report.json")
 
         lines: list[str] = [
-            f"# KyulAI Evaluation Report",
-            f"",
+            "# KyulAI Evaluation Report",
+            "",
             f"**Model:** `{eval_results.model_name}`  ",
             f"**Split:** `{eval_results.split}`  ",
             f"**Samples:** {eval_results.n_total_samples}  ",
-            f"",
-            f"## Overall Metrics",
-            f"",
-            f"| Metric | Value |",
-            f"|--------|-------|",
+            "",
+            "## Overall Metrics",
+            "",
+            "| Metric | Value |",
+            "|--------|-------|",
         ]
         for k, v in eval_results.overall.items():
             lines.append(f"| {k} | {v:.6f} |")
 
         lines += [
-            f"",
-            f"## Per-Field Metrics",
-            f"",
-            f"| Field | R² | Rel L2 | RMSE | MAE | N |",
-            f"|-------|----|--------|------|-----|---|",
+            "",
+            "## Per-Field Metrics",
+            "",
+            "| Field | R² | Rel L2 | RMSE | MAE | N |",
+            "|-------|----|--------|------|-----|---|",
         ]
         for fname, fm in eval_results.per_field.items():
             lines.append(
@@ -354,16 +358,16 @@ class ModelEvaluator:
 
         if eval_results.per_tool:
             lines += [
-                f"",
-                f"## Per-Tool Breakdown",
+                "",
+                "## Per-Tool Breakdown",
             ]
             for tool, fields in eval_results.per_tool.items():
                 lines += [
-                    f"",
+                    "",
                     f"### {tool}",
-                    f"",
-                    f"| Field | R² | Rel L2 | RMSE |",
-                    f"|-------|----|--------|------|",
+                    "",
+                    "| Field | R² | Rel L2 | RMSE |",
+                    "|-------|----|--------|------|",
                 ]
                 for fname, fm in fields.items():
                     lines.append(
@@ -374,27 +378,29 @@ class ModelEvaluator:
         phase1_target_r2 = 0.90
         phase1_target_rel_l2 = 0.20
         lines += [
-            f"",
-            f"## Phase 1 Acceptance Criteria",
-            f"",
+            "",
+            "## Phase 1 Acceptance Criteria",
+            "",
             f"Targets: R² ≥ {phase1_target_r2}, Relative L2 ≤ {phase1_target_rel_l2:.0%}",
-            f"",
-            f"| Field | R² Status | Rel L2 Status |",
-            f"|-------|-----------|---------------|",
+            "",
+            "| Field | R² Status | Rel L2 Status |",
+            "|-------|-----------|---------------|",
         ]
         for fname, fm in eval_results.per_field.items():
             r2_status = "PASS" if fm.r2 >= phase1_target_r2 else "FAIL"
             rl2_status = "PASS" if fm.relative_l2 <= phase1_target_rel_l2 else "FAIL"
-            lines.append(f"| `{fname}` | {r2_status} ({fm.r2:.4f}) | {rl2_status} ({fm.relative_l2:.4f}) |")
+            lines.append(
+                f"| `{fname}` | {r2_status} ({fm.r2:.4f}) | {rl2_status} ({fm.relative_l2:.4f}) |"
+            )
 
         if eval_results.metadata:
             lines += [
-                f"",
-                f"## Metadata",
-                f"",
-                f"```json",
+                "",
+                "## Metadata",
+                "",
+                "```json",
                 f"{json.dumps(eval_results.metadata, indent=2)}",
-                f"```",
+                "```",
             ]
 
         md_path = output_dir / "eval_report.md"

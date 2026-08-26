@@ -9,31 +9,34 @@ import torch
 import torch.nn as nn
 from torchvision import models, transforms
 
-
 NUM_CLASSES = 3  # Type 1, 2, 3
 
 
 def get_image_transforms(training: bool = True) -> transforms.Compose:
     """Get image transforms for training or inference."""
     if training:
-        return transforms.Compose([
+        return transforms.Compose(
+            [
+                transforms.Resize((224, 224)),
+                transforms.RandomHorizontalFlip(p=0.3),
+                transforms.ColorJitter(brightness=0.1, contrast=0.1),
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406],
+                    std=[0.229, 0.224, 0.225],
+                ),
+            ]
+        )
+    return transforms.Compose(
+        [
             transforms.Resize((224, 224)),
-            transforms.RandomHorizontalFlip(p=0.3),
-            transforms.ColorJitter(brightness=0.1, contrast=0.1),
             transforms.ToTensor(),
             transforms.Normalize(
                 mean=[0.485, 0.456, 0.406],
                 std=[0.229, 0.224, 0.225],
             ),
-        ])
-    return transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(
-            mean=[0.485, 0.456, 0.406],
-            std=[0.229, 0.224, 0.225],
-        ),
-    ])
+        ]
+    )
 
 
 class DDImageClassifier(nn.Module):

@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ImperialAX Laminate Forecast — Rebuild</title>
+    <link rel="alternate" hreflang="ko" href="/v2/ko" />
+    <link rel="alternate" hreflang="en" href="/v2/en" />
+  <link rel="stylesheet" href="/styles-rebuild.css?v=20260816-mobile-polish-2" />
+  </head>
+  <body>
+    <main class="rebuild-shell">
+      <header class="rebuild-header">
+        <a class="brand" href="/" aria-label="Return to the current production UI">
+          <img src="/assets/imperialax-logo-black.png?v=20260812-v2-logo-1" alt="ImperialAX" />
+        </a>
+        <div class="header-title">
+          <span>Laminate Forecast</span>
+          <strong>Laminate candidate screening</strong>
+        </div>
+        <div class="header-actions">
+          <span class="status-badge"><i></i>Concept preview</span>
+          <a href="/">Current production UI</a>
+        </div>
+      </header>
+
+      <section class="command-bar" aria-label="Analysis mode and current input">
+        <div class="analysis-mode">
+          <span>Analysis mode</span>
+          <div class="segmented-control" role="radiogroup" aria-label="Analysis mode">
+            <button type="button" role="radio" aria-checked="true" tabindex="0" data-analysis-mode="quick">Quick screening</button>
+            <button type="button" role="radio" aria-checked="false" tabindex="-1" data-analysis-mode="deep">Deep dive</button>
+          </div>
+        </div>
+        <p class="current-input" id="current-input-summary">
+          <span>Current input</span>
+          <strong>Case 2 · θ 30° / −30° · 6 × 4 in</strong>
+        </p>
+      </section>
+
+      <section class="forecast-layout">
+        <aside class="setup-panel" id="setup-panel" aria-labelledby="setup-title">
+          <form id="rebuild-forecast-form" novalidate>
+            <div class="section-heading">
+              <span>Forecast setup</span>
+              <h1 id="setup-title">Candidate setup</h1>
+              <p>Adjust the key variables to screen candidates quickly.</p>
+            </div>
+
+            <label class="field">
+              <span>Model</span>
+              <select name="model" id="rebuild-model-select">
+                <optgroup label="3-Size Pt-Consistent">
+                  <option value="response_pt_consistent_tree_3size_grouped_v1">Machine Learning · Tree</option>
+                  <option value="response_pt_consistent_goint_3size_grouped_v1">Deep Learning · GointMLP</option>
+                  <option value="response_pt_consistent_hybrid_3size_grouped_v1">Hybrid · Teacher–Student</option>
+                </optgroup>
+              </select>
+              <small class="model-description" id="model-description">A fast, stable Tree-based 3-Size Pt-consistent model.</small>
+            </label>
+
+            <div class="angle-fields">
+              <label class="angle-field">
+                <span class="field-head"><span>Theta 1</span><output data-angle-output="theta1">+30°</output></span>
+                <input name="theta1" type="number" min="-90" max="90" value="30" required />
+                <input name="theta1_range" type="range" min="-90" max="90" value="30" aria-label="Theta 1 slider" />
+              </label>
+              <label class="angle-field">
+                <span class="field-head"><span>Theta 2</span><output data-angle-output="theta2">−30°</output></span>
+                <input name="theta2" type="number" min="-90" max="90" value="-30" required />
+                <input name="theta2_range" type="range" min="-90" max="90" value="-30" aria-label="Theta 2 slider" />
+              </label>
+            </div>
+
+            <label class="field">
+              <span>Case</span>
+              <select name="case">
+                <option value="Case2">Case 2</option>
+                <option value="Case3">Case 3</option>
+                <option value="Case4">Case 4</option>
+              </select>
+            </label>
+
+            <div class="panel-fields">
+              <label class="field">
+                <span>Panel length a (in)</span>
+                <input name="panel_a" type="number" min="0.1" step="0.1" value="6" required />
+              </label>
+              <label class="field">
+                <span>Panel width b (in)</span>
+                <input name="panel_b" type="number" min="0.1" step="0.1" value="4" required />
+              </label>
+            </div>
+
+            <details class="stack-preview-details">
+              <summary>
+                <span><strong>Laminate preview</strong><small id="stack-preview-summary">Case 2 · θ +30° / −30°</small></span>
+                <i aria-hidden="true"></i>
+              </summary>
+              <div class="mini-stack" id="stack-preview-visual" aria-label="Double-Double laminate preview"></div>
+              <div class="stack-preview-legend" aria-label="Laminate preview legend">
+                <span class="theta-one"><i aria-hidden="true"></i>θ₁ family</span>
+                <span class="theta-two"><i aria-hidden="true"></i>θ₂ family</span>
+                <strong id="stack-preview-count">16 plies</strong>
+              </div>
+              <p id="stack-formula">Case 2 · [[±θ₁]/[±θ₂]]₄</p>
+            </details>
+
+            <button class="run-button" type="submit">
+              <span>Run forecast</span>
+              <small>Add the new result to comparison</small>
+            </button>
+            <p class="inline-state" id="inline-state" aria-live="polite"></p>
+          </form>
+        </aside>
+
+        <section class="result-workspace" aria-labelledby="result-workspace-title">
+          <div class="workspace-heading">
+            <div>
+              <span>Analysis workspace</span>
+              <h2 id="result-workspace-title">Forecast results</h2>
+            </div>
+            <p id="result-timestamp">No result yet</p>
+          </div>
+
+          <section class="result-empty-state" id="result-empty-state" aria-labelledby="result-empty-title">
+            <div class="result-empty-mark" aria-hidden="true"><i></i><i></i><i></i></div>
+            <span>Forecast result</span>
+            <h3 id="result-empty-title">No forecast has been run yet</h3>
+            <p>Set the conditions on the left, then run the forecast.</p>
+            <button type="button" id="show-example-result">View example result</button>
+            <small>Example data is not a model-run result.</small>
+          </section>
+
+          <div class="result-tabs" role="tablist" aria-label="Forecast result views" hidden>
+            <button role="tab" id="tab-summary" aria-selected="true" aria-controls="panel-summary" tabindex="0" data-result-tab="summary">Summary</button>
+            <button role="tab" id="tab-curve" aria-selected="false" aria-controls="panel-curve" tabindex="-1" data-result-tab="curve">Curve</button>
+            <button role="tab" id="tab-ply" aria-selected="false" aria-controls="panel-ply" tabindex="-1" data-result-tab="ply">Ply Sequence</button>
+            <button role="tab" id="tab-xai" aria-selected="false" aria-controls="panel-xai" tabindex="-1" data-result-tab="xai">XAI</button>
+            <button role="tab" id="tab-space" aria-selected="false" aria-controls="panel-space" tabindex="-1" data-result-tab="space">Design space</button>
+          </div>
+
+          <div class="tab-panels" hidden>
+            <section role="tabpanel" id="panel-summary" aria-labelledby="tab-summary" data-result-panel="summary">
+              <article class="decision-hero" aria-labelledby="decision-hero-title">
+                  <header class="decision-section-heading">
+                    <h3 id="decision-hero-title">Predicted behavior</h3>
+                    <strong id="screening-verdict">Deep-dive review recommended</strong>
+                  </header>
+
+                  <div class="result-metric-strip" aria-label="Key forecast metrics">
+                    <article>
+                      <span>Type</span>
+                      <strong id="metric-type">Type 2</strong>
+                    </article>
+                    <article>
+                      <span>Type probability</span>
+                      <strong id="metric-probability">87.4%</strong>
+                    </article>
+                    <article>
+                      <span>Transition Pt</span>
+                      <strong id="metric-pt">17,190.00</strong>
+                      <small>N</small>
+                    </article>
+                    <article>
+                      <span>Maximum force</span>
+                      <strong id="metric-max-force-summary">23,152.50</strong>
+                      <small>N</small>
+                    </article>
+                    <article>
+                      <span>Maximum displacement</span>
+                      <strong id="metric-displacement">0.0832</strong>
+                      <small>in</small>
+                    </article>
+                  </div>
+
+                  <p class="result-summary-copy" id="screening-copy">Pt is competitive, but the Type 2 transition makes the curve and XAI worth reviewing.</p>
+
+                  <div class="summary-curve-shell">
+                    <canvas id="rebuild-summary-curve-canvas" width="960" height="320" aria-label="Summary predicted response curve"></canvas>
+                  </div>
+                  <footer class="decision-stack-row">
+                    <div class="decision-stack-heading">
+                      <div>
+                        <span>Ply fingerprint</span>
+                        <strong id="summary-stack-label">Case 2 · θ +30° / −30°</strong>
+                        <small id="summary-stack-meta">16 plies · Double-Double laminate</small>
+                      </div>
+                      <button type="button" data-open-deep="ply">View in 3D</button>
+                    </div>
+                    <div class="summary-stack-visual ply-sequence" id="summary-stack-visual" aria-label="Summary laminate fingerprint"></div>
+                  </footer>
+              </article>
+
+              <aside class="result-context" id="result-context" aria-label="Prediction context">
+                <dl>
+                  <div><dt>Model</dt><dd id="trust-model">Machine Learning · Tree</dd></div>
+                  <div><dt>Training domain</dt><dd id="trust-domain">Case 2–4 · 3 panel sizes</dd></div>
+                  <div><dt>Current position</dt><dd id="trust-position">Interpolation region</dd></div>
+                  <div class="result-context-reliability"><dt>Reliability</dt><dd><strong id="metric-reliability">High</strong><span id="metric-reliability-score">91.2%</span></dd></div>
+                </dl>
+                <button type="button" data-open-deep="xai">View XAI</button>
+              </aside>
+            </section>
+
+            <section role="tabpanel" id="panel-curve" aria-labelledby="tab-curve" data-result-panel="curve" hidden>
+              <div class="panel-title">
+                <div><span>Response curve</span><h3>Predicted load–displacement curve</h3></div>
+              </div>
+              <div class="tab-metric-row" aria-label="Key curve metrics">
+                <article><span>Maximum force</span><strong id="curve-max-force">-</strong><small>N</small></article>
+                <article><span>Maximum displacement</span><strong id="curve-max-displacement">-</strong><small>in</small></article>
+                <article><span>Transition Pt</span><strong id="curve-pt">-</strong><small>N</small></article>
+              </div>
+              <div class="curve-viewer-head">
+                <span>Curve detail · Drag to pan · Pinch to zoom</span>
+                <div class="curve-tools" aria-label="Response curve zoom controls">
+                  <button type="button" data-curve-zoom="out" title="Zoom out" aria-label="Zoom curve out">−</button>
+                  <output id="rebuild-curve-zoom-label">100%</output>
+                  <button type="button" data-curve-zoom="in" title="Zoom in" aria-label="Zoom curve in">+</button>
+                  <button type="button" data-curve-zoom="reset" title="Reset" aria-label="Reset curve view">Reset</button>
+                </div>
+              </div>
+              <canvas id="rebuild-curve-canvas" width="960" height="480" aria-label="Predicted response curve"></canvas>
+              <div class="chart-legend curve-legend-row" aria-label="Response curve legend"><span><i class="curve-line"></i>Predicted curve</span><span><i class="fit-line"></i>P1 linear fits</span><span><i class="pt-dot"></i>Predicted Pt</span></div>
+              <p class="tab-note" id="curve-note">Displays the model's raw predicted curve and transition Pt together.</p>
+            </section>
+
+            <section role="tabpanel" id="panel-ply" aria-labelledby="tab-ply" data-result-panel="ply" hidden>
+              <div class="panel-title">
+                <div><span>Laminate architecture</span><h3>Full ply sequence</h3></div>
+                <p>Inspect the 3D orientation of all 16 plies.</p>
+              </div>
+              <div class="ply-detail-layout">
+                <div class="result-stack-visual" id="result-stack-visual" aria-label="Detailed 3D laminate stack"></div>
+                <aside class="ply-detail-meta" aria-label="Laminate stack summary">
+                  <div><span>Stack case</span><strong id="result-stack-summary">Case 2 · θ +30° / −30°</strong></div>
+                  <div><span>Sequence formula</span><strong id="result-stack-formula">[[±θ₁]/[±θ₂]]₄</strong></div>
+                  <div><span>Total</span><strong id="result-stack-count">16 plies</strong></div>
+                  <p>Color identifies the θ family; the diagonal indicates each ply's positive or negative direction.</p>
+                </aside>
+              </div>
+              <div class="ply-sequence-detail">
+                <div class="ply-sequence-heading">
+                  <div><span>Sequence map</span><strong>Surface to bottom · P1 → P16</strong></div>
+                  <div class="stack-preview-legend" aria-label="Ply sequence legend">
+                    <span class="theta-one"><i aria-hidden="true"></i>θ₁ family</span>
+                    <span class="theta-two"><i aria-hidden="true"></i>θ₂ family</span>
+                  </div>
+                </div>
+                <div class="ply-sequence ply-sequence-large" id="result-ply-sequence" aria-label="Full ply sequence"></div>
+              </div>
+            </section>
+
+            <section role="tabpanel" id="panel-xai" aria-labelledby="tab-xai" data-result-panel="xai" hidden>
+              <div class="panel-title">
+                <div><span>Local explanation</span><h3>Why this prediction?</h3></div>
+                <p>Compare how the current inputs influence the prediction.</p>
+              </div>
+              <div class="xai-summary-card">
+                <div><span>Explanation method</span><strong id="xai-method">Occlusion sensitivity</strong></div>
+                <p id="xai-summary">Physics features ranked by their effect on the current prediction.</p>
+              </div>
+              <div class="xai-list" id="rebuild-xai-list"></div>
+              <details class="xai-more hidden" id="rebuild-xai-more">
+                <summary><span>Additional features <strong id="rebuild-xai-more-count">0</strong></span><i aria-hidden="true"></i></summary>
+                <div class="xai-list xai-more-list" id="rebuild-xai-more-list"></div>
+              </details>
+              <ul class="tab-notes" id="xai-notes"></ul>
+            </section>
+
+            <section role="tabpanel" id="panel-space" aria-labelledby="tab-space" data-result-panel="space" hidden>
+              <div class="panel-title">
+                <div><span>Design space</span><h3>Current candidate in the design space</h3></div>
+                <p>Compare the current position with existing analysis data.</p>
+              </div>
+              <div class="space-filter-toolbar" aria-label="Design-space case filter">
+                <div class="space-filter-buttons">
+                  <button type="button" data-space-case="current" aria-pressed="true">Current case</button>
+                  <button type="button" data-space-case="all" aria-pressed="false">All</button>
+                  <button type="button" data-space-case="Case2" aria-pressed="false">Case 2</button>
+                  <button type="button" data-space-case="Case3" aria-pressed="false">Case 3</button>
+                  <button type="button" data-space-case="Case4" aria-pressed="false">Case 4</button>
+                </div>
+                <span id="space-filter-count" aria-live="polite">Loading data</span>
+              </div>
+              <div class="space-canvas-shell">
+                <canvas id="rebuild-space-canvas" width="960" height="420" aria-label="Design-space scatter plot"></canvas>
+                <div class="space-point-tooltip hidden" id="rebuild-space-tooltip" role="tooltip"></div>
+              </div>
+              <div class="space-map-legend" aria-label="Design-space map legend">
+                <span><i class="map-dot type-1"></i>Type 1</span>
+                <span><i class="map-dot type-2"></i>Type 2</span>
+                <span><i class="map-dot type-3"></i>Type 3</span>
+                <span><i class="map-dot current"></i>Current input</span>
+                <span><i class="map-dot selected-case"></i>Current case is emphasized</span>
+              </div>
+              <div class="space-insights">
+                <article><span>Case risk</span><strong id="space-risk">Low · 24%</strong></article>
+                <article><span>Nearest analysis</span><strong id="space-nearest">Case 2 · Δθ 5.0°</strong></article>
+                <article><span>Recommended candidate</span><strong id="space-recommendation">Case 2 · θ 55° / −20°</strong></article>
+              </div>
+              <p class="tab-note" id="space-note">Compares against existing analyses nearest to the current panel size.</p>
+            </section>
+          </div>
+        </section>
+      </section>
+
+      <section class="comparison-section" aria-labelledby="comparison-title">
+        <div class="comparison-heading">
+          <div><span>Run comparison</span><h2 id="comparison-title">Run comparison</h2></div>
+          <p>Select a row to restore its inputs.</p>
+        </div>
+        <div class="comparison-table-wrap">
+          <p class="comparison-empty" id="comparison-empty">No run history yet. Forecast results will appear here after execution.</p>
+          <table class="comparison-table" id="comparison-table" hidden>
+            <thead>
+              <tr>
+                <th><button type="button" data-sort="case" aria-sort="none">Case</button></th>
+                <th><button type="button" data-sort="modelLabel" aria-sort="none">Model</button></th>
+                <th><button type="button" data-sort="theta1" aria-sort="none">θ₁</button></th>
+                <th><button type="button" data-sort="theta2" aria-sort="none">θ₂</button></th>
+                <th><button type="button" data-sort="type" aria-sort="none">Type</button></th>
+                <th><button type="button" data-sort="pt" aria-sort="none">Pt</button></th>
+                <th><button type="button" data-sort="reliability" aria-sort="none">Reliability</button></th>
+              </tr>
+            </thead>
+            <tbody id="comparison-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+  <script src="/locales-rebuild.js?v=20260813-mobile-design-space-1"></script>
+  <script src="/app-rebuild-preview.js?v=20260816-clean-preview-1"></script>
+  </body>
+</html>

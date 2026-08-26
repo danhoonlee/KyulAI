@@ -1,0 +1,97 @@
+(() => {
+  const locale = document.documentElement.lang.toLowerCase().startsWith("ko") ? "ko" : "en";
+  const messages = {
+    returnCurrentAria: ["현재 운영 화면으로 돌아가기", "Return to the current production UI"],
+    screeningTitle: ["사출 조건 스크리닝", "Injection candidate screening"],
+    currentUi: ["현재 운영 화면", "Current production UI"],
+    previousUi: ["이전 화면", "Previous UI"],
+    modules: ["모듈 선택", "Modules"],
+    analysisModeInput: ["분석 모드와 현재 입력", "Analysis mode and current input"],
+    analysisMode: ["분석 모드", "Analysis mode"],
+    quick: ["빠른 스크리닝", "Quick screening"],
+    deep: ["딥 다이브", "Deep dive"],
+    currentInput: ["현재 입력", "Current input"],
+    loadingDoe: ["DOE 불러오는 중", "Loading DOE"],
+    candidateSetup: ["후보 조건 설정", "Candidate setup"],
+    setupCopy: ["핵심 형상과 공정값을 조정해 후보를 빠르게 선별합니다.", "Adjust key geometry and process values to screen candidates quickly."],
+    sprueModel: ["스프루 모델", "Sprue model"],
+    fillingModel: ["필링 모델", "Filling model"],
+    geometryDoe: ["형상 DOE", "Geometry DOE"],
+    processDoe: ["공정 DOE", "Process DOE"],
+    meltTemperature: ["수지 온도 (°C)", "Melt temperature (°C)"],
+    moldTemperature: ["금형 온도 (°C)", "Mold temperature (°C)"],
+    packingPressure: ["보압 (MPa)", "Packing pressure (MPa)"],
+    injectionTime: ["사출 시간 (s)", "Injection time (s)"],
+    packingTime: ["보압 시간 (s)", "Packing time (s)"],
+    length: ["길이 L (mm)", "Length L (mm)"],
+    width: ["폭 W (mm)", "Width W (mm)"],
+    thickness: ["두께 (mm)", "Thickness (mm)"],
+    holeDiameter: ["홀 직경 (mm)", "Hole diameter (mm)"],
+    holeRadius: ["홀 반경 (mm)", "Hole radius (mm)"],
+    gateCondition: ["게이트 조건", "Gate condition"],
+    gateFixedStatus: ["고정", "Fixed"],
+    gateTypeLabel: ["유형", "Type"],
+    gateTypeValue: ["에지 게이트", "Edge gate"],
+    gateSizeLabel: ["크기", "Size"],
+    gateSizeValue: ["10 × 1.5 mm", "10 × 1.5 mm"],
+    gateFixedNote: ["학습 DOE에 포함된 조건이며 변경할 수 없습니다.", "This condition is included in the training DOE and cannot be changed."],
+    machineLearning: ["머신러닝 (Machine Learning)", "Machine Learning"],
+    deepLearning: ["딥러닝 (Deep Learning)", "Deep Learning"],
+    operatorLearning: ["오퍼레이터 러닝 (Operator Learning)", "Operator Learning"],
+    unavailable: ["사용 불가", "Unavailable"],
+    recommended: ["추천", "Recommended"],
+    preventionComplete: ["입력 조건 확인 완료", "Input check complete"],
+    runForecast: ["예측 실행", "Run forecast"],
+    runForecastDetail: ["스프루 · 필링 · XAI 결과 생성", "Generate sprue, filling, and XAI results"],
+    results: ["예측 결과", "Forecast results"],
+    selectAndRun: ["조건을 선택하고 예측을 실행해 주세요.", "Select conditions and run the forecast."],
+    noResultYet: ["아직 실행된 결과 없음", "No result yet"],
+    emptyTitle: ["아직 실행된 예측이 없습니다", "No forecast has been run yet"],
+    emptyCopy: ["왼쪽에서 형상과 공정 조건을 설정한 후 예측을 실행하세요.", "Set the geometry and process conditions on the left, then run the forecast."],
+    showExample: ["예시 결과 보기", "View example result"],
+    exampleDisclaimer: ["예시 데이터는 모델을 실행한 결과가 아닙니다.", "Example data is not a model-run result."],
+    exampleResult: ["예시 데이터", "Example data"],
+    exampleNote: ["화면 구성을 확인하기 위한 예시이며 모델 실행 결과가 아닙니다.", "This example demonstrates the interface and is not a model-run result."],
+    exampleXaiSummary: ["예시 입력에서 영향이 큰 형상·공정 feature를 보여줍니다.", "Shows geometry and process features with high influence for the example input."],
+    resultViews: ["Injection 예측 결과 보기", "Injection forecast result views"],
+    summary: ["요약", "Summary"],
+    sprueCurve: ["스프루 곡선", "Sprue curve"],
+    fillingDistribution: ["필링 분포", "Filling distribution"],
+    validation: ["검증", "Validation"],
+    deepHintBefore: ["XAI와 Moldex3D 검증은", "XAI and Moldex3D validation are available in"],
+    deepHintAfter: ["에서 확인할 수 있습니다.", "."],
+    pressureCurve: ["압력 곡선", "Pressure curve"],
+    pressureDistribution: ["압력 분포", "Pressure distribution"],
+    sampleId: ["샘플 ID", "Sample ID"],
+    sprueCsv: ["스프루 CSV 파일", "Sprue CSV file"],
+    fillingCsv: ["필링 CSV 파일", "Filling CSV file"],
+    csvGuide: ["CSV 형식과 예시 파일 확인", "CSV format and sample files"],
+    csvGuideCopy: ["현재 예측과 같은 조건의 Moldex3D 내보내기 파일을 사용하세요. 두 파일 중 하나만 올려도 비교할 수 있습니다.", "Use Moldex3D exports for the same conditions as the current forecast. Either file can be uploaded on its own."],
+    sprueCsvRule: ["열과 샘플별 압력(MPa) 열", "column and a pressure (MPa) column for each sample"],
+    fillingCsvRule: ["아래 Group, From, To, Center, Count, Volume Ratio(%) 열", "followed by Group, From, To, Center, Count, and Volume Ratio(%) columns"],
+    sampleNav: ["검증용 CSV 예시 다운로드", "Download validation CSV samples"],
+    sprueSample: ["G01/P01 스프루 예시", "G01/P01 sprue sample"],
+    fillingSample: ["G01/P01 필링 예시", "G01/P01 filling sample"],
+    runComparison: ["실행 이력 비교", "Run comparison"],
+    runComparisonCopy: ["이 기기에 저장된 최근 실행입니다. 항목을 선택하면 형상과 공정 조건을 다시 불러옵니다.", "Recent runs saved on this device. Select an item to restore its geometry and process conditions."],
+    resultNow: ["실제 모델 결과 · 방금 전", "Actual model result · just now"],
+    inputSummary: ["형상 {geometry} · 공정 {process} · 수지 {melt}°C · 보압 {packing} MPa", "Geometry {geometry} · Process {process} · Melt {melt}°C · Packing {packing} MPa"],
+    languageNav: ["언어 선택", "Language selection"],
+    korean: ["한국어", "Korean"],
+  };
+
+  function format(template, values = {}) {
+    return Object.entries(values).reduce(
+      (output, [key, value]) => output.replaceAll(`{${key}}`, String(value)),
+      template,
+    );
+  }
+
+  function t(key, values) {
+    const pair = messages[key];
+    if (!pair) return key;
+    return format(pair[locale === "ko" ? 0 : 1], values);
+  }
+
+  window.ImperialAXInjectionLocale = { locale, t };
+})();

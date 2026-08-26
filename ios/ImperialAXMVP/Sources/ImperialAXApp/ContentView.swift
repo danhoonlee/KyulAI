@@ -38,20 +38,24 @@ final class ImperialAXHomeViewModel: ObservableObject {
     private let sessionLifetime: TimeInterval
     private let now: () -> Date
     private let userDefaults: UserDefaults
+    private let sessionStore: SessionDataStore
     private static let defaultSessionLifetime: TimeInterval = 24 * 60 * 60
 
     init(
         client: ModuleCatalogClient = ModuleCatalogClient(),
         userDefaults: UserDefaults = .standard,
+        sessionStore: SessionDataStore = KeychainSessionDataStore(),
         sessionLifetime: TimeInterval = ImperialAXHomeViewModel.defaultSessionLifetime,
         now: @escaping () -> Date = Date.init
     ) {
         self.client = client
         self.userDefaults = userDefaults
+        self.sessionStore = sessionStore
         self.sessionLifetime = sessionLifetime
         self.now = now
         self.authSession = Self.loadSession(
             from: userDefaults,
+            store: sessionStore,
             key: sessionKey,
             savedAtKey: sessionSavedAtKey,
             sessionLifetime: sessionLifetime,
@@ -88,9 +92,14 @@ final class ImperialAXHomeViewModel: ObservableObject {
         defer { isLoading = false }
         do {
             let response = try await client.fetchUserModules(authSession: authSession)
-            modules = response.modules.map(Self.normalizedModuleCopy)
+            modules = response.modules
             statusText = response.licenseMode == "entitled" ? "Account workspace" : "Demo workspace"
         } catch {
+            if case ModuleCatalogError.unauthorized = error {
+                signOut()
+                loginError = "Your session expired. Please sign in again."
+                return
+            }
             modules = ImperialAXFallbackCatalog.modules
             statusText = "Offline account"
         }
@@ -101,19 +110,30 @@ final class ImperialAXHomeViewModel: ObservableObject {
         loginError = nil
         defer { isLoading = false }
         let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let normalizedEmail = trimmedEmail.isEmpty ? "demo@imperialax.com" : trimmedEmail
+        guard !trimmedEmail.isEmpty, !password.isEmpty else {
+            loginError = "Enter your email and password."
+            return
+        }
         do {
-            let session = try await client.demoLogin(email: normalizedEmail, password: password)
+            let session = try await client.login(email: trimmedEmail, password: password)
             setSession(session)
         } catch {
-            if normalizedEmail == "danlee@imperialax.com" {
-                setSession(.danlee)
-            } else if normalizedEmail == "demo@imperialax.com" || normalizedEmail.isEmpty {
-                setSession(.demo)
-            } else {
-                loginError = "Use demo@imperialax.com for the MVP account."
-                return
-            }
+            loginError = "Check your email and password."
+            return
+        }
+        await refresh()
+    }
+
+    func signInDemo() async {
+        isLoading = true
+        loginError = nil
+        defer { isLoading = false }
+        do {
+            let session = try await client.demoLogin()
+            setSession(session)
+        } catch {
+            loginError = "The demo workspace is temporarily unavailable."
+            return
         }
         await refresh()
     }
@@ -148,6 +168,7 @@ final class ImperialAXHomeViewModel: ObservableObject {
         authSession = nil
         loginError = nil
         accessRequestMessage = nil
+        sessionStore.delete()
         userDefaults.removeObject(forKey: sessionKey)
         userDefaults.removeObject(forKey: sessionSavedAtKey)
         modules = ImperialAXFallbackCatalog.modules.map { module in
@@ -192,14 +213,22 @@ final class ImperialAXHomeViewModel: ObservableObject {
         let normalizedSession = Self.normalizedSession(session)
         authSession = normalizedSession
         if let data = try? JSONEncoder().encode(normalizedSession) {
-            userDefaults.set(data, forKey: sessionKey)
+            sessionStore.save(data)
+            userDefaults.removeObject(forKey: sessionKey)
             userDefaults.set(now(), forKey: sessionSavedAtKey)
         }
     }
 
     @discardableResult
     func expireSessionIfNeeded() -> Bool {
-        guard authSession != nil else { return false }
+        guard let authSession else { return false }
+        if let expiresAt = authSession.expiresAt,
+           let expiry = Self.parseServerDate(expiresAt),
+           now() >= expiry {
+            signOut()
+            loginError = "Session expired. Please sign in again."
+            return true
+        }
         guard let savedAt = userDefaults.object(forKey: sessionSavedAtKey) as? Date else {
             userDefaults.set(now(), forKey: sessionSavedAtKey)
             return false
@@ -212,98 +241,33 @@ final class ImperialAXHomeViewModel: ObservableObject {
         return true
     }
 
-    private static func normalizedModuleCopy(_ module: ImperialAXModule) -> ImperialAXModule {
-        let normalized: (name: String, shortName: String, category: String, summary: String, tags: [String], accessReason: String?)
-        let route: ImperialAXModuleRoute
-
-        switch module.id {
-        case "laminate":
-            normalized = (
-                "Laminate",
-                "Laminate",
-                "Composite",
-                "Predict Type, Pt, and response curve.",
-                ["Double-Double", "Pt", "Force-displacement"],
-                "Available in the ImperialAX MVP workspace."
-            )
-            route = module.route
-        case "injection":
-            normalized = (
-                "Injection",
-                "Injection",
-                "Molding",
-                "Predict sprue and filling pressure.",
-                ["Moldex3D", "Sprue pressure", "Filling pressure"],
-                "Available in the ImperialAX MVP workspace."
-            )
-            route = module.route
-        case "optimization":
-            normalized = (
-                "Optimization",
-                "Optimize",
-                "Design",
-                "Rank promising design candidates.",
-                ["DOE", "Ranking", "Design space"],
-                module.isGranted ? "Available in the ImperialAX workspace." : "Requires Optimization module access."
-            )
-            route = ImperialAXModuleRoute(
-                baseURL: module.route.baseURL,
-                webURL: URL(string: "https://ai.imperialax.com/optimization.html")!,
-                apiPrefix: module.route.apiPrefix,
-                healthPath: module.route.healthPath,
-                modelsPath: module.route.modelsPath,
-                primaryPredictPath: module.route.primaryPredictPath
-            )
-        case "admin":
-            normalized = (
-                "Admin",
-                "Admin",
-                "Account",
-                "Manage users and module access.",
-                ["Users", "Access", "Admin"],
-                "Visible only to ImperialAX admin accounts."
-            )
-            route = ImperialAXModuleRoute(
-                baseURL: module.route.baseURL,
-                webURL: URL(string: "https://ai.imperialax.com/admin.html")!,
-                apiPrefix: module.route.apiPrefix,
-                healthPath: module.route.healthPath,
-                modelsPath: module.route.modelsPath,
-                primaryPredictPath: module.route.primaryPredictPath
-            )
-        default:
-            return module
-        }
-
-        return ImperialAXModule(
-            id: module.id,
-            name: normalized.name,
-            shortName: normalized.shortName,
-            category: normalized.category,
-            summary: normalized.summary,
-            icon: module.icon,
-            status: module.status,
-            entitlementKey: module.entitlementKey,
-            defaultEnabled: module.defaultEnabled,
-            tags: normalized.tags,
-            capabilities: module.capabilities,
-            route: route,
-            access: module.access,
-            accessReason: normalized.accessReason
-        )
-    }
-
     private static func loadSession(
         from userDefaults: UserDefaults,
+        store: SessionDataStore,
         key: String,
         savedAtKey: String,
         sessionLifetime: TimeInterval,
         now: Date
     ) -> ImperialAXAuthSession? {
-        guard let data = userDefaults.data(forKey: key) else { return nil }
+        let secureData = store.load()
+        let legacyData = userDefaults.data(forKey: key)
+        guard let data = secureData ?? legacyData else { return nil }
+        if secureData == nil, legacyData != nil {
+            store.save(data)
+            userDefaults.removeObject(forKey: key)
+        }
         guard let session = try? JSONDecoder().decode(ImperialAXAuthSession.self, from: data) else { return nil }
+        if let expiresAt = session.expiresAt,
+           let expiry = Self.parseServerDate(expiresAt),
+           now >= expiry {
+            store.delete()
+            userDefaults.removeObject(forKey: key)
+            userDefaults.removeObject(forKey: savedAtKey)
+            return nil
+        }
         if let savedAt = userDefaults.object(forKey: savedAtKey) as? Date {
             if isSessionExpired(savedAt: savedAt, now: now, sessionLifetime: sessionLifetime) {
+                store.delete()
                 userDefaults.removeObject(forKey: key)
                 userDefaults.removeObject(forKey: savedAtKey)
                 return nil
@@ -312,6 +276,12 @@ final class ImperialAXHomeViewModel: ObservableObject {
             userDefaults.set(now, forKey: savedAtKey)
         }
         return normalizedSession(session)
+    }
+
+    private static func parseServerDate(_ value: String) -> Date? {
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return fractional.date(from: value) ?? ISO8601DateFormatter().date(from: value)
     }
 
     private static func isSessionExpired(savedAt: Date, now: Date, sessionLifetime: TimeInterval) -> Bool {
@@ -335,16 +305,12 @@ final class ImperialAXHomeViewModel: ObservableObject {
             name: normalizedName,
             company: session.user.company
         )
-        var entitlements = session.entitlements
-        if ["danlee@imperialax.com", "danlee@imperialax.com", "dannylee9295@gmail.com"].contains(session.user.email.lowercased()),
-           !entitlements.contains("module.admin") {
-            entitlements.append("module.admin")
-        }
         return ImperialAXAuthSession(
             accessToken: session.accessToken,
             tokenType: session.tokenType,
+            expiresAt: session.expiresAt,
             user: user,
-            entitlements: entitlements
+            entitlements: session.entitlements
         )
     }
 }
@@ -508,25 +474,13 @@ struct ContentView: View {
                         Text(authMode == .signup ? "Use existing account" : "Create a new account")
                             .font(.subheadline.weight(.bold))
                             .frame(maxWidth: .infinity)
-                            .frame(height: 42)
+                            .frame(height: 44)
                     }
                     .foregroundStyle(ImperialAXStyle.blue)
                     .background(ImperialAXStyle.blueSoft, in: RoundedRectangle(cornerRadius: 8))
                     .disabled(viewModel.isLoading)
 
-                    Button {
-                        email = ""
-                        password = ""
-                        Task { await viewModel.signIn(email: email, password: password) }
-                    } label: {
-                        Text("Continue with demo account")
-                            .font(.subheadline.weight(.bold))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 42)
-                    }
-                    .foregroundStyle(ImperialAXStyle.teal)
-                    .background(ImperialAXStyle.tealSoft, in: RoundedRectangle(cornerRadius: 8))
-                    .disabled(viewModel.isLoading)
+                    demoLoginAction
 
                     Text(authMode == .signup ? "Use at least 8 characters to create an account." : "New accounts include Laminate and Injection access.")
                         .font(.caption.weight(.semibold))
@@ -538,6 +492,27 @@ struct ContentView: View {
                 .shadow(color: Color.black.opacity(0.06), radius: 18, y: 10)
             }
             .padding(20)
+        }
+    }
+
+    @ViewBuilder
+    private var demoLoginAction: some View {
+        if authMode == .login {
+            Button {
+                Task { await viewModel.signInDemo() }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "play.circle.fill")
+                    Text("Try demo workspace")
+                }
+                .font(.subheadline.weight(.bold))
+                .frame(maxWidth: .infinity)
+                .frame(height: 44)
+            }
+            .foregroundStyle(ImperialAXStyle.blue)
+            .background(ImperialAXStyle.surface, in: RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(ImperialAXStyle.blue.opacity(0.28)))
+            .disabled(viewModel.isLoading)
         }
     }
 
@@ -582,7 +557,7 @@ struct ContentView: View {
                     .font(.caption.weight(.heavy))
                     .foregroundStyle(Color(red: 0.03, green: 0.47, blue: 0.34))
                     .padding(.horizontal, 12)
-                    .frame(height: 38)
+                    .frame(height: 44)
                     .background(ImperialAXStyle.greenSoft, in: Capsule())
                 }
                 Button {
@@ -592,7 +567,7 @@ struct ContentView: View {
                         .font(.caption.weight(.heavy))
                         .foregroundStyle(ImperialAXStyle.muted)
                         .padding(.horizontal, 12)
-                        .frame(height: 38)
+                        .frame(height: 44)
                         .background(ImperialAXStyle.surfaceStrong, in: Capsule())
                         .overlay(Capsule().stroke(ImperialAXStyle.line))
                 }
@@ -637,7 +612,7 @@ struct ContentView: View {
                     .font(.subheadline.weight(.heavy))
                     .foregroundStyle(ImperialAXStyle.ink)
                     .padding(.horizontal, 12)
-                    .frame(height: 40)
+                    .frame(height: 44)
                     .background(.white, in: RoundedRectangle(cornerRadius: 8))
                 }
                 Text(viewModel.statusText)
@@ -690,7 +665,7 @@ private struct PasswordEntryField: View {
                 Image(systemName: isVisible ? "eye.slash" : "eye")
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(ImperialAXStyle.blue)
-                    .frame(width: 34, height: 34)
+                    .frame(width: 44, height: 44)
                     .background(ImperialAXStyle.blueSoft, in: RoundedRectangle(cornerRadius: 8))
             }
             .accessibilityLabel(isVisible ? "Hide password" : "Show password")
@@ -740,7 +715,7 @@ private struct LoginModulePreviewStrip: View {
 
 private struct WorkspaceSummaryStrip: View {
     private let steps: [(number: String, title: String, subtitle: String)] = [
-        ("01", "Account", "Demo access ready."),
+        ("01", "Account", "Sign in once to open your modules."),
         ("02", "Choose module", "Laminate, Injection, Optimization"),
         ("03", "Forecast", "Open a focused model workspace."),
     ]
@@ -784,7 +759,7 @@ struct ModuleCard: View {
     var body: some View {
         if module.id == "laminate", module.isGranted {
             NavigationLink {
-                DDLaminateModuleView()
+                DDLaminateModuleView(accessToken: session?.accessToken)
             } label: {
                 cardContent
             }
@@ -792,7 +767,10 @@ struct ModuleCard: View {
             .accessibilityHint("Open Laminate")
         } else if module.id == "injection", module.isGranted {
             NavigationLink {
-                InjectionModuleView(embedInNavigationStack: false)
+                InjectionModuleView(
+                    embedInNavigationStack: false,
+                    accessToken: session?.accessToken
+                )
             } label: {
                 cardContent
             }
@@ -849,10 +827,10 @@ struct ModuleCard: View {
             actionLabel(title: "Open Laminate", systemImage: "arrow.right", enabled: true)
         } else if module.id == "injection", module.isGranted {
             actionLabel(title: "Open Injection", systemImage: "arrow.right", enabled: true)
-        } else if ["admin", "optimization"].contains(module.id), module.isGranted, let url = authenticatedWebURL {
+        } else if ["admin", "optimization"].contains(module.id), module.isGranted, let session {
             #if os(iOS)
             NavigationLink {
-                AdminWebView(url: url)
+                SecureModuleWebView(module: module, session: session)
                     .navigationTitle(module.name)
                     .navigationBarTitleDisplayMode(.inline)
             } label: {
@@ -971,15 +949,43 @@ struct ModuleCard: View {
         .background(enabled ? ImperialAXStyle.ink : Color.gray, in: RoundedRectangle(cornerRadius: 8))
     }
 
-    private var authenticatedWebURL: URL? {
-        guard let session else { return nil }
-        var components = URLComponents(url: module.route.webURL, resolvingAgainstBaseURL: false)
-        components?.queryItems = [URLQueryItem(name: "session_token", value: session.accessToken)]
-        return components?.url
-    }
 }
 
 #if os(iOS)
+private struct SecureModuleWebView: View {
+    let module: ImperialAXModule
+    let session: ImperialAXAuthSession
+    @State private var launchURL: URL?
+    @State private var errorMessage: String?
+
+    var body: some View {
+        Group {
+            if let launchURL {
+                AdminWebView(url: launchURL)
+            } else if let errorMessage {
+                ContentUnavailableView(
+                    "Could not open \(module.name)",
+                    systemImage: "exclamationmark.triangle",
+                    description: Text(errorMessage)
+                )
+            } else {
+                ProgressView("Opening securely…")
+            }
+        }
+        .task {
+            guard launchURL == nil, errorMessage == nil else { return }
+            do {
+                launchURL = try await ModuleCatalogClient().createLaunchURL(
+                    target: module.id,
+                    authSession: session
+                )
+            } catch {
+                errorMessage = "Your session may have expired. Sign in and try again."
+            }
+        }
+    }
+}
+
 struct AdminWebView: UIViewRepresentable {
     let url: URL
 

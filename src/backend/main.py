@@ -18,9 +18,15 @@ from src.backend.api.v1.router import router as v1_router
 from src.backend.config import Environment, get_settings
 from src.backend.db.session import engine
 from src.backend.exceptions import KyulAIError, NotFoundError
+from src.backend.security.module_access import validate_security_configuration
+from src.backend.security.request_limits import (
+    enforce_module_api_security,
+    platform_protected_routes,
+)
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+validate_security_configuration()
 
 
 # ── Lifespan ──────────────────────────────────────────────────────────────────
@@ -29,7 +35,9 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup / shutdown lifecycle."""
-    logger.info("Starting KyulAI backend (env=%s, version=%s)", settings.env.value, settings.version)
+    logger.info(
+        "Starting KyulAI backend (env=%s, version=%s)", settings.env.value, settings.version
+    )
 
     if settings.env == Environment.PROD and settings.debug:
         raise RuntimeError("debug=True is not allowed in production.")
@@ -76,6 +84,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def platform_api_security(request: Request, call_next):
+    """Keep generic data/model APIs behind the same account boundary as modules."""
+    return await enforce_module_api_security(
+        request,
+        call_next,
+        platform_protected_routes(settings.api_prefix),
+    )
 
 
 # ── Exception handlers ────────────────────────────────────────────────────────

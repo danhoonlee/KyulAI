@@ -21,7 +21,10 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.ml.dd_laminate.response_feature_sets import response_feature_matrix
+from src.ml.dd_laminate.response_feature_sets import (
+    SUPPORTED_RESPONSE_FEATURE_SETS,
+    response_feature_matrix,
+)
 from src.ml.dd_laminate.train_cases_2_3_4_classical import CURVE_GRID_LEN, load_records, read_curve
 from src.ml.dd_laminate.train_cases_2_3_4_goint import (
     ResponseDataset,
@@ -107,7 +110,7 @@ def _loader(dataset, args, *, shuffle: bool) -> DataLoader:
 
 
 def train_tree(records, x, feature_names, y_class, y_scalars, y_curve, grid, output_dir: Path, args) -> dict:
-    groups = np.asarray([f"{record.theta1}:{record.theta2}" for record in records])
+    groups = np.asarray([f"{record.case}|{record.theta1:.8g}|{record.theta2:.8g}" for record in records])
     fold_rows = []
     splitter = GroupKFold(n_splits=args.splits)
     for fold, (train_idx, val_idx) in enumerate(splitter.split(x, y_class, groups), start=1):
@@ -176,17 +179,19 @@ def train_tree(records, x, feature_names, y_class, y_scalars, y_curve, grid, out
 
 
 def train_goint(records, x, feature_names, y_class, y_scalars, y_curve, grid, output_dir: Path, args) -> dict:
-    x_norm, feature_mean, feature_std = normalize(x, x)
     y_scalars_log = np.log1p(y_scalars)
-    y_scalars_norm, scalar_mean, scalar_std = normalize(y_scalars_log, y_scalars_log)
-    dataset = ResponseDataset(x_norm, y_class, y_scalars_norm, y_curve)
-    groups = np.asarray([f"{record.theta1}:{record.theta2}" for record in records])
+    groups = np.asarray([f"{record.case}|{record.theta1:.8g}|{record.theta2:.8g}" for record in records])
     fold_rows = []
     splitter = GroupKFold(n_splits=args.splits)
-    for fold, (train_idx, val_idx) in enumerate(splitter.split(x_norm, y_class, groups), start=1):
-        train_loader = _loader(Subset(dataset, train_idx.tolist()), args, shuffle=True)
-        val_loader = _loader(Subset(dataset, val_idx.tolist()), args, shuffle=False)
-        model = make_response_model(x_norm.shape[1], y_curve.shape[1], args, args.device_torch)
+    for fold, (train_idx, val_idx) in enumerate(splitter.split(x, y_class, groups), start=1):
+        x_fold_norm, _fold_feature_mean, _fold_feature_std = normalize(x[train_idx], x)
+        y_fold_norm, fold_scalar_mean, fold_scalar_std = normalize(
+            y_scalars_log[train_idx], y_scalars_log
+        )
+        fold_dataset = ResponseDataset(x_fold_norm, y_class, y_fold_norm, y_curve)
+        train_loader = _loader(Subset(fold_dataset, train_idx.tolist()), args, shuffle=True)
+        val_loader = _loader(Subset(fold_dataset, val_idx.tolist()), args, shuffle=False)
+        model = make_response_model(x.shape[1], y_curve.shape[1], args, args.device_torch)
         weights = class_weights(y_class[train_idx] - 1, args.device_torch)
         optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
         best_state = None
@@ -196,7 +201,12 @@ def train_goint(records, x, feature_names, y_class, y_scalars, y_curve, grid, ou
         for epoch in range(1, args.epochs + 1):
             run_response_epoch(model, train_loader, optimizer, weights, args.device_torch, train=True, args=args)
             out = run_response_epoch(model, val_loader, optimizer, weights, args.device_torch, train=False, args=args)
-            score = f1_score(out["y_true"], out["y_pred"], average="macro", zero_division=0)
+            candidate = response_metric_row(out, fold_scalar_mean, fold_scalar_std)
+            score = (
+                candidate["macro_f1"]
+                - args.pt_score_weight * (candidate["pt_mae"] / 1000.0)
+                - args.curve_score_weight * candidate["curve_norm_rmse"]
+            )
             if score > best_score:
                 best_score = score
                 best_epoch = epoch
@@ -209,14 +219,17 @@ def train_goint(records, x, feature_names, y_class, y_scalars, y_curve, grid, ou
         if best_state is not None:
             model.load_state_dict(best_state)
         out = run_response_epoch(model, val_loader, optimizer, weights, args.device_torch, train=False, args=args)
-        row = response_metric_row(out, scalar_mean, scalar_std)
+        row = response_metric_row(out, fold_scalar_mean, fold_scalar_std)
         row["fold"] = fold
         row["best_epoch"] = best_epoch
         fold_rows.append(row)
         print(f"goint fold {fold}: acc={row['accuracy']:.4f}, macro_f1={row['macro_f1']:.4f}, pt_mae={row['pt_mae']:.2f}")
 
+    x_norm, feature_mean, feature_std = normalize(x, x)
+    y_scalars_norm, scalar_mean, scalar_std = normalize(y_scalars_log, y_scalars_log)
+    final_dataset = ResponseDataset(x_norm, y_class, y_scalars_norm, y_curve)
     final_model = make_response_model(x_norm.shape[1], y_curve.shape[1], args, args.device_torch)
-    final_loader = _loader(dataset, args, shuffle=True)
+    final_loader = _loader(final_dataset, args, shuffle=True)
     weights = class_weights(y_class - 1, args.device_torch)
     optimizer = torch.optim.AdamW(final_model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     for _ in range(args.final_epochs):
@@ -318,12 +331,14 @@ def main() -> None:
     parser.add_argument("--ordinal-weight", type=float, default=0.25)
     parser.add_argument("--scalar-weight", type=float, default=0.45)
     parser.add_argument("--curve-weight", type=float, default=0.25)
+    parser.add_argument("--pt-score-weight", type=float, default=0.015)
+    parser.add_argument("--curve-score-weight", type=float, default=0.6)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--device", choices=["cpu", "mps", "cuda"], default="cpu")
     parser.add_argument("--tree-n-jobs", type=int, default=-1)
     parser.add_argument(
         "--feature-set",
-        choices=["theta_physics", "theta_physics_v2", "theta_physics_nn_v2", "theta_physics_geometry_v1"],
+        choices=SUPPORTED_RESPONSE_FEATURE_SETS,
         default="theta_physics",
     )
     parser.add_argument("--skip-tree", action="store_true")

@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ImperialAX Laminate Forecast — Logo Background Concept</title>
+    <link rel="stylesheet" href="./styles-v2.css?v=20260722-curve-label-fix" />
+    <link rel="stylesheet" href="./styles-logo-background.css?v=20260811-concept-1" />
+  </head>
+  <body class="theme-logo-background">
+    <main class="shell shell-v2">
+      <section class="workspace" aria-labelledby="app-title">
+        <header class="topbar">
+          <div class="brand-lockup">
+            <p class="eyebrow">Composite Laminate AI</p>
+            <h1 id="app-title"><span>ImperialAX</span> <span>Laminate Forecast</span></h1>
+            <p class="hero-copy">
+              Forecast laminate Type, Pt, and response curve from case and theta inputs.
+            </p>
+          </div>
+          <div class="top-actions">
+            <div class="status-pill" id="api-status">Checking</div>
+            <a class="language-link" href="https://ai.imperialax.com/index.html">Modules</a>
+            <a class="language-link" href="./index-logo-background.ko.html">한국어</a>
+          </div>
+        </header>
+
+        <section class="research-brief" aria-label="Research purpose">
+          <div class="research-brief-main">
+            <p class="eyebrow">Research purpose</p>
+            <h2>Why Double-Double laminate forecasting?</h2>
+            <p>
+              Double-Double laminates are being explored as lightweight, angle-driven
+              alternatives to quasi-isotropic layups for impact and post-impact
+              compression performance. This tool turns the simulation study into a
+              fast screening interface: choose a Case and θ pair, then estimate Type,
+              transition load Pt, response curve, and u3 behavior before committing to
+              deeper analysis.
+            </p>
+          </div>
+          <div class="research-brief-points">
+            <div>
+              <strong>Problem</strong>
+              <span>Conventional 0/±45/90 stacks can add weight and limit design freedom.</span>
+            </div>
+            <div>
+              <strong>Target</strong>
+              <span>Find the knee/transition point where force and u3 curves reveal stability loss.</span>
+            </div>
+            <div>
+              <strong>Signal</strong>
+              <span>Current best DD candidates improved Pt by 28.93% and u3 metric by 31.31% vs. quasi-isotropic baselines.</span>
+            </div>
+          </div>
+          <details class="research-brief-details">
+            <summary>How Type and u3 are used</summary>
+            <p>
+              Type 1 has a clear bilinear knee from force-displacement fits. Type 2 and
+              Type 3 become more curved after the knee, so u3 displacement behavior is
+              used to support transition-load estimation.
+            </p>
+          </details>
+        </section>
+
+        <section class="rag-assistant" aria-labelledby="rag-title">
+          <div class="rag-assistant-copy">
+            <p class="eyebrow">Composite AI Assistant</p>
+            <h2 id="rag-title">Ask the laminate knowledge base</h2>
+            <p>
+              Search the internal DD reports, PPT/PDF notes, XAI documents, and curated online
+              composite references. Answers stay grounded with citations.
+            </p>
+          </div>
+          <form class="rag-form" id="rag-form">
+            <label>
+              Question
+              <textarea
+                name="query"
+                rows="3"
+                data-default-query="Why does A12 membrane coupling matter in the Physics XAI model?"
+                required
+              >Why does A12 membrane coupling matter in the Physics XAI model?</textarea>
+            </label>
+            <div class="rag-actions">
+              <label class="rag-toggle">
+                <input name="use_llm" type="checkbox" checked />
+                <span>Use LLM when API key exists</span>
+              </label>
+              <button class="secondary" type="submit">Ask Composite AI</button>
+            </div>
+          </form>
+          <div class="rag-answer hidden" id="rag-answer" aria-live="polite"></div>
+        </section>
+
+        <section class="summary-strip" aria-label="Workflow summary">
+          <div>
+            <span>01</span>
+            <strong>Set case</strong>
+            <p>Choose the laminate stack family.</p>
+          </div>
+          <div>
+            <span>02</span>
+            <strong>Pick model</strong>
+            <p>Use the stable ML default or DL comparison.</p>
+          </div>
+          <div>
+            <span>03</span>
+            <strong>Review</strong>
+            <p>Pt, curve, XAI.</p>
+          </div>
+        </section>
+
+        <div class="mode-switch" role="tablist" aria-label="Prediction mode">
+          <button class="mode-button active" type="button" data-mode="response">Response Forecast</button>
+          <button class="mode-button" type="button" data-mode="u3">u3 Forecast</button>
+          <button class="mode-button" type="button" data-mode="stack">Stack Lab</button>
+          <button class="mode-button" type="button" data-mode="curve">Curve CSV</button>
+        </div>
+
+        <div class="grid" id="workspace-grid">
+          <section class="panel input-panel" aria-label="Prediction input">
+            <form id="curve-form" class="form">
+              <div class="form-header">
+                <p class="eyebrow">Post Simulation</p>
+                <h2>Curve CSV Classification</h2>
+                <p>Use this after force-displacement CSV and Pt are available.</p>
+              </div>
+
+              <label>
+                Model
+                <select name="model" id="curve-model"></select>
+              </label>
+
+              <div class="two-col">
+                <label>
+                  Theta 1
+                  <input name="theta1" type="text" inputmode="text" pattern="[+-]?(?:90|[0-8]?[0-9])" value="-29" required />
+                </label>
+                <label>
+                  Theta 2
+                  <input name="theta2" type="text" inputmode="text" pattern="[+-]?(?:90|[0-8]?[0-9])" value="74" required />
+                </label>
+              </div>
+
+              <div class="two-col">
+                <label>
+                  Pt
+                  <input name="pt" type="number" min="0" step="0.000001" placeholder="13037.62" required />
+                </label>
+                <label>
+                  Case
+                  <select name="case">
+                    <option value="Case2">Case 2</option>
+                    <option value="Case3">Case 3</option>
+                    <option value="Case4">Case 4</option>
+                    <option value="Unknown">Unknown</option>
+                  </select>
+                </label>
+              </div>
+
+              <label>
+                Test ID
+                <input name="test_id" type="text" value="Uploaded" />
+              </label>
+
+              <label class="file-box">
+                Force-displacement CSV
+                <input id="curve-file" name="file" type="file" accept=".csv,text/csv" multiple required />
+                <span id="curve-file-summary" class="file-selection-summary">No CSV files selected.</span>
+              </label>
+
+              <label class="file-box">
+                Batch metadata CSV
+                <input id="curve-metadata-file" name="metadata_file" type="file" accept=".csv,text/csv" />
+              </label>
+              <p class="form-hint">
+                Batch metadata format: filename, test_id, theta1, theta2, pt, case.
+                The filename must match the selected CSV file, such as force_disp_Test_001.csv.
+                Without metadata, the inputs above are reused for every selected CSV. Up to 1,000
+                CSV files can be selected and large selections are sent in automatic chunks.
+              </p>
+
+              <div class="case-guide" aria-label="Case formulas">
+                <p><strong>Case 2</strong> [[±θ₁]/[±θ₂]]₄</p>
+                <p><strong>Case 3</strong> [[±θ₁]/[±θ₂]/[∓θ₁]/[∓θ₂]]₂</p>
+                <p><strong>Case 4</strong> [([±θ₁]/[±θ₂])₂ / ([∓θ₁]/[∓θ₂])₂]</p>
+              </div>
+
+              <button class="primary" type="submit">Predict Type</button>
+
+              <div id="curve-batch-results" class="batch-results hidden" aria-live="polite"></div>
+            </form>
+
+            <form id="u3-pt-form" class="form">
+              <div class="form-header">
+                <p class="eyebrow">Forecast Setup</p>
+                <h2>u3 Pt Forecast</h2>
+                <p>Predict u3 Type, Pt, and an approximate curve.</p>
+              </div>
+
+              <label>
+                Model
+                <select name="model" id="u3-pt-model"></select>
+              </label>
+
+              <div class="mobile-stack-preview" aria-label="Live laminate preview">
+                <div class="dynamic-stack-visual" data-dynamic-stack-visual aria-hidden="true"></div>
+              </div>
+
+              <div class="angle-grid" aria-label="Angle controls">
+                <label class="angle-control">
+                  <span class="angle-control-head">
+                    <span>Theta 1</span>
+                    <strong data-theta-readout="theta1">+30°</strong>
+                  </span>
+                  <span class="angle-number-wrap">
+                    <input name="theta1" type="text" inputmode="text" pattern="[+-]?(?:90|[0-8]?[0-9])" value="30" required />
+                    <span>deg</span>
+                  </span>
+                  <input type="range" min="-90" max="90" step="1" value="30" data-theta-range="theta1" aria-label="Theta 1 slider" />
+                </label>
+                <label class="angle-control">
+                  <span class="angle-control-head">
+                    <span>Theta 2</span>
+                    <strong data-theta-readout="theta2">-30°</strong>
+                  </span>
+                  <span class="angle-number-wrap">
+                    <input name="theta2" type="text" inputmode="text" pattern="[+-]?(?:90|[0-8]?[0-9])" value="-30" required />
+                    <span>deg</span>
+                  </span>
+                  <input type="range" min="-90" max="90" step="1" value="-30" data-theta-range="theta2" aria-label="Theta 2 slider" />
+                </label>
+              </div>
+
+              <label>
+                Case
+                <select name="case">
+                  <option value="Case2" selected>Case 2</option>
+                  <option value="Case3">Case 3</option>
+                  <option value="Case4">Case 4</option>
+                </select>
+              </label>
+
+              <div class="case-guide" aria-label="Case formulas">
+                <p><strong>Case 2</strong> [[±θ₁]/[±θ₂]]₄</p>
+                <p><strong>Case 3</strong> [[±θ₁]/[±θ₂]/[∓θ₁]/[∓θ₂]]₂</p>
+                <p><strong>Case 4</strong> [([±θ₁]/[±θ₂])₂ / ([∓θ₁]/[∓θ₂])₂]</p>
+              </div>
+
+              <button class="primary" type="submit">Predict u3 Pt</button>
+            </form>
+
+            <form id="response-form" class="form active">
+              <div class="form-header">
+                <p class="eyebrow">Forecast Setup</p>
+                <h2>Response Forecast</h2>
+                <p>Predict Type, Pt, and full response curve.</p>
+              </div>
+
+              <label>
+                Model
+                <select name="model" id="response-model"></select>
+              </label>
+
+              <div class="mobile-stack-preview" aria-label="Live laminate preview">
+                <div class="dynamic-stack-visual" data-dynamic-stack-visual aria-hidden="true"></div>
+              </div>
+
+              <div class="angle-grid" aria-label="Angle controls">
+                <label class="angle-control">
+                  <span class="angle-control-head">
+                    <span>Theta 1</span>
+                    <strong data-theta-readout="theta1">+30°</strong>
+                  </span>
+                  <span class="angle-number-wrap">
+                    <input name="theta1" type="text" inputmode="text" pattern="[+-]?(?:90|[0-8]?[0-9])" value="30" required />
+                    <span>deg</span>
+                  </span>
+                  <input type="range" min="-90" max="90" step="1" value="30" data-theta-range="theta1" aria-label="Theta 1 slider" />
+                </label>
+                <label class="angle-control">
+                  <span class="angle-control-head">
+                    <span>Theta 2</span>
+                    <strong data-theta-readout="theta2">-30°</strong>
+                  </span>
+                  <span class="angle-number-wrap">
+                    <input name="theta2" type="text" inputmode="text" pattern="[+-]?(?:90|[0-8]?[0-9])" value="-30" required />
+                    <span>deg</span>
+                  </span>
+                  <input type="range" min="-90" max="90" step="1" value="-30" data-theta-range="theta2" aria-label="Theta 2 slider" />
+                </label>
+              </div>
+
+              <label>
+                Case
+                <select name="case">
+                  <option value="Case2" selected>Case 2</option>
+                  <option value="Case3">Case 3</option>
+                  <option value="Case4">Case 4</option>
+                </select>
+              </label>
+
+              <div class="panel-size-grid" aria-label="Panel size controls">
+                <label>
+                  Panel length a (in)
+                  <input name="panel_a_in" type="number" min="0.1" step="0.1" value="6" required />
+                </label>
+                <label>
+                  Panel width b (in)
+                  <input name="panel_b_in" type="number" min="0.1" step="0.1" value="4" required />
+                </label>
+              </div>
+
+              <div class="case-guide" aria-label="Case formulas">
+                <p><strong>Case 2</strong> [[±θ₁]/[±θ₂]]₄</p>
+                <p><strong>Case 3</strong> [[±θ₁]/[±θ₂]/[∓θ₁]/[∓θ₂]]₂</p>
+                <p><strong>Case 4</strong> [([±θ₁]/[±θ₂])₂ / ([∓θ₁]/[∓θ₂])₂]</p>
+              </div>
+
+              <button class="primary" type="submit">Run Forecast</button>
+            </form>
+
+            <form id="stack-preview-form" class="form">
+              <div class="form-header">
+                <p class="eyebrow">Stack Lab</p>
+                <h2>Custom Stack Preview</h2>
+                <p>Test a new laminate expression before adding it to the trained forecast models.</p>
+              </div>
+
+              <div class="angle-grid" aria-label="Angle controls">
+                <label class="angle-control">
+                  <span class="angle-control-head">
+                    <span>Theta 1</span>
+                    <strong data-theta-readout="theta1">+30°</strong>
+                  </span>
+                  <span class="angle-number-wrap">
+                    <input name="theta1" type="text" inputmode="text" pattern="[+-]?(?:90|[0-8]?[0-9])" value="30" required />
+                    <span>deg</span>
+                  </span>
+                  <input type="range" min="-90" max="90" step="1" value="30" data-theta-range="theta1" aria-label="Theta 1 slider" />
+                </label>
+                <label class="angle-control">
+                  <span class="angle-control-head">
+                    <span>Theta 2</span>
+                    <strong data-theta-readout="theta2">-60°</strong>
+                  </span>
+                  <span class="angle-number-wrap">
+                    <input name="theta2" type="text" inputmode="text" pattern="[+-]?(?:90|[0-8]?[0-9])" value="-60" required />
+                    <span>deg</span>
+                  </span>
+                  <input type="range" min="-90" max="90" step="1" value="-60" data-theta-range="theta2" aria-label="Theta 2 slider" />
+                </label>
+              </div>
+
+              <label>
+                Case
+                <select name="case">
+                  <option value="Case5" selected>Case 5</option>
+                  <option value="Custom">Custom</option>
+                </select>
+              </label>
+
+              <div class="case-guide stack-formula-guide" aria-label="Case 5 formula">
+                <p><strong>Case 5</strong> [[±θ₁]/[±θ₂]/[∓θ₂]/[∓θ₁]]₂</p>
+                <p><strong>Custom</strong> Build a sequence with the formula buttons below, then adjust the expression if needed.</p>
+              </div>
+
+              <label>
+                Stack formula
+                <textarea name="formula" rows="3" placeholder="Example: [[±θ₁]/[±θ₂]/[∓θ₂]/[∓θ₁]]₂">[[±θ₁]/[±θ₂]/[∓θ₂]/[∓θ₁]]₂</textarea>
+              </label>
+
+              <div class="formula-toolbar" aria-label="Formula token buttons">
+                <button type="button" data-formula-token="±θ₁">±θ₁</button>
+                <button type="button" data-formula-token="±θ₂">±θ₂</button>
+                <button type="button" data-formula-token="∓θ₁">∓θ₁</button>
+                <button type="button" data-formula-token="∓θ₂">∓θ₂</button>
+                <button type="button" data-formula-token="[">[</button>
+                <button type="button" data-formula-token="]">]</button>
+                <button type="button" data-formula-token="/">/</button>
+                <button type="button" data-formula-token="₂">₂</button>
+                <button type="button" data-formula-token="₄">₄</button>
+              </div>
+
+              <label>
+                Generated ply sequence
+                <textarea name="ply_sequence" rows="5" required>30,-30,-60,60,60,-60,-30,30,30,-30,-60,60,60,-60,-30,30</textarea>
+              </label>
+
+              <p class="form-hint">Supported now: ±θ₁, ±θ₂, ∓θ₁, ∓θ₂, brackets, and repeat counts such as ₂ or 4. If the formula cannot be parsed, edit the sequence manually.</p>
+
+              <button class="primary" type="submit">Preview Stack Physics</button>
+            </form>
+          </section>
+
+          <section class="panel visual-panel" aria-label="Laminate stack reference">
+            <div class="preview-head">
+              <div>
+                <p class="eyebrow">Live laminate preview</p>
+                <h2>Angle-aware ply stack</h2>
+              </div>
+            </div>
+            <div class="laminate-reference dynamic-laminate-reference">
+              <div id="dynamic-stack-visual" class="dynamic-stack-visual" aria-live="polite"></div>
+            </div>
+            <div class="stack-preview-meta" aria-label="Current stack summary">
+              <div>
+                <span>Formula</span>
+                <strong id="dynamic-stack-formula">[[±θ₁]/[±θ₂]]₄</strong>
+              </div>
+              <div>
+                <span>Plies</span>
+                <strong id="dynamic-stack-count">16</strong>
+              </div>
+            </div>
+            <div class="reference-note">
+              <strong>Compact physics feature</strong>
+              <span>The visible stack follows the current case and theta inputs; CLT/ABD descriptors stay under the model layer.</span>
+            </div>
+          </section>
+
+          <section class="panel curve-preview-panel hidden" id="curve-preview-panel" aria-label="CSV curve preview">
+            <div class="preview-head">
+              <div>
+                <p class="eyebrow">CSV Preview</p>
+                <h2 id="curve-preview-title">No file selected</h2>
+              </div>
+              <button class="secondary" id="clear-curve-preview" type="button">Clear</button>
+            </div>
+
+            <canvas id="curve-preview-canvas" width="760" height="300"></canvas>
+
+            <div class="preview-stats">
+              <div>
+                <span>Points</span>
+                <strong id="curve-point-count">-</strong>
+              </div>
+              <div>
+                <span>Max. Displacement</span>
+                <strong id="curve-max-displacement">-</strong>
+              </div>
+              <div>
+                <span>Max. Force</span>
+                <strong id="curve-max-force">-</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel result-panel" aria-live="polite">
+            <div class="empty-state" id="empty-state">
+              <div class="ready-copy" id="ready-copy">
+                <p class="eyebrow">No run yet</p>
+                <h2>Ready for input</h2>
+                <p>Enter theta values to forecast response, or upload a CSV after simulation.</p>
+              </div>
+              <div class="prediction-history hidden" id="prediction-history"></div>
+            </div>
+
+            <div class="result hidden" id="result">
+              <div class="result-head">
+                <div>
+                  <p class="eyebrow">Prediction</p>
+                  <h2 id="predicted-type">Type -</h2>
+                </div>
+                <div class="result-side">
+                  <div class="confidence" id="confidence">-</div>
+                  <div class="result-actions" aria-label="Export report">
+                    <button type="button" class="secondary" id="export-report-png">PNG</button>
+                    <button type="button" class="secondary" id="export-report-pdf">PDF</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bars" id="probability-bars"></div>
+              <section class="uncertainty-panel hidden" id="uncertainty-panel" aria-label="Prediction confidence and uncertainty">
+                <div class="uncertainty-head">
+                  <div>
+                    <p class="eyebrow">Confidence</p>
+                    <h3>Prediction reliability</h3>
+                  </div>
+                  <strong id="uncertainty-label">-</strong>
+                </div>
+                <div class="uncertainty-grid" id="uncertainty-grid"></div>
+                <ul class="uncertainty-notes" id="uncertainty-notes"></ul>
+              </section>
+
+              <section class="teacher-student-panel hidden" id="teacher-student-panel" aria-label="Teacher and student model agreement">
+                <div class="uncertainty-head">
+                  <div>
+                    <p class="eyebrow">Agreement</p>
+                    <h3 id="teacher-student-title">Tree vs Student</h3>
+                  </div>
+                  <strong id="teacher-student-label">-</strong>
+                </div>
+                <div class="teacher-student-grid" id="teacher-student-grid"></div>
+                <ul class="uncertainty-notes" id="teacher-student-notes"></ul>
+              </section>
+
+              <dl class="meta">
+                <div>
+                  <dt>Model</dt>
+                  <dd id="model-label">-</dd>
+                </div>
+                <div>
+                  <dt>Input</dt>
+                  <dd id="input-summary">-</dd>
+                </div>
+              </dl>
+
+              <section class="response-estimate hidden" id="response-estimate">
+                <div class="preview-head">
+                  <div>
+                    <p class="eyebrow">Laminate Forecast</p>
+                    <h2 id="response-curve-title">Predicted curve</h2>
+                  </div>
+                </div>
+
+                <div class="preview-stats">
+                  <div>
+                    <span>Predicted Pt</span>
+                    <strong id="predicted-pt">-</strong>
+                  </div>
+                  <div>
+                    <span>Max. Displacement</span>
+                    <strong id="predicted-max-displacement">-</strong>
+                  </div>
+                  <div>
+                    <span>Max. Force</span>
+                    <strong id="predicted-max-force">-</strong>
+                  </div>
+                </div>
+
+                <div class="curve-viewer-head">
+                  <span>Curve view</span>
+                  <div class="curve-tools" aria-label="Curve zoom controls">
+                    <button type="button" data-curve-zoom="out" title="Zoom out">−</button>
+                    <output id="response-curve-zoom-label">100%</output>
+                    <button type="button" data-curve-zoom="in" title="Zoom in">+</button>
+                    <button type="button" data-curve-zoom="reset" title="Reset view">Reset</button>
+                  </div>
+                </div>
+                <canvas id="response-curve-canvas" width="1080" height="648"></canvas>
+                <div class="curve-legend" aria-label="Response curve legend">
+                  <span><i class="legend-swatch curve"></i>Predicted curve</span>
+                  <span><i class="legend-swatch guide"></i>Linear fits</span>
+                  <span><i class="legend-swatch kink"></i>Fit intersection</span>
+                  <span><i class="legend-swatch pt"></i>Predicted Pt</span>
+                </div>
+              </section>
+
+              <section class="xai-panel hidden" id="xai-panel">
+                <div class="preview-head">
+                  <div>
+                    <p class="eyebrow">XAI</p>
+                    <h2 id="xai-title">Why this prediction?</h2>
+                  </div>
+                </div>
+                <p class="xai-summary" id="xai-summary"></p>
+                <div class="xai-method" id="xai-method"></div>
+                <div class="xai-features" id="xai-features"></div>
+                <ul class="xai-notes" id="xai-notes"></ul>
+              </section>
+
+              <section class="research-panel hidden" id="research-panel">
+                <div class="preview-head">
+                  <div>
+                    <p class="eyebrow">Research Insight</p>
+                    <h2 id="research-title">Design-space context</h2>
+                  </div>
+                </div>
+                <p class="research-summary" id="research-summary"></p>
+                <div class="research-map-shell">
+                  <canvas id="research-map-canvas" width="720" height="320"></canvas>
+                  <div class="research-map-tooltip hidden" id="research-map-tooltip"></div>
+                </div>
+                <div class="research-map-legend" aria-label="Design-space map legend">
+                  <span><i class="map-dot type-1"></i>Type 1</span>
+                  <span><i class="map-dot type-2"></i>Type 2</span>
+                  <span><i class="map-dot type-3"></i>Type 3</span>
+                  <span><i class="map-dot current"></i>Current input</span>
+                  <span><i class="map-dot selected-case"></i>Selected Case = stronger opacity</span>
+                </div>
+                <div class="research-comparison hidden" id="research-comparison"></div>
+                <div class="case-insight-block hidden" id="research-case-insights">
+                  <h3>Case behavior zones</h3>
+                  <div class="case-insight-list" id="research-case-insight-list"></div>
+                </div>
+                <div class="research-grid">
+                  <div>
+                    <h3>Case risk</h3>
+                    <div class="case-risk-list" id="research-case-list"></div>
+                  </div>
+                  <div>
+                    <h3>Nearest simulations</h3>
+                    <div class="nearest-list" id="research-nearest-list"></div>
+                  </div>
+                </div>
+                <div class="recommendation-block">
+                  <h3>Recommended candidates</h3>
+                  <div class="recommendation-list" id="research-recommendations"></div>
+                </div>
+                <ul class="research-notes" id="research-notes"></ul>
+              </section>
+
+              <ul class="notes" id="notes"></ul>
+            </div>
+
+            <div class="stack-preview-result hidden" id="stack-preview-result">
+              <div class="preview-head">
+                <div>
+                  <p class="eyebrow">Stack Lab</p>
+                  <h2 id="stack-preview-title">Custom stack physics</h2>
+                </div>
+              </div>
+
+              <div class="preview-stats stack-preview-metrics" id="stack-preview-metrics"></div>
+
+              <section class="stack-preview-section">
+                <p class="eyebrow">Expanded ply sequence</p>
+                <div class="stack-sequence-chips" id="stack-preview-sequence"></div>
+              </section>
+
+              <section class="stack-preview-section">
+                <p class="eyebrow">Physics descriptors</p>
+                <div class="stack-physics-grid" id="stack-preview-physics"></div>
+              </section>
+
+              <ul class="notes" id="stack-preview-notes"></ul>
+            </div>
+
+            <div class="error hidden" id="error"></div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script src="./auth-gate.js?v=20260715-license-gate"></script>
+    <script src="./app-v2.js?v=20260723-negative-angle-1"></script>
+  </body>
+</html>

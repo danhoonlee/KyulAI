@@ -4,107 +4,119 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ImperialAX 적층 예측</title>
-    <link rel="stylesheet" href="./styles-v2.css?v=20260720-curve-readable-v2" />
+    <link rel="alternate" hreflang="ko" href="/ko" />
+    <link rel="alternate" hreflang="en" href="/en" />
+    <link rel="stylesheet" href="/styles-v2.css?v=20260819-viewer-fiber-4" />
+    <link rel="stylesheet" href="/imperialax-product-shell.css?v=20260816-mobile-polish-1" />
+    <script defer src="/imperialax-product-shell.js?v=20260814-family-shell-1"></script>
   </head>
-  <body>
+  <body class="product-standard laminate-standard">
     <main class="shell shell-v2">
       <section class="workspace" aria-labelledby="app-title">
         <header class="topbar">
           <div class="brand-lockup">
+            <a class="product-logo-link" href="https://ai.imperialax.com/index.ko.html" aria-label="ImperialAX 모듈 워크스페이스">
+              <img src="/assets/imperialax-logo-black.png?v=20260814-logo-rollout-1" alt="ImperialAX" />
+            </a>
             <p class="eyebrow">복합재 적층 AI</p>
             <h1 id="app-title"><span>ImperialAX</span> <span>적층 예측</span></h1>
             <p class="hero-copy">
               Case와 theta 입력으로 적층 Type, Pt, 응답 곡선을 예측합니다.
             </p>
           </div>
-          <div class="top-actions">
-            <div class="status-pill" id="api-status">확인 중</div>
-            <a class="language-link" href="https://ai.imperialax.com/index.ko.html">모듈 선택</a>
-            <a class="language-link" href="./index-v2.html">English</a>
+          <div class="top-actions" aria-label="빠른 도구">
+            <div class="top-action-group top-action-group-primary">
+              <a class="language-link header-action header-action-module" href="https://ai.imperialax.com/index.ko.html">모듈 선택</a>
+              <button class="utility-trigger header-action header-action-assistant" type="button" data-dialog-target="assistant-dialog">AI Assistant</button>
+            </div>
+            <div class="top-action-group top-action-group-secondary">
+              <button class="utility-trigger header-action header-action-research" type="button" data-dialog-target="research-dialog">연구 목적</button>
+              <a class="language-link header-action header-action-language" href="/en">English</a>
+              <div class="status-pill header-action-status" id="api-status">확인 중</div>
+            </div>
           </div>
         </header>
 
-        <section class="research-brief" aria-label="연구 목적">
-          <div class="research-brief-main">
-            <p class="eyebrow">연구 목적</p>
-            <h2>왜 Double-Double 적층 예측을 하나요?</h2>
-            <p>
-              Double-Double 적층은 impact 및 post-impact compression 성능을 높이면서
-              quasi-isotropic 적층의 중량 부담과 각도 설계 한계를 줄이기 위한 후보입니다.
-              이 도구는 시뮬레이션 연구를 빠른 선별 화면으로 바꿉니다. Case와 θ 조합을
-              넣으면 Type, 전이하중 Pt, 응답 곡선, u3 거동을 예측해 더 깊은 해석 전에
-              유망한 적층 조합을 좁힐 수 있습니다.
-            </p>
+        <dialog class="utility-dialog" id="research-dialog" aria-labelledby="research-dialog-title">
+          <header class="utility-dialog-head">
+            <div>
+              <p class="eyebrow">Research purpose</p>
+              <h2 id="research-dialog-title">연구 목적</h2>
+            </div>
+            <button class="dialog-close" type="button" data-dialog-close aria-label="연구 목적 닫기">×</button>
+          </header>
+          <div class="utility-dialog-body">
+            <section class="research-brief" aria-label="연구 목적 상세">
+              <div class="research-brief-main">
+                <h2>왜 Double-Double 적층 예측을 하나요?</h2>
+                <p>
+                  Double-Double 적층은 impact 및 post-impact compression 성능을 높이면서
+                  quasi-isotropic 적층의 중량 부담과 각도 설계 한계를 줄이기 위한 후보입니다.
+                  Case와 θ 조합을 넣으면 Type, 전이하중 Pt, 응답 곡선, u3 거동을 예측해
+                  더 깊은 해석 전에 유망한 적층 조합을 좁힐 수 있습니다.
+                </p>
+              </div>
+              <div class="research-brief-points">
+                <div><strong>문제</strong><span>기존 0/±45/90 계열 적층은 중량 부담과 설계 자유도 한계가 있습니다.</span></div>
+                <div><strong>목표</strong><span>Force와 u3 곡선에서 안정성 변화가 시작되는 knee/transition point를 찾습니다.</span></div>
+                <div><strong>신호</strong><span>현재 연구 데이터의 최적 DD 후보는 quasi-isotropic 기준 대비 Pt와 u3 개선 신호를 보였습니다.</span></div>
+              </div>
+              <details class="research-brief-details">
+                <summary>Type과 u3를 쓰는 방식</summary>
+                <p>Type 1은 bilinear knee가 비교적 명확합니다. Type 2와 Type 3은 knee 이후 곡률이 커지므로 u3 displacement 거동을 함께 사용해 전이하중 추정을 보완합니다.</p>
+              </details>
+            </section>
           </div>
-          <div class="research-brief-points">
-            <div>
-              <strong>문제</strong>
-              <span>기존 0/±45/90 계열 적층은 중량 부담과 설계 자유도 한계가 있습니다.</span>
-            </div>
-            <div>
-              <strong>목표</strong>
-              <span>Force와 u3 곡선에서 안정성 변화가 시작되는 knee/transition point를 찾습니다.</span>
-            </div>
-            <div>
-              <strong>신호</strong>
-              <span>현재 연구 데이터 기준 최적 DD 후보는 quasi-isotropic 기준 대비 Pt 28.93%, u3 metric 31.31% 개선 신호를 보였습니다.</span>
-            </div>
-          </div>
-          <details class="research-brief-details">
-            <summary>Type과 u3를 쓰는 방식</summary>
-            <p>
-              Type 1은 force-displacement 피팅에서 bilinear knee가 비교적 명확합니다.
-              Type 2와 Type 3은 knee 이후 곡률이 커지므로 u3 displacement 거동을 함께
-              사용해 전이하중 추정을 보완합니다.
-            </p>
-          </details>
-        </section>
+        </dialog>
 
-        <section class="rag-assistant" aria-labelledby="rag-title">
-          <div class="rag-assistant-copy">
-            <p class="eyebrow">복합재 AI Assistant</p>
-            <h2 id="rag-title">적층 지식베이스에 질문하기</h2>
-            <p>
-              내부 DD 리포트, PPT/PDF 노트, XAI 문서, 선별된 온라인 복합재 자료를 함께
-              검색합니다. 답변은 근거 citation과 함께 표시됩니다.
-            </p>
-          </div>
-          <form class="rag-form" id="rag-form">
-            <label>
-              질문
-              <textarea
-                name="query"
-                rows="3"
-                data-default-query="Physics XAI 모델에서 A12 membrane coupling은 왜 중요한가요?"
-                required
-              >Physics XAI 모델에서 A12 membrane coupling은 왜 중요한가요?</textarea>
-            </label>
-            <div class="rag-actions">
-              <label class="rag-toggle">
-                <input name="use_llm" type="checkbox" checked />
-                <span>API 키가 있으면 LLM 사용</span>
-              </label>
-              <button class="secondary" type="submit">Composite AI에 질문</button>
+        <dialog class="utility-dialog" id="assistant-dialog" aria-labelledby="rag-title">
+          <header class="utility-dialog-head">
+            <div>
+              <p class="eyebrow">Composite AI Assistant</p>
+              <h2 id="rag-title">적층 지식베이스에 질문하기</h2>
             </div>
-          </form>
-          <div class="rag-answer hidden" id="rag-answer" aria-live="polite"></div>
-        </section>
+            <button class="dialog-close" type="button" data-dialog-close aria-label="AI Assistant 닫기">×</button>
+          </header>
+          <div class="utility-dialog-body">
+            <section class="rag-assistant">
+              <div class="rag-assistant-copy">
+                <p>내부 DD 리포트, PPT/PDF 노트, XAI 문서, 선별된 온라인 복합재 자료를 검색하고 근거 citation과 함께 답변합니다.</p>
+              </div>
+              <form class="rag-form" id="rag-form">
+                <label>
+                  질문
+                  <textarea name="query" rows="3" data-default-query="Physics XAI 모델에서 A12 membrane coupling은 왜 중요한가요?" required>Physics XAI 모델에서 A12 membrane coupling은 왜 중요한가요?</textarea>
+                </label>
+                <div class="rag-actions">
+                  <label class="rag-toggle"><input name="use_llm" type="checkbox" checked /><span>API 키가 있으면 LLM 사용</span></label>
+                  <button class="secondary" type="submit">Composite AI에 질문</button>
+                </div>
+              </form>
+              <div class="rag-answer hidden" id="rag-answer" aria-live="polite"></div>
+            </section>
+          </div>
+        </dialog>
 
         <section class="summary-strip" aria-label="작업 흐름">
           <div>
             <span>01</span>
-            <strong>Case 설정</strong>
-            <p>적층 구조 Case를 선택합니다.</p>
+            <strong>모델 선택</strong>
+            <p>예측 목적에 맞는 Machine Learning, Deep Learning 또는 Hybrid 모델을 선택합니다.</p>
           </div>
           <div>
             <span>02</span>
-            <strong>모델 선택</strong>
-            <p>안정적인 ML 기본 모델 또는 DL 비교 모델을 선택합니다.</p>
+            <strong>Case·각도 설정</strong>
+            <p>Case 2·3·4와 θ1·θ2 각도를 설정해 16-ply 적층 순서와 방향을 정합니다.</p>
           </div>
           <div>
             <span>03</span>
-            <strong>검토</strong>
-            <p>Pt, 곡선, XAI를 확인합니다.</p>
+            <strong>패널·적층 확인</strong>
+            <p>패널 길이 a와 폭 b를 입력하고 3D 미리보기에서 패널 형상과 적층 방향을 확인합니다.</p>
+          </div>
+          <div>
+            <span>04</span>
+            <strong>예측 결과 검토</strong>
+            <p>Type·신뢰도·Pt·응답 곡선을 확인하고 XAI와 디자인 스페이스에서 근거와 적용 범위를 검토합니다.</p>
           </div>
         </section>
 
@@ -132,11 +144,11 @@
               <div class="two-col">
                 <label>
                   Theta 1
-                  <input name="theta1" type="number" min="-90" max="90" step="1" value="-29" required />
+                  <input name="theta1" type="text" inputmode="text" pattern="[+-]?(?:90|[0-8]?[0-9])" value="-29" required />
                 </label>
                 <label>
                   Theta 2
-                  <input name="theta2" type="number" min="-90" max="90" step="1" value="74" required />
+                  <input name="theta2" type="text" inputmode="text" pattern="[+-]?(?:90|[0-8]?[0-9])" value="74" required />
                 </label>
               </div>
 
@@ -164,6 +176,7 @@
               <label class="file-box">
                 Force-displacement CSV
                 <input id="curve-file" name="file" type="file" accept=".csv,text/csv" multiple required />
+                <span id="curve-file-summary" class="file-selection-summary">선택된 CSV 파일이 없습니다.</span>
               </label>
 
               <label class="file-box">
@@ -173,7 +186,8 @@
               <p class="form-hint">
                 Batch metadata 형식: filename, test_id, theta1, theta2, pt, case.
                 filename은 선택한 CSV 파일명과 같아야 합니다. 예: force_disp_Test_001.csv.
-                없으면 위 입력값을 모든 CSV에 공통 적용합니다.
+                없으면 위 입력값을 모든 CSV에 공통 적용합니다. CSV는 최대 1,000개까지
+                선택할 수 있으며, 파일이 많으면 자동으로 나눠 전송합니다.
               </p>
 
               <div class="case-guide" aria-label="Case 공식">
@@ -210,7 +224,7 @@
                     <strong data-theta-readout="theta1">+30°</strong>
                   </span>
                   <span class="angle-number-wrap">
-                    <input name="theta1" type="number" min="-90" max="90" step="1" value="30" required />
+                    <input name="theta1" type="text" inputmode="text" pattern="[+-]?(?:90|[0-8]?[0-9])" value="30" required />
                     <span>도</span>
                   </span>
                   <input type="range" min="-90" max="90" step="1" value="30" data-theta-range="theta1" aria-label="Theta 1 슬라이더" />
@@ -221,7 +235,7 @@
                     <strong data-theta-readout="theta2">-30°</strong>
                   </span>
                   <span class="angle-number-wrap">
-                    <input name="theta2" type="number" min="-90" max="90" step="1" value="-30" required />
+                    <input name="theta2" type="text" inputmode="text" pattern="[+-]?(?:90|[0-8]?[0-9])" value="-30" required />
                     <span>도</span>
                   </span>
                   <input type="range" min="-90" max="90" step="1" value="-30" data-theta-range="theta2" aria-label="Theta 2 슬라이더" />
@@ -269,7 +283,7 @@
                     <strong data-theta-readout="theta1">+30°</strong>
                   </span>
                   <span class="angle-number-wrap">
-                    <input name="theta1" type="number" min="-90" max="90" step="1" value="30" required />
+                    <input name="theta1" type="text" inputmode="text" pattern="[+-]?(?:90|[0-8]?[0-9])" value="30" required />
                     <span>도</span>
                   </span>
                   <input type="range" min="-90" max="90" step="1" value="30" data-theta-range="theta1" aria-label="Theta 1 슬라이더" />
@@ -280,7 +294,7 @@
                     <strong data-theta-readout="theta2">-30°</strong>
                   </span>
                   <span class="angle-number-wrap">
-                    <input name="theta2" type="number" min="-90" max="90" step="1" value="-30" required />
+                    <input name="theta2" type="text" inputmode="text" pattern="[+-]?(?:90|[0-8]?[0-9])" value="-30" required />
                     <span>도</span>
                   </span>
                   <input type="range" min="-90" max="90" step="1" value="-30" data-theta-range="theta2" aria-label="Theta 2 슬라이더" />
@@ -330,7 +344,7 @@
                     <strong data-theta-readout="theta1">+30°</strong>
                   </span>
                   <span class="angle-number-wrap">
-                    <input name="theta1" type="number" min="-90" max="90" step="1" value="30" required />
+                    <input name="theta1" type="text" inputmode="text" pattern="[+-]?(?:90|[0-8]?[0-9])" value="30" required />
                     <span>도</span>
                   </span>
                   <input type="range" min="-90" max="90" step="1" value="30" data-theta-range="theta1" aria-label="Theta 1 슬라이더" />
@@ -341,7 +355,7 @@
                     <strong data-theta-readout="theta2">-60°</strong>
                   </span>
                   <span class="angle-number-wrap">
-                    <input name="theta2" type="number" min="-90" max="90" step="1" value="-60" required />
+                    <input name="theta2" type="text" inputmode="text" pattern="[+-]?(?:90|[0-8]?[0-9])" value="-60" required />
                     <span>도</span>
                   </span>
                   <input type="range" min="-90" max="90" step="1" value="-60" data-theta-range="theta2" aria-label="Theta 2 슬라이더" />
@@ -527,7 +541,8 @@
                 <div class="curve-legend" aria-label="응답 곡선 범례">
                   <span><i class="legend-swatch curve"></i>예측 곡선</span>
                   <span><i class="legend-swatch guide"></i>선형 피팅</span>
-                  <span><i class="legend-swatch kink"></i>예측 Pt</span>
+                  <span><i class="legend-swatch kink"></i>피팅 교점</span>
+                  <span><i class="legend-swatch pt"></i>예측 Pt</span>
                 </div>
               </section>
 
@@ -617,7 +632,10 @@
       </section>
     </main>
 
-    <script src="./auth-gate.js?v=20260715-license-gate"></script>
-    <script src="./app-v2.js?v=20260720-curve-readable-v2"></script>
+    <script type="importmap">
+      {"imports":{"three":"/laminate-viewer/vendor/three.module.r160.js"}}
+    </script>
+    <script src="/auth-gate.js?v=20260814-header-utilities-1"></script>
+    <script src="/app-v2.js?v=20260819-viewer-fiber-4"></script>
   </body>
 </html>

@@ -7,8 +7,9 @@ from __future__ import annotations
 
 import os
 import subprocess
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Any, Generator
+from typing import Any
 
 import mlflow
 import mlflow.pytorch
@@ -16,9 +17,7 @@ import mlflow.pytorch
 
 def _get_git_commit() -> str:
     try:
-        return subprocess.check_output(
-            ["git", "rev-parse", "--short", "HEAD"], text=True
-        ).strip()
+        return subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], text=True).strip()
     except Exception:
         return "unknown"
 

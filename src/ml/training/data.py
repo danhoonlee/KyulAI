@@ -24,7 +24,7 @@ from __future__ import annotations
 import abc
 import logging
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import torch
 from pydantic import BaseModel, Field, model_validator
@@ -72,7 +72,7 @@ class KyulAISample(BaseModel):
     )
 
     # ── Targets ───────────────────────────────────────────────────────────────
-    experimental_targets: Optional[dict[str, torch.Tensor]] = Field(
+    experimental_targets: dict[str, torch.Tensor] | None = Field(
         None,
         description=(
             "Ground truth measurements from physical coupon tests. "
@@ -271,14 +271,12 @@ def _collate_kyulai_samples(samples: list[KyulAISample]) -> dict[str, Any]:
     sim_fields_batch: dict[str, torch.Tensor] = {}
     for key in all_sim_keys:
         if all(key in s.simulation_fields for s in samples):
-            sim_fields_batch[key] = torch.stack(
-                [s.simulation_fields[key] for s in samples], dim=0
-            )
+            sim_fields_batch[key] = torch.stack([s.simulation_fields[key] for s in samples], dim=0)
 
     # Collate experimental_targets (optional)
     exp_targets_batch: dict[str, torch.Tensor] | None = None
     if any(s.experimental_targets is not None for s in samples):
-        exp_keys = set()
+        exp_keys: set[str] = set()
         for s in samples:
             if s.experimental_targets:
                 exp_keys.update(s.experimental_targets.keys())
@@ -343,9 +341,7 @@ def create_dataloaders(
     """
     total = train_ratio + val_ratio + test_ratio
     if not (0.999 < total < 1.001):
-        raise ValueError(
-            f"train_ratio + val_ratio + test_ratio must equal 1.0, got {total:.4f}"
-        )
+        raise ValueError(f"train_ratio + val_ratio + test_ratio must equal 1.0, got {total:.4f}")
 
     n = len(dataset)
     if n == 0:
@@ -369,18 +365,22 @@ def create_dataloaders(
         )
         logger.info(
             "Stratified split by fidelity_level | train=%d val=%d test=%d",
-            len(train_idx), len(val_idx), len(test_idx),
+            len(train_idx),
+            len(val_idx),
+            len(test_idx),
         )
     else:
         indices = rng.permutation(n).tolist()
         n_train = int(n * train_ratio)
         n_val = int(n * val_ratio)
         train_idx = indices[:n_train]
-        val_idx = indices[n_train: n_train + n_val]
-        test_idx = indices[n_train + n_val:]
+        val_idx = indices[n_train : n_train + n_val]
+        test_idx = indices[n_train + n_val :]
         logger.info(
             "Random split (fidelity info unavailable) | train=%d val=%d test=%d",
-            len(train_idx), len(val_idx), len(test_idx),
+            len(train_idx),
+            len(val_idx),
+            len(test_idx),
         )
 
     def _make_loader(indices: list[int], shuffle: bool) -> DataLoader:
@@ -426,7 +426,7 @@ def _stratified_split(
         n_val = max(0, int(n * val_ratio))
         # Assign remainder to test
         train_idx.extend(lvl_indices[:n_train])
-        val_idx.extend(lvl_indices[n_train: n_train + n_val])
-        test_idx.extend(lvl_indices[n_train + n_val:])
+        val_idx.extend(lvl_indices[n_train : n_train + n_val])
+        test_idx.extend(lvl_indices[n_train + n_val :])
 
     return train_idx, val_idx, test_idx

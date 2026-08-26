@@ -26,8 +26,10 @@ from sklearn.model_selection import GroupKFold
 from torch.utils.data import DataLoader, Dataset, Subset
 
 from src.ml.dd_laminate.laminate_physics import (
+    CANONICAL_STACK_VERSION,
     COMPACT_PHYSICS_FEATURE_COLUMNS,
     EXTENDED_PHYSICS_FEATURE_COLUMNS,
+    LEGACY_STACK_VERSION,
     compact_physics_feature_vector,
     extended_physics_feature_vector,
 )
@@ -74,14 +76,14 @@ def u3_theta_features(records) -> tuple[np.ndarray, list[str]]:
                 record.theta1 - record.theta2,
                 abs(record.theta1 - record.theta2),
                 record.theta1 * record.theta2,
-                np.sin(2.0 * theta1_rad),
-                np.cos(2.0 * theta1_rad),
-                np.sin(2.0 * theta2_rad),
-                np.cos(2.0 * theta2_rad),
-                np.sin(4.0 * theta1_rad),
-                np.cos(4.0 * theta1_rad),
-                np.sin(4.0 * theta2_rad),
-                np.cos(4.0 * theta2_rad),
+                float(np.sin(2.0 * theta1_rad)),
+                float(np.cos(2.0 * theta1_rad)),
+                float(np.sin(2.0 * theta2_rad)),
+                float(np.cos(2.0 * theta2_rad)),
+                float(np.sin(4.0 * theta1_rad)),
+                float(np.cos(4.0 * theta1_rad)),
+                float(np.sin(4.0 * theta2_rad)),
+                float(np.cos(4.0 * theta2_rad)),
                 *[1.0 if record.case == case else 0.0 for case in CASES],
             ]
         )
@@ -90,24 +92,64 @@ def u3_theta_features(records) -> tuple[np.ndarray, list[str]]:
 
 def u3_theta_physics_features(records) -> tuple[np.ndarray, list[str]]:
     theta_x, theta_names = u3_theta_features(records)
-    physics_x = np.asarray(
+    physics_x = np.vstack(
         [
-            extended_physics_feature_vector(record.case, record.theta1, record.theta2)
+            extended_physics_feature_vector(
+                record.case,
+                record.theta1,
+                record.theta2,
+                stack_version=LEGACY_STACK_VERSION,
+            )
             for record in records
-        ],
-        dtype=float,
+        ]
     )
     return np.hstack([theta_x, physics_x]), [*theta_names, *EXTENDED_PHYSICS_FEATURE_COLUMNS]
 
 
 def u3_theta_physics_v2_features(records) -> tuple[np.ndarray, list[str]]:
     theta_x, theta_names = u3_theta_features(records)
-    physics_x = np.asarray(
+    physics_x = np.vstack(
         [
-            compact_physics_feature_vector(record.case, record.theta1, record.theta2)
+            compact_physics_feature_vector(
+                record.case,
+                record.theta1,
+                record.theta2,
+                stack_version=LEGACY_STACK_VERSION,
+            )
             for record in records
-        ],
-        dtype=float,
+        ]
+    )
+    return np.hstack([theta_x, physics_x]), [*theta_names, *COMPACT_PHYSICS_FEATURE_COLUMNS]
+
+
+def u3_theta_physics_canonical_features(records) -> tuple[np.ndarray, list[str]]:
+    theta_x, theta_names = u3_theta_features(records)
+    physics_x = np.vstack(
+        [
+            extended_physics_feature_vector(
+                record.case,
+                record.theta1,
+                record.theta2,
+                stack_version=CANONICAL_STACK_VERSION,
+            )
+            for record in records
+        ]
+    )
+    return np.hstack([theta_x, physics_x]), [*theta_names, *EXTENDED_PHYSICS_FEATURE_COLUMNS]
+
+
+def u3_theta_physics_compact_canonical_features(records) -> tuple[np.ndarray, list[str]]:
+    theta_x, theta_names = u3_theta_features(records)
+    physics_x = np.vstack(
+        [
+            compact_physics_feature_vector(
+                record.case,
+                record.theta1,
+                record.theta2,
+                stack_version=CANONICAL_STACK_VERSION,
+            )
+            for record in records
+        ]
     )
     return np.hstack([theta_x, physics_x]), [*theta_names, *COMPACT_PHYSICS_FEATURE_COLUMNS]
 
@@ -119,6 +161,10 @@ def u3_feature_matrix(records, feature_set: str = "theta") -> tuple[np.ndarray, 
         return u3_theta_physics_features(records)
     if feature_set == "theta_physics_v2":
         return u3_theta_physics_v2_features(records)
+    if feature_set == "theta_physics_canonical_v2":
+        return u3_theta_physics_canonical_features(records)
+    if feature_set == "theta_physics_compact_canonical_v2":
+        return u3_theta_physics_compact_canonical_features(records)
     raise ValueError(f"Unsupported u3 feature set: {feature_set}")
 
 
@@ -178,7 +224,14 @@ class U3ForecastDataset(Dataset):
 
 
 class U3ForecastGointMLP(nn.Module):
-    def __init__(self, input_dim: int, curve_len: int, hidden_dim: int = 128, branches: int = 4, dropout: float = 0.12):
+    def __init__(
+        self,
+        input_dim: int,
+        curve_len: int,
+        hidden_dim: int = 128,
+        branches: int = 4,
+        dropout: float = 0.12,
+    ):
         super().__init__()
         self.stem = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
@@ -286,11 +339,15 @@ def train_goint_forecast(
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
-    device = torch.device(device_name if device_name != "auto" else ("cuda" if torch.cuda.is_available() else "cpu"))
+    device = torch.device(
+        device_name if device_name != "auto" else ("cuda" if torch.cuda.is_available() else "cpu")
+    )
     scalar_log = np.log1p(np.maximum(y_scalars, 0.0))
     splitter = GroupKFold(n_splits=splits)
     fold_rows = []
-    for fold, (train_idx, val_idx) in enumerate(splitter.split(x, y_scalars[:, 0], groups), start=1):
+    for fold, (train_idx, val_idx) in enumerate(
+        splitter.split(x, y_scalars[:, 0], groups), start=1
+    ):
         x_norm, x_mean, x_std = _normalize(x[train_idx], x)
         scalar_norm, scalar_mean, scalar_std = _normalize(scalar_log[train_idx], scalar_log)
         dataset = U3ForecastDataset(x_norm, scalar_norm, y_curve)
@@ -306,13 +363,17 @@ def train_goint_forecast(
         for epoch in range(1, 241):
             _run_goint_epoch(model, train_loader, optimizer, device, train=True)
             scheduler.step()
-            _, _true_norm, pred_norm, true_curve, pred_curve = _run_goint_epoch(model, val_loader, optimizer, device, train=False)
+            _, _true_norm, pred_norm, true_curve, pred_curve = _run_goint_epoch(
+                model, val_loader, optimizer, device, train=False
+            )
             pred_scalars = np.expm1(pred_norm * scalar_std + scalar_mean)
             mae = mean_absolute_error(y_scalars[val_idx, 0], pred_scalars[:, 0])
             if mae < best_mae:
                 best_mae = float(mae)
                 best_epoch = epoch
-                best_state = {key: value.detach().cpu().clone() for key, value in model.state_dict().items()}
+                best_state = {
+                    key: value.detach().cpu().clone() for key, value in model.state_dict().items()
+                }
                 stale = 0
             else:
                 stale += 1
@@ -320,14 +381,18 @@ def train_goint_forecast(
                 break
         if best_state is not None:
             model.load_state_dict(best_state)
-        _, _true_norm, pred_norm, true_curve, pred_curve = _run_goint_epoch(model, val_loader, optimizer, device, train=False)
+        _, _true_norm, pred_norm, true_curve, pred_curve = _run_goint_epoch(
+            model, val_loader, optimizer, device, train=False
+        )
         pred_scalars = np.expm1(pred_norm * scalar_std + scalar_mean)
         fold_metrics = {
             "fold": fold,
             "best_epoch": best_epoch,
             "pt_mae": float(mean_absolute_error(y_scalars[val_idx, 0], pred_scalars[:, 0])),
             "pt_r2": float(r2_score(y_scalars[val_idx, 0], pred_scalars[:, 0])),
-            "max_displacement_mae": float(mean_absolute_error(y_scalars[val_idx, 1], pred_scalars[:, 1])),
+            "max_displacement_mae": float(
+                mean_absolute_error(y_scalars[val_idx, 1], pred_scalars[:, 1])
+            ),
             "max_force_mae": float(mean_absolute_error(y_scalars[val_idx, 2], pred_scalars[:, 2])),
             "curve_norm_rmse": float(np.sqrt(np.mean((pred_curve - true_curve) ** 2))),
         }
@@ -352,7 +417,9 @@ def train_goint_forecast(
         "cv_pt_mae_mean": float(np.mean([row["pt_mae"] for row in fold_rows])),
         "cv_pt_mae_std": float(np.std([row["pt_mae"] for row in fold_rows])),
         "cv_pt_r2_mean": float(np.mean([row["pt_r2"] for row in fold_rows])),
-        "cv_max_displacement_mae_mean": float(np.mean([row["max_displacement_mae"] for row in fold_rows])),
+        "cv_max_displacement_mae_mean": float(
+            np.mean([row["max_displacement_mae"] for row in fold_rows])
+        ),
         "cv_max_force_mae_mean": float(np.mean([row["max_force_mae"] for row in fold_rows])),
         "curve_cv_norm_rmse_mean": float(np.mean([row["curve_norm_rmse"] for row in fold_rows])),
         "curve_cv_norm_rmse_std": float(np.std([row["curve_norm_rmse"] for row in fold_rows])),
@@ -381,7 +448,9 @@ def train_goint_forecast(
         },
         output_dir / "u3_forecast_goint.pt",
     )
-    (output_dir / "u3_forecast_goint_metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+    (output_dir / "u3_forecast_goint_metrics.json").write_text(
+        json.dumps(metrics, indent=2), encoding="utf-8"
+    )
     return metrics
 
 
@@ -416,8 +485,12 @@ def train_forecast(
             fold_metrics = {
                 "fold": fold,
                 "pt_mae": float(mean_absolute_error(y_scalars[val_idx, 0], pred_scalars[:, 0])),
-                "max_displacement_mae": float(mean_absolute_error(y_scalars[val_idx, 1], pred_scalars[:, 1])),
-                "max_force_mae": float(mean_absolute_error(y_scalars[val_idx, 2], pred_scalars[:, 2])),
+                "max_displacement_mae": float(
+                    mean_absolute_error(y_scalars[val_idx, 1], pred_scalars[:, 1])
+                ),
+                "max_force_mae": float(
+                    mean_absolute_error(y_scalars[val_idx, 2], pred_scalars[:, 2])
+                ),
                 "pt_r2": float(r2_score(y_scalars[val_idx, 0], pred_scalars[:, 0])),
             }
             rows.append(fold_metrics)
@@ -441,14 +514,18 @@ def train_forecast(
         name: {
             "cv_pt_mae_mean": float(np.mean([row["pt_mae"] for row in rows])),
             "cv_pt_mae_std": float(np.std([row["pt_mae"] for row in rows])),
-            "cv_max_displacement_mae_mean": float(np.mean([row["max_displacement_mae"] for row in rows])),
+            "cv_max_displacement_mae_mean": float(
+                np.mean([row["max_displacement_mae"] for row in rows])
+            ),
             "cv_max_force_mae_mean": float(np.mean([row["max_force_mae"] for row in rows])),
             "cv_pt_r2_mean": float(np.mean([row["pt_r2"] for row in rows])),
             "folds": rows,
         }
         for name, rows in candidate_rows.items()
     }
-    best_name = min(metrics_by_model, key=lambda key: float(metrics_by_model[key]["cv_pt_mae_mean"]))
+    best_name = min(
+        metrics_by_model, key=lambda key: float(metrics_by_model[key]["cv_pt_mae_mean"])
+    )
 
     type_fold_rows = []
     type_oof_rows: list[dict[str, object]] = []
@@ -482,7 +559,10 @@ def train_forecast(
                     "test_id": records[int(idx)].test_id,
                     "type_true": int(y_type[idx]),
                     "type_pred": int(pred_type[local_index]),
-                    **{f"prob_type{cls}": float(prob) for cls, prob in zip(class_values, pred_proba[local_index], strict=True)},
+                    **{
+                        f"prob_type{cls}": float(prob)
+                        for cls, prob in zip(class_values, pred_proba[local_index], strict=True)
+                    },
                 }
             )
 
@@ -514,7 +594,9 @@ def train_forecast(
             n_jobs=-1,
         )
         fold_curve_model.fit(x[train_idx], fold_scores)
-        pred_curve = np.clip(fold_pca.inverse_transform(fold_curve_model.predict(x[val_idx])), 0.0, None)
+        pred_curve = np.clip(
+            fold_pca.inverse_transform(fold_curve_model.predict(x[val_idx])), 0.0, None
+        )
         curve_fold_rows.append(
             {
                 "fold": fold,
@@ -528,8 +610,12 @@ def train_forecast(
         "grid_len": GRID_LEN,
         "best_scalar_model": best_name,
         "models": metrics_by_model,
-        "curve_cv_norm_rmse_mean": float(np.mean([row["curve_norm_rmse"] for row in curve_fold_rows])),
-        "curve_cv_norm_rmse_std": float(np.std([row["curve_norm_rmse"] for row in curve_fold_rows])),
+        "curve_cv_norm_rmse_mean": float(
+            np.mean([row["curve_norm_rmse"] for row in curve_fold_rows])
+        ),
+        "curve_cv_norm_rmse_std": float(
+            np.std([row["curve_norm_rmse"] for row in curve_fold_rows])
+        ),
         "curve_folds": curve_fold_rows,
         "type_accuracy_mean": float(np.mean([row["accuracy"] for row in type_fold_rows])),
         "type_macro_f1_mean": float(np.mean([row["macro_f1"] for row in type_fold_rows])),
@@ -571,16 +657,37 @@ def train_forecast(
         },
         output_dir / "u3_forecast.joblib",
     )
-    (output_dir / "u3_forecast_metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+    (output_dir / "u3_forecast_metrics.json").write_text(
+        json.dumps(metrics, indent=2), encoding="utf-8"
+    )
     with (output_dir / "oof_predictions.csv").open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(
             handle,
-            fieldnames=["model", "fold", "case", "u3_folder", "test_id", "pt_true", "pt_pred", "abs_error"],
+            fieldnames=[
+                "model",
+                "fold",
+                "case",
+                "u3_folder",
+                "test_id",
+                "pt_true",
+                "pt_pred",
+                "abs_error",
+            ],
         )
         writer.writeheader()
         writer.writerows(oof_rows)
-    with (output_dir / "type_oof_predictions.csv").open("w", encoding="utf-8", newline="") as handle:
-        fieldnames = ["fold", "case", "test_id", "type_true", "type_pred", "prob_type2", "prob_type3"]
+    with (output_dir / "type_oof_predictions.csv").open(
+        "w", encoding="utf-8", newline=""
+    ) as handle:
+        fieldnames = [
+            "fold",
+            "case",
+            "test_id",
+            "type_true",
+            "type_pred",
+            "prob_type2",
+            "prob_type3",
+        ]
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(type_oof_rows)
@@ -623,12 +730,28 @@ def train_forecast(
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--manifest", default="/Users/danlee/KyulAI_codex/data/datasets/DD_u3_pt_v2/manifest.csv")
-    parser.add_argument("--output-dir", default="/Users/danlee/KyulAI_codex/models/dd_laminate_u3_forecast_v2")
-    parser.add_argument("--report-dir", default="/Users/danlee/KyulAI_codex/reports/dd_u3_forecast_v2")
+    parser.add_argument(
+        "--manifest", default="/Users/danlee/KyulAI_codex/data/datasets/DD_u3_pt_v2/manifest.csv"
+    )
+    parser.add_argument(
+        "--output-dir", default="/Users/danlee/KyulAI_codex/models/dd_laminate_u3_forecast_v2"
+    )
+    parser.add_argument(
+        "--report-dir", default="/Users/danlee/KyulAI_codex/reports/dd_u3_forecast_v2"
+    )
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--splits", type=int, default=5)
-    parser.add_argument("--feature-set", choices=["theta", "theta_physics", "theta_physics_v2"], default="theta")
+    parser.add_argument(
+        "--feature-set",
+        choices=[
+            "theta",
+            "theta_physics",
+            "theta_physics_v2",
+            "theta_physics_canonical_v2",
+            "theta_physics_compact_canonical_v2",
+        ],
+        default="theta",
+    )
     args = parser.parse_args()
     metrics = train_forecast(
         manifest=Path(args.manifest),

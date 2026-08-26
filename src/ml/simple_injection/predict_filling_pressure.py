@@ -14,7 +14,9 @@ from .data import DEFAULT_DATA_DIR, build_record_from_inputs, load_geometry_doe,
 from .model import SimpleInjectionGointRegressor, SimpleInjectionHistogramDeepONetRegressor
 
 
-def _load_inputs_from_ids(data_dir: str | Path, geometry_id: str, process_id: str) -> tuple[dict, dict]:
+def _load_inputs_from_ids(
+    data_dir: str | Path, geometry_id: str, process_id: str
+) -> tuple[dict, dict]:
     doe_dir = Path(data_dir) / "DOE"
     geometry = load_geometry_doe(doe_dir, include_supplemental=True)[geometry_id]
     process = load_process_doe(doe_dir, include_supplemental=True)[process_id]
@@ -23,7 +25,7 @@ def _load_inputs_from_ids(data_dir: str | Path, geometry_id: str, process_id: st
 
 def _summary_from_prediction(sample_id: str, target_columns: list[str], values: np.ndarray) -> dict:
     values = np.clip(np.asarray(values, dtype=float), 0.0, None)
-    stats = dict(zip(target_columns[:4], values[:4]))
+    stats = dict(zip(target_columns[:4], values[:4], strict=False))
     ratios = values[4:]
     ratios = ratios / max(float(np.sum(ratios)), 1e-9) * 100.0
     max_pressure = max(float(stats.get("max_MPa", 0.0)), 1e-9)
@@ -62,7 +64,9 @@ def predict_filling_pressure(model_path: str | Path, geometry: dict, process: di
     return _summary_from_prediction(sample_id, bundle["target_columns"], pred)
 
 
-def predict_filling_pressure_goint(model_path: str | Path, geometry: dict, process: dict, device: str = "cpu") -> dict:
+def predict_filling_pressure_goint(
+    model_path: str | Path, geometry: dict, process: dict, device: str = "cpu"
+) -> dict:
     checkpoint = torch.load(model_path, map_location=device, weights_only=False)
     cfg = checkpoint["model_config"]
     model = SimpleInjectionGointRegressor(
@@ -80,15 +84,21 @@ def predict_filling_pressure_goint(model_path: str | Path, geometry: dict, proce
         1e-9,
     )
     with torch.no_grad():
-        pred_norm = model(torch.tensor(x_norm, dtype=torch.float32, device=device)).squeeze(0).cpu().numpy()
-    pred = pred_norm * np.asarray(checkpoint["target_std"], dtype=float) + np.asarray(checkpoint["target_mean"], dtype=float)
+        pred_norm = (
+            model(torch.tensor(x_norm, dtype=torch.float32, device=device)).squeeze(0).cpu().numpy()
+        )
+    pred = pred_norm * np.asarray(checkpoint["target_std"], dtype=float) + np.asarray(
+        checkpoint["target_mean"], dtype=float
+    )
     sample_id = f"{geometry.get('geometry_id', 'manual')}_{process.get('process_id', 'manual')}"
     summary = _summary_from_prediction(sample_id, checkpoint["target_columns"], pred)
     summary["source_file"] = "predicted_filling_pressure_goint"
     return summary
 
 
-def predict_filling_pressure_deeponet(model_path: str | Path, geometry: dict, process: dict, device: str = "cpu") -> dict:
+def predict_filling_pressure_deeponet(
+    model_path: str | Path, geometry: dict, process: dict, device: str = "cpu"
+) -> dict:
     checkpoint = torch.load(model_path, map_location=device, weights_only=False)
     cfg = checkpoint["model_config"]
     model = SimpleInjectionHistogramDeepONetRegressor(
@@ -109,8 +119,15 @@ def predict_filling_pressure_deeponet(model_path: str | Path, geometry: dict, pr
     )
     bin_grid = torch.linspace(0.0, 1.0, cfg["bins"], dtype=torch.float32, device=device)
     with torch.no_grad():
-        pred_norm = model(torch.tensor(x_norm, dtype=torch.float32, device=device), bin_grid).squeeze(0).cpu().numpy()
-    pred = pred_norm * np.asarray(checkpoint["target_std"], dtype=float) + np.asarray(checkpoint["target_mean"], dtype=float)
+        pred_norm = (
+            model(torch.tensor(x_norm, dtype=torch.float32, device=device), bin_grid)
+            .squeeze(0)
+            .cpu()
+            .numpy()
+        )
+    pred = pred_norm * np.asarray(checkpoint["target_std"], dtype=float) + np.asarray(
+        checkpoint["target_mean"], dtype=float
+    )
     sample_id = f"{geometry.get('geometry_id', 'manual')}_{process.get('process_id', 'manual')}"
     summary = _summary_from_prediction(sample_id, checkpoint["target_columns"], pred)
     summary["source_file"] = "predicted_filling_pressure_deeponet"
@@ -143,8 +160,13 @@ def _process_from_args(args) -> dict:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Predict Simple Injection filling pressure histogram")
-    parser.add_argument("--model", default="models/simple_injection_filling_pressure_v1/filling_pressure_surrogate.joblib")
+    parser = argparse.ArgumentParser(
+        description="Predict Simple Injection filling pressure histogram"
+    )
+    parser.add_argument(
+        "--model",
+        default="models/simple_injection_filling_pressure_v1/filling_pressure_surrogate.joblib",
+    )
     parser.add_argument("--data-dir", default=str(DEFAULT_DATA_DIR))
     parser.add_argument("--geometry-id")
     parser.add_argument("--process-id")

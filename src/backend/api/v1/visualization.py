@@ -44,7 +44,7 @@ async def get_mesh_nodes(
     try:
         dataset = await svc.get(dataset_id)
     except NotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
     if dataset.parse_status != "ready":
         raise HTTPException(
@@ -72,9 +72,9 @@ async def get_mesh_connectivity(
     TODO: load from parsed HDF5 record in MinIO.
     """
     try:
-        dataset = await svc.get(dataset_id)
+        await svc.get(dataset_id)
     except NotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
     raise HTTPException(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
@@ -96,9 +96,9 @@ async def list_dataset_fields(
     TODO: load field metadata from parsed HDF5 record in MinIO.
     """
     try:
-        dataset = await svc.get(dataset_id)
+        await svc.get(dataset_id)
     except NotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
     raise HTTPException(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
@@ -124,7 +124,7 @@ async def get_field_data(
     try:
         dataset = await svc.get(dataset_id)
     except NotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
     if field_name not in dataset.available_fields:
         raise HTTPException(

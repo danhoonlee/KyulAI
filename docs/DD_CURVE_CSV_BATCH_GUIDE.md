@@ -41,6 +41,11 @@ CSV 파일은 최소 2개 숫자 컬럼이 있어야 합니다.
 
 여러 CSV를 한 번에 예측하려면 `Force-displacement CSV` 입력에서 여러 파일을 동시에 선택하면 됩니다.
 
+- 한 번에 최대 1,000개 CSV를 선택할 수 있습니다.
+- 브라우저는 200개 단위로 자동 분할해 순서대로 전송합니다.
+- 선택한 파일의 개수와 전체 용량, 처리 진행률이 화면에 표시됩니다.
+- 전체 CSV 용량은 256 MiB 이하여야 하며, 파일 하나는 16 MiB 이하여야 합니다.
+
 권장 구성은 다음과 같습니다.
 
 ```text
@@ -101,26 +106,30 @@ metadata CSV를 넣지 않으면, 화면에 입력한 `θ₁`, `θ₂`, `Pt`, `C
 현재 프로젝트의 새 데이터는 다음처럼 되어 있습니다.
 
 ```text
-data/New_Data/
+data/New_data/
 ├── 6x8_Case2/
 │   ├── Original/
+│   ├── csv/
 │   └── transition load.csv
 ├── 6x8_Case3/
 │   ├── Original/
+│   ├── csv/
 │   └── transition load.csv
 ├── 6x8_Case4/
 │   ├── Original/
+│   ├── csv/
 │   └── transition load.csv
-├── csv_6x8_Case2/
-├── csv_6x8_Case3/
-└── csv_6x8_Case4/
+└── batch_metadata/
 ```
 
 이 구조에서 웹에 올릴 때는:
 
-1. `csv_6x8_Case2` 안의 `force_disp_Test_###.csv` 파일들을 선택합니다.
-2. `6x8_Case2/transition load.csv`를 metadata로 사용합니다.
-3. 다만 웹 batch 매칭을 가장 안정적으로 하려면 `transition load.csv`에 `filename` 컬럼을 추가한 업로드용 metadata CSV를 만들어 사용하는 것이 좋습니다.
+1. 각 Case의 `csv` 폴더 안에서 `force_disp_Test_###.csv` 파일들을 선택합니다.
+2. `batch_metadata/curve_batch_metadata_6x8_Case#.csv`를 metadata로 선택합니다.
+3. metadata는 `scripts/dd_make_curve_batch_metadata.py`로 다시 만들 수 있습니다.
+
+2026-07-22 확인 기준으로 Case3의 `csv` 폴더에는 230개만 있으며 `Test_031`부터
+`Test_100`까지 70개 CSV가 없습니다. Case4의 `csv` 폴더에는 300개가 모두 있습니다.
 
 업로드용 metadata 예:
 
@@ -169,6 +178,11 @@ A header row is allowed, but each data row must contain readable numeric displac
 ### 3. Batch Prediction with Multiple CSV Files
 
 For batch prediction, select multiple `force_disp_Test_###.csv` files in the `Force-displacement CSV` input.
+
+- You can select up to 1,000 CSV files at once.
+- The browser automatically sends large selections in sequential chunks of 200 files.
+- The UI shows the selected count, total size, and processing progress.
+- The combined CSV size must not exceed 256 MiB, and each file must not exceed 16 MiB.
 
 Recommended structure:
 
@@ -230,26 +244,30 @@ If each CSV has different angles or Pt values, provide a metadata CSV.
 The current project data is organized like this:
 
 ```text
-data/New_Data/
+data/New_data/
 ├── 6x8_Case2/
 │   ├── Original/
+│   ├── csv/
 │   └── transition load.csv
 ├── 6x8_Case3/
 │   ├── Original/
+│   ├── csv/
 │   └── transition load.csv
 ├── 6x8_Case4/
 │   ├── Original/
+│   ├── csv/
 │   └── transition load.csv
-├── csv_6x8_Case2/
-├── csv_6x8_Case3/
-└── csv_6x8_Case4/
+└── batch_metadata/
 ```
 
 For web upload:
 
-1. Select the `force_disp_Test_###.csv` files inside `csv_6x8_Case2`.
-2. Use `6x8_Case2/transition load.csv` as metadata.
-3. For the most reliable web batch matching, create an upload metadata CSV that includes a `filename` column.
+1. Select the `force_disp_Test_###.csv` files from the relevant Case `csv` folder.
+2. Select the matching `batch_metadata/curve_batch_metadata_6x8_Case#.csv` file.
+3. Regenerate these files with `scripts/dd_make_curve_batch_metadata.py` when transition data changes.
+
+As checked on 2026-07-22, the Case3 `csv` directory contains only 230 files: `Test_031`
+through `Test_100` are missing. The Case4 `csv` directory contains all 300 files.
 
 Upload metadata example:
 

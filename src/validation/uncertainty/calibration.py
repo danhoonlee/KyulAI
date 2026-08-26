@@ -15,7 +15,7 @@ Using Calibrated Regression".
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -24,10 +24,10 @@ import numpy as np
 class CalibrationResult:
     """Output from CalibrationChecker.check()."""
 
-    levels: np.ndarray              # nominal coverage levels, e.g. [0.5, 0.6, ..., 0.95]
-    empirical_coverages: np.ndarray # observed fraction of y_true inside interval at each level
-    ece: float                      # expected calibration error (mean |nominal - empirical|)
-    mean_interval_width: float      # sharpness (lower = sharper)
+    levels: np.ndarray  # nominal coverage levels, e.g. [0.5, 0.6, ..., 0.95]
+    empirical_coverages: np.ndarray  # observed fraction of y_true inside interval at each level
+    ece: float  # expected calibration error (mean |nominal - empirical|)
+    mean_interval_width: float  # sharpness (lower = sharper)
     n_samples: int
 
     @property
@@ -42,7 +42,7 @@ class CalibrationResult:
             f"  Mean interval width = {self.mean_interval_width:.4f}",
             "  Level  |  Nominal  |  Empirical",
         ]
-        for lv, ec in zip(self.levels, self.empirical_coverages):
+        for lv, ec in zip(self.levels, self.empirical_coverages, strict=False):
             flag = "  " if abs(lv - ec) < 0.05 else " *"
             lines.append(f"  {lv:.2f}      {ec:.3f}{flag}")
         return "\n".join(lines)
@@ -64,9 +64,7 @@ class CalibrationChecker:
         levels: np.ndarray | None = None,
     ) -> None:
         self.interval_fn = interval_fn
-        self.levels = (
-            np.arange(0.50, 1.00, 0.05) if levels is None else np.asarray(levels)
-        )
+        self.levels = np.arange(0.50, 1.00, 0.05) if levels is None else np.asarray(levels)
 
     def check(self, y_true: np.ndarray, y_hat: np.ndarray) -> CalibrationResult:
         """

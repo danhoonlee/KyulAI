@@ -32,11 +32,13 @@ public struct InjectionAPIClient: InjectionAPIClientProtocol {
     private let urlSession: URLSession
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
+    private let bearerToken: String?
 
-    public init(urlSession: URLSession = .shared) {
+    public init(urlSession: URLSession = .shared, bearerToken: String? = nil) {
         self.urlSession = urlSession
         self.decoder = JSONDecoder()
         self.encoder = JSONEncoder()
+        self.bearerToken = bearerToken
     }
 
     public func health(baseURL: URL) async throws -> HealthResponse {
@@ -76,7 +78,11 @@ public struct InjectionAPIClient: InjectionAPIClientProtocol {
     }
 
     private func send<T: Decodable>(_ request: URLRequest) async throws -> T {
-        let (data, response) = try await urlSession.data(for: request)
+        var authorizedRequest = request
+        if let bearerToken, !bearerToken.isEmpty {
+            authorizedRequest.setValue("Bearer \(bearerToken)", forHTTPHeaderField: "Authorization")
+        }
+        let (data, response) = try await urlSession.data(for: authorizedRequest)
         guard let http = response as? HTTPURLResponse else {
             throw InjectionAPIError.invalidResponse
         }

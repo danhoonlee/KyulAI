@@ -69,7 +69,9 @@ def split_iter(cv_mode: str, splits: int, seed: int, x: np.ndarray, groups: np.n
         raise ValueError(cv_mode)
 
 
-def make_model(args, input_dim: int, seq_len: int, device: torch.device) -> SimpleInjectionGointSurrogate:
+def make_model(
+    args, input_dim: int, seq_len: int, device: torch.device
+) -> SimpleInjectionGointSurrogate:
     return SimpleInjectionGointSurrogate(
         input_dim=input_dim,
         seq_len=seq_len,
@@ -97,7 +99,11 @@ def run_epoch(model, loader, optimizer, device, train: bool, args, grid_t: torch
         scalar_loss = F.smooth_l1_loss(pred_scalars, scalars)
         curve_loss = F.smooth_l1_loss(pred_curve, curve)
         physics_loss = sprue_physics_loss(pred_curve, curve, grid_t, args)
-        loss = args.scalar_weight * scalar_loss + args.curve_weight * curve_loss + args.physics_weight * physics_loss
+        loss = (
+            args.scalar_weight * scalar_loss
+            + args.curve_weight * curve_loss
+            + args.physics_weight * physics_loss
+        )
         if train:
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 3.0)
@@ -117,7 +123,9 @@ def run_epoch(model, loader, optimizer, device, train: bool, args, grid_t: torch
     }
 
 
-def metric_row(eval_out, scalar_mean: np.ndarray, scalar_std: np.ndarray, grid: np.ndarray) -> dict[str, float]:
+def metric_row(
+    eval_out, scalar_mean: np.ndarray, scalar_std: np.ndarray, grid: np.ndarray
+) -> dict[str, float]:
     pred_scalars = np.maximum(
         denormalize_scalars(eval_out["scalar_pred_norm"], scalar_mean, scalar_std),
         1e-9,
@@ -156,20 +164,26 @@ def train_one_fold(dataset, train_idx, val_idx, args, device, scalar_mean, scala
     model = make_model(args, dataset.x.shape[1], dataset.y_curve.shape[1], device)
     grid_t = torch.tensor(grid_np, dtype=torch.float32, device=device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.55, patience=12)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode="min", factor=0.55, patience=12
+    )
     best_state = None
     best_loss = float("inf")
     best_epoch = 0
     stale = 0
     for epoch in range(1, args.epochs + 1):
         run_epoch(model, train_loader, optimizer, device, train=True, args=args, grid_t=grid_t)
-        val_out = run_epoch(model, val_loader, optimizer, device, train=False, args=args, grid_t=grid_t)
+        val_out = run_epoch(
+            model, val_loader, optimizer, device, train=False, args=args, grid_t=grid_t
+        )
         val_loss = float(val_out["loss"])
         scheduler.step(val_loss)
         if val_loss < best_loss:
             best_loss = val_loss
             best_epoch = epoch
-            best_state = {key: value.detach().cpu().clone() for key, value in model.state_dict().items()}
+            best_state = {
+                key: value.detach().cpu().clone() for key, value in model.state_dict().items()
+            }
             stale = 0
         else:
             stale += 1
@@ -220,7 +234,9 @@ def write_report(output_dir: Path, args, metrics: dict) -> None:
         "",
         f"With {metrics['n_samples']} samples, this deep model is primarily a structural baseline; it should improve as the remaining DOE results arrive.",
     ]
-    (output_dir / "sprue_pressure_goint_report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (output_dir / "sprue_pressure_goint_report.md").write_text(
+        "\n".join(lines) + "\n", encoding="utf-8"
+    )
 
 
 def train_goint_surrogate(data_dir: str | Path, output_dir: str | Path, args) -> dict:
@@ -239,7 +255,9 @@ def train_goint_surrogate(data_dir: str | Path, output_dir: str | Path, args) ->
         start=1,
     ):
         print(f"Starting fold {fold}/{args.splits}...")
-        row = train_one_fold(dataset, train_idx, val_idx, args, args.device_torch, scalar_mean, scalar_std, grid)
+        row = train_one_fold(
+            dataset, train_idx, val_idx, args, args.device_torch, scalar_mean, scalar_std, grid
+        )
         row["fold"] = fold
         fold_rows.append(row)
         print(
@@ -280,12 +298,12 @@ def train_goint_surrogate(data_dir: str | Path, output_dir: str | Path, args) ->
                 "seq_len": args.seq_len,
                 "hidden_dim": args.hidden_dim,
                 "num_branches": args.num_branches,
-            "dropout": args.dropout,
-            "physics_weight": args.physics_weight,
-            "nonnegative_weight": args.nonnegative_weight,
-            "oscillation_weight": args.oscillation_weight,
-            "peak_timing_weight": args.peak_timing_weight,
-        },
+                "dropout": args.dropout,
+                "physics_weight": args.physics_weight,
+                "nonnegative_weight": args.nonnegative_weight,
+                "oscillation_weight": args.oscillation_weight,
+                "peak_timing_weight": args.peak_timing_weight,
+            },
             "feature_columns": feature_columns,
             "gate_types": gate_types,
             "feature_mean": feature_mean,
@@ -309,7 +327,9 @@ def train_goint_surrogate(data_dir: str | Path, output_dir: str | Path, args) ->
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Train Simple Injection GointMLP-style sprue pressure surrogate")
+    parser = argparse.ArgumentParser(
+        description="Train Simple Injection GointMLP-style sprue pressure surrogate"
+    )
     parser.add_argument("--data-dir", default=str(DEFAULT_DATA_DIR))
     parser.add_argument("--output-dir", default="models/simple_injection_sprue_goint_v1")
     parser.add_argument("--seq-len", type=int, default=128)

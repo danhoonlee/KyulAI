@@ -12,7 +12,7 @@ New data arrived at `/Users/danlee/KyulAI_codex/data/datasets/DD_new` in two
 
 Both batches are Case 3:
 
-`[[±theta1]/[±theta2]/[∓theta2]/[∓theta2]]2`
+`[[±theta1]/[±theta2]/[∓theta1]/[∓theta2]]2`
 
 The sibling-provided folders `1`, `2`, and `3` were treated as original labels
 and checked with the existing CSV metadata+curve classifier. Six labels were
@@ -72,7 +72,7 @@ Current canonical cases:
 |---|---|
 | Case 1 | To be determined |
 | Case 2 | `[[±theta1]/[±theta2]]4` |
-| Case 3 | `[[±theta1]/[±theta2]/[∓theta2]/[∓theta2]]2` |
+| Case 3 | `[[±theta1]/[±theta2]/[∓theta1]/[∓theta2]]2` |
 | Case 4 | `[([±theta1]/[±theta2])2 / ([∓theta1]/[∓theta2])2]` |
 
 Current usable dataset contains only Case3 and Case4.

@@ -19,17 +19,13 @@ from src.backend.db.base import Base
 class Paper(Base):
     __tablename__ = "papers"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
     # ── Bibliographic metadata ────────────────────────────────────────────────
     title: Mapped[str] = mapped_column(String(512), nullable=False, index=True)
     authors: Mapped[list[str]] = mapped_column(JSON, default=list)
     year: Mapped[int | None] = mapped_column(Integer, index=True)
-    venue: Mapped[str | None] = mapped_column(
-        String(255), comment="Journal or conference name"
-    )
+    venue: Mapped[str | None] = mapped_column(String(255), comment="Journal or conference name")
     doi: Mapped[str | None] = mapped_column(String(255), unique=True)
     arxiv_id: Mapped[str | None] = mapped_column(String(50), unique=True)
     url: Mapped[str | None] = mapped_column(String(1024))
@@ -38,7 +34,7 @@ class Paper(Base):
     abstract: Mapped[str | None] = mapped_column(Text)
 
     # ── Relevance classification ──────────────────────────────────────────────
-    # 0.0–1.0 score assigned by the Research Agent.
+    # 0.0-1.0 score assigned by the Research Agent.
     relevance_score: Mapped[float | None] = mapped_column(
         Float, comment="Research Agent relevance score [0, 1]"
     )

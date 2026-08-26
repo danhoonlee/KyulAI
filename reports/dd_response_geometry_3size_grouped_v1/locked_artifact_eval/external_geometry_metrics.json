@@ -1,0 +1,367 @@
+{
+  "dataset": "data/datasets/DD_cases_2_3_4_geometry_grouped_v1/locked_holdout",
+  "rows": 546,
+  "cases": {
+    "Case2": 183,
+    "Case3": 183,
+    "Case4": 180
+  },
+  "panel_sizes": {
+    "6x4": 182,
+    "6x8": 182,
+    "8x8": 182
+  },
+  "feature_set": "theta_physics_geometry_v1",
+  "feature_columns": [
+    "theta1",
+    "theta2",
+    "case_case2",
+    "case_case3",
+    "case_case4",
+    "abs_theta1",
+    "abs_theta2",
+    "theta_diff",
+    "theta_sum",
+    "theta_product",
+    "theta_abs_diff",
+    "a11",
+    "a22",
+    "a12",
+    "a66",
+    "b16",
+    "b26",
+    "d11",
+    "d22",
+    "d12",
+    "d66",
+    "d16",
+    "d26",
+    "a11_a22_ratio",
+    "d11_d22_ratio",
+    "b_coupling_norm",
+    "d_coupling_norm",
+    "membrane_anisotropy",
+    "bending_anisotropy",
+    "angle_abs_mean",
+    "angle_abs_std",
+    "angle_min_abs",
+    "angle_max_abs",
+    "stack_symmetry_mismatch",
+    "stack_balance_cos_sum",
+    "panel_aspect",
+    "a_slenderness",
+    "b_slenderness",
+    "panel_a_in",
+    "panel_b_in"
+  ],
+  "device": "cuda",
+  "type_label_policy": "curve classifier pseudo-label; agreement metric only",
+  "models": {
+    "Geometry Tree + Physics XAI": {
+      "rows": 546,
+      "type_agreement_pseudo": 0.9377289377289377,
+      "type_macro_f1_pseudo": 0.93469660516585,
+      "type_agreement_pseudo_confidence_ge_070": 0.9587301587301588,
+      "type_rows_confidence_ge_070": 315,
+      "pt_mae": 190.1214931595332,
+      "max_displacement_mae": 0.00040309302776127216,
+      "max_force_mae": 153.6989970046857,
+      "curve_norm_rmse": 0.005962146893584219,
+      "curve_force_rmse": 291.3645419274482
+    },
+    "Geometry GointMLP + Physics XAI": {
+      "rows": 546,
+      "type_agreement_pseudo": 0.9047619047619048,
+      "type_macro_f1_pseudo": 0.9021248857993548,
+      "type_agreement_pseudo_confidence_ge_070": 0.926984126984127,
+      "type_rows_confidence_ge_070": 315,
+      "pt_mae": 532.8433305643936,
+      "max_displacement_mae": 0.00016567104792308864,
+      "max_force_mae": 1011.5387942006602,
+      "curve_norm_rmse": 0.015486296708764087,
+      "curve_force_rmse": 1017.8995970929719
+    },
+    "Geometry Hybrid Student": {
+      "rows": 546,
+      "type_agreement_pseudo": 0.9340659340659341,
+      "type_macro_f1_pseudo": 0.9303004936513771,
+      "type_agreement_pseudo_confidence_ge_070": 0.9619047619047619,
+      "type_rows_confidence_ge_070": 315,
+      "pt_mae": 305.6386882769446,
+      "max_displacement_mae": 0.0004164750534382637,
+      "max_force_mae": 389.4528449621276,
+      "curve_norm_rmse": 0.006492934516911714,
+      "curve_force_rmse": 438.5001987012964
+    }
+  },
+  "per_case": {
+    "Geometry Tree + Physics XAI": {
+      "Case2": {
+        "rows": 183,
+        "type_agreement_pseudo": 0.9453551912568307,
+        "type_macro_f1_pseudo": 0.9437557878711657,
+        "type_agreement_pseudo_confidence_ge_070": 0.9578947368421052,
+        "type_rows_confidence_ge_070": 95,
+        "pt_mae": 190.77747048383046,
+        "max_displacement_mae": 0.00015791281784741792,
+        "max_force_mae": 90.4046188157082,
+        "curve_norm_rmse": 0.001989374953022789,
+        "curve_force_rmse": 213.81783540896325
+      },
+      "Case3": {
+        "rows": 183,
+        "type_agreement_pseudo": 0.907103825136612,
+        "type_macro_f1_pseudo": 0.9053422291622306,
+        "type_agreement_pseudo_confidence_ge_070": 0.9433962264150944,
+        "type_rows_confidence_ge_070": 106,
+        "pt_mae": 266.4068632287718,
+        "max_displacement_mae": 0.0003899699124309726,
+        "max_force_mae": 263.19989046060664,
+        "curve_norm_rmse": 0.0038821264694400494,
+        "curve_force_rmse": 273.8635357902374
+      },
+      "Case4": {
+        "rows": 180,
+        "type_agreement_pseudo": 0.9611111111111111,
+        "type_macro_f1_pseudo": 0.9571381217282857,
+        "type_agreement_pseudo_confidence_ge_070": 0.9736842105263158,
+        "type_rows_confidence_ge_070": 114,
+        "pt_mae": 111.89778997610509,
+        "max_displacement_mae": 0.0006657014084261617,
+        "max_force_mae": 106.72237314995996,
+        "curve_norm_rmse": 0.009406425073097724,
+        "curve_force_rmse": 367.121742836689
+      }
+    },
+    "Geometry GointMLP + Physics XAI": {
+      "Case2": {
+        "rows": 183,
+        "type_agreement_pseudo": 0.8852459016393442,
+        "type_macro_f1_pseudo": 0.8852202960165833,
+        "type_agreement_pseudo_confidence_ge_070": 0.8842105263157894,
+        "type_rows_confidence_ge_070": 95,
+        "pt_mae": 619.2937835418674,
+        "max_displacement_mae": 0.0003395472185868406,
+        "max_force_mae": 1066.0077717735546,
+        "curve_norm_rmse": 0.015478838998048963,
+        "curve_force_rmse": 1080.4446044983647
+      },
+      "Case3": {
+        "rows": 183,
+        "type_agreement_pseudo": 0.8852459016393442,
+        "type_macro_f1_pseudo": 0.8838284139255013,
+        "type_agreement_pseudo_confidence_ge_070": 0.9339622641509434,
+        "type_rows_confidence_ge_070": 106,
+        "pt_mae": 508.9140657222808,
+        "max_displacement_mae": 7.372713232030943e-05,
+        "max_force_mae": 991.8448266200411,
+        "curve_norm_rmse": 0.015274024117119736,
+        "curve_force_rmse": 964.2547466947899
+      },
+      "Case4": {
+        "rows": 180,
+        "type_agreement_pseudo": 0.9444444444444444,
+        "type_macro_f1_pseudo": 0.9381035903159797,
+        "type_agreement_pseudo_confidence_ge_070": 0.956140350877193,
+        "type_rows_confidence_ge_070": 114,
+        "pt_mae": 469.28012262677623,
+        "max_displacement_mae": 8.23732552777663e-05,
+        "max_force_mae": 976.1842007085136,
+        "curve_norm_rmse": 0.015706640723969385,
+        "curve_force_rmse": 1005.3834424569361
+      }
+    },
+    "Geometry Hybrid Student": {
+      "Case2": {
+        "rows": 183,
+        "type_agreement_pseudo": 0.9453551912568307,
+        "type_macro_f1_pseudo": 0.9438568304547686,
+        "type_agreement_pseudo_confidence_ge_070": 0.968421052631579,
+        "type_rows_confidence_ge_070": 95,
+        "pt_mae": 337.5277779028791,
+        "max_displacement_mae": 0.000337385080597313,
+        "max_force_mae": 377.51307056678326,
+        "curve_norm_rmse": 0.005057957887192413,
+        "curve_force_rmse": 494.93254316612683
+      },
+      "Case3": {
+        "rows": 183,
+        "type_agreement_pseudo": 0.907103825136612,
+        "type_macro_f1_pseudo": 0.9049630951783594,
+        "type_agreement_pseudo_confidence_ge_070": 0.9528301886792453,
+        "type_rows_confidence_ge_070": 106,
+        "pt_mae": 340.0326933016545,
+        "max_displacement_mae": 0.00048599380711558215,
+        "max_force_mae": 446.7931284035573,
+        "curve_norm_rmse": 0.006513638156508587,
+        "curve_force_rmse": 420.2677010314841
+      },
+      "Case4": {
+        "rows": 180,
+        "type_agreement_pseudo": 0.95,
+        "type_macro_f1_pseudo": 0.9410800073433404,
+        "type_agreement_pseudo_confidence_ge_070": 0.9649122807017544,
+        "type_rows_confidence_ge_070": 114,
+        "pt_mae": 238.25087538212279,
+        "max_displacement_mae": 0.00042620579292128986,
+        "max_force_mae": 343.29566076527414,
+        "curve_norm_rmse": 0.007663937772961665,
+        "curve_force_rmse": 393.25200325385083
+      }
+    }
+  },
+  "serving_consistent_models": {
+    "Geometry Tree + Physics XAI": {
+      "rows": 546,
+      "type_agreement_pseudo": 0.9377289377289377,
+      "type_macro_f1_pseudo": 0.93469660516585,
+      "type_agreement_pseudo_confidence_ge_070": 0.9587301587301588,
+      "type_rows_confidence_ge_070": 315,
+      "pt_mae": 190.1214931595332,
+      "max_displacement_mae": 0.00040309302776127216,
+      "max_force_mae": 7838.843703805594,
+      "curve_norm_rmse": 0.005962146893584219,
+      "curve_force_rmse": 10858.309299984838
+    },
+    "Geometry GointMLP + Physics XAI": {
+      "rows": 546,
+      "type_agreement_pseudo": 0.9047619047619048,
+      "type_macro_f1_pseudo": 0.9021248857993548,
+      "type_agreement_pseudo_confidence_ge_070": 0.926984126984127,
+      "type_rows_confidence_ge_070": 315,
+      "pt_mae": 532.8433305643936,
+      "max_displacement_mae": 0.00016567104792308864,
+      "max_force_mae": 9722.347445772079,
+      "curve_norm_rmse": 0.015310795542893448,
+      "curve_force_rmse": 13182.865751348349
+    },
+    "Geometry Hybrid Student": {
+      "rows": 546,
+      "type_agreement_pseudo": 0.9340659340659341,
+      "type_macro_f1_pseudo": 0.9303004936513771,
+      "type_agreement_pseudo_confidence_ge_070": 0.9619047619047619,
+      "type_rows_confidence_ge_070": 315,
+      "pt_mae": 305.6386882769446,
+      "max_displacement_mae": 0.0004164750534382637,
+      "max_force_mae": 7789.348103237964,
+      "curve_norm_rmse": 0.006533836503615343,
+      "curve_force_rmse": 11540.479851047065
+    }
+  },
+  "serving_consistent_per_case": {
+    "Geometry Tree + Physics XAI": {
+      "Case2": {
+        "rows": 183,
+        "type_agreement_pseudo": 0.9453551912568307,
+        "type_macro_f1_pseudo": 0.9437557878711657,
+        "type_agreement_pseudo_confidence_ge_070": 0.9578947368421052,
+        "type_rows_confidence_ge_070": 95,
+        "pt_mae": 190.77747048383046,
+        "max_displacement_mae": 0.00015791281784741792,
+        "max_force_mae": 7840.311281037612,
+        "curve_norm_rmse": 0.001989374953022789,
+        "curve_force_rmse": 11115.341998732893
+      },
+      "Case3": {
+        "rows": 183,
+        "type_agreement_pseudo": 0.907103825136612,
+        "type_macro_f1_pseudo": 0.9053422291622306,
+        "type_agreement_pseudo_confidence_ge_070": 0.9433962264150944,
+        "type_rows_confidence_ge_070": 106,
+        "pt_mae": 266.4068632287718,
+        "max_displacement_mae": 0.0003899699124309726,
+        "max_force_mae": 7961.870430754396,
+        "curve_norm_rmse": 0.0038821264694400494,
+        "curve_force_rmse": 10784.129431475676
+      },
+      "Case4": {
+        "rows": 180,
+        "type_agreement_pseudo": 0.9611111111111111,
+        "type_macro_f1_pseudo": 0.9571381217282857,
+        "type_agreement_pseudo_confidence_ge_070": 0.9736842105263158,
+        "type_rows_confidence_ge_070": 114,
+        "pt_mae": 111.89778997610509,
+        "max_displacement_mae": 0.0006657014084261617,
+        "max_force_mae": 7712.27449455509,
+        "curve_norm_rmse": 0.009406425073097724,
+        "curve_force_rmse": 10667.379809097487
+      }
+    },
+    "Geometry GointMLP + Physics XAI": {
+      "Case2": {
+        "rows": 183,
+        "type_agreement_pseudo": 0.8852459016393442,
+        "type_macro_f1_pseudo": 0.8852202960165833,
+        "type_agreement_pseudo_confidence_ge_070": 0.8842105263157894,
+        "type_rows_confidence_ge_070": 95,
+        "pt_mae": 619.2937835418674,
+        "max_displacement_mae": 0.0003395472185868406,
+        "max_force_mae": 10473.158676701229,
+        "curve_norm_rmse": 0.01529054025314229,
+        "curve_force_rmse": 14007.4577995189
+      },
+      "Case3": {
+        "rows": 183,
+        "type_agreement_pseudo": 0.8852459016393442,
+        "type_macro_f1_pseudo": 0.8838284139255013,
+        "type_agreement_pseudo_confidence_ge_070": 0.9339622641509434,
+        "type_rows_confidence_ge_070": 106,
+        "pt_mae": 508.9140657222808,
+        "max_displacement_mae": 7.372713232030943e-05,
+        "max_force_mae": 9450.964528545137,
+        "curve_norm_rmse": 0.015088513781130668,
+        "curve_force_rmse": 12722.483761824906
+      },
+      "Case4": {
+        "rows": 180,
+        "type_agreement_pseudo": 0.9444444444444444,
+        "type_macro_f1_pseudo": 0.9381035903159797,
+        "type_agreement_pseudo_confidence_ge_070": 0.956140350877193,
+        "type_rows_confidence_ge_070": 114,
+        "pt_mae": 469.28012262677623,
+        "max_displacement_mae": 8.23732552777663e-05,
+        "max_force_mae": 9234.928660174834,
+        "curve_norm_rmse": 0.015553792526641002,
+        "curve_force_rmse": 12771.784202231409
+      }
+    },
+    "Geometry Hybrid Student": {
+      "Case2": {
+        "rows": 183,
+        "type_agreement_pseudo": 0.9453551912568307,
+        "type_macro_f1_pseudo": 0.9438568304547686,
+        "type_agreement_pseudo_confidence_ge_070": 0.968421052631579,
+        "type_rows_confidence_ge_070": 95,
+        "pt_mae": 337.5277779028791,
+        "max_displacement_mae": 0.000337385080597313,
+        "max_force_mae": 7840.396296637652,
+        "curve_norm_rmse": 0.005103403803189517,
+        "curve_force_rmse": 11863.83318946854
+      },
+      "Case3": {
+        "rows": 183,
+        "type_agreement_pseudo": 0.907103825136612,
+        "type_macro_f1_pseudo": 0.9049630951783594,
+        "type_agreement_pseudo_confidence_ge_070": 0.9528301886792453,
+        "type_rows_confidence_ge_070": 106,
+        "pt_mae": 340.0326933016545,
+        "max_displacement_mae": 0.00048599380711558215,
+        "max_force_mae": 8065.012775552947,
+        "curve_norm_rmse": 0.006547546612217075,
+        "curve_force_rmse": 11708.346108506688
+      },
+      "Case4": {
+        "rows": 180,
+        "type_agreement_pseudo": 0.95,
+        "type_macro_f1_pseudo": 0.9410800073433404,
+        "type_agreement_pseudo_confidence_ge_070": 0.9649122807017544,
+        "type_rows_confidence_ge_070": 114,
+        "pt_mae": 238.25087538212279,
+        "max_displacement_mae": 0.00042620579292128986,
+        "max_force_mae": 7457.190023094716,
+        "curve_norm_rmse": 0.007709241881140955,
+        "curve_force_rmse": 11023.653799769063
+      }
+    }
+  }
+}

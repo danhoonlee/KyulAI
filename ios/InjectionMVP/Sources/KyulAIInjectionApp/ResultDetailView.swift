@@ -25,28 +25,33 @@ private extension View {
 
 struct ResultDetailView: View {
     let result: SpruePressurePredictionResult
+    let recentRuns: [InjectionRecentRun]
     @EnvironmentObject private var settings: AppSettings
+    @State private var selectedTab: ResultTab = .summary
     @State private var showsFillingPreview = false
+    @State private var showsAllXaiFeatures = false
     @State private var assistantQuestion = "Why is the top XAI feature important in this prediction?"
     @State private var assistantAnswer: RagAnswerResponse?
     @State private var assistantErrorMessage: String?
     @State private var isAskingAssistant = false
     @FocusState private var isAssistantQuestionFocused: Bool
 
+    private enum ResultTab: String, CaseIterable, Identifiable {
+        case summary
+        case sprueCurve
+        case filling
+        case xai
+        case validation
+        case history
+
+        var id: String { rawValue }
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                heroCard
-                metricsGrid
-                curveCard
-                if let xai = result.xai {
-                    xaiCard(xai)
-                }
-                fillingCard
-                assistantCard
-                if !result.notes.isEmpty {
-                    notesCard
-                }
+                resultTabs
+                selectedTabContent
             }
             .padding(20)
         }
@@ -72,6 +77,72 @@ struct ResultDetailView: View {
                 Image(systemName: "photo")
             }
             #endif
+        }
+    }
+
+    private var resultTabs: some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
+            ForEach(ResultTab.allCases) { tab in
+                Button {
+                    withAnimation(.easeInOut(duration: 0.16)) { selectedTab = tab }
+                } label: {
+                    Text(tabTitle(tab))
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(selectedTab == tab ? .white : AppTheme.muted)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .background(selectedTab == tab ? AppTheme.primary : AppTheme.card, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(AppTheme.primary.opacity(selectedTab == tab ? 0 : 0.12), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(selectedTab == tab ? .isSelected : [])
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var selectedTabContent: some View {
+        switch selectedTab {
+        case .summary:
+            heroCard
+            metricsGrid
+            if !result.notes.isEmpty { notesCard }
+        case .sprueCurve:
+            curveCard
+        case .filling:
+            fillingCard
+        case .xai:
+            if let xai = result.xai {
+                xaiCard(xai)
+            } else {
+                unavailableCard(en: "XAI is not available for this prediction.", ko: "이번 예측에서는 XAI를 제공하지 않습니다.")
+            }
+            assistantCard
+        case .validation:
+            validationCard
+        case .history:
+            historyCard
+        }
+    }
+
+    private func tabTitle(_ tab: ResultTab) -> String {
+        switch tab {
+        case .summary: localText(en: "Summary", ko: "요약")
+        case .sprueCurve: localText(en: "Sprue", ko: "스프루")
+        case .filling: localText(en: "Filling", ko: "필링 분포")
+        case .xai: "XAI"
+        case .validation: localText(en: "Validation", ko: "검증")
+        case .history: localText(en: "History", ko: "기록")
+        }
+    }
+
+    private func unavailableCard(en: String, ko: String) -> some View {
+        AppCard {
+            Label(localText(en: en, ko: ko), systemImage: "info.circle")
+                .font(.callout.weight(.semibold))
+                .foregroundStyle(AppTheme.muted)
+                .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
         }
     }
 
@@ -158,8 +229,14 @@ struct ResultDetailView: View {
                         .font(.caption2.bold())
                         .foregroundStyle(AppTheme.danger)
                 }
+                Text(localText(
+                    en: "The curve shows how sprue pressure changes over injection time. The marker identifies the predicted peak pressure.",
+                    ko: "사출 시간에 따른 스프루 압력 변화를 보여주며, 마커는 예측 최대 압력 위치를 나타냅니다."
+                ))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(AppTheme.muted)
                 PressureChartView(points: result.curve, maxPressure: result.predictedMaxPressureMPa)
-                    .frame(height: 280)
+                    .frame(height: 230)
             }
         }
     }
@@ -170,6 +247,12 @@ struct ResultDetailView: View {
                 Label(L10n.t("filling.pressure"), systemImage: "square.grid.3x3.fill")
                     .font(.headline)
                     .foregroundStyle(AppTheme.ink)
+                Text(localText(
+                    en: "The bars compare the predicted volume ratio across filling-pressure groups; longer bars indicate a larger share of the molded volume.",
+                    ko: "필링 압력 그룹별 예측 체적 비율을 비교하며, 막대가 길수록 해당 압력 구간이 차지하는 체적이 큽니다."
+                ))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(AppTheme.muted)
                 if let filling = result.bestFillingPressure {
                     HStack(spacing: 10) {
                         fillingMetric("Min", filling.stats["min_MPa"])
@@ -297,9 +380,31 @@ struct ResultDetailView: View {
                 }
 
                 VStack(spacing: 10) {
-                    ForEach(Array(xai.topFeatures.prefix(8))) { feature in
+                    ForEach(Array(xai.topFeatures.prefix(5))) { feature in
                         xaiFeatureRow(feature)
                     }
+                }
+                if xai.topFeatures.count > 5 {
+                    DisclosureGroup(
+                        isExpanded: $showsAllXaiFeatures,
+                        content: {
+                            VStack(spacing: 10) {
+                                ForEach(Array(xai.topFeatures.dropFirst(5))) { feature in
+                                    xaiFeatureRow(feature)
+                                }
+                            }
+                            .padding(.top, 10)
+                        },
+                        label: {
+                            Text(showsAllXaiFeatures
+                                 ? localText(en: "Hide additional features", ko: "추가 Feature 숨기기")
+                                 : localText(en: "Show \(xai.topFeatures.count - 5) more features", ko: "나머지 \(xai.topFeatures.count - 5)개 Feature 보기"))
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(AppTheme.primary)
+                                .frame(minHeight: 44, alignment: .leading)
+                        }
+                    )
+                    .tint(AppTheme.primary)
                 }
             }
         }
@@ -329,13 +434,7 @@ struct ResultDetailView: View {
                 ZStack(alignment: .leading) {
                     Capsule().fill(AppTheme.primary.opacity(0.08))
                     Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: [AppTheme.primary, AppTheme.accent],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
+                        .fill(AppTheme.primary)
                         .frame(width: proxy.size.width * percent)
                 }
             }
@@ -354,6 +453,57 @@ struct ResultDetailView: View {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .stroke(AppTheme.primary.opacity(0.10), lineWidth: 1)
         )
+    }
+
+    private var validationCard: some View {
+        AppCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Label(localText(en: "Prediction validation", ko: "예측 검증"), systemImage: "checkmark.seal")
+                    .font(.headline.weight(.black))
+                    .foregroundStyle(AppTheme.ink)
+                Text(localText(
+                    en: "This run records the selected DOE and model metadata. Measured-reference error metrics are not returned by the current prediction API, so no validation score is fabricated here.",
+                    ko: "이번 실행의 DOE와 모델 정보는 확인할 수 있습니다. 현재 예측 API는 실측값 대비 오차를 반환하지 않으므로 임의의 검증 점수는 표시하지 않습니다."
+                ))
+                    .font(.callout.weight(.semibold))
+                    .foregroundStyle(AppTheme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+                Divider()
+                resultModelRow(L10n.t("geometry"), result.inputs["geometry_id"]?.stringValue ?? "-")
+                resultModelRow(L10n.t("process"), result.inputs["process_id"]?.stringValue ?? "-")
+                resultModelRow(L10n.t("sprue.model"), result.displayModelLabel)
+                resultModelRow(L10n.t("filling.model"), result.displayFillingModelLabel)
+            }
+        }
+    }
+
+    private var historyCard: some View {
+        AppCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Label(localText(en: "Recent input runs", ko: "최근 입력 기록"), systemImage: "clock.arrow.circlepath")
+                    .font(.headline.weight(.black))
+                    .foregroundStyle(AppTheme.ink)
+                if recentRuns.isEmpty {
+                    Text(localText(en: "No saved runs yet.", ko: "저장된 실행 기록이 아직 없습니다."))
+                        .font(.callout.weight(.semibold))
+                        .foregroundStyle(AppTheme.muted)
+                } else {
+                    ForEach(recentRuns) { run in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(run.displayTitle)
+                                .font(.subheadline.weight(.black))
+                                .foregroundStyle(AppTheme.ink)
+                            Text(run.displaySubtitle)
+                                .font(.caption.monospacedDigit().weight(.semibold))
+                                .foregroundStyle(AppTheme.muted)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(12)
+                        .background(AppTheme.field, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    }
+                }
+            }
+        }
     }
 
     @ViewBuilder

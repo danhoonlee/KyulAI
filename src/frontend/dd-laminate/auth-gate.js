@@ -46,37 +46,15 @@
   }
 
   function writeSession(session) {
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      user: session?.user || null,
+      entitlements: session?.entitlements || [],
+    }));
   }
 
   function clearSession() {
     localStorage.removeItem(SESSION_KEY);
   }
-
-  function tokenFromSession() {
-    const session = readSession();
-    return session?.access_token || session?.token || null;
-  }
-
-  function shouldAttachToken(url) {
-    const target = new URL(url, window.location.href);
-    return target.pathname.startsWith("/api/v1/dd-laminate")
-      || target.pathname.startsWith("/api/v1/rag")
-      || target.pathname.startsWith("/api/v1/optimization");
-  }
-
-  window.fetch = (input, init = {}) => {
-    const url = typeof input === "string" ? input : input?.url;
-    const token = url ? tokenFromSession() : null;
-    if (!url || !token || !shouldAttachToken(url)) {
-      return nativeFetch(input, init);
-    }
-    const headers = new Headers(init.headers || (typeof input !== "string" ? input.headers : undefined));
-    if (!headers.has("Authorization")) {
-      headers.set("Authorization", `Bearer ${token}`);
-    }
-    return nativeFetch(input, { ...init, headers });
-  };
 
   function buildGate() {
     const gate = document.createElement("section");
@@ -109,13 +87,8 @@
     return gate;
   }
 
-  function authHeader() {
-    const token = tokenFromSession();
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  }
-
   async function fetchMyModules() {
-    const response = await nativeFetch(`${modulesBase}/me`, { headers: authHeader() });
+    const response = await nativeFetch(`${modulesBase}/me`, { credentials: "include" });
     const data = await response.json();
     if (!response.ok) {
       throw new Error(data.detail || `HTTP ${response.status}`);
@@ -144,29 +117,42 @@
     gate.classList.toggle("hidden", !locked);
     const userStatus = document.querySelector("#license-user-status") || document.createElement("button");
     userStatus.id = "license-user-status";
-    userStatus.className = "language-link license-user-status";
+    userStatus.className = "language-link header-action header-action-account license-user-status";
     userStatus.type = "button";
-    userStatus.textContent = locked
-      ? text.lockedTitle
-      : `${text.licenseReady}${sessionData?.user?.email ? ` · ${sessionData.user.email}` : ""}`;
-    userStatus.onclick = () => {
+    const accountDetail = sessionData?.user?.email
+      ? `${text.licenseReady} · ${sessionData.user.email}`
+      : text.licenseReady;
+    userStatus.textContent = locked ? text.signIn : text.signOut;
+    userStatus.title = locked ? text.lockedTitle : accountDetail;
+    userStatus.setAttribute("aria-label", locked ? text.lockedTitle : `${accountDetail} · ${text.signOut}`);
+    userStatus.onclick = async () => {
+      try {
+        await nativeFetch(`${modulesBase}/auth/logout`, { method: "POST", credentials: "include" });
+      } catch {
+        // Clear the local account hint even if sign-out cannot reach the server.
+      }
       clearSession();
       window.location.reload();
     };
     if (!userStatus.isConnected) {
-      document.querySelector(".top-actions")?.append(userStatus);
+      const utilityGroup = document.querySelector(".top-action-group-secondary")
+        || document.querySelector(".top-actions");
+      utilityGroup?.classList.add("has-account");
+      const status = utilityGroup?.querySelector("#api-status");
+      if (status) {
+        utilityGroup.insertBefore(userStatus, status);
+      } else {
+        utilityGroup?.append(userStatus);
+      }
     }
   }
 
   async function verifySession() {
     const requiresAuth = await serverRequiresAuth();
-    if (!tokenFromSession()) {
-      setLocked(requiresAuth);
-      return false;
-    }
     try {
       const data = await fetchMyModules();
       if (hasLaminateAccess(data)) {
+        writeSession(data);
         setLocked(false, data);
         return true;
       }
@@ -212,6 +198,7 @@
             email: String(formData.get("email") || ""),
             password: String(formData.get("password") || ""),
           }),
+          credentials: "include",
         });
         const data = await response.json();
         if (!response.ok) {

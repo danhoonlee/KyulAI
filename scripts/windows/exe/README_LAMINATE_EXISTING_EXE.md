@@ -16,7 +16,7 @@ greenfield rebuild package.
 The launcher starts the backend with:
 
 - `LAMINATE_REQUIRE_AUTH=1`
-- `IMPERIALAX_DISABLE_DEMO_LOGIN=1`
+- `IMPERIALAX_ENABLE_DEMO_LOGIN=0`
 
 That means the Laminate prediction API requires a signed-in account with
 `module.laminate` entitlement. The frontend also displays a license login gate

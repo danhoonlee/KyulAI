@@ -12,7 +12,7 @@ import numpy as np
 import torch
 
 from src.ml.dd_laminate.predict_u3_pt import _case_id
-from src.ml.dd_laminate.pt_curve_consistency import enforce_pt_curve_consistency, kink_fit_details
+from src.ml.dd_laminate.pt_curve_consistency import kink_fit_details, measure_pt_curve_consistency
 from src.ml.dd_laminate.train_u3_forecast_models import U3ForecastGointMLP, u3_feature_matrix
 from src.ml.dd_laminate.train_u3_pt_models import U3Record
 
@@ -52,7 +52,9 @@ def _features(records: list[U3Record], metadata: dict[str, Any] | None) -> np.nd
     return x
 
 
-def _type_prediction(bundle: dict[str, Any], x: np.ndarray) -> tuple[int | None, float | None, dict[str, float] | None]:
+def _type_prediction(
+    bundle: dict[str, Any], x: np.ndarray
+) -> tuple[int | None, float | None, dict[str, float] | None]:
     type_model = bundle.get("type_model")
     if type_model is None:
         return None, None, None
@@ -66,7 +68,9 @@ def _type_prediction(bundle: dict[str, Any], x: np.ndarray) -> tuple[int | None,
     return predicted_type, float(max(probabilities)), probability_map
 
 
-def _type_prediction_from_sibling(model_path: str | Path, x: np.ndarray) -> tuple[int | None, float | None, dict[str, float] | None]:
+def _type_prediction_from_sibling(
+    model_path: str | Path, x: np.ndarray
+) -> tuple[int | None, float | None, dict[str, float] | None]:
     sibling = Path(model_path).with_name("u3_forecast.joblib")
     if not sibling.exists():
         return None, None, None
@@ -76,7 +80,9 @@ def _type_prediction_from_sibling(model_path: str | Path, x: np.ndarray) -> tupl
         return None, None, None
 
 
-def build_u3_forecast_deep_model(checkpoint: dict[str, Any], device: str = "cpu") -> U3ForecastGointMLP:
+def build_u3_forecast_deep_model(
+    checkpoint: dict[str, Any], device: str = "cpu"
+) -> U3ForecastGointMLP:
     model = U3ForecastGointMLP(**checkpoint["model_config"])
     model.load_state_dict(checkpoint["model_state_dict"])
     model.to(device)
@@ -113,7 +119,7 @@ def predict_u3_forecast_from_bundle(
     curve_scores = bundle["curve_model"].predict(x)
     curve_norm = _smooth_monotonic_curve(bundle["pca"].inverse_transform(curve_scores)[0])
     grid = np.asarray(bundle["grid"], dtype=float)
-    consistency = enforce_pt_curve_consistency(
+    consistency = measure_pt_curve_consistency(
         curve_norm=curve_norm,
         grid=grid,
         max_displacement=max_displacement,
@@ -127,7 +133,9 @@ def predict_u3_forecast_from_bundle(
 
     metrics = bundle.get("metrics", {})
     best = metrics.get("best_scalar_model") or bundle.get("scalar_model_name", "unknown")
-    best_metrics = metrics.get("models", {}).get(best, {}) if isinstance(metrics.get("models"), dict) else {}
+    best_metrics = (
+        metrics.get("models", {}).get(best, {}) if isinstance(metrics.get("models"), dict) else {}
+    )
     predicted_type, type_confidence, type_probabilities = _type_prediction(bundle, x)
     return {
         "predicted_type": predicted_type,
@@ -149,6 +157,8 @@ def predict_u3_forecast_from_bundle(
             "curve_cv_norm_rmse_mean": float(metrics.get("curve_cv_norm_rmse_mean", 0.0)),
             "type_accuracy_mean": float(metrics.get("type_accuracy_mean", 0.0)),
             "type_macro_f1_mean": float(metrics.get("type_macro_f1_mean", 0.0)),
+            "response_output_mode": "raw_model_prediction",
+            "pt_curve_force_postprocessing_applied": 0,
             **consistency.flat_metrics(),
         },
     }
@@ -166,7 +176,9 @@ def predict_u3_forecast_deep(
     model = build_u3_forecast_deep_model(checkpoint, device)
     sibling = Path(model_path).with_name("u3_forecast.joblib")
     type_bundle = joblib.load(sibling) if sibling.exists() else None
-    return predict_u3_forecast_deep_from_artifacts(checkpoint, model, type_bundle, theta1, theta2, case, u3_bucket, device)
+    return predict_u3_forecast_deep_from_artifacts(
+        checkpoint, model, type_bundle, theta1, theta2, case, u3_bucket, device
+    )
 
 
 def predict_u3_forecast_deep_from_artifacts(
@@ -181,11 +193,17 @@ def predict_u3_forecast_deep_from_artifacts(
 ) -> dict[str, object]:
     record = _record(theta1, theta2, case)
     x = _features([record], checkpoint)
-    x_norm = (x - np.asarray(checkpoint["feature_mean"], dtype=float)) / np.asarray(checkpoint["feature_std"], dtype=float)
+    x_norm = (x - np.asarray(checkpoint["feature_mean"], dtype=float)) / np.asarray(
+        checkpoint["feature_std"], dtype=float
+    )
     with torch.inference_mode():
-        pred_scalars_norm, pred_curve_norm = model(torch.tensor(x_norm, dtype=torch.float32, device=device))
+        pred_scalars_norm, pred_curve_norm = model(
+            torch.tensor(x_norm, dtype=torch.float32, device=device)
+        )
 
-    scalar_log = pred_scalars_norm.cpu().numpy()[0] * np.asarray(checkpoint["scalar_log_std"], dtype=float) + np.asarray(
+    scalar_log = pred_scalars_norm.cpu().numpy()[0] * np.asarray(
+        checkpoint["scalar_log_std"], dtype=float
+    ) + np.asarray(
         checkpoint["scalar_log_mean"],
         dtype=float,
     )
@@ -196,7 +214,7 @@ def predict_u3_forecast_deep_from_artifacts(
 
     curve_norm = _smooth_monotonic_curve(pred_curve_norm.cpu().numpy()[0])
     grid = np.asarray(checkpoint["grid"], dtype=float)
-    consistency = enforce_pt_curve_consistency(
+    consistency = measure_pt_curve_consistency(
         curve_norm=curve_norm,
         grid=grid,
         max_displacement=max_displacement,
@@ -208,7 +226,9 @@ def predict_u3_forecast_deep_from_artifacts(
     displacement = grid * max_displacement
     force = curve_norm * max_force
     metrics = checkpoint.get("metrics", {})
-    predicted_type, type_confidence, type_probabilities = _type_prediction(type_bundle, x) if type_bundle else (None, None, None)
+    predicted_type, type_confidence, type_probabilities = (
+        _type_prediction(type_bundle, x) if type_bundle else (None, None, None)
+    )
     return {
         "predicted_type": predicted_type,
         "type_confidence": type_confidence,
@@ -229,6 +249,8 @@ def predict_u3_forecast_deep_from_artifacts(
             "curve_cv_norm_rmse_mean": float(metrics.get("curve_cv_norm_rmse_mean", 0.0)),
             "type_accuracy_mean": float(metrics.get("type_accuracy_mean", 0.0)),
             "type_macro_f1_mean": float(metrics.get("type_macro_f1_mean", 0.0)),
+            "response_output_mode": "raw_model_prediction",
+            "pt_curve_force_postprocessing_applied": 0,
             **consistency.flat_metrics(),
         },
     }
@@ -239,10 +261,17 @@ def main() -> None:
     parser.add_argument("--theta1", type=float, required=True)
     parser.add_argument("--theta2", type=float, required=True)
     parser.add_argument("--case", choices=["Case2", "Case3", "Case4"], required=True)
-    parser.add_argument("--u3-bucket", choices=["2", "3"], default=None, help="Legacy ignored argument.")
+    parser.add_argument(
+        "--u3-bucket", choices=["2", "3"], default=None, help="Legacy ignored argument."
+    )
     parser.add_argument("--model", default="models/dd_laminate_u3_forecast_v2/u3_forecast.joblib")
     args = parser.parse_args()
-    print(json.dumps(predict_u3_forecast(args.model, args.theta1, args.theta2, args.case, args.u3_bucket), indent=2))
+    print(
+        json.dumps(
+            predict_u3_forecast(args.model, args.theta1, args.theta2, args.case, args.u3_bucket),
+            indent=2,
+        )
+    )
 
 
 if __name__ == "__main__":

@@ -34,10 +34,12 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.dd_response_physics_xai_train import make_response_targets
-from src.ml.dd_laminate.response_feature_sets import response_feature_matrix
+from src.ml.dd_laminate.response_feature_sets import (
+    SUPPORTED_RESPONSE_FEATURE_SETS,
+    response_feature_matrix,
+)
 from src.ml.dd_laminate.train_cases_2_3_4_classical import CURVE_GRID_LEN, load_records
 from src.ml.dd_laminate.zero_based_classifier import ZeroBasedClassifier
-
 
 METRIC_KEYS = (
     "accuracy",
@@ -727,7 +729,7 @@ def main() -> None:
     parser.add_argument("--baseline-goint-metrics", default="models/dd_laminate_response_goint_physics_nn_v2/response_goint_metrics.json")
     parser.add_argument(
         "--feature-set",
-        choices=["theta", "theta_physics", "theta_physics_v2", "theta_physics_nn_v2", "theta_physics_geometry_v1"],
+        choices=SUPPORTED_RESPONSE_FEATURE_SETS,
         default="theta_physics_v2",
     )
     parser.add_argument("--seq-len", type=int, default=CURVE_GRID_LEN)

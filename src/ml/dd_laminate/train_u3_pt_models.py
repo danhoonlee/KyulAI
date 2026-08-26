@@ -61,6 +61,36 @@ def set_seed(seed: int) -> None:
         torch.cuda.manual_seed_all(seed)
 
 
+def resolve_manifest_asset(manifest_path: Path, raw_path: str) -> Path:
+    """Resolve stale absolute manifest paths after moving the repository.
+
+    Older u3 manifests stored the original Mac repository root. Preserve direct
+    paths when they exist, then relocate the `data/...` suffix under the current
+    manifest's repository ancestors for WSL, Windows, and shared packages.
+    """
+
+    path = Path(raw_path).expanduser()
+    if path.exists():
+        return path
+    if not path.is_absolute():
+        relative = (manifest_path.parent / path).resolve()
+        if relative.exists():
+            return relative
+
+    parts = path.parts
+    try:
+        data_index = parts.index("data")
+    except ValueError:
+        return path
+
+    data_relative = Path(*parts[data_index:])
+    for ancestor in manifest_path.resolve().parents:
+        candidate = ancestor / data_relative
+        if candidate.exists():
+            return candidate
+    return path
+
+
 def load_records(manifest_path: Path) -> list[U3Record]:
     records: list[U3Record] = []
     with manifest_path.open("r", encoding="utf-8-sig", newline="") as handle:
@@ -75,8 +105,8 @@ def load_records(manifest_path: Path) -> list[U3Record]:
                     theta1=float(row["theta1"]),
                     theta2=float(row["theta2"]),
                     pt=float(row["Pt"]),
-                    csv_path=Path(row["curve_csv"]),
-                    plot_path=Path(row["plot_path"]),
+                    csv_path=resolve_manifest_asset(manifest_path, row["curve_csv"]),
+                    plot_path=resolve_manifest_asset(manifest_path, row["plot_path"]),
                 )
             )
     if not records:
@@ -115,7 +145,9 @@ def slope(x: np.ndarray, y: np.ndarray) -> float:
     return float(np.polyfit(x, y, 1)[0])
 
 
-def curve_arrays(records: list[U3Record], grid_len: int) -> tuple[np.ndarray, np.ndarray, np.ndarray, list[dict[str, float]]]:
+def curve_arrays(
+    records: list[U3Record], grid_len: int
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, list[dict[str, float]]]:
     grid = np.linspace(0.0, 1.0, grid_len)
     seq_rows: list[np.ndarray] = []
     meta_curve_rows: list[dict[str, float]] = []
@@ -157,7 +189,9 @@ def curve_arrays(records: list[U3Record], grid_len: int) -> tuple[np.ndarray, np
     return np.stack(seq_rows), np.asarray(max_forces), np.asarray(max_disps), meta_curve_rows
 
 
-def metadata_matrix(records: list[U3Record], curve_meta: list[dict[str, float]]) -> tuple[np.ndarray, list[str]]:
+def metadata_matrix(
+    records: list[U3Record], curve_meta: list[dict[str, float]]
+) -> tuple[np.ndarray, list[str]]:
     rows: list[list[float]] = []
     names = [
         "theta1",
@@ -206,7 +240,9 @@ def regression_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, floa
         "mae": float(mean_absolute_error(y_true, y_pred)),
         "rmse": float(rmse),
         "r2": float(r2_score(y_true, y_pred)),
-        "mean_abs_pct": float(np.mean(np.abs(y_true - y_pred) / np.maximum(np.abs(y_true), 1e-9)) * 100.0),
+        "mean_abs_pct": float(
+            np.mean(np.abs(y_true - y_pred) / np.maximum(np.abs(y_true), 1e-9)) * 100.0
+        ),
     }
 
 
@@ -333,7 +369,16 @@ def train_classical(
     with (output_dir / "metrics.json").open("w", encoding="utf-8") as handle:
         json.dump(summary, handle, indent=2)
     with (output_dir / "oof_predictions.csv").open("w", encoding="utf-8", newline="") as handle:
-        fieldnames = ["model", "fold", "case", "u3_folder", "test_id", "pt_true", "pt_pred", "abs_error"]
+        fieldnames = [
+            "model",
+            "fold",
+            "case",
+            "u3_folder",
+            "test_id",
+            "pt_true",
+            "pt_pred",
+            "abs_error",
+        ]
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(oof_rows)
@@ -341,7 +386,9 @@ def train_classical(
 
 
 class U3PtDataset(Dataset):
-    def __init__(self, seq: np.ndarray, meta: np.ndarray, target_norm: np.ndarray, max_force: np.ndarray):
+    def __init__(
+        self, seq: np.ndarray, meta: np.ndarray, target_norm: np.ndarray, max_force: np.ndarray
+    ):
         self.seq = torch.tensor(seq, dtype=torch.float32)
         self.meta = torch.tensor(meta, dtype=torch.float32)
         self.target_norm = torch.tensor(target_norm[:, None], dtype=torch.float32)
@@ -360,7 +407,9 @@ class U3PtDataset(Dataset):
 
 
 class U3PtGointRegressor(nn.Module):
-    def __init__(self, meta_dim: int, hidden_dim: int = 128, branches: int = 4, dropout: float = 0.12):
+    def __init__(
+        self, meta_dim: int, hidden_dim: int = 128, branches: int = 4, dropout: float = 0.12
+    ):
         super().__init__()
         self.conv = nn.Sequential(
             nn.Conv1d(2, 32, kernel_size=7, padding=3),
@@ -417,7 +466,9 @@ def normalize(train: np.ndarray, values: np.ndarray) -> tuple[np.ndarray, np.nda
     return (values - mean) / std, mean, std
 
 
-def run_deep_epoch(model, loader, optimizer, device: torch.device, train: bool) -> tuple[float, np.ndarray, np.ndarray]:
+def run_deep_epoch(
+    model, loader, optimizer, device: torch.device, train: bool
+) -> tuple[float, np.ndarray, np.ndarray]:
     model.train(mode=train)
     total_loss = 0.0
     total_n = 0
@@ -457,7 +508,9 @@ def train_deep(
     args,
 ) -> dict[str, object]:
     output_dir.mkdir(parents=True, exist_ok=True)
-    device = torch.device(args.device if args.device != "auto" else ("cuda" if torch.cuda.is_available() else "cpu"))
+    device = torch.device(
+        args.device if args.device != "auto" else ("cuda" if torch.cuda.is_available() else "cpu")
+    )
     target_norm = target_pt / np.maximum(max_force, 1e-9)
     splitter = GroupKFold(n_splits=args.splits)
     fold_rows = []
@@ -466,11 +519,21 @@ def train_deep(
     for fold, (train_idx, val_idx) in enumerate(splitter.split(meta, target_norm, groups), start=1):
         meta_train_norm, meta_mean, meta_std = normalize(meta[train_idx], meta)
         dataset = U3PtDataset(seq, meta_train_norm, target_norm, max_force)
-        train_loader = DataLoader(Subset(dataset, train_idx.tolist()), batch_size=args.batch_size, shuffle=True)
-        val_loader = DataLoader(Subset(dataset, val_idx.tolist()), batch_size=args.batch_size, shuffle=False)
-        model = U3PtGointRegressor(meta.shape[1], args.hidden_dim, args.branches, args.dropout).to(device)
-        optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=max(10, args.epochs))
+        train_loader = DataLoader(
+            Subset(dataset, train_idx.tolist()), batch_size=args.batch_size, shuffle=True
+        )
+        val_loader = DataLoader(
+            Subset(dataset, val_idx.tolist()), batch_size=args.batch_size, shuffle=False
+        )
+        model = U3PtGointRegressor(meta.shape[1], args.hidden_dim, args.branches, args.dropout).to(
+            device
+        )
+        optimizer = torch.optim.AdamW(
+            model.parameters(), lr=args.lr, weight_decay=args.weight_decay
+        )
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, T_max=max(10, args.epochs)
+        )
         best_state = None
         best_mae = float("inf")
         best_epoch = 0
@@ -483,7 +546,9 @@ def train_deep(
             if mae < best_mae:
                 best_mae = float(mae)
                 best_epoch = epoch
-                best_state = {key: value.detach().cpu().clone() for key, value in model.state_dict().items()}
+                best_state = {
+                    key: value.detach().cpu().clone() for key, value in model.state_dict().items()
+                }
                 stale = 0
             else:
                 stale += 1
@@ -516,8 +581,12 @@ def train_deep(
     meta_norm, meta_mean, meta_std = normalize(meta, meta)
     final_dataset = U3PtDataset(seq, meta_norm, target_norm, max_force)
     final_loader = DataLoader(final_dataset, batch_size=args.batch_size, shuffle=True)
-    final_model = U3PtGointRegressor(meta.shape[1], args.hidden_dim, args.branches, args.dropout).to(device)
-    optimizer = torch.optim.AdamW(final_model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+    final_model = U3PtGointRegressor(
+        meta.shape[1], args.hidden_dim, args.branches, args.dropout
+    ).to(device)
+    optimizer = torch.optim.AdamW(
+        final_model.parameters(), lr=args.lr, weight_decay=args.weight_decay
+    )
     for _ in range(args.final_epochs):
         run_deep_epoch(final_model, final_loader, optimizer, device, train=True)
 
@@ -560,9 +629,15 @@ def train_deep(
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--manifest", default="/Users/danlee/KyulAI_codex/data/datasets/DD_u3_pt_v1/manifest.csv")
-    parser.add_argument("--ml-output-dir", default="/Users/danlee/KyulAI_codex/models/dd_laminate_u3_pt_ml_v1")
-    parser.add_argument("--dl-output-dir", default="/Users/danlee/KyulAI_codex/models/dd_laminate_u3_pt_goint_v1")
+    parser.add_argument(
+        "--manifest", default="/Users/danlee/KyulAI_codex/data/datasets/DD_u3_pt_v1/manifest.csv"
+    )
+    parser.add_argument(
+        "--ml-output-dir", default="/Users/danlee/KyulAI_codex/models/dd_laminate_u3_pt_ml_v1"
+    )
+    parser.add_argument(
+        "--dl-output-dir", default="/Users/danlee/KyulAI_codex/models/dd_laminate_u3_pt_goint_v1"
+    )
     parser.add_argument("--report-dir", default="/Users/danlee/KyulAI_codex/reports/dd_u3_pt_v1")
     parser.add_argument("--splits", type=int, default=5)
     parser.add_argument("--seed", type=int, default=42)

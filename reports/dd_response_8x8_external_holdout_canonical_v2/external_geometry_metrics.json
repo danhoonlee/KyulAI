@@ -1,0 +1,174 @@
+{
+  "dataset": "data/datasets/DD_8x8_external_holdout_v1",
+  "rows": 600,
+  "cases": {
+    "Case3": 300,
+    "Case4": 300
+  },
+  "panel_sizes": {
+    "8x8": 600
+  },
+  "feature_set": "theta_physics_geometry_canonical_v2",
+  "feature_columns": [
+    "theta1",
+    "theta2",
+    "case_case2",
+    "case_case3",
+    "case_case4",
+    "abs_theta1",
+    "abs_theta2",
+    "theta_diff",
+    "theta_sum",
+    "theta_product",
+    "theta_abs_diff",
+    "a11",
+    "a22",
+    "a12",
+    "a66",
+    "b16",
+    "b26",
+    "d11",
+    "d22",
+    "d12",
+    "d66",
+    "d16",
+    "d26",
+    "a11_a22_ratio",
+    "d11_d22_ratio",
+    "b_coupling_norm",
+    "d_coupling_norm",
+    "membrane_anisotropy",
+    "bending_anisotropy",
+    "angle_abs_mean",
+    "angle_abs_std",
+    "angle_min_abs",
+    "angle_max_abs",
+    "stack_symmetry_mismatch",
+    "stack_balance_cos_sum",
+    "panel_aspect",
+    "a_slenderness",
+    "b_slenderness",
+    "panel_a_in",
+    "panel_b_in"
+  ],
+  "device": "mps",
+  "type_label_policy": "curve classifier pseudo-label; agreement metric only",
+  "models": {
+    "Geometry Tree canonical v2": {
+      "rows": 600,
+      "type_agreement_pseudo": 0.7883333333333333,
+      "type_macro_f1_pseudo": 0.75531673737714,
+      "type_agreement_pseudo_confidence_ge_070": 1.0,
+      "type_rows_confidence_ge_070": 170,
+      "pt_mae": 3502.3997754238703,
+      "max_displacement_mae": 0.0002365350638753643,
+      "max_force_mae": 3836.591257281478,
+      "curve_norm_rmse": 0.02173005076365371,
+      "curve_force_rmse": 3568.8203363743287
+    },
+    "Geometry GointMLP canonical v2": {
+      "rows": 600,
+      "type_agreement_pseudo": 0.7816666666666666,
+      "type_macro_f1_pseudo": 0.7192257797418615,
+      "type_agreement_pseudo_confidence_ge_070": 0.8235294117647058,
+      "type_rows_confidence_ge_070": 170,
+      "pt_mae": 6788.327083192536,
+      "max_displacement_mae": 0.0002842607007490439,
+      "max_force_mae": 15665.362342448021,
+      "curve_norm_rmse": 0.020680473582933994,
+      "curve_force_rmse": 14299.777514012492
+    },
+    "Hybrid Student canonical v2": {
+      "rows": 600,
+      "type_agreement_pseudo": 0.7866666666666666,
+      "type_macro_f1_pseudo": 0.7476286995358304,
+      "type_agreement_pseudo_confidence_ge_070": 0.9882352941176471,
+      "type_rows_confidence_ge_070": 170,
+      "pt_mae": 2106.869238979377,
+      "max_displacement_mae": 0.0002159740622565969,
+      "max_force_mae": 5391.552601545766,
+      "curve_norm_rmse": 0.017258965161292696,
+      "curve_force_rmse": 5146.376878836013
+    }
+  },
+  "per_case": {
+    "Geometry Tree canonical v2": {
+      "Case3": {
+        "rows": 300,
+        "type_agreement_pseudo": 0.7666666666666667,
+        "type_macro_f1_pseudo": 0.7525531045751633,
+        "type_agreement_pseudo_confidence_ge_070": 1.0,
+        "type_rows_confidence_ge_070": 80,
+        "pt_mae": 3513.419090774668,
+        "max_displacement_mae": 0.0004408365683666631,
+        "max_force_mae": 3831.1770845403157,
+        "curve_norm_rmse": 0.02246438815885436,
+        "curve_force_rmse": 3563.7266306410393
+      },
+      "Case4": {
+        "rows": 300,
+        "type_agreement_pseudo": 0.81,
+        "type_macro_f1_pseudo": 0.7475409322963508,
+        "type_agreement_pseudo_confidence_ge_070": 1.0,
+        "type_rows_confidence_ge_070": 90,
+        "pt_mae": 3491.3804600730728,
+        "max_displacement_mae": 3.2233559384065484e-05,
+        "max_force_mae": 3842.005430022641,
+        "curve_norm_rmse": 0.02097001375846612,
+        "curve_force_rmse": 3573.906782317891
+      }
+    },
+    "Geometry GointMLP canonical v2": {
+      "Case3": {
+        "rows": 300,
+        "type_agreement_pseudo": 0.7733333333333333,
+        "type_macro_f1_pseudo": 0.7320852700651755,
+        "type_agreement_pseudo_confidence_ge_070": 0.8,
+        "type_rows_confidence_ge_070": 80,
+        "pt_mae": 6845.2527784421245,
+        "max_displacement_mae": 0.00047469354473448207,
+        "max_force_mae": 16430.06669656139,
+        "curve_norm_rmse": 0.021708537775026845,
+        "curve_force_rmse": 15322.578675722425
+      },
+      "Case4": {
+        "rows": 300,
+        "type_agreement_pseudo": 0.79,
+        "type_macro_f1_pseudo": 0.694488251206133,
+        "type_agreement_pseudo_confidence_ge_070": 0.8444444444444444,
+        "type_rows_confidence_ge_070": 90,
+        "pt_mae": 6731.401387942946,
+        "max_displacement_mae": 9.382785676360573e-05,
+        "max_force_mae": 14900.657988334651,
+        "curve_norm_rmse": 0.019598555122740408,
+        "curve_force_rmse": 13197.94895530404
+      }
+    },
+    "Hybrid Student canonical v2": {
+      "Case3": {
+        "rows": 300,
+        "type_agreement_pseudo": 0.7833333333333333,
+        "type_macro_f1_pseudo": 0.7623209631127225,
+        "type_agreement_pseudo_confidence_ge_070": 0.975,
+        "type_rows_confidence_ge_070": 80,
+        "pt_mae": 2137.833135132594,
+        "max_displacement_mae": 0.00040826129782353465,
+        "max_force_mae": 5948.886072965039,
+        "curve_norm_rmse": 0.018196034335233535,
+        "curve_force_rmse": 5743.575689890912
+      },
+      "Case4": {
+        "rows": 300,
+        "type_agreement_pseudo": 0.79,
+        "type_macro_f1_pseudo": 0.7225191235876597,
+        "type_agreement_pseudo_confidence_ge_070": 1.0,
+        "type_rows_confidence_ge_070": 90,
+        "pt_mae": 2075.9053428261595,
+        "max_displacement_mae": 2.368682668965912e-05,
+        "max_force_mae": 4834.219130126494,
+        "curve_norm_rmse": 0.01626800821700162,
+        "curve_force_rmse": 4470.092644736789
+      }
+    }
+  }
+}

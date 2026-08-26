@@ -72,12 +72,8 @@ class LaminateResultActivity : Activity() {
             }
         ), margin(top = 8))
         root.addView(inputSummary(), margin(top = 14))
-        root.addView(resultCard(result), margin(top = 14))
 
-        val designSpaceContainer = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-        }
-        root.addView(designSpaceContainer, margin(top = 14))
+        val designSpaceContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val designSpace = readDesignSpace()
         if (designSpace != null) {
             designSpaceContainer.addView(designSpaceCard(designSpace))
@@ -88,7 +84,59 @@ class LaminateResultActivity : Activity() {
             loadDesignSpace(designSpaceContainer)
         }
 
-        root.addView(assistantCard(result), margin(top = 14))
+        val sections = listOf(
+            resultCard(result),
+            curveResultCard(result),
+            plySequenceResultCard(),
+            LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                addView(xaiResultCard(result))
+                addView(assistantCard(result), margin(top = 12))
+            },
+            designSpaceContainer,
+        )
+        val tabTitles = listOf(
+            localText("Summary", "요약"),
+            localText("Curve", "곡선"),
+            "Ply Sequence",
+            "XAI",
+            localText("Design Space", "디자인 스페이스"),
+        )
+        val tabRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val tabButtons = mutableListOf<Button>()
+        tabTitles.forEachIndexed { index, title ->
+            val button = Button(this).apply {
+                text = title
+                isAllCaps = false
+                textSize = 12f
+                minHeight = dp(48)
+                useAppFont(Typeface.BOLD)
+                setOnClickListener {
+                    sections.forEachIndexed { sectionIndex, section -> section.visibility = if (sectionIndex == index) View.VISIBLE else View.GONE }
+                    tabButtons.forEachIndexed { buttonIndex, item ->
+                        item.setTextColor(if (buttonIndex == index) Color.WHITE else LaminateV2.muted)
+                        item.background = if (buttonIndex == index) rounded(LaminateV2.blue, dp(999)) else strokedRounded(Color.WHITE, LaminateV2.line, dp(999))
+                    }
+                }
+            }
+            tabButtons.add(button)
+            tabRow.addView(button, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, dp(48)).apply {
+                if (index > 0) marginStart = dp(6)
+            })
+        }
+        root.addView(HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+            addView(tabRow)
+        }, margin(top = 14))
+        val sectionHost = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            sections.forEach { section ->
+                section.visibility = View.GONE
+                addView(section, margin(top = 12))
+            }
+        }
+        root.addView(sectionHost)
+        tabButtons.first().performClick()
         root.addView(backButton("Run another forecast"), margin(top = 16))
     }
 
@@ -183,54 +231,67 @@ class LaminateResultActivity : Activity() {
             card.addView(teacherStudentSection(it), margin(top = 14))
         }
 
-        if (result.curve.size >= 2) {
-            card.addView(responseCurveSection(result), margin(top = 18))
-        }
-
         card.addView(label("Class probability", LaminateV2.ink, 18f, Typeface.BOLD), margin(top = 16))
         result.probabilities.toSortedMap().forEach { (label, value) ->
             card.addView(label("$label  ${formatPercent(value)}", LaminateV2.muted, 13f, Typeface.BOLD), margin(top = 6))
         }
 
-        result.xai?.let { xai ->
-            card.addView(label(localText("Why this prediction?", "왜 이런 예측이 나왔나요?"), LaminateV2.ink, 18f, Typeface.BOLD), margin(top = 18))
-            card.addView(paragraph(LaminateXaiText.text(this, xai.summary)), margin(top = 6))
-            val methodLabel = localText("Method", "방법")
-            val featureSetLabel = localText("Feature set", "특징 세트")
-            card.addView(label("$methodLabel: ${LaminateXaiText.text(this, xai.method)} - $featureSetLabel: ${LaminateXaiText.featureSet(this, xai.featureSet)}", LaminateV2.blue, 12f, Typeface.BOLD), margin(top = 8))
-            xai.topFeatures.take(5).forEach { feature ->
-                card.addView(xaiFeatureRow(feature), margin(top = 6))
-            }
-            val hiddenFeatures = xai.topFeatures.drop(5)
-            if (hiddenFeatures.isNotEmpty()) {
-                val hiddenList = LinearLayout(this).apply {
-                    orientation = LinearLayout.VERTICAL
-                    visibility = View.GONE
-                    hiddenFeatures.forEach { feature ->
-                        addView(xaiFeatureRow(feature), margin(top = 6))
-                    }
-                }
-                val toggle = Button(this).apply {
-                    text = localText("Show ${hiddenFeatures.size} more features", "나머지 ${hiddenFeatures.size}개 feature 보기")
-                    textSize = 13f
-                    setTextColor(LaminateV2.blue)
-                    useAppFont(Typeface.BOLD)
-                    background = blueSoftBackground()
-                    setOnClickListener {
-                        val shouldExpand = hiddenList.visibility != View.VISIBLE
-                        hiddenList.visibility = if (shouldExpand) View.VISIBLE else View.GONE
-                        text = if (shouldExpand) {
-                            localText("Hide extra features", "추가 feature 숨기기")
-                        } else {
-                            localText("Show ${hiddenFeatures.size} more features", "나머지 ${hiddenFeatures.size}개 feature 보기")
-                        }
-                    }
-                }
-                card.addView(toggle, margin(top = 8))
-                card.addView(hiddenList)
-            }
-        }
         return card
+    }
+
+    private fun curveResultCard(result: LaminateResult): LinearLayout = card().apply {
+        addView(label(localText("Response curve", "응답 곡선"), LaminateV2.ink, 20f, Typeface.BOLD))
+        addView(paragraph(localText("Inspect the predicted response shape and Pt marker without the summary competing for space.", "요약 정보와 분리해 예측 응답 형상과 Pt 마커를 확인합니다.")), margin(top = 6))
+        if (result.curve.size >= 2) addView(responseCurveSection(result), margin(top = 12))
+        else addView(paragraph(localText("Curve coordinates are not available for this run.", "이 실행에서는 곡선 좌표를 사용할 수 없습니다.")), margin(top = 12))
+    }
+
+    private fun plySequenceResultCard(): LinearLayout = card().apply {
+        val caseName = intent.getStringExtra(EXTRA_LAMINATE_CASE) ?: "Case2"
+        val theta1 = intent.getIntExtra(EXTRA_LAMINATE_THETA1, 0)
+        val theta2 = intent.getIntExtra(EXTRA_LAMINATE_THETA2, 0)
+        addView(label("Ply Sequence", LaminateV2.ink, 20f, Typeface.BOLD))
+        addView(paragraph(localText("The stack reflects the selected Case and ply angles. Only P1 and P16 identify the sequence endpoints.", "선택한 Case와 각도를 반영한 적층 구조입니다. P1과 P16으로 순서의 양 끝만 구분합니다.")), margin(top = 6))
+        addView(PlyStackPreviewView(this@LaminateResultActivity).apply {
+            updateStack(caseName, theta1, theta2)
+        }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(260)).apply { topMargin = dp(12) })
+    }
+
+    private fun xaiResultCard(result: LaminateResult): LinearLayout = card().apply {
+        val xai = result.xai
+        if (xai == null) {
+            addView(paragraph(localText("XAI is not available for this model run.", "이 모델 실행에서는 XAI를 제공하지 않습니다.")))
+            return@apply
+        }
+        addView(label(localText("Why this prediction?", "왜 이런 예측이 나왔나요?"), LaminateV2.ink, 20f, Typeface.BOLD))
+        addView(paragraph(LaminateXaiText.text(this@LaminateResultActivity, xai.summary)), margin(top = 6))
+        val methodLabel = localText("Method", "방법")
+        val featureSetLabel = localText("Feature set", "특징 세트")
+        addView(label("$methodLabel: ${LaminateXaiText.text(this@LaminateResultActivity, xai.method)} - $featureSetLabel: ${LaminateXaiText.featureSet(this@LaminateResultActivity, xai.featureSet)}", LaminateV2.blue, 12f, Typeface.BOLD), margin(top = 8))
+        xai.topFeatures.take(5).forEach { feature -> addView(xaiFeatureRow(feature), margin(top = 8)) }
+        val hiddenFeatures = xai.topFeatures.drop(5)
+        if (hiddenFeatures.isNotEmpty()) {
+            val hiddenList = LinearLayout(this@LaminateResultActivity).apply {
+                orientation = LinearLayout.VERTICAL
+                visibility = View.GONE
+                hiddenFeatures.forEach { feature -> addView(xaiFeatureRow(feature), margin(top = 8)) }
+            }
+            val toggle = Button(this@LaminateResultActivity).apply {
+                text = localText("Show ${hiddenFeatures.size} more features", "나머지 ${hiddenFeatures.size}개 Feature 보기")
+                isAllCaps = false
+                minHeight = dp(44)
+                setTextColor(LaminateV2.blue)
+                useAppFont(Typeface.BOLD)
+                background = blueSoftBackground()
+                setOnClickListener {
+                    val expanded = hiddenList.visibility != View.VISIBLE
+                    hiddenList.visibility = if (expanded) View.VISIBLE else View.GONE
+                    text = if (expanded) localText("Hide additional features", "추가 Feature 숨기기") else localText("Show ${hiddenFeatures.size} more features", "나머지 ${hiddenFeatures.size}개 Feature 보기")
+                }
+            }
+            addView(toggle, margin(top = 10))
+            addView(hiddenList)
+        }
     }
 
     private fun uncertaintySection(uncertainty: LaminateUncertainty): LinearLayout {
@@ -525,10 +586,10 @@ class LaminateResultActivity : Activity() {
         addView(curveLegendPill("Linear fit", LaminateV2.red), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
             marginStart = dp(6)
         })
-        addView(curveLegendPill("Kink guide", Color.rgb(126, 34, 206)), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+        addView(curveLegendPill("Fit intersection", Color.rgb(126, 34, 206)), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
             marginStart = dp(6)
         })
-        addView(curveLegendPill("Predicted Pt", Color.rgb(126, 34, 206)), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+        addView(curveLegendPill("Predicted Pt", LaminateV2.red), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
             marginStart = dp(6)
         })
     }
@@ -1090,6 +1151,15 @@ private class ResponseCurveChartView(context: Context) : View(context) {
         strokeWidth = dp(2).toFloat()
         color = Color.rgb(126, 34, 206)
     }
+    private val predictedPtPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        color = LaminateV2.red
+    }
+    private val predictedPtStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = dp(2).toFloat()
+        color = Color.WHITE
+    }
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = LaminateV2.muted
         textSize = sp(10)
@@ -1179,6 +1249,7 @@ private class ResponseCurveChartView(context: Context) : View(context) {
             drawFit(canvas, plot, domain, it)
             drawKink(canvas, plot, domain, it)
         }
+        drawPredictedPt(canvas, plot, domain)
         canvas.restore()
 
         selectedCurvePoint?.let {
@@ -1312,7 +1383,7 @@ private class ResponseCurveChartView(context: Context) : View(context) {
         canvas.drawPath(diamond, markerPaint)
         canvas.drawPath(diamond, markerStrokePaint)
 
-        val label = "Pt ${fit.kink.force.metricText(2)}"
+        val label = "Fit ${fit.kink.force.metricText(2)}"
         val labelWidth = calloutPaint.measureText(label) + dp(16)
         val labelLeft = (kx + dp(10)).coerceAtMost(plot.right - labelWidth).coerceAtLeast(plot.left + dp(4))
         val labelTop = (ky - dp(34)).coerceAtLeast(plot.top + dp(6))
@@ -1329,6 +1400,17 @@ private class ResponseCurveChartView(context: Context) : View(context) {
         canvas.drawRoundRect(rect, dp(8).toFloat(), dp(8).toFloat(), bubblePaint)
         canvas.drawRoundRect(rect, dp(8).toFloat(), dp(8).toFloat(), bubbleStroke)
         canvas.drawText(label, rect.left + dp(8), rect.bottom - dp(9), calloutPaint)
+    }
+
+    private fun drawPredictedPt(canvas: Canvas, plot: RectF, domain: CurveDomain) {
+        val target = predictedPt ?: return
+        val marker = pointAtForce(target) ?: return
+        if (marker.displacement !in domain.minX..domain.maxX || marker.force !in domain.minY..domain.maxY) return
+        val px = x(marker.displacement, plot, domain)
+        val py = y(marker.force, plot, domain)
+        val radius = dp(6).toFloat()
+        canvas.drawCircle(px, py, radius, predictedPtPaint)
+        canvas.drawCircle(px, py, radius, predictedPtStrokePaint)
     }
 
     private fun drawSelectedCurvePoint(canvas: Canvas, plot: RectF, domain: CurveDomain, point: LaminateCurvePoint) {
@@ -1453,7 +1535,7 @@ private class ResponseCurveChartView(context: Context) : View(context) {
 
     private fun pointAtForce(force: Double): CurveXY? {
         val first = curve.firstOrNull() ?: return null
-        if (force <= first.force) return CurveXY(first.displacement, first.force)
+        if (force <= first.force) return CurveXY(first.displacement, force)
         for (index in 1 until curve.size) {
             val previous = curve[index - 1]
             val current = curve[index]
@@ -1468,7 +1550,7 @@ private class ResponseCurveChartView(context: Context) : View(context) {
                 force,
             )
         }
-        return curve.lastOrNull()?.let { CurveXY(it.displacement, it.force) }
+        return curve.lastOrNull()?.let { CurveXY(it.displacement, force) }
     }
 
     private fun startCurveScrub(touchX: Float, touchY: Float): Boolean {

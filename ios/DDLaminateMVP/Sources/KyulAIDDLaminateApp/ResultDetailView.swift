@@ -78,40 +78,23 @@ struct ResultDetailView: View {
     let result: ResponsePredictionResult
     let designSpace: DesignSpaceResponse?
     @EnvironmentObject private var settings: AppSettings
+    @State private var selectedTab: ResultTab = .summary
+
+    private enum ResultTab: String, CaseIterable, Identifiable {
+        case summary
+        case curve
+        case plySequence
+        case xai
+        case designSpace
+
+        var id: String { rawValue }
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                heroCard
-                metricsGrid
-                if let uncertainty = result.uncertainty {
-                    PredictionUncertaintyCard(uncertainty: uncertainty)
-                }
-                if let agreement = result.teacherStudent {
-                    TeacherStudentAgreementCard(agreement: agreement)
-                }
-                curveCard
-                interpretationCard
-                probabilityCard
-                if let xai = result.xai {
-                    XAIExplanationCard(xai: xai)
-                }
-                if let designSpace {
-                    ResearchInsightCard(insight: designSpace)
-                }
-                LaminateAssistantCard(
-                    title: localText(en: "Laminate AI Assistant", ko: "적층 AI Assistant"),
-                    defaultQuestion: localText(
-                        en: "Explain this prediction using the XAI result.",
-                        ko: "XAI 결과를 바탕으로 이번 예측을 설명해줘."
-                    ),
-                    baseURL: settings.parsedBaseURL,
-                    languageCode: settings.languageCode,
-                    predictionContext: result.assistantContext(mode: "Laminate Response")
-                )
-                if !result.notes.isEmpty {
-                    notesCard
-                }
+                resultTabs
+                selectedTabContent
             }
             .padding(20)
         }
@@ -131,6 +114,101 @@ struct ResultDetailView: View {
                 Image(systemName: "photo")
             }
             #endif
+        }
+    }
+
+    private var resultTabs: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(ResultTab.allCases) { tab in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.16)) { selectedTab = tab }
+                    } label: {
+                        Text(tabTitle(tab))
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(selectedTab == tab ? .white : ResultDetailTheme.muted)
+                            .padding(.horizontal, 14)
+                            .frame(minHeight: 44)
+                            .background(
+                                selectedTab == tab ? ResultDetailTheme.primary : ResultDetailTheme.card,
+                                in: Capsule()
+                            )
+                            .overlay(Capsule().stroke(ResultDetailTheme.line, lineWidth: selectedTab == tab ? 0 : 1))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(selectedTab == tab ? .isSelected : [])
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var selectedTabContent: some View {
+        switch selectedTab {
+        case .summary:
+            heroCard
+            metricsGrid
+            if let uncertainty = result.uncertainty {
+                PredictionUncertaintyCard(uncertainty: uncertainty)
+            }
+            if let agreement = result.teacherStudent {
+                TeacherStudentAgreementCard(agreement: agreement)
+            }
+            interpretationCard
+            probabilityCard
+            if !result.notes.isEmpty { notesCard }
+        case .curve:
+            curveCard
+        case .plySequence:
+            DynamicPlyStackPreviewCard(
+                laminateCase: resultLaminateCase,
+                theta1Text: result.inputs["theta1"]?.shareTextValue(digits: 0) ?? "0",
+                theta2Text: result.inputs["theta2"]?.shareTextValue(digits: 0) ?? "0",
+                isKorean: settings.languageCode == "ko"
+            )
+        case .xai:
+            if let xai = result.xai {
+                XAIExplanationCard(xai: xai)
+            } else {
+                unavailableCard(en: "XAI is not available for this model run.", ko: "이 모델 실행에서는 XAI를 제공하지 않습니다.")
+            }
+            LaminateAssistantCard(
+                title: localText(en: "Laminate AI Assistant", ko: "적층 AI Assistant"),
+                defaultQuestion: localText(en: "Explain this prediction using the XAI result.", ko: "XAI 결과를 바탕으로 이번 예측을 설명해줘."),
+                baseURL: settings.parsedBaseURL,
+                languageCode: settings.languageCode,
+                predictionContext: result.assistantContext(mode: "Laminate Response")
+            )
+        case .designSpace:
+            if let designSpace {
+                ResearchInsightCard(insight: designSpace)
+            } else {
+                unavailableCard(en: "Design Space data is not available for this run.", ko: "이 실행에서는 디자인 스페이스 데이터를 사용할 수 없습니다.")
+            }
+        }
+    }
+
+    private var resultLaminateCase: DDLaminateCase {
+        guard let rawValue = result.inputs["case"]?.shareTextValue(digits: 0) else { return .case2 }
+        return DDLaminateCase(rawValue: rawValue) ?? .case2
+    }
+
+    private func tabTitle(_ tab: ResultTab) -> String {
+        switch tab {
+        case .summary: localText(en: "Summary", ko: "요약")
+        case .curve: localText(en: "Curve", ko: "곡선")
+        case .plySequence: "Ply Sequence"
+        case .xai: "XAI"
+        case .designSpace: localText(en: "Design Space", ko: "디자인 스페이스")
+        }
+    }
+
+    private func unavailableCard(en: String, ko: String) -> some View {
+        ResultDetailCard {
+            Label(localText(en: en, ko: ko), systemImage: "info.circle")
+                .font(.callout.weight(.semibold))
+                .foregroundStyle(ResultDetailTheme.muted)
+                .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
         }
     }
 
@@ -354,35 +432,23 @@ struct U3PtResultDetailView: View {
     let result: U3PtPredictionResult
     let designSpace: DesignSpaceResponse?
     @EnvironmentObject private var settings: AppSettings
+    @State private var selectedTab: ResultTab = .summary
+
+    private enum ResultTab: String, CaseIterable, Identifiable {
+        case summary
+        case curve
+        case plySequence
+        case xai
+        case designSpace
+
+        var id: String { rawValue }
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                heroCard
-                metricsGrid
-                if let uncertainty = result.uncertainty {
-                    PredictionUncertaintyCard(uncertainty: uncertainty)
-                }
-                curveCard
-                if let xai = result.xai {
-                    XAIExplanationCard(xai: xai)
-                }
-                if let designSpace {
-                    ResearchInsightCard(insight: designSpace)
-                }
-                LaminateAssistantCard(
-                    title: localText(en: "u3 AI Assistant", ko: "u3 AI Assistant"),
-                    defaultQuestion: localText(
-                        en: "Explain why this u3 Pt forecast was predicted.",
-                        ko: "이번 u3 Pt 예측이 왜 이렇게 나왔는지 설명해줘."
-                    ),
-                    baseURL: settings.parsedBaseURL,
-                    languageCode: settings.languageCode,
-                    predictionContext: result.assistantContext(mode: "u3 Forecast")
-                )
-                if !result.notes.isEmpty {
-                    notesCard
-                }
+                resultTabs
+                selectedTabContent
             }
             .padding(20)
         }
@@ -390,6 +456,91 @@ struct U3PtResultDetailView: View {
         .background(ResultDetailTheme.background.ignoresSafeArea())
         .navigationTitle(L10n.t("u3.result"))
         .appInlineNavigationTitle()
+    }
+
+    private var resultTabs: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(ResultTab.allCases) { tab in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.16)) { selectedTab = tab }
+                    } label: {
+                        Text(tabTitle(tab))
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(selectedTab == tab ? .white : ResultDetailTheme.muted)
+                            .padding(.horizontal, 14)
+                            .frame(minHeight: 44)
+                            .background(selectedTab == tab ? ResultDetailTheme.primary : ResultDetailTheme.card, in: Capsule())
+                            .overlay(Capsule().stroke(ResultDetailTheme.line, lineWidth: selectedTab == tab ? 0 : 1))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(selectedTab == tab ? .isSelected : [])
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var selectedTabContent: some View {
+        switch selectedTab {
+        case .summary:
+            heroCard
+            metricsGrid
+            if let uncertainty = result.uncertainty { PredictionUncertaintyCard(uncertainty: uncertainty) }
+            if !result.notes.isEmpty { notesCard }
+        case .curve:
+            curveCard
+        case .plySequence:
+            DynamicPlyStackPreviewCard(
+                laminateCase: resultLaminateCase,
+                theta1Text: result.inputs["theta1"]?.shareTextValue(digits: 0) ?? "0",
+                theta2Text: result.inputs["theta2"]?.shareTextValue(digits: 0) ?? "0",
+                isKorean: settings.languageCode == "ko"
+            )
+        case .xai:
+            if let xai = result.xai {
+                XAIExplanationCard(xai: xai)
+            } else {
+                unavailableCard(en: "XAI is not available for this model run.", ko: "이 모델 실행에서는 XAI를 제공하지 않습니다.")
+            }
+            LaminateAssistantCard(
+                title: "u3 AI Assistant",
+                defaultQuestion: localText(en: "Explain why this u3 Pt forecast was predicted.", ko: "이번 u3 Pt 예측이 왜 이렇게 나왔는지 설명해줘."),
+                baseURL: settings.parsedBaseURL,
+                languageCode: settings.languageCode,
+                predictionContext: result.assistantContext(mode: "u3 Forecast")
+            )
+        case .designSpace:
+            if let designSpace {
+                ResearchInsightCard(insight: designSpace)
+            } else {
+                unavailableCard(en: "Design Space data is not available for this run.", ko: "이 실행에서는 디자인 스페이스 데이터를 사용할 수 없습니다.")
+            }
+        }
+    }
+
+    private var resultLaminateCase: DDLaminateCase {
+        guard let rawValue = result.inputs["case"]?.shareTextValue(digits: 0) else { return .case2 }
+        return DDLaminateCase(rawValue: rawValue) ?? .case2
+    }
+
+    private func tabTitle(_ tab: ResultTab) -> String {
+        switch tab {
+        case .summary: localText(en: "Summary", ko: "요약")
+        case .curve: localText(en: "Curve", ko: "곡선")
+        case .plySequence: "Ply Sequence"
+        case .xai: "XAI"
+        case .designSpace: localText(en: "Design Space", ko: "디자인 스페이스")
+        }
+    }
+
+    private func unavailableCard(en: String, ko: String) -> some View {
+        ResultDetailCard {
+            Label(localText(en: en, ko: ko), systemImage: "info.circle")
+                .font(.callout.weight(.semibold))
+                .foregroundStyle(ResultDetailTheme.muted)
+                .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
+        }
     }
 
     private var heroCard: some View {

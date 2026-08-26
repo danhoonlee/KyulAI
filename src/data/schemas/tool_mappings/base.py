@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
-from src.data.schemas.enums import SourceTool, SimulationType
+from src.data.schemas.enums import SimulationType, SourceTool
 
 
 class FieldMapping(BaseModel):
@@ -16,14 +16,10 @@ class FieldMapping(BaseModel):
 
     tool_field_name: str = Field(..., description="Field name in the tool's output")
     unified_field_name: str = Field(..., description="Target name in unified schema")
-    field_type: str = Field(
-        ..., description="'scalar', 'vector', 'tensor', 'time_series'"
-    )
+    field_type: str = Field(..., description="'scalar', 'vector', 'tensor', 'time_series'")
     tool_unit: str = Field(..., description="Unit in the tool's output")
     si_unit: str = Field(..., description="SI unit in unified schema")
-    unit_conversion_factor: float = Field(
-        1.0, description="Multiply tool value by this to get SI"
-    )
+    unit_conversion_factor: float = Field(1.0, description="Multiply tool value by this to get SI")
     unit_conversion_offset: float = Field(
         0.0, description="Add this after multiplication (for temperature: K = C + 273.15)"
     )
@@ -61,9 +57,7 @@ class ToolMapping(BaseModel):
     time_series_mappings: list[FieldMapping] = Field(default_factory=list)
 
     # Coordinate system info
-    coordinate_system: str = Field(
-        "cartesian", description="Tool's native coordinate system"
-    )
+    coordinate_system: str = Field("cartesian", description="Tool's native coordinate system")
     length_unit: str = Field("m", description="Tool's native length unit")
     length_to_si_factor: float = Field(
         1.0, description="Multiply tool lengths by this to get meters"

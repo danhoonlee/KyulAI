@@ -18,7 +18,6 @@ from src.ml.training.feature_extractor import (
     Normalizer,
 )
 
-
 # ---------------------------------------------------------------------------
 # Minimal stub for UnifiedCAERecord
 # ---------------------------------------------------------------------------
@@ -171,7 +170,7 @@ class TestFeatureExtractor:
         assert mask.dtype == bool
 
     def test_mask_true_for_present_features(self):
-        features, mask = self.extractor.extract(self.record)
+        _features, mask = self.extractor.extract(self.record)
         # At least some features should be present
         assert mask.sum() > 0
 
@@ -181,7 +180,7 @@ class TestFeatureExtractor:
         assert np.all(features[~mask] == 0.0)
 
     def test_tool_one_hot_correct(self):
-        features, mask = self.extractor.extract(self.record)
+        features, _mask = self.extractor.extract(self.record)
         names = self.extractor.feature_names
         # moldex3d one-hot should be 1.0, others 0.0
         moldex_idx = names.index("tool_moldex3d")
@@ -217,7 +216,7 @@ class TestFeatureExtractor:
         """Custom registry overrides the default."""
         custom_spec = FeatureSpec("custom_feat", lambda r: 1.0, scale=2.0)
         extractor = FeatureExtractor(registry=[custom_spec])
-        features, mask = extractor.extract(self.record)
+        features, _mask = extractor.extract(self.record)
         assert extractor.feature_dim == 1
         assert features[0] == pytest.approx(0.5)  # 1.0 / 2.0
 

@@ -34,6 +34,7 @@ private const val INJECTION_HISTORY_PREFS = "injection_history"
 private const val INJECTION_HISTORY_KEY = "recent_runs_v1"
 
 class InjectionActivity : Activity() {
+    private var authToken: String = ""
     private lateinit var statusText: TextView
     private lateinit var geometrySpinner: Spinner
     private lateinit var processSpinner: Spinner
@@ -41,6 +42,7 @@ class InjectionActivity : Activity() {
     private lateinit var fillingModelSpinner: Spinner
     private lateinit var valuesGrid: LinearLayout
     private lateinit var resultContainer: LinearLayout
+    private lateinit var predictButton: Button
 
     private var sprueModels: List<InjectionModelInfo> = emptyList()
     private var fillingModels: List<InjectionModelInfo> = emptyList()
@@ -49,6 +51,7 @@ class InjectionActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        authToken = intent.getStringExtra(EXTRA_AUTH_TOKEN).orEmpty()
         render()
         loadCatalog()
     }
@@ -62,17 +65,17 @@ class InjectionActivity : Activity() {
         scroll.addView(root)
         setContentView(scroll)
 
-        root.addView(label("INJECTION MODULE", color(0x0BA7C9), 12f, Typeface.BOLD))
-        root.addView(label("Sprue Pressure Forecast", color(0x101215), 32f, Typeface.BOLD))
-        root.addView(paragraph("Run Moldex3D-style sprue pressure and filling pressure prediction directly inside ImperialAX."), margin(top = 8, bottom = 16))
+        root.addView(label(if (isKoreanUi()) "사출 성형 AI" else "INJECTION MOLDING AI", color(0x1451D8), 12f, Typeface.BOLD))
+        root.addView(label(if (isKoreanUi()) "ImperialAX 사출 예측" else "ImperialAX Injection Forecast", color(0x101215), 32f, Typeface.BOLD))
+        root.addView(paragraph(if (isKoreanUi()) "DOE 형상과 공정 조건으로 Sprue Pressure 곡선과 Filling Pressure 분포를 예측합니다." else "Predict the Sprue Pressure curve and Filling Pressure distribution from DOE geometry and process conditions."), margin(top = 8, bottom = 16))
 
         val inputCard = card()
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
         }
-        header.addView(label("Inputs", color(0x101215), 18f, Typeface.BOLD), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        statusText = label("Checking", color(0x0BA7C9), 12f, Typeface.BOLD).apply {
+        header.addView(label(if (isKoreanUi()) "예측 조건" else "Forecast setup", color(0x101215), 18f, Typeface.BOLD), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        statusText = label(if (isKoreanUi()) "연결 확인 중" else "Checking", color(0x1451D8), 12f, Typeface.BOLD).apply {
             setPadding(dp(10), dp(6), dp(10), dp(6))
             background = rounded(color(0xE2F7FB), dp(999))
         }
@@ -82,25 +85,27 @@ class InjectionActivity : Activity() {
         val selectionRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         geometrySpinner = Spinner(this)
         processSpinner = Spinner(this)
-        selectionRow.addView(inputBlock("Geometry", geometrySpinner), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = dp(8) })
-        selectionRow.addView(inputBlock("Process", processSpinner), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(8) })
+        selectionRow.addView(inputBlock(if (isKoreanUi()) "공정 DOE" else "Process DOE", processSpinner), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = dp(8) })
+        selectionRow.addView(inputBlock(if (isKoreanUi()) "형상 DOE" else "Geometry DOE", geometrySpinner), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(8) })
         inputCard.addView(selectionRow, margin(top = 14))
 
         sprueModelSpinner = Spinner(this)
         fillingModelSpinner = Spinner(this)
-        inputCard.addView(inputBlock("Sprue model", sprueModelSpinner), margin(top = 14))
-        inputCard.addView(inputBlock("Filling model", fillingModelSpinner), margin(top = 14))
+        inputCard.addView(inputBlock(if (isKoreanUi()) "Sprue 모델" else "Sprue model", sprueModelSpinner), margin(top = 14))
+        inputCard.addView(inputBlock(if (isKoreanUi()) "Filling 모델" else "Filling model", fillingModelSpinner), margin(top = 14))
 
         valuesGrid = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         inputCard.addView(valuesGrid, margin(top = 14))
 
-        inputCard.addView(Button(this).apply {
-            text = "Predict pressure"
+        predictButton = Button(this).apply {
+            text = if (isKoreanUi()) "예측 실행" else "Run forecast"
             setTextColor(Color.WHITE)
             useAppFont(Typeface.BOLD)
+            minHeight = dp(48)
             background = commandButtonBackground()
             setOnClickListener { predict() }
-        }, margin(top = 16))
+        }
+        inputCard.addView(predictButton, margin(top = 16))
         root.addView(inputCard)
 
         resultContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -110,7 +115,7 @@ class InjectionActivity : Activity() {
 
     private fun loadCatalog() {
         Thread {
-            val loaded = runCatching { InjectionApiNative().catalog() }
+            val loaded = runCatching { InjectionApiNative(authToken).catalog() }
             runOnUiThread {
                 loaded.onSuccess { catalog ->
                     sprueModels = catalog.sprueModels.filter { it.available }.ifEmpty {
@@ -122,8 +127,8 @@ class InjectionActivity : Activity() {
                     geometries = catalog.geometries.ifEmpty { listOf(fallbackGeometry()) }
                     processes = catalog.processes.ifEmpty { listOf(fallbackProcess()) }
                     bindSpinners()
-                    statusText.text = "API ready"
-                    statusText.setTextColor(color(0x0BA7C9))
+                    statusText.text = if (isKoreanUi()) "API 준비됨" else "API ready"
+                    statusText.setTextColor(color(0x1451D8))
                     renderValues()
                 }.onFailure {
                     sprueModels = listOf(InjectionModelInfo(DEFAULT_SPRUE_MODEL, "Machine Learning", true))
@@ -131,7 +136,7 @@ class InjectionActivity : Activity() {
                     geometries = listOf(fallbackGeometry())
                     processes = listOf(fallbackProcess())
                     bindSpinners()
-                    statusText.text = "Offline"
+                    statusText.text = if (isKoreanUi()) "오프라인" else "Offline"
                     statusText.setTextColor(color(0xB42318))
                     renderValues()
                 }
@@ -304,15 +309,25 @@ class InjectionActivity : Activity() {
             packingPressureMPa = process.double("packing_pressure_MPa") ?: 69.0,
             packingTimeS = process.double("packing_time_s") ?: 4.731,
         )
-        statusText.text = "Predicting"
+        statusText.text = if (isKoreanUi()) "예측 중" else "Predicting"
+        predictButton.isEnabled = false
+        resultContainer.removeAllViews()
+        resultContainer.addView(card().apply {
+            gravity = Gravity.CENTER
+            addView(ProgressBar(this@InjectionActivity))
+            addView(label(if (isKoreanUi()) "모델이 예측을 계산하고 있습니다" else "The model is calculating this forecast", color(0x101215), 17f, Typeface.BOLD), margin(top = 12))
+            addView(paragraph(if (isKoreanUi()) "Sprue 곡선과 Filling 분포를 준비하는 동안 이 화면을 유지합니다." else "Keep this screen open while Sprue and Filling results are prepared."), margin(top = 6))
+        })
         Thread {
-            val result = runCatching { InjectionApiNative().predict(input) }
+            val result = runCatching { InjectionApiNative(authToken).predict(input) }
             runOnUiThread {
                 result.onSuccess {
-                    statusText.text = "API ready"
+                    statusText.text = if (isKoreanUi()) "API 준비됨" else "API ready"
+                    predictButton.isEnabled = true
                     saveRecentRun(input, it)
                     renderResult(it)
                 }.onFailure {
+                    predictButton.isEnabled = true
                     showError("Prediction failed: ${it.message ?: "Unknown error"}")
                 }
             }
@@ -321,6 +336,59 @@ class InjectionActivity : Activity() {
 
     private fun renderResult(result: InjectionNativeResult) {
         resultContainer.removeAllViews()
+        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val buttons = mutableListOf<Button>()
+        val tabs = listOf(
+            (if (isKoreanUi()) "요약" else "Summary") to { resultSummaryCard(result) },
+            (if (isKoreanUi()) "스프루 곡선" else "Sprue curve") to {
+                unavailableResultCard(
+                    if (isKoreanUi()) "현재 Android 응답에는 곡선 점 개수만 포함되어 있습니다. 곡선 좌표가 API 응답에 연결되면 이 탭에서 시간별 압력과 최대점 마커를 표시합니다." else "The current Android response includes only the curve point count. Time-pressure points and the peak marker will appear here when curve coordinates are connected."
+                )
+            },
+            (if (isKoreanUi()) "필링 분포" else "Filling") to { fillingDistributionCard(result) },
+            "XAI" to { LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                if (result.xaiFeatures.isNotEmpty()) addView(xaiSection(result.xaiFeatures))
+                else addView(unavailableResultCard(if (isKoreanUi()) "이번 예측에서는 XAI를 제공하지 않습니다." else "XAI is not available for this prediction."))
+                addView(assistantSection(result), margin(top = 12))
+            } },
+            (if (isKoreanUi()) "검증" else "Validation") to { validationResultCard(result) },
+            (if (isKoreanUi()) "기록" else "History") to { historyResultCard() },
+        )
+
+        val grid = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        tabs.chunked(3).forEachIndexed { rowIndex, rowTabs ->
+            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            rowTabs.forEachIndexed { columnIndex, tab ->
+                val index = rowIndex * 3 + columnIndex
+                val button = Button(this).apply {
+                    text = tab.first
+                    isAllCaps = false
+                    textSize = 12f
+                    minHeight = dp(48)
+                    useAppFont(Typeface.BOLD)
+                    setOnClickListener {
+                        buttons.forEachIndexed { buttonIndex, item ->
+                            item.setTextColor(if (buttonIndex == index) Color.WHITE else color(0x44556A))
+                            item.background = if (buttonIndex == index) rounded(color(0x1451D8), dp(8)) else strokedRounded(Color.WHITE, color(0xDAE3EC), dp(8))
+                        }
+                        content.removeAllViews()
+                        content.addView(tab.second())
+                    }
+                }
+                buttons.add(button)
+                row.addView(button, LinearLayout.LayoutParams(0, dp(48), 1f).apply {
+                    if (columnIndex > 0) marginStart = dp(6)
+                })
+            }
+            grid.addView(row, if (rowIndex == 0) margin() else margin(top = 6))
+        }
+        resultContainer.addView(grid)
+        resultContainer.addView(content, margin(top = 12))
+        buttons.first().performClick()
+    }
+
+    private fun resultSummaryCard(result: InjectionNativeResult): LinearLayout {
         val card = card()
         val top = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -329,7 +397,7 @@ class InjectionActivity : Activity() {
         top.addView(LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             addView(label(result.predictedMaxPressureMPa.metricText(2), color(0x101215), 34f, Typeface.BOLD))
-            addView(label("Max sprue pressure MPa", color(0x637180), 14f, Typeface.BOLD))
+            addView(label(if (isKoreanUi()) "최대 Sprue Pressure (MPa)" else "Peak Sprue Pressure (MPa)", color(0x637180), 14f, Typeface.BOLD))
         }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         top.addView(label("${result.predictedMaxTimeS.metricText(3)} s", color(0x0A9F69), 18f, Typeface.BOLD))
         card.addView(top)
@@ -347,25 +415,65 @@ class InjectionActivity : Activity() {
             card.addView(row, margin(top = 10))
         }
 
-        if (result.fillingBins.isNotEmpty()) {
-            card.addView(label("Filling pressure", color(0x101215), 18f, Typeface.BOLD), margin(top = 16))
-            result.fillingBins.take(5).forEach { bin ->
-                card.addView(label("Group ${bin.group}  ${bin.volumeRatioPct.metricText(1)}%", color(0x637180), 13f, Typeface.BOLD), margin(top = 6))
+        return card
+    }
+
+    private fun fillingDistributionCard(result: InjectionNativeResult): LinearLayout = card().apply {
+        addView(label(if (isKoreanUi()) "Filling Pressure 분포" else "Filling Pressure distribution", color(0x101215), 18f, Typeface.BOLD))
+        addView(paragraph(if (isKoreanUi()) "압력 그룹별 예측 체적 비율입니다. 막대가 길수록 해당 압력 구간이 차지하는 체적이 큽니다." else "Predicted volume ratio by pressure group. Longer bars indicate a larger share of the molded volume."), margin(top = 5))
+        if (result.fillingBins.isEmpty()) {
+            addView(paragraph(if (isKoreanUi()) "이번 예측에서는 Filling 분포를 제공하지 않습니다." else "Filling distribution is not available for this prediction."), margin(top = 12))
+        } else {
+            result.fillingBins.forEach { bin ->
+                addView(fillingBinRow(bin), margin(top = 10))
             }
         }
-        if (result.xaiFeatures.isNotEmpty()) {
-            card.addView(xaiSection(result.xaiFeatures), margin(top = 16))
+    }
+
+    private fun fillingBinRow(bin: InjectionFillingBin): LinearLayout = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        val header = LinearLayout(this@InjectionActivity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            addView(label("Group ${bin.group}", color(0x101215), 13f, Typeface.BOLD), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+            addView(label("${bin.volumeRatioPct.metricText(1)}%", color(0x1451D8), 13f, Typeface.BOLD))
         }
-        card.addView(assistantSection(result), margin(top = 16))
-        resultContainer.addView(card)
-        renderHistoryPanel()
+        addView(header)
+        val percentage = bin.volumeRatioPct.coerceIn(0.0, 100.0).toInt().coerceAtLeast(1)
+        addView(LinearLayout(this@InjectionActivity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            background = rounded(color(0xE4ECF4), dp(999))
+            addView(View(this@InjectionActivity).apply { background = rounded(color(0x1451D8), dp(999)) }, LinearLayout.LayoutParams(0, dp(7), percentage.toFloat()))
+            addView(View(this@InjectionActivity), LinearLayout.LayoutParams(0, dp(7), (100 - percentage).coerceAtLeast(1).toFloat()))
+        }, margin(top = 6))
+    }
+
+    private fun validationResultCard(result: InjectionNativeResult): LinearLayout = card().apply {
+        addView(label(if (isKoreanUi()) "예측 검증" else "Prediction validation", color(0x101215), 18f, Typeface.BOLD))
+        addView(paragraph(if (isKoreanUi()) "현재 API는 실측값 대비 오차를 반환하지 않습니다. 임의의 검증 점수 대신 실행에 사용된 DOE와 모델 정보를 표시합니다." else "The current API does not return measured-reference errors. This view shows the DOE and model metadata instead of fabricating a validation score."), margin(top = 6))
+        addView(metricBox(if (isKoreanUi()) "형상 / 공정 DOE" else "Geometry / Process DOE", "${result.inputs.optString("geometry_id", "-")} / ${result.inputs.optString("process_id", "-")}"), margin(top = 12))
+        addView(metricBox(if (isKoreanUi()) "Sprue / Filling 모델" else "Sprue / Filling model", "${result.displayModelLabel} / ${result.displayFillingModelLabel}"), margin(top = 8))
+    }
+
+    private fun historyResultCard(): LinearLayout = card().apply {
+        val runs = loadRecentRuns()
+        addView(label(if (isKoreanUi()) "예측 기록" else "Prediction history", color(0x101215), 18f, Typeface.BOLD))
+        if (runs.isEmpty()) {
+            addView(paragraph(if (isKoreanUi()) "저장된 실행 기록이 아직 없습니다." else "No saved runs yet."), margin(top = 10))
+        } else {
+            runs.forEachIndexed { index, run -> addView(historyRunCard(run, index), margin(top = 10)) }
+        }
+    }
+
+    private fun unavailableResultCard(message: String): LinearLayout = card().apply {
+        gravity = Gravity.CENTER
+        addView(label(message, color(0x637180), 14f, Typeface.BOLD).apply { gravity = Gravity.CENTER })
     }
 
     private fun xaiSection(features: List<InjectionXaiFeature>): LinearLayout = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
         setPadding(dp(12), dp(12), dp(12), dp(12))
         background = strokedRounded(color(0xF6F9FB), color(0xDAE3EC), dp(8))
-        addView(label("Injection XAI", color(0x0BA7C9), 12f, Typeface.BOLD))
+        addView(label("Injection XAI", color(0x1451D8), 12f, Typeface.BOLD))
         addView(label(if (isKoreanUi()) "예측 영향 인자" else "Feature influence", color(0x101215), 18f, Typeface.BOLD), margin(top = 2))
         addView(paragraph(if (isKoreanUi()) "현재 입력에서 형상, 공정, 게이트 feature가 예측에 미친 영향을 보여줍니다." else "Top process, geometry, and gate descriptors used by the prediction."), margin(top = 4))
 
@@ -384,7 +492,7 @@ class InjectionActivity : Activity() {
             val toggle = Button(this@InjectionActivity).apply {
                 text = if (isKoreanUi()) "나머지 ${hiddenFeatures.size}개 feature 더보기" else "Show ${hiddenFeatures.size} more features"
                 isAllCaps = false
-                setTextColor(color(0x0B77BD))
+                setTextColor(color(0x1451D8))
                 setBackgroundColor(Color.TRANSPARENT)
                 setOnClickListener {
                     val shouldExpand = hiddenContainer.visibility != View.VISIBLE
@@ -414,7 +522,7 @@ class InjectionActivity : Activity() {
             maxLines = 1
             ellipsize = android.text.TextUtils.TruncateAt.END
         }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        header.addView(label("${(feature.importance * 100.0).metricText(1)}%", color(0x0BA7C9), 13f, Typeface.BOLD))
+        header.addView(label("${(feature.importance * 100.0).metricText(1)}%", color(0x1451D8), 13f, Typeface.BOLD))
         addView(header)
 
         val percent = (feature.importance.coerceIn(0.0, 1.0) * 100).toInt().coerceAtLeast(1)
@@ -423,7 +531,7 @@ class InjectionActivity : Activity() {
             setPadding(0, 0, 0, 0)
             background = rounded(color(0xE4ECF4), dp(999))
             addView(View(this@InjectionActivity).apply {
-                background = rounded(color(0x0BA7C9), dp(999))
+                background = rounded(color(0x1451D8), dp(999))
             }, LinearLayout.LayoutParams(0, dp(7), percent.toFloat()))
             addView(View(this@InjectionActivity), LinearLayout.LayoutParams(0, dp(7), (100 - percent).toFloat()))
         }
@@ -468,7 +576,7 @@ class InjectionActivity : Activity() {
                 }
                 renderAssistantAnswer(answerBlock, if (isKoreanUi()) "질문 중..." else "Asking...")
                 Thread {
-                    val answer = runCatching { InjectionApiNative().answer(question, result, if (isKoreanUi()) "ko" else "en") }
+                    val answer = runCatching { InjectionApiNative(authToken).answer(question, result, if (isKoreanUi()) "ko" else "en") }
                     runOnUiThread {
                         renderAssistantAnswer(answerBlock, answer.getOrElse {
                             if (isKoreanUi()) "Assistant 응답에 실패했습니다: ${it.message ?: "Unknown error"}" else "Assistant failed: ${it.message ?: "Unknown error"}"
@@ -586,7 +694,7 @@ class InjectionActivity : Activity() {
     }
 
     private fun showError(message: String) {
-        statusText.text = "Error"
+        statusText.text = if (isKoreanUi()) "오류" else "Error"
         statusText.setTextColor(color(0xB42318))
         resultContainer.removeAllViews()
         resultContainer.addView(card().apply {
@@ -1011,7 +1119,7 @@ private data class InjectionRecentRun(
     }
 }
 
-private class InjectionApiNative {
+private class InjectionApiNative(private val authToken: String) {
     fun catalog(): InjectionCatalog {
         val models = JSONObject(request("GET", endpoint("/api/v1/simple-injection/models")))
         val doe = JSONObject(request("GET", endpoint("/api/v1/simple-injection/doe")))
@@ -1105,6 +1213,9 @@ private class InjectionApiNative {
             requestMethod = method
             connectTimeout = 8_000
             readTimeout = 25_000
+            if (authToken.isNotEmpty()) {
+                setRequestProperty("Authorization", "Bearer $authToken")
+            }
             if (body != null) {
                 doOutput = true
                 setRequestProperty("Content-Type", "application/json")

@@ -11,9 +11,10 @@ import hmac
 import json
 import os
 import secrets
+import threading
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime
+from datetime import datetime
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
@@ -27,15 +28,33 @@ from src.backend.api.v1.modules import router as modules_router
 from src.backend.api.v1.optimization import router as optimization_router
 from src.backend.api.v1.rag import router as rag_router
 from src.backend.api.v1.slack_commands import router as slack_commands_router
-from src.backend.services.imperialax_auth_store import session_from_token
+from src.backend.security.module_access import validate_security_configuration
+from src.backend.security.request_limits import enforce_module_api_security
+
+try:
+    from datetime import UTC as _UTC
+except ImportError:  # pragma: no cover - Python 3.10 compatibility
+    from datetime import timezone as _timezone
+
+    _UTC = _timezone.utc
 
 PROJECT_ROOT = Path(os.getenv("KYULAI_PROJECT_ROOT", Path(__file__).resolve().parents[2])).resolve()
-FRONTEND_DIR = Path(os.getenv("LAMINATE_FRONTEND_DIR", PROJECT_ROOT / "src" / "frontend" / "dd-laminate")).resolve()
+FRONTEND_DIR = Path(
+    os.getenv("LAMINATE_FRONTEND_DIR", PROJECT_ROOT / "src" / "frontend" / "dd-laminate")
+).resolve()
+PRODUCT_SHELL_DIR = (PROJECT_ROOT / "src" / "frontend").resolve()
 IMPERIALAX_FRONTEND_DIR = Path(
     os.getenv("IMPERIALAX_FRONTEND_DIR", PROJECT_ROOT / "src" / "frontend" / "imperialax")
 ).resolve()
-WEDDING_FRONTEND_DIR = Path(os.getenv("WEDDING_FRONTEND_DIR", PROJECT_ROOT / "src" / "frontend" / "wedding")).resolve()
-WEDDING_DATA_DIR = Path(os.getenv("WEDDING_DATA_DIR", PROJECT_ROOT / "runtime" / "wedding")).resolve()
+WEDDING_FRONTEND_DIR = Path(
+    os.getenv("WEDDING_FRONTEND_DIR", PROJECT_ROOT / "src" / "frontend" / "wedding")
+).resolve()
+INJECTION_VIEWER_VENDOR_DIR = (
+    PROJECT_ROOT / "src" / "frontend" / "simple-injection" / "vendor"
+).resolve()
+WEDDING_DATA_DIR = Path(
+    os.getenv("WEDDING_DATA_DIR", PROJECT_ROOT / "runtime" / "wedding")
+).resolve()
 AI_ROOT_HOSTS = {"ai.imperialax.com", "app.imperialax.com"}
 AI_REDIRECT_HOSTS = {
     "imperialax.com": "https://ai.imperialax.com",
@@ -46,7 +65,8 @@ WEDDING_ROOT_HOSTS = {"ds-wedding.cafedecafe.co.kr"}
 WEDDING_LEGACY_HOSTS = {"cafedecafe.co.kr"}
 WEDDING_PUBLIC_BASE_URL = "https://ds-wedding.cafedecafe.co.kr"
 IMPERIALAX_AI_PUBLIC_BASE_URL = "https://ai.imperialax.com"
-LAMINATE_ENTITLEMENT = "module.laminate"
+WEDDING_MAX_REQUEST_BYTES = 16 * 1024
+_WEDDING_FILE_LOCK = threading.RLock()
 
 
 def _env_flag(name: str) -> bool:
@@ -59,28 +79,12 @@ def _request_host(request: Request) -> str:
     return host.split(",", 1)[0].split(":", 1)[0].strip().lower()
 
 
-def _bearer_token(request: Request) -> str | None:
-    authorization = request.headers.get("authorization", "")
-    scheme, _, token = authorization.partition(" ")
-    if scheme.lower() == "bearer" and token.strip():
-        return token.strip()
-    return request.query_params.get("session_token") or request.cookies.get("imperialax_session")
-
-
-def _has_laminate_entitlement(request: Request) -> bool:
-    session = session_from_token(_bearer_token(request))
-    if session is None:
-        return False
-    return LAMINATE_ENTITLEMENT in set(session.entitlements)
-
-
 def _root_file_for_host(host: str) -> Path:
     if host in WEDDING_ROOT_HOSTS:
         return WEDDING_FRONTEND_DIR / "index.html"
     if host in AI_ROOT_HOSTS:
-        return IMPERIALAX_FRONTEND_DIR / "login-v2.html"
-    index_file = "index-v2.html" if host in V2_ROOT_HOSTS else "index.html"
-    return FRONTEND_DIR / index_file
+        return IMPERIALAX_FRONTEND_DIR / "index.html"
+    return FRONTEND_DIR / "index-v2.ko.html"
 
 
 def _frontend_dir_for_host(host: str) -> Path:
@@ -106,14 +110,16 @@ def _redirect_to_ai_workspace(host: str, path: str = "/") -> Response:
     return Response(status_code=308, headers={"Location": f"{base_url}{path}"})
 
 
-def _no_cache_file(path: Path) -> FileResponse:
+def _no_cache_file(path: Path, extra_headers: dict[str, str] | None = None) -> FileResponse:
+    headers = {
+        "Cache-Control": "no-store, max-age=0",
+        "Pragma": "no-cache",
+        "Expires": "0",
+    }
+    headers.update(extra_headers or {})
     return FileResponse(
         path,
-        headers={
-            "Cache-Control": "no-store, max-age=0",
-            "Pragma": "no-cache",
-            "Expires": "0",
-        },
+        headers=headers,
     )
 
 
@@ -139,7 +145,9 @@ def _wedding_admin_token() -> str:
 
 def _require_wedding_admin(request: Request) -> JSONResponse | None:
     auth_header = request.headers.get("authorization", "")
-    bearer_token = auth_header.removeprefix("Bearer ").strip() if auth_header.startswith("Bearer ") else ""
+    bearer_token = (
+        auth_header.removeprefix("Bearer ").strip() if auth_header.startswith("Bearer ") else ""
+    )
     provided = request.headers.get("x-wedding-admin-token", "").strip() or bearer_token
     expected = _wedding_admin_token()
     if not provided or not hmac.compare_digest(provided, expected):
@@ -153,18 +161,19 @@ def _read_wedding_submissions() -> list[dict[str, object]]:
         return []
 
     records: list[dict[str, object]] = []
-    with submissions_file.open("r", encoding="utf-8") as handle:
-        for line_number, line in enumerate(handle, start=1):
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                record = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if isinstance(record, dict):
-                record["_line"] = line_number
-                records.append(record)
+    with _WEDDING_FILE_LOCK:
+        with submissions_file.open("r", encoding="utf-8") as handle:
+            for line_number, line in enumerate(handle, start=1):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    record = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(record, dict):
+                    record["_line"] = line_number
+                    records.append(record)
     return records
 
 
@@ -207,11 +216,12 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(
-    title="KyulAI DD Laminate API",
+    title="ImperialAX DD Laminate API",
     version="0.1.0",
     description="Local DD laminate Type prediction API.",
     lifespan=lifespan,
 )
+validate_security_configuration()
 
 app.add_middleware(
     CORSMiddleware,
@@ -225,22 +235,16 @@ app.add_middleware(
 
 @app.middleware("http")
 async def laminate_license_middleware(request: Request, call_next):
-    if (
-        _env_flag("LAMINATE_REQUIRE_AUTH")
-        and request.method.upper() != "OPTIONS"
-        and request.url.path.startswith("/api/v1/dd-laminate")
-        and not _has_laminate_entitlement(request)
-    ):
-        return JSONResponse(
-            {
-                "detail": (
-                    "Laminate license required. Sign in with an account that has "
-                    "module.laminate access."
-                )
-            },
-            status_code=401,
-        )
-    return await call_next(request)
+    return await enforce_module_api_security(
+        request,
+        call_next,
+        (
+            ("/api/v1/dd-laminate", "module.laminate", "Laminate"),
+            ("/api/v1/optimization", "module.optimization", "Optimization"),
+            ("/api/v1/rag", "module.laminate", "Laminate Assistant"),
+        ),
+    )
+
 
 app.include_router(dd_laminate_router, prefix="/api/v1")
 app.include_router(modules_router, prefix="/api/v1")
@@ -271,12 +275,44 @@ async def root(request: Request) -> Response:
     return _no_cache_file(_root_file_for_host(host))
 
 
+@app.api_route("/ko", methods=["GET", "HEAD"])
+@app.api_route("/ko/", methods=["GET", "HEAD"])
+async def laminate_current_ko(request: Request) -> FileResponse:
+    host = _request_host(request)
+    if host in WEDDING_ROOT_HOSTS:
+        return _no_cache_file(WEDDING_FRONTEND_DIR / "index.html")
+    if host in AI_ROOT_HOSTS:
+        return _no_cache_file(IMPERIALAX_FRONTEND_DIR / "index.ko.html")
+    return _no_cache_file(FRONTEND_DIR / "index-v2.ko.html")
+
+
+@app.api_route("/en", methods=["GET", "HEAD"])
+@app.api_route("/en/", methods=["GET", "HEAD"])
+async def laminate_current_en(request: Request) -> FileResponse:
+    host = _request_host(request)
+    if host in WEDDING_ROOT_HOSTS:
+        return _no_cache_file(WEDDING_FRONTEND_DIR / "en.html")
+    if host in AI_ROOT_HOSTS:
+        return _no_cache_file(IMPERIALAX_FRONTEND_DIR / "index.html")
+    return _no_cache_file(FRONTEND_DIR / "index-v2.html")
+
+
 @app.get("/assets/{asset_path:path}")
 async def assets(request: Request, asset_path: str) -> FileResponse:
     asset_file = _frontend_dir_for_host(_request_host(request)) / "assets" / asset_path
     if not asset_file.is_file():
         raise HTTPException(status_code=404)
     return FileResponse(asset_file)
+
+
+@app.get("/brand/imperialax-logo-black.png")
+async def imperialax_brand_logo() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "assets" / "imperialax-logo-black.png")
+
+
+@app.get("/brand/imperialax-mark-black.png")
+async def imperialax_brand_mark() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "assets" / "imperialax-mark-black.png")
 
 
 @app.get("/index.html")
@@ -319,19 +355,116 @@ async def app_v2_js() -> FileResponse:
     return _no_cache_file(FRONTEND_DIR / "app-v2.js")
 
 
+@app.get("/laminate-viewer/vendor/{filename}")
+async def laminate_viewer_vendor(filename: str) -> FileResponse:
+    allowed_files = {
+        "three.module.r160.js",
+    }
+    if filename not in allowed_files:
+        raise HTTPException(status_code=404)
+    return _no_cache_file(INJECTION_VIEWER_VENDOR_DIR / filename)
+
+
+@app.get("/imperialax-product-shell.css")
+async def imperialax_product_shell_css() -> FileResponse:
+    return _no_cache_file(PRODUCT_SHELL_DIR / "imperialax-product-shell.css")
+
+
+@app.get("/imperialax-product-shell.js")
+async def imperialax_product_shell_js() -> FileResponse:
+    return _no_cache_file(PRODUCT_SHELL_DIR / "imperialax-product-shell.js")
+
+
+@app.api_route("/v2", methods=["GET", "HEAD"])
+async def laminate_rebuild_v2() -> FileResponse:
+    """Serve the redesigned Laminate workspace from the explicit v2 route."""
+    return _no_cache_file(FRONTEND_DIR / "index-rebuild.ko.html")
+
+
+@app.api_route("/v2/ko", methods=["GET", "HEAD"])
+@app.api_route("/v2/ko/", methods=["GET", "HEAD"])
+async def laminate_rebuild_v2_ko() -> FileResponse:
+    return _no_cache_file(FRONTEND_DIR / "index-rebuild.ko.html")
+
+
+@app.api_route("/v2/en", methods=["GET", "HEAD"])
+@app.api_route("/v2/en/", methods=["GET", "HEAD"])
+async def laminate_rebuild_v2_en() -> FileResponse:
+    return _no_cache_file(FRONTEND_DIR / "index-rebuild.en.html")
+
+
+@app.api_route("/v2/", methods=["GET", "HEAD"])
+async def laminate_rebuild_v2_slash() -> Response:
+    return Response(status_code=308, headers={"Location": "/v2"})
+
+
+@app.get("/styles-rebuild.css")
+async def styles_rebuild_css() -> FileResponse:
+    return _no_cache_file(FRONTEND_DIR / "styles-rebuild.css")
+
+
+@app.get("/app-rebuild-preview.js")
+async def app_rebuild_preview_js() -> FileResponse:
+    return _no_cache_file(FRONTEND_DIR / "app-rebuild-preview.js")
+
+
+@app.get("/locales-rebuild.js")
+async def locales_rebuild_js() -> FileResponse:
+    return _no_cache_file(FRONTEND_DIR / "locales-rebuild.js")
+
+
+@app.api_route("/preview/3size", methods=["GET", "HEAD"])
+@app.api_route("/preview/3size/", methods=["GET", "HEAD"])
+async def three_size_preview(request: Request) -> FileResponse:
+    language = request.query_params.get("lang", "").strip().lower()
+    filename = "index-v2.ko.html" if language.startswith("ko") else "index-v2.html"
+    return _no_cache_file(
+        FRONTEND_DIR / filename,
+        {"X-Robots-Tag": "noindex, nofollow"},
+    )
+
+
+@app.get("/preview/styles-v2.css")
+@app.get("/preview/3size/styles-v2.css")
+async def preview_styles_v2_css() -> FileResponse:
+    return _no_cache_file(FRONTEND_DIR / "styles-v2.css")
+
+
+@app.get("/preview/app-v2.js")
+@app.get("/preview/3size/app-v2.js")
+async def preview_app_v2_js() -> FileResponse:
+    return _no_cache_file(FRONTEND_DIR / "app-v2.js")
+
+
+@app.get("/preview/auth-gate.js")
+@app.get("/preview/3size/auth-gate.js")
+async def preview_auth_gate_js() -> FileResponse:
+    return _no_cache_file(FRONTEND_DIR / "auth-gate.js")
+
+
+@app.get("/styles-3size-preview.css")
+async def styles_three_size_preview() -> FileResponse:
+    return _no_cache_file(FRONTEND_DIR / "styles-3size-preview.css")
+
+
+@app.get("/app-3size-preview.js")
+async def app_three_size_preview() -> FileResponse:
+    return _no_cache_file(FRONTEND_DIR / "app-3size-preview.js")
+
+
 @app.get("/auth-gate.js")
 async def auth_gate_js() -> FileResponse:
     return _no_cache_file(FRONTEND_DIR / "auth-gate.js")
 
 
 @app.get("/login-v2.html")
-async def login_v2_html() -> FileResponse:
-    return FileResponse(IMPERIALAX_FRONTEND_DIR / "login-v2.html")
+async def login_v2_html() -> Response:
+    return Response(status_code=308, headers={"Location": "/index.html"})
 
 
 @app.get("/login-v2.ko.html")
-async def login_v2_ko_html() -> FileResponse:
-    return FileResponse(IMPERIALAX_FRONTEND_DIR / "login-v2.ko.html")
+async def login_v2_ko_html() -> Response:
+    return Response(status_code=308, headers={"Location": "/index.ko.html"})
 
 
 @app.get("/signup-v2.html")
@@ -434,6 +567,13 @@ async def wedding_index() -> FileResponse:
     return _no_cache_file(WEDDING_FRONTEND_DIR / "index.html")
 
 
+@app.api_route("/en", methods=["GET", "HEAD"])
+async def wedding_en(request: Request) -> Response:
+    if _request_host(request) not in WEDDING_ROOT_HOSTS:
+        return _redirect_to_wedding("/en")
+    return _no_cache_file(WEDDING_FRONTEND_DIR / "en.html")
+
+
 @app.api_route("/rsvp", methods=["GET", "HEAD"])
 async def wedding_rsvp_qr(request: Request) -> Response:
     if _request_host(request) not in WEDDING_ROOT_HOSTS:
@@ -458,6 +598,12 @@ async def wedding_legacy_bus_qr() -> FileResponse:
     return _no_cache_file(WEDDING_FRONTEND_DIR / "bus.html")
 
 
+@app.api_route("/wedding/en", methods=["GET", "HEAD"])
+@app.api_route("/wedding/en.html", methods=["GET", "HEAD"])
+async def wedding_legacy_en() -> FileResponse:
+    return _no_cache_file(WEDDING_FRONTEND_DIR / "en.html")
+
+
 @app.api_route("/parents", methods=["GET", "HEAD"])
 async def wedding_parents_qr(request: Request) -> Response:
     if _request_host(request) not in WEDDING_ROOT_HOSTS:
@@ -476,6 +622,8 @@ async def wedding_legacy_parents_qr() -> FileResponse:
 @app.api_route("/admin/", methods=["GET", "HEAD"])
 async def wedding_admin(request: Request) -> Response:
     host = _request_host(request)
+    if not request.url.path.startswith("/wedding") and host in AI_ROOT_HOSTS:
+        return Response(status_code=308, headers={"Location": "/admin.html"})
     if not request.url.path.startswith("/wedding") and host not in WEDDING_ROOT_HOSTS:
         return _redirect_to_wedding("/admin")
     return _no_cache_file(WEDDING_FRONTEND_DIR / "admin.html")
@@ -487,9 +635,15 @@ async def wedding_rsvp(request: Request) -> Response:
     if request.method == "OPTIONS":
         return Response(status_code=204)
 
+    body = bytearray()
+    async for chunk in request.stream():
+        if len(body) + len(chunk) > WEDDING_MAX_REQUEST_BYTES:
+            return _json_error(413, "Request body too large")
+        body.extend(chunk)
+
     try:
-        payload = await request.json()
-    except json.JSONDecodeError:
+        payload = json.loads(body)
+    except (json.JSONDecodeError, UnicodeDecodeError):
         return _json_error(400, "Invalid JSON")
 
     if not isinstance(payload, dict):
@@ -517,20 +671,20 @@ async def wedding_rsvp(request: Request) -> Response:
 
     record = {
         "type": entry_type,
-        "wedding": str(payload.get("wedding") or "이동훈 · 신세연 결혼식"),
+        "wedding": _trim_text(payload.get("wedding") or "이동훈 · 신세연 결혼식", 80),
         "data": data,
-        "message": str(payload.get("message") or ""),
-        "submittedAt": str(
-            payload.get("submittedAt")
-            or datetime.now(UTC).isoformat().replace("+00:00", "Z")
+        "message": _trim_text(payload.get("message"), 240),
+        "submittedAt": _trim_text(
+            payload.get("submittedAt") or datetime.now(_UTC).isoformat().replace("+00:00", "Z"),
+            40,
         ),
-        "ip": request.client.host if request.client else "",
     }
 
     WEDDING_DATA_DIR.mkdir(parents=True, exist_ok=True)
     submissions_file = WEDDING_DATA_DIR / "rsvp-submissions.jsonl"
-    with submissions_file.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+    with _WEDDING_FILE_LOCK:
+        with submissions_file.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(record, ensure_ascii=False) + "\n")
 
     return JSONResponse({"ok": True})
 
@@ -589,14 +743,15 @@ async def wedding_admin_delete_submission(request: Request, line_number: int) ->
     if not submissions_file.exists():
         return _json_error(404, "삭제할 항목을 찾을 수 없습니다.")
 
-    lines = submissions_file.read_text(encoding="utf-8").splitlines()
-    if line_number > len(lines):
-        return _json_error(404, "삭제할 항목을 찾을 수 없습니다.")
+    with _WEDDING_FILE_LOCK:
+        lines = submissions_file.read_text(encoding="utf-8").splitlines()
+        if line_number > len(lines):
+            return _json_error(404, "삭제할 항목을 찾을 수 없습니다.")
 
-    kept_lines = [line for index, line in enumerate(lines, start=1) if index != line_number]
-    with submissions_file.open("w", encoding="utf-8") as handle:
-        if kept_lines:
-            handle.write("\n".join(kept_lines) + "\n")
+        kept_lines = [line for index, line in enumerate(lines, start=1) if index != line_number]
+        with submissions_file.open("w", encoding="utf-8") as handle:
+            if kept_lines:
+                handle.write("\n".join(kept_lines) + "\n")
 
     return JSONResponse({"ok": True})
 

@@ -126,7 +126,7 @@ class TestMaxAbsoluteError:
 
 class TestNormalisedMAE:
     def test_known_value(self):
-        pred = np.array([0.5, 1.5])   # error = 0.5 each
+        pred = np.array([0.5, 1.5])  # error = 0.5 each
         target = np.array([0.0, 2.0])  # range = 2
         # normalised_mae = 0.5 / 2 = 0.25
         assert normalised_mae(pred, target) == pytest.approx(0.25)
@@ -165,7 +165,15 @@ class TestComputeAllMetrics:
         pred = np.random.randn(10)
         target = np.random.randn(10)
         result = compute_all_metrics(pred, target)
-        expected_keys = {"mse", "rmse", "mae", "r2", "relative_l2", "max_abs_error", "normalised_mae"}
+        expected_keys = {
+            "mse",
+            "rmse",
+            "mae",
+            "r2",
+            "relative_l2",
+            "max_abs_error",
+            "normalised_mae",
+        }
         assert expected_keys.issubset(result.keys())
 
     def test_all_values_finite(self):

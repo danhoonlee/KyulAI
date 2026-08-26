@@ -36,14 +36,11 @@ class StorageService:
     def dataset_object_key(self, dataset_id: str, filename: str) -> str:
         return str(PurePosixPath("datasets") / dataset_id / filename)
 
-    async def upload_dataset(
-        self, dataset_id: str, filename: str, data: bytes
-    ) -> tuple[str, int]:
+    async def upload_dataset(self, dataset_id: str, filename: str, data: bytes) -> tuple[str, int]:
         """Upload a CAE file. Returns (object_key, size_bytes).
 
         TODO: implement with Minio.put_object / presigned URL flow.
         """
-        key = self.dataset_object_key(dataset_id, filename)
         raise NotImplementedError("StorageService.upload_dataset not yet implemented")
 
     async def download_dataset(self, object_key: str) -> bytes:
@@ -53,7 +50,9 @@ class StorageService:
         """
         raise NotImplementedError("StorageService.download_dataset not yet implemented")
 
-    async def generate_upload_url(self, dataset_id: str, filename: str, expires_s: int = 3600) -> str:
+    async def generate_upload_url(
+        self, dataset_id: str, filename: str, expires_s: int = 3600
+    ) -> str:
         """Generate a presigned PUT URL for direct browser-to-MinIO upload.
 
         TODO: implement with Minio.presigned_put_object.

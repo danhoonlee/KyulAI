@@ -1,0 +1,22 @@
+[Unit]
+Description=ImperialAX Injection API
+After=network-online.target imperialax-redis.service
+Wants=network-online.target imperialax-redis.service
+
+[Service]
+Type=simple
+WorkingDirectory=%h/projects/KyulAI
+Environment=HOME=%h
+Environment=PYTHONPATH=%h/projects/KyulAI
+Environment=IMPERIALAX_ENV=production
+Environment=IMPERIALAX_RATE_LIMIT_BACKEND=redis
+Environment=REDIS_URL=unix://%S/imperialax-redis/redis.sock?db=0
+EnvironmentFile=-%h/projects/KyulAI/.env.local
+ExecStart=%h/projects/KyulAI/.venv/bin/uvicorn src.backend.simple_injection_app:app --host 127.0.0.1 --port 8010 --proxy-headers --forwarded-allow-ips 127.0.0.1
+Restart=always
+RestartSec=5
+StandardOutput=append:%h/projects/KyulAI/logs/imperialax-injection.log
+StandardError=append:%h/projects/KyulAI/logs/imperialax-injection.err.log
+
+[Install]
+WantedBy=default.target

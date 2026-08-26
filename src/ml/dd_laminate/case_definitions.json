@@ -1,0 +1,39 @@
+{
+  "schema_version": "dd-case-definitions-v2",
+  "cases": {
+    "Case2": {
+      "formula": "[[±θ₁]/[±θ₂]]₄",
+      "segments": [
+        {
+          "tokens": ["pm1", "pm2"],
+          "repeat": 4
+        }
+      ],
+      "total_plies": 16
+    },
+    "Case3": {
+      "formula": "[[±θ₁]/[±θ₂]/[∓θ₁]/[∓θ₂]]₂",
+      "segments": [
+        {
+          "tokens": ["pm1", "pm2", "mp1", "mp2"],
+          "repeat": 2
+        }
+      ],
+      "total_plies": 16
+    },
+    "Case4": {
+      "formula": "[([±θ₁]/[±θ₂])₂ / ([∓θ₁]/[∓θ₂])₂]",
+      "segments": [
+        {
+          "tokens": ["pm1", "pm2"],
+          "repeat": 2
+        },
+        {
+          "tokens": ["mp1", "mp2"],
+          "repeat": 2
+        }
+      ],
+      "total_plies": 16
+    }
+  }
+}

@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from src.backend.api.v1.dd_laminate import (
     RESPONSE_MODELS,
@@ -23,6 +23,7 @@ from src.backend.api.v1.dd_laminate import (
     _model_path,
     _notes,
     _probability_confidence,
+    is_deep_response_model,
     predict_estimated_response,
 )
 from src.ml.dd_laminate.predict_response_surrogate import predict_response_from_bundle
@@ -37,6 +38,10 @@ LaminateObjective = Literal[
     "target_pt",
     "balanced",
 ]
+
+
+class _ApiModel(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
 
 
 def _default_cases() -> list[CaseKey]:
@@ -100,7 +105,7 @@ class OptimizationSearchRequest(BaseModel):
     constraints: LaminateConstraints = Field(default_factory=_default_constraints)
 
 
-class OptimizationCandidate(BaseModel):
+class OptimizationCandidate(_ApiModel):
     rank: int
     score: float
     objective: LaminateObjective
@@ -117,7 +122,7 @@ class OptimizationCandidate(BaseModel):
     notes: list[str] = []
 
 
-class OptimizationSearchResponse(BaseModel):
+class OptimizationSearchResponse(_ApiModel):
     domain: OptimizationDomain
     objective: LaminateObjective
     model_key: str
@@ -128,7 +133,7 @@ class OptimizationSearchResponse(BaseModel):
     notes: list[str] = []
 
 
-class _RawCandidate(BaseModel):
+class _RawCandidate(_ApiModel):
     case: CaseKey
     theta1: float
     theta2: float
@@ -142,23 +147,17 @@ class _RawCandidate(BaseModel):
     notes: list[str] = []
 
 
-DEEP_RESPONSE_MODEL_KEYS = {
-    "response_goint",
-    "response_goint_physics",
-    "response_goint_physics_v2",
-    "response_goint_physics_nn_v2",
-    "response_distilled_v1",
-    "response_distilled_grid_v1",
-    "response_distilled_grid_conf_v1",
-}
-
-
-def _angle_values(explicit_values: list[float] | None, minimum: float, maximum: float, step: float) -> list[float]:
+def _angle_values(
+    explicit_values: list[float] | None, minimum: float, maximum: float, step: float
+) -> list[float]:
     if explicit_values is not None:
         values = sorted({round(float(value), 6) for value in explicit_values})
     else:
         if minimum > maximum:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Angle min cannot exceed max.")
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Angle min cannot exceed max.",
+            )
         values = []
         current = minimum
         while current <= maximum + 1e-9:
@@ -176,7 +175,9 @@ def _angle_values(explicit_values: list[float] | None, minimum: float, maximum: 
 def _passes_constraints(candidate: _RawCandidate, constraints: LaminateConstraints) -> bool:
     if constraints.target_type is not None and candidate.predicted_type != constraints.target_type:
         return False
-    if constraints.min_confidence is not None and (candidate.confidence is None or candidate.confidence < constraints.min_confidence):
+    if constraints.min_confidence is not None and (
+        candidate.confidence is None or candidate.confidence < constraints.min_confidence
+    ):
         return False
     if constraints.min_pt is not None and candidate.predicted_pt < constraints.min_pt:
         return False
@@ -184,7 +185,10 @@ def _passes_constraints(candidate: _RawCandidate, constraints: LaminateConstrain
         return False
     if constraints.min_force is not None and candidate.predicted_max_force < constraints.min_force:
         return False
-    if constraints.max_displacement is not None and candidate.predicted_max_displacement > constraints.max_displacement:
+    if (
+        constraints.max_displacement is not None
+        and candidate.predicted_max_displacement > constraints.max_displacement
+    ):
         return False
     return True
 
@@ -226,7 +230,8 @@ def _score_candidates(
             score = (
                 0.4 * _scale(candidate.predicted_pt, pt_values)
                 + 0.35 * _scale(candidate.predicted_max_force, force_values)
-                + 0.15 * _scale(candidate.predicted_max_displacement, displacement_values, invert=True)
+                + 0.15
+                * _scale(candidate.predicted_max_displacement, displacement_values, invert=True)
                 + 0.10 * confidence
             )
         scored.append((float(score), candidate))
@@ -239,13 +244,15 @@ async def _predict_laminate_candidate(
     theta1: float,
     theta2: float,
 ) -> _RawCandidate:
-    if model in DEEP_RESPONSE_MODEL_KEYS:
+    if is_deep_response_model(model):
         prediction = await predict_estimated_response(
             ResponsePredictionRequest(
                 theta1=theta1,
                 theta2=theta2,
                 case=case,
                 model=model,
+                panel_a_in=6.0,
+                panel_b_in=4.0,
             )
         )
         return _RawCandidate(
@@ -267,7 +274,9 @@ async def _predict_laminate_candidate(
         bundle = _cached_joblib_model(str(_model_path(meta)))
         result = predict_response_from_bundle(bundle, theta1=theta1, theta2=theta2, case=case)
     except Exception as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
 
     probabilities = _clean_probabilities(result.get("probabilities"))
     notes = _notes(probabilities, "theta")
@@ -315,7 +324,9 @@ async def search_design_space(payload: OptimizationSearchRequest) -> Optimizatio
         for theta1 in theta1_values:
             for theta2 in theta2_values:
                 try:
-                    candidate = await _predict_laminate_candidate(payload.model, case, theta1, theta2)
+                    candidate = await _predict_laminate_candidate(
+                        payload.model, case, theta1, theta2
+                    )
                     candidate = _RawCandidate.model_validate(candidate)
                 except HTTPException as exc:
                     skipped_count += 1
@@ -332,7 +343,9 @@ async def search_design_space(payload: OptimizationSearchRequest) -> Optimizatio
 
     scored = _score_candidates(raw_candidates, payload.objective, payload.target_pt)
     candidates = [
-        OptimizationCandidate(rank=rank, score=round(score, 6), objective=payload.objective, **candidate.model_dump())
+        OptimizationCandidate(
+            rank=rank, score=round(score, 6), objective=payload.objective, **candidate.model_dump()
+        )
         for rank, (score, candidate) in enumerate(scored[: payload.top_k], start=1)
     ]
     notes = [

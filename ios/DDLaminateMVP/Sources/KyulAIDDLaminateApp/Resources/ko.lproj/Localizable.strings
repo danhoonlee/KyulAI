@@ -110,6 +110,7 @@
 "curve.legend.predicted.curve" = "예측 곡선";
 "curve.legend.linear.fit" = "선형 fit";
 "curve.legend.kink.guide" = "굴곡 기준선";
+"curve.legend.fit.intersection" = "피팅 교점";
 "class.probabilities" = "분류 확률";
 "no.probabilities" = "확률 값이 없습니다.";
 "notes" = "노트";

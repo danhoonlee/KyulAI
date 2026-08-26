@@ -68,7 +68,7 @@ class ConservationLawValidator(Validator):
             rel_err = residual / ref
             if rel_err > self._energy_rtol:
                 failures.append(
-                    f"Energy not conserved: W={W:.4g} J, U+D={U+D:.4g} J "
+                    f"Energy not conserved: W={W:.4g} J, U+D={U + D:.4g} J "
                     f"(rel error={rel_err:.2%})"
                 )
 
@@ -76,13 +76,12 @@ class ConservationLawValidator(Validator):
         if "reaction_forces" in data and "applied_loads" in data:
             R = np.asarray(data["reaction_forces"], dtype=float)
             F = np.asarray(data["applied_loads"], dtype=float)
-            residual = np.linalg.norm(R + F)  # equilibrium: R + F = 0
-            ref = max(np.linalg.norm(F), 1e-12)
-            rel_err = float(residual / ref)
+            residual = float(np.linalg.norm(R + F))  # equilibrium: R + F = 0
+            ref = max(float(np.linalg.norm(F)), 1e-12)
+            rel_err = residual / ref
             if rel_err > self._momentum_rtol:
                 failures.append(
-                    f"Force equilibrium violated: |R+F|={residual:.3e} N "
-                    f"(rel error={rel_err:.2%})"
+                    f"Force equilibrium violated: |R+F|={residual:.3e} N (rel error={rel_err:.2%})"
                 )
 
         if failures:

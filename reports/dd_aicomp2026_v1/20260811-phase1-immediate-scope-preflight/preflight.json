@@ -3,7 +3,7 @@
   "experiment_id": "20260811-uq-mondrian-ood-tree-v2",
   "git": {
     "branch": "codex/dd-aicomp2026-uq",
-    "commit": "744dc2b530ebc36f00d8fd5eee2c33a4bb932c33"
+    "commit": "06210e5f64cdc1766b94e987218c797dd1d82da0"
   },
   "checks": {
     "baseline_quick_verification": "passed",

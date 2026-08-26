@@ -43,6 +43,7 @@ if (-not $SkipBuild) {
         --name laminate_backend `
         --onefile `
         --paths "$Root" `
+        --add-data "$Root\src\ml\dd_laminate\case_definitions.json;src\ml\dd_laminate" `
         --distpath "$BuildPath\backend" `
         --workpath "$BuildPath\pyinstaller-backend" `
         "$ScriptDir\laminate_backend_launcher.py"
@@ -88,7 +89,7 @@ Default local URL:
 
 Security mode:
   - LAMINATE_REQUIRE_AUTH=1
-  - IMPERIALAX_DISABLE_DEMO_LOGIN=1
+  - IMPERIALAX_ENABLE_DEMO_LOGIN=0
   - Users must sign in with module.laminate entitlement.
 
 Account storage:

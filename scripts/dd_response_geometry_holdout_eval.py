@@ -111,6 +111,80 @@ def group_key(record: DDRecord) -> str:
     return f"{record.case}|{record.theta1:.8g}|{record.theta2:.8g}"
 
 
+def geometry_key(record: DDRecord) -> str:
+    return f"{record.panel_a_in:g}x{record.panel_b_in:g}"
+
+
+def _normalize_manifest_split(value: str) -> str:
+    token = value.strip().lower().replace("-", "_")
+    if token in {"train", "development", "dev"}:
+        return "development"
+    if token in {"holdout", "locked", "locked_holdout", "test"}:
+        return "locked_holdout"
+    raise ValueError(f"Unsupported split label: {value!r}")
+
+
+def split_indices_from_manifest(
+    records: list[DDRecord],
+    manifest_path: Path,
+) -> tuple[np.ndarray, np.ndarray]:
+    assignments: dict[str, str] = {}
+    with manifest_path.open("r", encoding="utf-8-sig", newline="") as handle:
+        for row in csv.DictReader(handle):
+            key = group_key(
+                SimpleNamespace(
+                    case=row["case"],
+                    theta1=float(row["theta1"]),
+                    theta2=float(row["theta2"]),
+                )
+            )
+            split = _normalize_manifest_split(row["split"])
+            previous = assignments.setdefault(key, split)
+            if previous != split:
+                raise ValueError(f"Conflicting split assignments for {key}: {previous} vs {split}")
+    record_groups = {group_key(record) for record in records}
+    missing = record_groups - set(assignments)
+    if missing:
+        preview = ", ".join(sorted(missing)[:5])
+        raise ValueError(f"Split manifest is missing {len(missing)} record groups: {preview}")
+    extra = set(assignments) - record_groups
+    if extra:
+        preview = ", ".join(sorted(extra)[:5])
+        raise ValueError(f"Split manifest contains {len(extra)} groups absent from the dataset: {preview}")
+    development = np.asarray(
+        [idx for idx, record in enumerate(records) if assignments[group_key(record)] == "development"],
+        dtype=int,
+    )
+    locked = np.asarray(
+        [idx for idx, record in enumerate(records) if assignments[group_key(record)] == "locked_holdout"],
+        dtype=int,
+    )
+    if set(development.tolist()) & set(locked.tolist()):
+        raise ValueError("Development and locked holdout indices overlap")
+    return development, locked
+
+
+def geometry_leave_one_out_splits(
+    records: list[DDRecord],
+    development_idx: np.ndarray,
+) -> dict[str, tuple[np.ndarray, np.ndarray]]:
+    geometries = sorted({geometry_key(records[int(idx)]) for idx in development_idx})
+    folds: dict[str, tuple[np.ndarray, np.ndarray]] = {}
+    for geometry in geometries:
+        train_idx = np.asarray(
+            [int(idx) for idx in development_idx if geometry_key(records[int(idx)]) != geometry],
+            dtype=int,
+        )
+        test_idx = np.asarray(
+            [int(idx) for idx in development_idx if geometry_key(records[int(idx)]) == geometry],
+            dtype=int,
+        )
+        if len(train_idx) == 0 or len(test_idx) == 0:
+            raise ValueError(f"Invalid leave-one-geometry-out fold for {geometry}")
+        folds[geometry] = train_idx, test_idx
+    return folds
+
+
 def group_stratum(records: list[DDRecord], indices: list[int]) -> tuple[str, int]:
     case_counts = Counter(records[i].case for i in indices)
     label_counts = Counter(records[i].label for i in indices)
@@ -130,7 +204,7 @@ def fixed_group_holdout_split(records: list[DDRecord], *, holdout_ratio: float, 
 
     rng = random.Random(seed)
     holdout: set[int] = set()
-    for stratum, items in sorted(strata.items()):
+    for _stratum, items in sorted(strata.items()):
         rng.shuffle(items)
         total_records = sum(len(indices) for _, indices in items)
         target = max(1, int(round(total_records * holdout_ratio)))
@@ -258,7 +332,7 @@ def goint_holdout_metrics(
     args: argparse.Namespace,
 ) -> dict[str, float]:
     fit_idx, val_idx = first_group_validation_split(train_idx, records, args.inner_splits)
-    x_train_norm, feature_mean, feature_std = normalize(x[fit_idx], x)
+    x_train_norm, _feature_mean, _feature_std = normalize(x[fit_idx], x)
     y_scalars_log = np.log1p(y_scalars)
     y_scalars_train_norm, scalar_mean, scalar_std = normalize(y_scalars_log[fit_idx], y_scalars_log)
     dataset = ResponseDataset(x_train_norm, y_class, y_scalars_train_norm, y_curve)
@@ -443,8 +517,9 @@ def write_report(output_dir: Path, payload: dict[str, Any]) -> None:
         f"- Feature set: `{payload['feature_set']}`",
         f"- Seed: `{payload['seed']}`",
         f"- Holdout ratio: `{payload['holdout_ratio']}`",
+        f"- Split source: `{payload['split_source']}`",
         "- Group key: `Case + theta1 + theta2`; no identical case/theta pair appears in both train and holdout.",
-        "- Stratification target: `Case + Type`, preserving 6x4/6x8 source coverage as a consequence of the grouped records.",
+        "- The same group assignment is applied to every panel geometry.",
         "",
         "## Split Summary",
         "",
@@ -476,6 +551,26 @@ def write_report(output_dir: Path, payload: dict[str, Any]) -> None:
             "is Type-only screening.",
         ]
     )
+    geometry_rows = payload.get("geometry_leave_one_out", {})
+    if geometry_rows:
+        lines.extend(
+            [
+                "",
+                "## Leave-One-Geometry-Out Transfer",
+                "",
+                "Each fold trains on two panel sizes and evaluates the third panel size inside the development partition. "
+                "The same Case/theta designs may exist at the two training sizes; this isolates panel-size transfer rather than unseen-design transfer.",
+                "",
+                "| Held-out geometry | Model | Type Acc. | Pt MAE (kips) | Curve Norm RMSE |",
+                "| --- | --- | ---: | ---: | ---: |",
+            ]
+        )
+        for geometry, geometry_models in geometry_rows.items():
+            for name, row in geometry_models.items():
+                lines.append(
+                    f"| {geometry} | {name} | {row['accuracy']:.4f} | "
+                    f"{row['pt_mae']:.2f} | {row['curve_norm_rmse']:.5f} |"
+                )
     (output_dir / "fixed_holdout_report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
@@ -485,6 +580,13 @@ def main() -> None:
     parser.add_argument("--output-dir", default="reports/dd_response_geometry_fixed_holdout_v1")
     parser.add_argument("--feature-set", default="theta_physics_geometry_v1")
     parser.add_argument("--holdout-ratio", type=float, default=0.2)
+    parser.add_argument(
+        "--split-manifest",
+        type=Path,
+        default=None,
+        help="Existing split manifest. When set, the evaluator never regenerates the group assignment.",
+    )
+    parser.add_argument("--run-geometry-loo", action="store_true")
     parser.add_argument("--seq-len", type=int, default=128)
     parser.add_argument("--n-components", type=int, default=18)
     parser.add_argument("--inner-splits", type=int, default=5)
@@ -523,7 +625,7 @@ def main() -> None:
     parser.add_argument("--synthetic-grid-step", type=float, default=2.5)
     parser.add_argument("--synthetic-theta-min", type=float, default=-90.0)
     parser.add_argument("--synthetic-theta-max", type=float, default=90.0)
-    parser.add_argument("--synthetic-panel-sizes", default="6x4,6x8")
+    parser.add_argument("--synthetic-panel-sizes", default="6x4,6x8,8x8")
     parser.add_argument("--synthetic-weight", type=float, default=0.28)
     parser.add_argument("--synthetic-confidence-power", type=float, default=1.5)
     parser.add_argument("--synthetic-min-confidence-weight", type=float, default=0.45)
@@ -539,7 +641,12 @@ def main() -> None:
     x, feature_names = response_feature_matrix(records, args.feature_set)
     y_class = np.asarray([record.label for record in records], dtype=int)
     y_scalars, y_curve, _grid = make_response_targets(records, args.seq_len)
-    train_idx, test_idx = fixed_group_holdout_split(records, holdout_ratio=args.holdout_ratio, seed=args.seed)
+    if args.split_manifest is not None:
+        train_idx, test_idx = split_indices_from_manifest(records, args.split_manifest)
+        split_source = str(args.split_manifest)
+    else:
+        train_idx, test_idx = fixed_group_holdout_split(records, holdout_ratio=args.holdout_ratio, seed=args.seed)
+        split_source = f"generated seed={args.seed}"
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -562,18 +669,81 @@ def main() -> None:
             records, x, y_class, y_scalars, y_curve, train_idx, test_idx, args
         )
 
+    geometry_leave_one_out: dict[str, dict[str, dict[str, float]]] = {}
+    if args.run_geometry_loo:
+        original_panel_sizes = list(args.synthetic_panel_size_values)
+        for held_geometry, (geometry_train_idx, geometry_test_idx) in geometry_leave_one_out_splits(
+            records, train_idx
+        ).items():
+            print(
+                f"[geometry-loo] held={held_geometry} train={len(geometry_train_idx)} test={len(geometry_test_idx)}",
+                flush=True,
+            )
+            geometry_models: dict[str, dict[str, float]] = {
+                "Geometry Tree + Physics XAI": tree_holdout_metrics(
+                    x,
+                    y_class,
+                    y_scalars,
+                    y_curve,
+                    geometry_train_idx,
+                    geometry_test_idx,
+                    args,
+                )
+            }
+            if not args.skip_goint:
+                geometry_models["Geometry GointMLP + Physics XAI"] = goint_holdout_metrics(
+                    records,
+                    x,
+                    y_class,
+                    y_scalars,
+                    y_curve,
+                    geometry_train_idx,
+                    geometry_test_idx,
+                    args,
+                )
+            if not args.skip_hybrid:
+                train_geometries = {
+                    geometry_key(records[int(index)]) for index in geometry_train_idx
+                }
+                args.synthetic_panel_size_values = [
+                    size
+                    for size in original_panel_sizes
+                    if f"{size[0]:g}x{size[1]:g}" in train_geometries
+                ]
+                geometry_models["Geometry Hybrid Student"] = hybrid_holdout_metrics(
+                    records,
+                    x,
+                    y_class,
+                    y_scalars,
+                    y_curve,
+                    geometry_train_idx,
+                    geometry_test_idx,
+                    args,
+                )
+            geometry_leave_one_out[held_geometry] = geometry_models
+        args.synthetic_panel_size_values = original_panel_sizes
+
     payload = {
         "dataset": args.data_dir,
         "feature_set": args.feature_set,
         "feature_columns": feature_names,
         "seed": args.seed,
         "holdout_ratio": args.holdout_ratio,
+        "split_source": split_source,
         "device": describe_device(args.device_torch),
         "split_summary": {
             "train": summarize_split(records, train_idx),
             "holdout": summarize_split(records, test_idx),
         },
         "models": models,
+        "geometry_leave_one_out": geometry_leave_one_out,
+        "evaluation_config": {
+            "epochs": args.epochs,
+            "patience": args.patience,
+            "synthetic_grid_step": args.synthetic_grid_step,
+            "synthetic_panel_sizes": args.synthetic_panel_sizes,
+            "synthetic_exclusion_radius": args.strict_synthetic_exclusion_radius,
+        },
     }
     (output_dir / "fixed_holdout_metrics.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
     write_report(output_dir, payload)

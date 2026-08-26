@@ -4,13 +4,13 @@ Routes call this service; the service talks to the DB and storage layer.
 Raises domain exceptions from src.backend.exceptions (not HTTPException).
 """
 
-import uuid
+import builtins
 from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.backend.exceptions import ConflictError, InvalidStateError, NotFoundError
+from src.backend.exceptions import InvalidStateError, NotFoundError
 from src.backend.models.dataset import Dataset
 from src.backend.schemas.dataset import DatasetCreate, DatasetUpdate
 
@@ -36,9 +36,7 @@ class DatasetService:
         return dataset
 
     async def get(self, dataset_id: UUID) -> Dataset:
-        result = await self._db.execute(
-            select(Dataset).where(Dataset.id == dataset_id)
-        )
+        result = await self._db.execute(select(Dataset).where(Dataset.id == dataset_id))
         dataset = result.scalar_one_or_none()
         if dataset is None:
             raise NotFoundError("Dataset", dataset_id)
@@ -61,14 +59,12 @@ class DatasetService:
         if parse_status:
             query = query.where(Dataset.parse_status == parse_status)
 
-        count_result = await self._db.execute(
-            select(func.count()).select_from(query.subquery())
-        )
+        count_result = await self._db.execute(select(func.count()).select_from(query.subquery()))
         total = count_result.scalar_one()
 
         query = query.offset((page - 1) * page_size).limit(page_size)
         result = await self._db.execute(query)
-        return result.scalars().all(), total
+        return builtins.list(result.scalars().all()), total
 
     async def update(self, dataset_id: UUID, payload: DatasetUpdate) -> Dataset:
         dataset = await self.get(dataset_id)
@@ -115,7 +111,7 @@ class DatasetService:
         record_id: UUID | None = None,
         num_nodes: int | None = None,
         num_elements: int | None = None,
-        available_fields: list[str] | None = None,
+        available_fields: builtins.list[str] | None = None,
     ) -> Dataset:
         """Called by the Celery parse task to update pipeline state."""
         dataset = await self.get(dataset_id)

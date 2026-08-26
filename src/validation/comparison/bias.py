@@ -18,7 +18,6 @@ Methods:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
 import numpy as np
 from scipy import stats
@@ -29,12 +28,12 @@ class BiasReport:
     """Summary of bias analysis for a single field."""
 
     field_name: str
-    mean_bias: float          # mean signed error (pred - true)
+    mean_bias: float  # mean signed error (pred - true)
     std_bias: float
     t_statistic: float
-    t_pvalue: float           # small → statistically significant bias
-    sign_test_pvalue: float   # non-parametric, robust to outliers
-    is_biased: bool           # p < 0.05 in t-test
+    t_pvalue: float  # small → statistically significant bias
+    sign_test_pvalue: float  # non-parametric, robust to outliers
+    is_biased: bool  # p < 0.05 in t-test
     conditional_biases: dict[str, dict[str, float]]  # covariate → {rho, pvalue}
 
     def __str__(self) -> str:
@@ -115,8 +114,6 @@ class BiasDetector:
         """Run detect() for every common field."""
         common = set(predicted.keys()) & set(experimental.keys())
         return {
-            fname: self.detect(
-                fname, predicted[fname], experimental[fname], covariates
-            )
+            fname: self.detect(fname, predicted[fname], experimental[fname], covariates)
             for fname in common
         }

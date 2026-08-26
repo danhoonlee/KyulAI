@@ -15,15 +15,15 @@ Generate a new migration:
 import asyncio
 from logging.config import fileConfig
 
+from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from alembic import context
+import src.backend.models  # noqa: F401
 
 # Import Base + all models so metadata is populated for autogenerate.
 from src.backend.db.base import Base
-import src.backend.models  # noqa: F401
 
 config = context.config
 
@@ -37,13 +37,14 @@ def _get_database_url() -> str:
     """Read DB URL from Settings, falling back to alembic.ini value."""
     try:
         from src.backend.config import get_settings
+
         return get_settings().database_url
-    except Exception:
+    except Exception as exc:
         url = config.get_main_option("sqlalchemy.url")
         if not url:
             raise RuntimeError(
                 "No database URL found. Set DATABASE_URL env var or sqlalchemy.url in alembic.ini."
-            )
+            ) from exc
         return url
 
 

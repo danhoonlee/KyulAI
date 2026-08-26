@@ -5,14 +5,12 @@ Tests for uncertainty quantification utilities.
 import numpy as np
 import pytest
 
+from src.validation.uncertainty.calibration import CalibrationChecker, check_interval_calibration
+from src.validation.uncertainty.ensemble import EnsembleDisagreement
+from src.validation.uncertainty.mc_dropout import MCDropoutUncertainty
 from src.validation.uncertainty.prediction_intervals import (
     SplitConformalIntervals,
-    PredictionIntervalEstimator,
 )
-from src.validation.uncertainty.calibration import check_interval_calibration
-from src.validation.uncertainty.mc_dropout import MCDropoutUncertainty
-from src.validation.uncertainty.ensemble import EnsembleDisagreement
-from src.validation.uncertainty.calibration import CalibrationChecker
 
 
 class TestSplitConformalIntervals:
@@ -45,6 +43,7 @@ class TestSplitConformalIntervals:
 class TestMCDropout:
     def test_mean_close_to_deterministic(self):
         rng = np.random.default_rng(0)
+
         # Simulate a stochastic model with small noise
         def noisy_model(x):
             return np.sin(x) + rng.normal(0, 0.05, x.shape)
@@ -96,9 +95,9 @@ class TestCalibrationChecker:
         rng = np.random.default_rng(7)
         n = 2000
         sigma = 1.0
-        y_hat = rng.normal(0, 2, n)          # model predictions
-        errors = rng.normal(0, sigma, n)     # prediction error with known σ
-        y_true = y_hat + errors              # observations
+        y_hat = rng.normal(0, 2, n)  # model predictions
+        errors = rng.normal(0, sigma, n)  # prediction error with known σ
+        y_true = y_hat + errors  # observations
 
         from scipy.stats import norm as sp_norm
 

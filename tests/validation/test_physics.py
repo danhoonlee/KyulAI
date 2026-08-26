@@ -3,30 +3,31 @@ Tests for physics constraint checkers.
 """
 
 import numpy as np
-import pytest
 
 from src.validation.base import Severity, ValidationPipeline
-from src.validation.physics.stiffness import StiffnessTensorValidator
-from src.validation.physics.fiber_orientation import FiberOrientationValidator
-from src.validation.physics.failure import TsaiWuValidator, MaxStressValidator
 from src.validation.physics.conservation import ConservationLawValidator
+from src.validation.physics.failure import MaxStressValidator, TsaiWuValidator
+from src.validation.physics.fiber_orientation import FiberOrientationValidator
+from src.validation.physics.stiffness import StiffnessTensorValidator
 from src.validation.physics.strain_compat import StrainCompatibilityValidator
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def make_glass_epoxy_stiffness() -> np.ndarray:
     """Approximate stiffness tensor for UD glass/epoxy (GPa), Voigt notation."""
-    C = np.array([
-        [45.0,  7.0,  7.0, 0.0, 0.0, 0.0],
-        [ 7.0, 12.0,  4.2, 0.0, 0.0, 0.0],
-        [ 7.0,  4.2, 12.0, 0.0, 0.0, 0.0],
-        [ 0.0,  0.0,  0.0, 3.8, 0.0, 0.0],
-        [ 0.0,  0.0,  0.0, 0.0, 5.0, 0.0],
-        [ 0.0,  0.0,  0.0, 0.0, 0.0, 5.0],
-    ])
+    C = np.array(
+        [
+            [45.0, 7.0, 7.0, 0.0, 0.0, 0.0],
+            [7.0, 12.0, 4.2, 0.0, 0.0, 0.0],
+            [7.0, 4.2, 12.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 3.8, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 5.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 5.0],
+        ]
+    )
     return C
 
 
@@ -37,6 +38,7 @@ def make_strength() -> dict:
 # ---------------------------------------------------------------------------
 # Stiffness tensor
 # ---------------------------------------------------------------------------
+
 
 class TestStiffnessTensorValidator:
     def test_valid_tensor_passes(self):
@@ -77,6 +79,7 @@ class TestStiffnessTensorValidator:
 # Fiber orientation tensor
 # ---------------------------------------------------------------------------
 
+
 class TestFiberOrientationValidator:
     def test_random_isotropic_passes(self):
         A = np.eye(3) / 3.0
@@ -111,6 +114,7 @@ class TestFiberOrientationValidator:
 # Failure criteria
 # ---------------------------------------------------------------------------
 
+
 class TestFailureCriteria:
     def test_tsai_wu_safe_stress_passes(self):
         stress = np.array([100.0, 10.0, 5.0, 2.0, 2.0, 5.0])
@@ -142,6 +146,7 @@ class TestFailureCriteria:
 # ---------------------------------------------------------------------------
 # Conservation laws
 # ---------------------------------------------------------------------------
+
 
 class TestConservationLawValidator:
     def test_mass_conserved_passes(self):
@@ -175,6 +180,7 @@ class TestConservationLawValidator:
 # Strain compatibility
 # ---------------------------------------------------------------------------
 
+
 class TestStrainCompatibilityValidator:
     def test_compatible_field_passes(self):
         # Uniform strain field is always compatible
@@ -200,6 +206,7 @@ class TestStrainCompatibilityValidator:
 # ---------------------------------------------------------------------------
 # Pipeline integration
 # ---------------------------------------------------------------------------
+
 
 class TestValidationPipeline:
     def test_full_pipeline_all_pass(self):

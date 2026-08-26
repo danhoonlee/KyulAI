@@ -83,22 +83,13 @@ input {
 
 .brand-mark {
   min-height: 44px;
-  font-size: 18px;
-  font-weight: 950;
-  letter-spacing: 0;
+  width: max-content;
 }
 
-.brand-wordmark {
-  display: inline-grid;
-  place-items: center;
-  min-height: 38px;
-  padding: 0 14px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--ink);
-  color: #fff;
-  font-size: 16px;
-  font-weight: 950;
+.brand-logo {
+  display: block;
+  width: 142px;
+  height: auto;
 }
 
 .language-link {
@@ -675,6 +666,10 @@ h1 span {
   .account-preview {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .brand-mark {
+    align-self: flex-start;
   }
 
   .topbar-actions {

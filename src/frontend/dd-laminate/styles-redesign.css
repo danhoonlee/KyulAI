@@ -1,0 +1,272 @@
+.theme-forecast-redesign .grid {
+  align-items: start;
+}
+
+@media (min-width: 1025px) {
+  .theme-forecast-redesign .input-panel {
+    position: sticky;
+    top: 16px;
+    align-self: start;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  .theme-forecast-redesign .form.active > .primary {
+    position: sticky;
+    bottom: 0;
+    z-index: 4;
+    box-shadow:
+      0 -12px 20px rgba(255, 255, 255, 0.94),
+      0 10px 20px rgba(22, 99, 255, 0.18);
+  }
+}
+
+.theme-forecast-redesign .result {
+  gap: 12px;
+}
+
+.theme-forecast-redesign .forecast-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.theme-forecast-redesign .forecast-summary-card {
+  display: grid;
+  align-content: space-between;
+  gap: 7px;
+  min-height: 88px;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+
+.theme-forecast-redesign .forecast-summary-card.primary-metric {
+  grid-column: 1 / -1;
+  min-height: 116px;
+  color: #ffffff;
+  background:
+    linear-gradient(135deg, rgba(22, 99, 255, 0.24), transparent 58%),
+    var(--black);
+}
+
+.theme-forecast-redesign .forecast-summary-card span {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 850;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.theme-forecast-redesign .forecast-summary-card.primary-metric span {
+  color: #b9caff;
+}
+
+.theme-forecast-redesign .forecast-summary-card strong {
+  color: var(--ink);
+  font-size: clamp(1.05rem, 2vw, 1.4rem);
+  font-weight: 920;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.theme-forecast-redesign .forecast-summary-card.primary-metric strong {
+  color: #ffffff;
+  font-size: clamp(2.5rem, 5vw, 4.4rem);
+  letter-spacing: -0.045em;
+}
+
+.theme-forecast-redesign .forecast-summary-card[data-level="high"] {
+  border-color: #9edfc3;
+  background: #ecfdf3;
+}
+
+.theme-forecast-redesign .forecast-summary-card[data-level="medium"] {
+  border-color: #edd69d;
+  background: #fff9e8;
+}
+
+.theme-forecast-redesign .forecast-summary-card[data-level="low"] {
+  border-color: #efb2ad;
+  background: #fff3f2;
+}
+
+.theme-forecast-redesign .result > .result-head {
+  min-height: 38px;
+  padding: 0;
+  color: var(--ink);
+  background: transparent;
+}
+
+.theme-forecast-redesign .result > .result-head > div:first-child,
+.theme-forecast-redesign .result > .result-head .confidence {
+  display: none;
+}
+
+.theme-forecast-redesign .result > .result-head .result-side {
+  width: 100%;
+}
+
+.theme-forecast-redesign .result > .result-head .result-actions {
+  justify-self: end;
+}
+
+.theme-forecast-redesign .result-accordion {
+  overflow: clip;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.theme-forecast-redesign .result-accordion > summary {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 52px;
+  padding: 0 46px 0 15px;
+  color: var(--ink);
+  background: var(--surface-2);
+  font-size: 0.92rem;
+  font-weight: 900;
+  list-style: none;
+  cursor: pointer;
+}
+
+.theme-forecast-redesign .result-accordion > summary::-webkit-details-marker {
+  display: none;
+}
+
+.theme-forecast-redesign .result-accordion > summary:hover {
+  background: var(--blue-soft);
+}
+
+.theme-forecast-redesign .accordion-status::before,
+.theme-forecast-redesign .accordion-status::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  width: 12px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--blue-strong);
+  transition: transform 160ms ease;
+}
+
+.theme-forecast-redesign .accordion-status::after {
+  transform: rotate(90deg);
+}
+
+.theme-forecast-redesign .result-accordion[open] .accordion-status::after {
+  transform: rotate(0deg);
+}
+
+.theme-forecast-redesign .result-accordion-body {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 15px;
+  border-top: 1px solid var(--line);
+}
+
+.theme-forecast-redesign .result-accordion-body > .preview-head:first-child {
+  display: none;
+}
+
+.theme-forecast-redesign .result-accordion .response-estimate,
+.theme-forecast-redesign .result-accordion .xai-panel,
+.theme-forecast-redesign .result-accordion .research-panel {
+  border-top: 0;
+}
+
+.theme-forecast-redesign .primary:disabled::before {
+  content: "";
+  width: 15px;
+  height: 15px;
+  margin-right: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: forecast-spinner 700ms linear infinite;
+}
+
+.theme-forecast-redesign .primary:disabled {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.theme-forecast-redesign .forecast-summary.result-updated {
+  animation: forecast-result-highlight 1100ms ease-out;
+}
+
+@keyframes forecast-spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes forecast-result-highlight {
+  0% {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 6px rgba(22, 99, 255, 0.16);
+  }
+  100% {
+    border-color: var(--line-strong);
+    box-shadow: 0 0 0 0 rgba(22, 99, 255, 0);
+  }
+}
+
+@media (max-width: 1024px) {
+  .theme-forecast-redesign .input-panel {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .theme-forecast-redesign .form.active > .primary {
+    position: static;
+  }
+}
+
+@media (max-width: 520px) {
+  .theme-forecast-redesign .forecast-summary {
+    gap: 6px;
+    padding: 7px;
+  }
+
+  .theme-forecast-redesign .forecast-summary-card {
+    min-height: 76px;
+    padding: 10px;
+  }
+
+  .theme-forecast-redesign .forecast-summary-card.primary-metric {
+    min-height: 96px;
+  }
+
+  .theme-forecast-redesign .result-accordion > summary {
+    min-height: 48px;
+    padding-left: 12px;
+    font-size: 0.84rem;
+  }
+
+  .theme-forecast-redesign .result-accordion-body {
+    padding: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-forecast-redesign .forecast-summary.result-updated,
+  .theme-forecast-redesign .primary:disabled::before {
+    animation: none;
+  }
+}

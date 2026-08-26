@@ -16,7 +16,7 @@ const TEXT = {
   forceAxis: "Force",
   predictedPtLabel: "Predicted Pt",
   curveFitPtLabel: IS_KO ? "곡선 Pt" : "Curve-fit Pt",
-  fitIntersectionLabel: IS_KO ? "Fit 교차점" : "Fit intersection",
+  fitIntersectionLabel: IS_KO ? "피팅 교점" : "Fit intersection",
   kinkGuideLabel: IS_KO ? "Kink 기준선" : "Kink guide",
   selectCsv: IS_KO
     ? "두 열로 된 force-displacement CSV를 선택해 주세요."
@@ -146,9 +146,9 @@ const exportReportPdf = document.querySelector("#export-report-pdf");
 let latestPredictionData = null;
 
 const PRIMARY_RESPONSE_MODEL_KEYS = [
-  "response_geometry_tree_v1",
-  "response_geometry_goint_v1",
-  "response_hybrid_student_deploy_quick_v1",
+  "response_geometry_tree_canonical_v2",
+  "response_geometry_goint_canonical_v2",
+  "response_hybrid_student_canonical_v2",
 ];
 const XAI_VISIBLE_LIMIT = 10;
 
@@ -734,9 +734,10 @@ function pointAtForce(points, targetForce) {
       };
     }
   }
-  return points.reduce((closest, point) => (
-    Math.abs(point.force - force) < Math.abs(closest.force - force) ? point : closest
+  const closest = points.reduce((nearest, point) => (
+    Math.abs(point.force - force) < Math.abs(nearest.force - force) ? point : nearest
   ), points[0]);
+  return { displacement: closest.displacement, force };
 }
 
 function linearFit(samples) {

@@ -195,25 +195,18 @@ def select_robust_interval_candidate(
     """Select a conservative interval candidate using development-only guards."""
     baseline = summary[baseline_name]
     candidate = summary[candidate_name]
-    improvement = (
-        baseline["mean_subgroup_undercoverage"]
-        - candidate["mean_subgroup_undercoverage"]
-    )
-    width_ratio = candidate["mean_interval_width"] / max(
-        baseline["mean_interval_width"], 1e-12
-    )
+    improvement = baseline["mean_subgroup_undercoverage"] - candidate["mean_subgroup_undercoverage"]
+    width_ratio = candidate["mean_interval_width"] / max(baseline["mean_interval_width"], 1e-12)
     guards = {
         "minimum_mean_undercoverage_improvement": (
             improvement >= minimum_mean_undercoverage_improvement
         ),
         "maximum_width_ratio": width_ratio <= maximum_width_ratio,
         "minimum_overall_coverage_margin": (
-            candidate["minimum_overall_coverage_margin"]
-            >= minimum_overall_coverage_margin
+            candidate["minimum_overall_coverage_margin"] >= minimum_overall_coverage_margin
         ),
         "maximum_overall_overcoverage": (
-            candidate["maximum_overall_overcoverage"]
-            <= maximum_overall_overcoverage
+            candidate["maximum_overall_overcoverage"] <= maximum_overall_overcoverage
         ),
     }
     accepted = all(guards.values())
@@ -318,9 +311,7 @@ def select_interval_candidate(
     guards = {
         "minimum_gap_improvement": gap_improvement >= minimum_gap_improvement,
         "maximum_width_ratio": width_ratio <= maximum_width_ratio,
-        "maximum_worst_gap_regression": (
-            worst_gap_regression <= maximum_worst_gap_regression
-        ),
+        "maximum_worst_gap_regression": (worst_gap_regression <= maximum_worst_gap_regression),
     }
     accepted = all(guards.values())
     return {

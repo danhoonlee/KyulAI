@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import csv
 import json
 import random
 from pathlib import Path
@@ -14,7 +13,13 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 from sklearn.model_selection import StratifiedGroupKFold, StratifiedKFold
 from torch.utils.data import DataLoader, Subset
 
-from .theta_deep import DDThetaDataset, DDThetaGointClassifier, combined_loss, load_theta_samples, predict_from_logits
+from .theta_deep import (
+    DDThetaDataset,
+    DDThetaGointClassifier,
+    combined_loss,
+    load_theta_samples,
+    predict_from_logits,
+)
 
 
 def set_seed(seed: int) -> None:
@@ -27,7 +32,9 @@ def split_iter(cv_mode: str, splits: int, seed: int, x, y, groups):
     if cv_mode == "sample":
         yield from StratifiedKFold(n_splits=splits, shuffle=True, random_state=seed).split(x, y)
     elif cv_mode == "grouped":
-        yield from StratifiedGroupKFold(n_splits=splits, shuffle=True, random_state=seed).split(x, y, groups)
+        yield from StratifiedGroupKFold(n_splits=splits, shuffle=True, random_state=seed).split(
+            x, y, groups
+        )
     else:
         raise ValueError(cv_mode)
 
@@ -50,7 +57,9 @@ def run_epoch(model, loader, optimizer, device, weights, train: bool):
         if train:
             optimizer.zero_grad(set_to_none=True)
         class_logits, ordinal_logits = model(x)
-        loss = combined_loss(class_logits, ordinal_logits, labels, ordinal_weight=0.35, class_weights=weights)
+        loss = combined_loss(
+            class_logits, ordinal_logits, labels, ordinal_weight=0.35, class_weights=weights
+        )
         if train:
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 3.0)
@@ -73,12 +82,18 @@ def make_model(args, device):
 
 
 def train_one_fold(dataset, train_idx, val_idx, labels, args, device):
-    train_loader = DataLoader(Subset(dataset, train_idx.tolist()), batch_size=args.batch_size, shuffle=True, num_workers=0)
-    val_loader = DataLoader(Subset(dataset, val_idx.tolist()), batch_size=args.batch_size, shuffle=False, num_workers=0)
+    train_loader = DataLoader(
+        Subset(dataset, train_idx.tolist()), batch_size=args.batch_size, shuffle=True, num_workers=0
+    )
+    val_loader = DataLoader(
+        Subset(dataset, val_idx.tolist()), batch_size=args.batch_size, shuffle=False, num_workers=0
+    )
     model = make_model(args, device)
     weights = class_weights(labels[train_idx], device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="max", factor=0.5, patience=10)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode="max", factor=0.5, patience=10
+    )
     best_state = None
     best_score = -1.0
     best_epoch = 0
@@ -106,7 +121,14 @@ def train_one_fold(dataset, train_idx, val_idx, labels, args, device):
         "macro_f1": f1_score(y_true, y_pred, average="macro", zero_division=0),
         "weighted_f1": f1_score(y_true, y_pred, average="weighted", zero_division=0),
         "confusion_matrix": confusion_matrix(y_true, y_pred, labels=[0, 1, 2]).tolist(),
-        "classification_report": classification_report(y_true, y_pred, labels=[0, 1, 2], target_names=["Type 1", "Type 2", "Type 3"], output_dict=True, zero_division=0),
+        "classification_report": classification_report(
+            y_true,
+            y_pred,
+            labels=[0, 1, 2],
+            target_names=["Type 1", "Type 2", "Type 3"],
+            output_dict=True,
+            zero_division=0,
+        ),
     }, model.state_dict()
 
 
@@ -155,17 +177,29 @@ def write_report(out, args, summary, classical_theta=None):
         "```",
     ]
     if classical_theta:
-        key = "primary_sample_cv_results" if args.cv_mode == "sample" else "secondary_grouped_cv_results"
+        key = (
+            "primary_sample_cv_results"
+            if args.cv_mode == "sample"
+            else "secondary_grouped_cv_results"
+        )
         if key in classical_theta:
-            lines.extend([
-                "",
-                "## Classical Theta-Only Comparison",
-                "",
-                "| Model | Accuracy | Macro F1 | Weighted F1 |",
-                "|---|---:|---:|---:|",
-            ])
-            for name, r in sorted(classical_theta[key].items(), key=lambda item: item[1]["mean_macro_f1"], reverse=True):
-                lines.append(f"| {name} | {r['mean_accuracy']:.4f} ± {r['std_accuracy']:.4f} | {r['mean_macro_f1']:.4f} ± {r['std_macro_f1']:.4f} | {r['mean_weighted_f1']:.4f} |")
+            lines.extend(
+                [
+                    "",
+                    "## Classical Theta-Only Comparison",
+                    "",
+                    "| Model | Accuracy | Macro F1 | Weighted F1 |",
+                    "|---|---:|---:|---:|",
+                ]
+            )
+            for name, r in sorted(
+                classical_theta[key].items(),
+                key=lambda item: item[1]["mean_macro_f1"],
+                reverse=True,
+            ):
+                lines.append(
+                    f"| {name} | {r['mean_accuracy']:.4f} ± {r['std_accuracy']:.4f} | {r['mean_macro_f1']:.4f} ± {r['std_macro_f1']:.4f} | {r['mean_weighted_f1']:.4f} |"
+                )
     (out / "theta_goint_report.md").write_text("\n".join(lines) + "\n")
 
 
@@ -186,7 +220,10 @@ def main():
     parser.add_argument("--weight-decay", type=float, default=1e-3)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--device", choices=["cpu", "mps", "cuda"], default="cpu")
-    parser.add_argument("--classical-theta-metrics", default="models/dd_laminate_theta_v1/theta_classifier_metrics.json")
+    parser.add_argument(
+        "--classical-theta-metrics",
+        default="models/dd_laminate_theta_v1/theta_classifier_metrics.json",
+    )
     args = parser.parse_args()
     set_seed(args.seed)
     device = torch.device(args.device)
@@ -198,24 +235,31 @@ def main():
     out = Path(args.output_dir)
     out.mkdir(parents=True, exist_ok=True)
     metrics = []
-    for fold, (train_idx, val_idx) in enumerate(split_iter(args.cv_mode, args.splits, args.seed, dummy, labels, groups), start=1):
+    for fold, (train_idx, val_idx) in enumerate(
+        split_iter(args.cv_mode, args.splits, args.seed, dummy, labels, groups), start=1
+    ):
         print(f"Starting fold {fold}/{args.splits}...")
         fold_metrics, _ = train_one_fold(dataset, train_idx, val_idx, labels, args, device)
-        print(f"Fold {fold}: acc={fold_metrics['accuracy']:.4f}, macro_f1={fold_metrics['macro_f1']:.4f}, best_epoch={fold_metrics['best_epoch']}")
+        print(
+            f"Fold {fold}: acc={fold_metrics['accuracy']:.4f}, macro_f1={fold_metrics['macro_f1']:.4f}, best_epoch={fold_metrics['best_epoch']}"
+        )
         metrics.append(fold_metrics)
     summary = summarize(metrics)
     final = train_final(dataset, labels, args, device)
-    torch.save({
-        "model_state_dict": final.state_dict(),
-        "model_config": {
-            "input_dim": 3,
-            "hidden_dim": args.hidden_dim,
-            "num_branches": args.num_branches,
-            "dropout": args.dropout,
+    torch.save(
+        {
+            "model_state_dict": final.state_dict(),
+            "model_config": {
+                "input_dim": 3,
+                "hidden_dim": args.hidden_dim,
+                "num_branches": args.num_branches,
+                "dropout": args.dropout,
+            },
+            "label_names": {0: "Type 1", 1: "Type 2", 2: "Type 3"},
+            "summary": summary,
         },
-        "label_names": {0: "Type 1", 1: "Type 2", 2: "Type 3"},
-        "summary": summary,
-    }, out / "theta_goint.pt")
+        out / "theta_goint.pt",
+    )
     (out / "theta_goint_metrics.json").write_text(json.dumps(summary, indent=2))
     classical = None
     classical_path = Path(args.classical_theta_metrics)

@@ -26,12 +26,12 @@ class FieldError:
 
     field_name: str
     n_points: int
-    mae: float          # mean absolute error
-    rmse: float         # root mean squared error
-    mape: float         # mean absolute percentage error (%)
-    bias: float         # mean signed error (positive = over-prediction)
-    r2: float           # R² coefficient of determination
-    max_error: float    # maximum absolute error
+    mae: float  # mean absolute error
+    rmse: float  # root mean squared error
+    mape: float  # mean absolute percentage error (%)
+    bias: float  # mean signed error (positive = over-prediction)
+    r2: float  # R² coefficient of determination
+    max_error: float  # maximum absolute error
 
     def __str__(self) -> str:
         return (
@@ -95,9 +95,7 @@ class ComparisonMetrics:
         predicted    : dict mapping field name → predicted values (N,)
         experimental : dict mapping field name → measured values (N,)
         """
-        fields_to_check = self.field_names or list(
-            set(predicted.keys()) & set(experimental.keys())
-        )
+        fields_to_check = self.field_names or list(set(predicted.keys()) & set(experimental.keys()))
         report = FieldErrorReport()
 
         for fname in fields_to_check:
@@ -121,15 +119,17 @@ class ComparisonMetrics:
                     np.nan,
                 )
 
-            report.add(FieldError(
-                field_name=fname,
-                n_points=n,
-                mae=float(np.mean(abs_err)),
-                rmse=float(np.sqrt(np.mean(err ** 2))),
-                mape=float(np.nanmean(pct_err)),
-                bias=float(np.mean(err)),
-                r2=_compute_r2(y_true, y_pred),
-                max_error=float(np.max(abs_err)),
-            ))
+            report.add(
+                FieldError(
+                    field_name=fname,
+                    n_points=n,
+                    mae=float(np.mean(abs_err)),
+                    rmse=float(np.sqrt(np.mean(err**2))),
+                    mape=float(np.nanmean(pct_err)),
+                    bias=float(np.mean(err)),
+                    r2=_compute_r2(y_true, y_pred),
+                    max_error=float(np.max(abs_err)),
+                )
+            )
 
         return report

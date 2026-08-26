@@ -1,0 +1,12 @@
+[Unit]
+Description=Back up ImperialAX and CafeDeCafe persistent serving state
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/projects/KyulAI
+Environment=HOME=%h
+ExecStart=%h/projects/KyulAI/scripts/backup_wsl_serving_state.sh
+StandardOutput=append:%h/projects/KyulAI/logs/imperialax-serving-backup.log
+StandardError=append:%h/projects/KyulAI/logs/imperialax-serving-backup.err.log

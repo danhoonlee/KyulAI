@@ -69,7 +69,9 @@ def make_model(args, input_dim: int, output_dim: int, device: torch.device):
     ).to(device)
 
 
-def run_epoch(model, loader, optimizer, device, train: bool, args, target_mean_t, target_std_t, bin_grid):
+def run_epoch(
+    model, loader, optimizer, device, train: bool, args, target_mean_t, target_std_t, bin_grid
+):
     model.train(mode=train)
     total_loss = 0.0
     total_n = 0
@@ -92,7 +94,11 @@ def run_epoch(model, loader, optimizer, device, train: bool, args, target_mean_t
         total_n += x.shape[0]
         preds.append(pred.detach().cpu().numpy())
         trues.append(y.detach().cpu().numpy())
-    return total_loss / max(1, total_n), np.concatenate(preds, axis=0), np.concatenate(trues, axis=0)
+    return (
+        total_loss / max(1, total_n),
+        np.concatenate(preds, axis=0),
+        np.concatenate(trues, axis=0),
+    )
 
 
 def denormalize(values_norm: np.ndarray, mean: np.ndarray, std: np.ndarray) -> np.ndarray:
@@ -114,26 +120,56 @@ def metric_row(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, float]:
 
 
 def train_one_fold(dataset, train_idx, val_idx, args, y_mean, y_std):
-    train_loader = DataLoader(Subset(dataset, train_idx.tolist()), batch_size=args.batch_size, shuffle=True)
-    val_loader = DataLoader(Subset(dataset, val_idx.tolist()), batch_size=args.batch_size, shuffle=False)
+    train_loader = DataLoader(
+        Subset(dataset, train_idx.tolist()), batch_size=args.batch_size, shuffle=True
+    )
+    val_loader = DataLoader(
+        Subset(dataset, val_idx.tolist()), batch_size=args.batch_size, shuffle=False
+    )
     model = make_model(args, dataset.x.shape[1], dataset.y.shape[1], args.device_torch)
     y_mean_t = torch.tensor(y_mean, dtype=torch.float32, device=args.device_torch)
     y_std_t = torch.tensor(y_std, dtype=torch.float32, device=args.device_torch)
-    bin_grid = torch.linspace(0.0, 1.0, dataset.y.shape[1] - 4, dtype=torch.float32, device=args.device_torch)
+    bin_grid = torch.linspace(
+        0.0, 1.0, dataset.y.shape[1] - 4, dtype=torch.float32, device=args.device_torch
+    )
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.55, patience=10)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode="min", factor=0.55, patience=10
+    )
     best_state = None
     best_loss = float("inf")
     best_epoch = 0
     stale = 0
     for epoch in range(1, args.epochs + 1):
-        run_epoch(model, train_loader, optimizer, args.device_torch, True, args, y_mean_t, y_std_t, bin_grid)
-        val_loss, _, _ = run_epoch(model, val_loader, optimizer, args.device_torch, False, args, y_mean_t, y_std_t, bin_grid)
+        run_epoch(
+            model,
+            train_loader,
+            optimizer,
+            args.device_torch,
+            True,
+            args,
+            y_mean_t,
+            y_std_t,
+            bin_grid,
+        )
+        val_loss, _, _ = run_epoch(
+            model,
+            val_loader,
+            optimizer,
+            args.device_torch,
+            False,
+            args,
+            y_mean_t,
+            y_std_t,
+            bin_grid,
+        )
         scheduler.step(val_loss)
         if val_loss < best_loss:
             best_loss = val_loss
             best_epoch = epoch
-            best_state = {key: value.detach().cpu().clone() for key, value in model.state_dict().items()}
+            best_state = {
+                key: value.detach().cpu().clone() for key, value in model.state_dict().items()
+            }
             stale = 0
         else:
             stale += 1
@@ -141,7 +177,9 @@ def train_one_fold(dataset, train_idx, val_idx, args, y_mean, y_std):
             break
     if best_state is not None:
         model.load_state_dict(best_state)
-    _, pred_norm, true_norm = run_epoch(model, val_loader, optimizer, args.device_torch, False, args, y_mean_t, y_std_t, bin_grid)
+    _, pred_norm, true_norm = run_epoch(
+        model, val_loader, optimizer, args.device_torch, False, args, y_mean_t, y_std_t, bin_grid
+    )
     row = metric_row(denormalize(true_norm, y_mean, y_std), denormalize(pred_norm, y_mean, y_std))
     row["best_epoch"] = best_epoch
     return row
@@ -152,10 +190,14 @@ def train_final(dataset, args):
     model = make_model(args, dataset.x.shape[1], dataset.y.shape[1], args.device_torch)
     y_mean_t = torch.tensor(args.target_mean, dtype=torch.float32, device=args.device_torch)
     y_std_t = torch.tensor(args.target_std, dtype=torch.float32, device=args.device_torch)
-    bin_grid = torch.linspace(0.0, 1.0, dataset.y.shape[1] - 4, dtype=torch.float32, device=args.device_torch)
+    bin_grid = torch.linspace(
+        0.0, 1.0, dataset.y.shape[1] - 4, dtype=torch.float32, device=args.device_torch
+    )
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     for _ in range(args.final_epochs):
-        run_epoch(model, loader, optimizer, args.device_torch, True, args, y_mean_t, y_std_t, bin_grid)
+        run_epoch(
+            model, loader, optimizer, args.device_torch, True, args, y_mean_t, y_std_t, bin_grid
+        )
     return model
 
 
@@ -178,11 +220,15 @@ def write_report(output_dir: Path, args, metrics: dict) -> None:
         "",
         "Weak physics-informed penalties are enabled for nonnegative values, histogram ratio sum = 100%, and min/avg/max consistency.",
     ]
-    (output_dir / "filling_pressure_deeponet_report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (output_dir / "filling_pressure_deeponet_report.md").write_text(
+        "\n".join(lines) + "\n", encoding="utf-8"
+    )
 
 
 def train_filling_pressure_deeponet(data_dir: str | Path, output_dir: str | Path, args) -> dict:
-    records, x_raw, y_raw, target_columns, feature_columns, gate_types = load_filling_pressure_training_arrays(data_dir)
+    records, x_raw, y_raw, target_columns, feature_columns, gate_types = (
+        load_filling_pressure_training_arrays(data_dir)
+    )
     x_norm, x_mean, x_std = normalize(x_raw, x_raw)
     y_norm, y_mean, y_std = normalize(y_raw, y_raw)
     args.target_mean = y_mean
@@ -190,7 +236,9 @@ def train_filling_pressure_deeponet(data_dir: str | Path, output_dir: str | Path
     dataset = FillingPressureDataset(x_norm, y_norm)
     groups = np.asarray([record.geometry_id for record in records])
     fold_rows = []
-    for fold, (train_idx, val_idx) in enumerate(split_iter(args.cv_mode, args.splits, args.seed, x_norm, groups), start=1):
+    for fold, (train_idx, val_idx) in enumerate(
+        split_iter(args.cv_mode, args.splits, args.seed, x_norm, groups), start=1
+    ):
         print(f"Starting fold {fold}/{args.splits}...")
         row = train_one_fold(dataset, train_idx, val_idx, args, y_mean, y_std)
         row["fold"] = fold
@@ -249,9 +297,13 @@ def train_filling_pressure_deeponet(data_dir: str | Path, output_dir: str | Path
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Train Simple Injection DeepONet filling pressure surrogate")
+    parser = argparse.ArgumentParser(
+        description="Train Simple Injection DeepONet filling pressure surrogate"
+    )
     parser.add_argument("--data-dir", default=str(DEFAULT_DATA_DIR))
-    parser.add_argument("--output-dir", default="models/simple_injection_filling_pressure_deeponet_v1")
+    parser.add_argument(
+        "--output-dir", default="models/simple_injection_filling_pressure_deeponet_v1"
+    )
     parser.add_argument("--splits", type=int, default=3)
     parser.add_argument("--cv-mode", choices=["grouped", "sample"], default="grouped")
     parser.add_argument("--epochs", type=int, default=240)

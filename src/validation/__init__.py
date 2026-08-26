@@ -6,9 +6,9 @@ A prediction that is statistically accurate but physically impossible is REJECTE
 
 from src.validation.base import (
     Severity,
-    ValidationResult,
     ValidationReport,
+    ValidationResult,
     Validator,
 )
 
-__all__ = ["Severity", "ValidationResult", "ValidationReport", "Validator"]
+__all__ = ["Severity", "ValidationReport", "ValidationResult", "Validator"]

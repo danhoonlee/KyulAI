@@ -36,7 +36,7 @@ For real packaged EXE builds, the backend should be started with:
 
 ```text
 LAMINATE_REQUIRE_AUTH=1
-IMPERIALAX_DISABLE_DEMO_LOGIN=1
+IMPERIALAX_ENABLE_DEMO_LOGIN=0
 ```
 
 When `LAMINATE_REQUIRE_AUTH=1`, `/api/v1/dd-laminate/*` requires a valid bearer

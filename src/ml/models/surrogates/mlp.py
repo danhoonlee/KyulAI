@@ -134,7 +134,7 @@ class MLPSurrogate(KyulBaseModel):
 
     def _build(self) -> None:
         cfg = self.config
-        dims = [cfg.input_dim] + cfg.hidden_dims
+        dims = [cfg.input_dim, *cfg.hidden_dims]
         blocks: list[nn.Module] = []
         for i in range(len(dims) - 1):
             blocks.append(

@@ -14,7 +14,9 @@ from .data import DEFAULT_DATA_DIR, build_record_from_inputs, load_geometry_doe,
 from .model import SimpleInjectionDeepONetSurrogate, SimpleInjectionGointSurrogate
 
 
-def _load_inputs_from_ids(data_dir: str | Path, geometry_id: str, process_id: str) -> tuple[dict, dict]:
+def _load_inputs_from_ids(
+    data_dir: str | Path, geometry_id: str, process_id: str
+) -> tuple[dict, dict]:
     doe_dir = Path(data_dir) / "DOE"
     geometry = load_geometry_doe(doe_dir, include_supplemental=True)[geometry_id]
     process = load_process_doe(doe_dir, include_supplemental=True)[process_id]
@@ -29,12 +31,14 @@ def _normalize_curve_shape(curve_norm: np.ndarray) -> np.ndarray:
     return curve
 
 
-def _curve_payload(grid: np.ndarray, max_time: float, max_pressure: float, curve_norm: np.ndarray) -> list[dict[str, float]]:
+def _curve_payload(
+    grid: np.ndarray, max_time: float, max_pressure: float, curve_norm: np.ndarray
+) -> list[dict[str, float]]:
     time = grid * max_time
     pressure = _normalize_curve_shape(curve_norm) * max_pressure
     return [
         {"time_s": float(t), "sprue_pressure_MPa": float(p)}
-        for t, p in zip(time, pressure)
+        for t, p in zip(time, pressure, strict=False)
     ]
 
 
@@ -42,7 +46,9 @@ def predict_classical(model_path: str | Path, geometry: dict, process: dict) -> 
     bundle = joblib.load(model_path)
     x, _ = build_record_from_inputs(geometry, process, gate_types=bundle["gate_types"])
     pred_scalars = np.maximum(np.expm1(bundle["scalar_model"].predict(x))[0], 1e-9)
-    curve_norm = np.clip(bundle["pca"].inverse_transform(bundle["curve_model"].predict(x))[0], 0.0, None)
+    curve_norm = np.clip(
+        bundle["pca"].inverse_transform(bundle["curve_model"].predict(x))[0], 0.0, None
+    )
     grid = np.asarray(bundle["grid"], dtype=float)
     return {
         "model_name": bundle.get("model_name", "simple_injection_sprue_pressure_surrogate"),
@@ -54,7 +60,9 @@ def predict_classical(model_path: str | Path, geometry: dict, process: dict) -> 
     }
 
 
-def predict_goint(model_path: str | Path, geometry: dict, process: dict, device: str = "cpu") -> dict:
+def predict_goint(
+    model_path: str | Path, geometry: dict, process: dict, device: str = "cpu"
+) -> dict:
     checkpoint = torch.load(model_path, map_location=device, weights_only=False)
     cfg = checkpoint["model_config"]
     model = SimpleInjectionGointSurrogate(
@@ -91,7 +99,9 @@ def predict_goint(model_path: str | Path, geometry: dict, process: dict, device:
     }
 
 
-def predict_deeponet(model_path: str | Path, geometry: dict, process: dict, device: str = "cpu") -> dict:
+def predict_deeponet(
+    model_path: str | Path, geometry: dict, process: dict, device: str = "cpu"
+) -> dict:
     checkpoint = torch.load(model_path, map_location=device, weights_only=False)
     cfg = checkpoint["model_config"]
     model = SimpleInjectionDeepONetSurrogate(
@@ -157,8 +167,13 @@ def _process_from_args(args) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Predict Simple Injection sprue pressure curve")
-    parser.add_argument("--model", default="models/simple_injection_sprue_pressure_v1/sprue_pressure_surrogate.joblib")
-    parser.add_argument("--model-kind", choices=["classical", "goint", "deeponet"], default="classical")
+    parser.add_argument(
+        "--model",
+        default="models/simple_injection_sprue_pressure_v1/sprue_pressure_surrogate.joblib",
+    )
+    parser.add_argument(
+        "--model-kind", choices=["classical", "goint", "deeponet"], default="classical"
+    )
     parser.add_argument("--data-dir", default=str(DEFAULT_DATA_DIR))
     parser.add_argument("--geometry-id")
     parser.add_argument("--process-id")

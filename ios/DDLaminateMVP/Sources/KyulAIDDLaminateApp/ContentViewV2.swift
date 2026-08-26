@@ -1433,7 +1433,7 @@ private struct PredictionHistoryManagerView: View {
     }
 }
 
-private struct DynamicPlyStackPreviewCard: View {
+struct DynamicPlyStackPreviewCard: View {
     let laminateCase: DDLaminateCase
     let theta1Text: String
     let theta2Text: String
@@ -1620,14 +1620,6 @@ private struct PlyStackCanvas: View {
                 strokeLine(from: line.0, to: line.1, color: .white, width: 1, opacity: 0.18)
             }
 
-            let baseTop = path([(98, 456), (574, 704), (1018, 458), (542, 210)])
-            let baseLeft = path([(98, 456), (574, 704), (574, 728), (98, 480)])
-            let baseRight = path([(574, 704), (1018, 458), (1018, 482), (574, 728)])
-            context.fill(baseTop, with: .color(Color(red: 0.72, green: 0.59, blue: 0.50)))
-            context.fill(baseLeft, with: .color(Color(red: 0.78, green: 0.65, blue: 0.56)))
-            context.fill(baseRight, with: .color(Color(red: 0.60, green: 0.46, blue: 0.37)))
-            context.stroke(baseTop, with: .color(.white.opacity(0.18)), lineWidth: 1 * scale)
-
             for (index, ply) in sequence.enumerated() {
                 drawPly(ply, index: index, context: &context, scale: scale, offset: offset)
             }
@@ -1672,6 +1664,8 @@ private struct PlyStackCanvas: View {
 
         drawAngleHatch(for: ply, clippedTo: top, context: &context, scale: scale, offset: offset, originX: originX, originY: originY)
 
+        guard index == 0 || index == sequence.count - 1 else { return }
+
         let labelX = 426.0
         let labelY = 36.0
         var leader = Path()
@@ -1688,7 +1682,7 @@ private struct PlyStackCanvas: View {
         context.fill(Path(roundedRect: labelRect, cornerRadius: 7 * scale), with: .color(Color(red: 0.06, green: 0.13, blue: 0.20).opacity(0.96)))
         context.stroke(Path(roundedRect: labelRect, cornerRadius: 7 * scale), with: .color(.yellow.opacity(0.86)), lineWidth: 1.4 * scale)
         context.draw(
-            Text("Ply-\(index + 1)")
+            Text(index == 0 ? "P1" : "P\(sequence.count)")
                 .font(.system(size: 22 * scale, weight: .black))
                 .foregroundStyle(.yellow),
             at: CGPoint(x: labelRect.minX + 11 * scale, y: labelRect.midY),

@@ -1,0 +1,257 @@
+{
+  "dataset": "data/datasets/DD_cases_2_3_4_geometry_3size_v1",
+  "feature_set": "theta_physics_geometry_v1",
+  "feature_columns": [
+    "theta1",
+    "theta2",
+    "case_case2",
+    "case_case3",
+    "case_case4",
+    "abs_theta1",
+    "abs_theta2",
+    "theta_diff",
+    "theta_sum",
+    "theta_product",
+    "theta_abs_diff",
+    "a11",
+    "a22",
+    "a12",
+    "a66",
+    "b16",
+    "b26",
+    "d11",
+    "d22",
+    "d12",
+    "d66",
+    "d16",
+    "d26",
+    "a11_a22_ratio",
+    "d11_d22_ratio",
+    "b_coupling_norm",
+    "d_coupling_norm",
+    "membrane_anisotropy",
+    "bending_anisotropy",
+    "angle_abs_mean",
+    "angle_abs_std",
+    "angle_min_abs",
+    "angle_max_abs",
+    "stack_symmetry_mismatch",
+    "stack_balance_cos_sum",
+    "panel_aspect",
+    "a_slenderness",
+    "b_slenderness",
+    "panel_a_in",
+    "panel_b_in"
+  ],
+  "seed": 42,
+  "holdout_ratio": 0.2,
+  "split_source": "data/datasets/DD_cases_2_3_4_geometry_grouped_v1/split_manifest.csv",
+  "device": "cuda (NVIDIA GeForce RTX 5070)",
+  "split_summary": {
+    "train": {
+      "rows": 2154,
+      "groups": 718,
+      "cases": {
+        "Case2": 717,
+        "Case3": 717,
+        "Case4": 720
+      },
+      "labels": {
+        "Type 1": 524,
+        "Type 2": 1212,
+        "Type 3": 418
+      },
+      "sources": {
+        "6x4_curated_v1": 718,
+        "6x8_new_data_curve_classifier_v1": 718,
+        "8x8_new_data_curve_classifier_v1": 718
+      },
+      "panel_sizes": {
+        "6x4": 718,
+        "6x8": 718,
+        "8x8": 718
+      }
+    },
+    "holdout": {
+      "rows": 546,
+      "groups": 182,
+      "cases": {
+        "Case2": 183,
+        "Case3": 183,
+        "Case4": 180
+      },
+      "labels": {
+        "Type 1": 130,
+        "Type 2": 306,
+        "Type 3": 110
+      },
+      "sources": {
+        "6x4_curated_v1": 182,
+        "6x8_new_data_curve_classifier_v1": 182,
+        "8x8_new_data_curve_classifier_v1": 182
+      },
+      "panel_sizes": {
+        "6x4": 182,
+        "6x8": 182,
+        "8x8": 182
+      }
+    }
+  },
+  "models": {
+    "Geometry Tree + Physics XAI": {
+      "accuracy": 0.9377289377289377,
+      "macro_f1": 0.93469660516585,
+      "pt_mae": 190.1214931595332,
+      "max_displacement_mae": 0.00040309302776127216,
+      "max_force_mae": 153.6989970046857,
+      "curve_norm_rmse": 0.0059621468935842185,
+      "curve_force_rmse": 291.36454192744816
+    },
+    "Geometry GointMLP + Physics XAI": {
+      "accuracy": 0.9212454212454212,
+      "macro_f1": 0.9187171528110497,
+      "pt_mae": 621.6280697196911,
+      "max_displacement_mae": 0.00018676338509537798,
+      "max_force_mae": 938.1752500964468,
+      "curve_norm_rmse": 0.01760914921760559,
+      "curve_force_rmse": 994.8860955398786,
+      "best_epoch": 66.0
+    },
+    "Geometry Hybrid Student": {
+      "loss": 0.4597254493734339,
+      "accuracy": 0.9322344322344323,
+      "macro_f1": 0.9291022262954902,
+      "teacher_agreement": 0.9578754578754579,
+      "pt_mae": 542.8670885709834,
+      "teacher_pt_mae": 466.41551654515627,
+      "max_displacement_mae": 0.0003473506057671111,
+      "max_force_mae": 692.5906683470994,
+      "curve_norm_rmse": 0.007844727486371994,
+      "teacher_curve_norm_rmse": 0.008046956732869148,
+      "curve_force_rmse": 687.9198794114616,
+      "best_epoch": 133.0,
+      "synthetic_total": 12321.0,
+      "synthetic_kept": 9861.0
+    }
+  },
+  "geometry_leave_one_out": {
+    "6x4": {
+      "Geometry Tree + Physics XAI": {
+        "accuracy": 0.8649025069637883,
+        "macro_f1": 0.869186935467727,
+        "pt_mae": 9828.991476435891,
+        "max_displacement_mae": 0.00033381257573053834,
+        "max_force_mae": 2755.1071969295576,
+        "curve_norm_rmse": 0.031095266089807203,
+        "curve_force_rmse": 2174.1197240845654
+      },
+      "Geometry GointMLP + Physics XAI": {
+        "accuracy": 0.6016713091922006,
+        "macro_f1": 0.5173730267673301,
+        "pt_mae": 10362.350587694053,
+        "max_displacement_mae": 0.00028796973317507887,
+        "max_force_mae": 7939.701501097875,
+        "curve_norm_rmse": 0.046004053205251694,
+        "curve_force_rmse": 6266.145487681858,
+        "best_epoch": 44.0
+      },
+      "Geometry Hybrid Student": {
+        "loss": 12.204472427580683,
+        "accuracy": 0.49442896935933145,
+        "macro_f1": 0.2205653929791861,
+        "teacher_agreement": 0.5710306406685237,
+        "pt_mae": 9950.891232449798,
+        "teacher_pt_mae": 911.4347112180492,
+        "max_displacement_mae": 0.0002892045546849932,
+        "max_force_mae": 9730.671876649132,
+        "curve_norm_rmse": 0.044058844447135925,
+        "teacher_curve_norm_rmse": 0.029009370133280754,
+        "curve_force_rmse": 7911.2590673643335,
+        "best_epoch": 12.0,
+        "synthetic_total": 8214.0,
+        "synthetic_kept": 3456.0
+      }
+    },
+    "6x8": {
+      "Geometry Tree + Physics XAI": {
+        "accuracy": 0.7896935933147632,
+        "macro_f1": 0.7632593186352995,
+        "pt_mae": 1393.8583522254849,
+        "max_displacement_mae": 0.0002735076712478912,
+        "max_force_mae": 1194.2602769529503,
+        "curve_norm_rmse": 0.014616417720257813,
+        "curve_force_rmse": 989.8268538853891
+      },
+      "Geometry GointMLP + Physics XAI": {
+        "accuracy": 0.8746518105849582,
+        "macro_f1": 0.8662908496732026,
+        "pt_mae": 1009.8350414281241,
+        "max_displacement_mae": 0.00020704427132017174,
+        "max_force_mae": 1214.2748113148145,
+        "curve_norm_rmse": 0.030020734295248985,
+        "curve_force_rmse": 1327.357476727153,
+        "best_epoch": 42.0
+      },
+      "Geometry Hybrid Student": {
+        "loss": 0.963440542101528,
+        "accuracy": 0.9456824512534819,
+        "macro_f1": 0.9420992469454624,
+        "teacher_agreement": 0.8384401114206128,
+        "pt_mae": 884.1504447553933,
+        "teacher_pt_mae": 1390.645392287436,
+        "max_displacement_mae": 0.00025759686415513684,
+        "max_force_mae": 1283.774569772711,
+        "curve_norm_rmse": 0.022501571103930473,
+        "teacher_curve_norm_rmse": 0.01981341652572155,
+        "curve_force_rmse": 1218.5751597586575,
+        "best_epoch": 12.0,
+        "synthetic_total": 8214.0,
+        "synthetic_kept": 3456.0
+      }
+    },
+    "8x8": {
+      "Geometry Tree + Physics XAI": {
+        "accuracy": 0.7896935933147632,
+        "macro_f1": 0.7632593186352995,
+        "pt_mae": 3643.58774498676,
+        "max_displacement_mae": 0.00036033518887676615,
+        "max_force_mae": 340.37451252910836,
+        "curve_norm_rmse": 0.022102149324717057,
+        "curve_force_rmse": 642.747156472789
+      },
+      "Geometry GointMLP + Physics XAI": {
+        "accuracy": 0.6643454038997214,
+        "macro_f1": 0.3933477490061244,
+        "pt_mae": 7569.931362492477,
+        "max_displacement_mae": 0.0005211025731925468,
+        "max_force_mae": 6084.3045203854,
+        "curve_norm_rmse": 0.03623810037970543,
+        "curve_force_rmse": 5768.487468817286,
+        "best_epoch": 61.0
+      },
+      "Geometry Hybrid Student": {
+        "loss": 5.656934431336384,
+        "accuracy": 0.6448467966573816,
+        "macro_f1": 0.4232773791608429,
+        "teacher_agreement": 0.649025069637883,
+        "pt_mae": 3821.108226907942,
+        "teacher_pt_mae": 947.1799337423259,
+        "max_displacement_mae": 0.00035510133641474104,
+        "max_force_mae": 5260.835671968424,
+        "curve_norm_rmse": 0.020070433616638184,
+        "teacher_curve_norm_rmse": 0.018545376136898994,
+        "curve_force_rmse": 4230.723225533569,
+        "best_epoch": 56.0,
+        "synthetic_total": 8214.0,
+        "synthetic_kept": 3456.0
+      }
+    }
+  },
+  "evaluation_config": {
+    "epochs": 160,
+    "patience": 28,
+    "synthetic_grid_step": 5.0,
+    "synthetic_panel_sizes": "6x4,6x8,8x8",
+    "synthetic_exclusion_radius": 5.0
+  }
+}

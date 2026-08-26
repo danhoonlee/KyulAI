@@ -39,7 +39,7 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -132,12 +132,11 @@ class OODEvaluationResult:
     def summary(self) -> str:
         """Human-readable summary table."""
         lines = [
-            f"OOD Evaluation Protocol",
+            "OOD Evaluation Protocol",
             f"IID threshold: relL2 < {self.iid_threshold:.2%}  |  "
             f"OOD threshold: relL2 < {self.ood_threshold:.2%}",
             "",
-            f"{'Field':<30} {'IID relL2':>12} {'OOD relL2':>12} "
-            f"{'Gap':>8} {'IID':>5} {'OOD':>5}",
+            f"{'Field':<30} {'IID relL2':>12} {'OOD relL2':>12} {'Gap':>8} {'IID':>5} {'OOD':>5}",
             "-" * 76,
         ]
         for fname, st in self.field_status.items():
@@ -156,8 +155,7 @@ class OODEvaluationResult:
             lines.append("Per-tool OOD performance:")
             for tm in sorted(self.per_tool_ood, key=lambda x: x.relative_l2):
                 lines.append(
-                    f"  {tm.tool:<20} N={tm.n_samples:>5} "
-                    f"relL2={tm.relative_l2:.4f} R²={tm.r2:.4f}"
+                    f"  {tm.tool:<20} N={tm.n_samples:>5} relL2={tm.relative_l2:.4f} R²={tm.r2:.4f}"
                 )
         return "\n".join(lines)
 

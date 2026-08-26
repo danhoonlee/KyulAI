@@ -5,8 +5,8 @@ Tests for comparison utilities (metrics + bias detection).
 import numpy as np
 import pytest
 
-from src.validation.comparison.metrics import ComparisonMetrics
 from src.validation.comparison.bias import BiasDetector
+from src.validation.comparison.metrics import ComparisonMetrics
 from src.validation.comparison.reporter import ComparisonReporter
 
 
@@ -73,7 +73,6 @@ class TestBiasDetector:
         assert report.mean_bias == pytest.approx(20.0)
 
     def test_conditional_bias_detection(self):
-        rng = np.random.default_rng(1)
         Vf = np.linspace(0.3, 0.7, 100)  # fiber volume fraction
         y_true = 50 + 100 * Vf
         # Prediction under-estimates at high Vf (conditional bias)

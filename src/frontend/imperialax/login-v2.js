@@ -34,42 +34,6 @@ const TEXT = {
   },
 };
 
-const LOCAL_SESSIONS = {
-  "demo@imperialax.com": {
-    access_token: "demo-token",
-    token_type: "bearer",
-    user: {
-      id: "demo-user",
-      email: "demo@imperialax.com",
-      name: "Demo Account",
-      company: "ImperialAX Demo",
-    },
-    entitlements: ["module.injection", "module.laminate"],
-  },
-  "demo@imperialax.com": {
-    access_token: "demo-token",
-    token_type: "bearer",
-    user: {
-      id: "demo-user",
-      email: "demo@imperialax.com",
-      name: "Demo Account",
-      company: "ImperialAX Demo",
-    },
-    entitlements: ["module.injection", "module.laminate"],
-  },
-  "danlee@imperialax.com": {
-    access_token: "danlee-token",
-    token_type: "bearer",
-    user: {
-      id: "danlee",
-      email: "danlee@imperialax.com",
-      name: "Dan Lee",
-      company: "ImperialAX",
-    },
-    entitlements: ["module.injection", "module.laminate", "module.optimization"],
-  },
-};
-
 const form = document.querySelector("#login-v2-form");
 const emailInput = document.querySelector("#login-v2-email");
 const passwordInput = document.querySelector("#login-v2-password");
@@ -103,19 +67,17 @@ function formatModuleCount(count) {
 }
 
 function saveSession(session) {
-  window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  const metadata = { user: session.user, entitlements: session.entitlements || [] };
+  window.localStorage.setItem(SESSION_KEY, JSON.stringify(metadata));
 }
 
 function previewAccount() {
   const email = normalizeEmail(emailInput.value) || "demo@imperialax.com";
-  const session = LOCAL_SESSIONS[email] || LOCAL_SESSIONS["demo@imperialax.com"];
-  const hasOptimization = session.entitlements.includes("module.optimization");
-
-  accountName.textContent = session.user.name;
-  accountEmail.textContent = session.user.email;
-  accessCount.textContent = formatModuleCount(session.entitlements.length);
-  optimizationRow.classList.toggle("is-on", hasOptimization);
-  optimizationStatus.textContent = hasOptimization ? TEXT[LOCALE].on : TEXT[LOCALE].locked;
+  accountName.textContent = email.split("@", 1)[0] || "ImperialAX";
+  accountEmail.textContent = email;
+  accessCount.textContent = "--";
+  optimizationRow.classList.remove("is-on");
+  optimizationStatus.textContent = TEXT[LOCALE].locked;
 }
 
 async function signIn(email, password) {
@@ -144,25 +106,20 @@ async function signIn(email, password) {
 }
 
 async function demoLogin() {
-  const normalizedEmail = normalizeEmail(emailInput.value) || "demo@imperialax.com";
   setMessage("");
   setBusy(true);
   try {
     const response = await fetch("/api/v1/modules/auth/demo-login", {
       method: "POST",
       headers: { Accept: "application/json", "Content-Type": "application/json" },
-      body: JSON.stringify({ email: normalizedEmail, password: "" }),
+      body: JSON.stringify({ email: "demo@imperialax.com", password: "" }),
     });
     if (!response.ok) throw new Error(`Demo login failed: ${response.status}`);
     saveSession(await response.json());
   } catch {
-    const localSession = LOCAL_SESSIONS[normalizedEmail];
-    if (!localSession) {
-      setMessage(TEXT[LOCALE].signInError, "error");
-      setBusy(false);
-      return;
-    }
-    saveSession(localSession);
+    setMessage(TEXT[LOCALE].signInError, "error");
+    setBusy(false);
+    return;
   }
   setMessage(TEXT[LOCALE].signedIn, "success");
   window.setTimeout(() => {

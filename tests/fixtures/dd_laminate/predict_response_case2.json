@@ -6,7 +6,9 @@
     "theta1": 30,
     "theta2": -30,
     "case": "Case2",
-    "model": "response_surrogate_physics_v2"
+    "model": "response_geometry_tree_canonical_v2",
+    "panel_a_in": 6.0,
+    "panel_b_in": 4.0
   },
   "response": {
     "predicted_type": 2,
@@ -16,13 +18,15 @@
       "type2": 0.51125,
       "type3": 0.44625
     },
-    "model_key": "response_surrogate_physics_v2",
+    "model_key": "response_geometry_tree_canonical_v2",
     "model_label": "Laminate Forecast - Machine Learning",
     "input_mode": "response",
     "inputs": {
       "theta1": 30.0,
       "theta2": -30.0,
-      "case": "Case2"
+      "case": "Case2",
+      "panel_a_in": 6.0,
+      "panel_b_in": 4.0
     },
     "notes": [
       "Laminate Forecast - Machine Learning prediction; validate promising candidates with simulation.",

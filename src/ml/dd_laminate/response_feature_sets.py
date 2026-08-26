@@ -3,15 +3,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
 
 import numpy as np
 
 from .laminate_physics import (
+    CANONICAL_STACK_VERSION,
     COMPACT_PHYSICS_FEATURE_COLUMNS,
     EXTENDED_PHYSICS_FEATURE_COLUMNS,
-    MaterialProperties,
+    LEGACY_STACK_VERSION,
     NN_FRIENDLY_PHYSICS_FEATURE_COLUMNS,
+    MaterialProperties,
+    StackVersion,
     compact_physics_feature_vector,
     extended_physics_feature_vector,
     nn_friendly_physics_feature_vector,
@@ -60,6 +62,28 @@ RESPONSE_PHYSICS_GEOMETRY_V1_FEATURE_COLUMNS = [
     *RESPONSE_GEOMETRY_COLUMNS,
 ]
 
+RESPONSE_FEATURE_SET_THETA = "theta"
+RESPONSE_FEATURE_SET_PHYSICS_LEGACY = "theta_physics"
+RESPONSE_FEATURE_SET_COMPACT_LEGACY = "theta_physics_v2"
+RESPONSE_FEATURE_SET_NN_LEGACY = "theta_physics_nn_v2"
+RESPONSE_FEATURE_SET_GEOMETRY_LEGACY = "theta_physics_geometry_v1"
+RESPONSE_FEATURE_SET_PHYSICS_CANONICAL = "theta_physics_canonical_v2"
+RESPONSE_FEATURE_SET_COMPACT_CANONICAL = "theta_physics_compact_canonical_v2"
+RESPONSE_FEATURE_SET_NN_CANONICAL = "theta_physics_nn_canonical_v2"
+RESPONSE_FEATURE_SET_GEOMETRY_CANONICAL = "theta_physics_geometry_canonical_v2"
+
+SUPPORTED_RESPONSE_FEATURE_SETS = (
+    RESPONSE_FEATURE_SET_THETA,
+    RESPONSE_FEATURE_SET_PHYSICS_LEGACY,
+    RESPONSE_FEATURE_SET_COMPACT_LEGACY,
+    RESPONSE_FEATURE_SET_NN_LEGACY,
+    RESPONSE_FEATURE_SET_GEOMETRY_LEGACY,
+    RESPONSE_FEATURE_SET_PHYSICS_CANONICAL,
+    RESPONSE_FEATURE_SET_COMPACT_CANONICAL,
+    RESPONSE_FEATURE_SET_NN_CANONICAL,
+    RESPONSE_FEATURE_SET_GEOMETRY_CANONICAL,
+)
+
 
 @dataclass(frozen=True)
 class ResponseFeatureRecord:
@@ -95,27 +119,64 @@ def response_feature_row(
 ) -> list[float]:
     theta = response_theta_feature_row(case, theta1, theta2)
     material = MaterialProperties(panel_a_in=float(panel_a_in), panel_b_in=float(panel_b_in))
-    if feature_set == "theta":
+    if feature_set == RESPONSE_FEATURE_SET_THETA:
         return theta
-    if feature_set == "theta_physics":
-        physics = extended_physics_feature_vector(case, theta1, theta2, material).tolist()
+    stack_version: StackVersion = (
+        LEGACY_STACK_VERSION
+        if feature_set
+        in {
+            RESPONSE_FEATURE_SET_PHYSICS_LEGACY,
+            RESPONSE_FEATURE_SET_COMPACT_LEGACY,
+            RESPONSE_FEATURE_SET_NN_LEGACY,
+            RESPONSE_FEATURE_SET_GEOMETRY_LEGACY,
+        }
+        else CANONICAL_STACK_VERSION
+    )
+    if feature_set in {
+        RESPONSE_FEATURE_SET_PHYSICS_LEGACY,
+        RESPONSE_FEATURE_SET_PHYSICS_CANONICAL,
+    }:
+        physics = extended_physics_feature_vector(
+            case, theta1, theta2, material, stack_version=stack_version
+        ).tolist()
         return [*theta, *physics]
-    if feature_set == "theta_physics_v2":
-        physics = compact_physics_feature_vector(case, theta1, theta2, material).tolist()
+    if feature_set in {
+        RESPONSE_FEATURE_SET_COMPACT_LEGACY,
+        RESPONSE_FEATURE_SET_COMPACT_CANONICAL,
+    }:
+        physics = compact_physics_feature_vector(
+            case, theta1, theta2, material, stack_version=stack_version
+        ).tolist()
         return [*theta, *physics]
-    if feature_set == "theta_physics_geometry_v1":
+    if feature_set in {
+        RESPONSE_FEATURE_SET_GEOMETRY_LEGACY,
+        RESPONSE_FEATURE_SET_GEOMETRY_CANONICAL,
+    }:
         extended_values = dict(
             zip(
                 EXTENDED_PHYSICS_FEATURE_COLUMNS,
-                extended_physics_feature_vector(case, theta1, theta2, material),
+                extended_physics_feature_vector(
+                    case, theta1, theta2, material, stack_version=stack_version
+                ),
                 strict=True,
             )
         )
         physics = [extended_values[name] for name in COMPACT_PHYSICS_FEATURE_COLUMNS]
-        geometry = [extended_values["panel_aspect"], extended_values["a_slenderness"], extended_values["b_slenderness"], float(panel_a_in), float(panel_b_in)]
+        geometry = [
+            extended_values["panel_aspect"],
+            extended_values["a_slenderness"],
+            extended_values["b_slenderness"],
+            float(panel_a_in),
+            float(panel_b_in),
+        ]
         return [*theta, *physics, *geometry]
-    if feature_set == "theta_physics_nn_v2":
-        physics = nn_friendly_physics_feature_vector(case, theta1, theta2, material).tolist()
+    if feature_set in {
+        RESPONSE_FEATURE_SET_NN_LEGACY,
+        RESPONSE_FEATURE_SET_NN_CANONICAL,
+    }:
+        physics = nn_friendly_physics_feature_vector(
+            case, theta1, theta2, material, stack_version=stack_version
+        ).tolist()
         return [*theta, *physics]
     raise ValueError(f"Unsupported response feature set: {feature_set}")
 
@@ -132,15 +193,27 @@ def response_feature_matrix(records, feature_set: str = "theta") -> tuple[np.nda
         )
         for record in records
     ]
-    if feature_set == "theta":
+    if feature_set == RESPONSE_FEATURE_SET_THETA:
         names = RESPONSE_THETA_FEATURE_COLUMNS
-    elif feature_set == "theta_physics":
+    elif feature_set in {
+        RESPONSE_FEATURE_SET_PHYSICS_LEGACY,
+        RESPONSE_FEATURE_SET_PHYSICS_CANONICAL,
+    }:
         names = RESPONSE_PHYSICS_FEATURE_COLUMNS
-    elif feature_set == "theta_physics_v2":
+    elif feature_set in {
+        RESPONSE_FEATURE_SET_COMPACT_LEGACY,
+        RESPONSE_FEATURE_SET_COMPACT_CANONICAL,
+    }:
         names = RESPONSE_PHYSICS_V2_FEATURE_COLUMNS
-    elif feature_set == "theta_physics_geometry_v1":
+    elif feature_set in {
+        RESPONSE_FEATURE_SET_GEOMETRY_LEGACY,
+        RESPONSE_FEATURE_SET_GEOMETRY_CANONICAL,
+    }:
         names = RESPONSE_PHYSICS_GEOMETRY_V1_FEATURE_COLUMNS
-    elif feature_set == "theta_physics_nn_v2":
+    elif feature_set in {
+        RESPONSE_FEATURE_SET_NN_LEGACY,
+        RESPONSE_FEATURE_SET_NN_CANONICAL,
+    }:
         names = RESPONSE_PHYSICS_NN_V2_FEATURE_COLUMNS
     else:
         raise ValueError(f"Unsupported response feature set: {feature_set}")
@@ -155,7 +228,9 @@ def prediction_feature_matrix(
     panel_a_in: float = 6.0,
     panel_b_in: float = 4.0,
 ) -> np.ndarray:
-    record = ResponseFeatureRecord(case=case, theta1=theta1, theta2=theta2, panel_a_in=panel_a_in, panel_b_in=panel_b_in)
+    record = ResponseFeatureRecord(
+        case=case, theta1=theta1, theta2=theta2, panel_a_in=panel_a_in, panel_b_in=panel_b_in
+    )
     x, _ = response_feature_matrix([record], feature_set)
     return x
 
@@ -174,11 +249,21 @@ def feature_set_from_columns(feature_columns: list[str] | tuple[str, ...]) -> st
 
 
 __all__ = [
+    "RESPONSE_FEATURE_SET_COMPACT_CANONICAL",
+    "RESPONSE_FEATURE_SET_COMPACT_LEGACY",
+    "RESPONSE_FEATURE_SET_GEOMETRY_CANONICAL",
+    "RESPONSE_FEATURE_SET_GEOMETRY_LEGACY",
+    "RESPONSE_FEATURE_SET_NN_CANONICAL",
+    "RESPONSE_FEATURE_SET_NN_LEGACY",
+    "RESPONSE_FEATURE_SET_PHYSICS_CANONICAL",
+    "RESPONSE_FEATURE_SET_PHYSICS_LEGACY",
+    "RESPONSE_FEATURE_SET_THETA",
     "RESPONSE_PHYSICS_FEATURE_COLUMNS",
     "RESPONSE_PHYSICS_GEOMETRY_V1_FEATURE_COLUMNS",
     "RESPONSE_PHYSICS_NN_V2_FEATURE_COLUMNS",
     "RESPONSE_PHYSICS_V2_FEATURE_COLUMNS",
     "RESPONSE_THETA_FEATURE_COLUMNS",
+    "SUPPORTED_RESPONSE_FEATURE_SETS",
     "ResponseFeatureRecord",
     "feature_set_from_columns",
     "prediction_feature_matrix",

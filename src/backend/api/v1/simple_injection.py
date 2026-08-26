@@ -14,15 +14,16 @@ from typing import Any, Literal
 
 import numpy as np
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
+from src.backend.api.upload_limits import read_upload_limited
 from src.ml.simple_injection.data import (
+    build_record_from_inputs,
     load_filling_pressure_distribution,
     load_geometry_doe,
     load_process_doe,
     load_training_doe_ids,
 )
-from src.ml.simple_injection.data import build_record_from_inputs
 from src.ml.simple_injection.validation import has_blocking_issues, validate_simple_injection_inputs
 
 router = APIRouter(prefix="/simple-injection", tags=["simple-injection"])
@@ -33,11 +34,14 @@ ModelKey = Literal["sprue_classical", "sprue_goint", "sprue_deeponet"]
 FillingModelKey = Literal["filling_classical", "filling_goint", "filling_deeponet"]
 
 
+class _ApiModel(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
+
 class ModelInfo(BaseModel):
     key: str
     label: str
     description: str
-    path: str
     available: bool
 
 
@@ -122,7 +126,7 @@ class InjectionXAIExplanation(BaseModel):
     notes: list[str] = []
 
 
-class SpruePressurePredictionResponse(BaseModel):
+class SpruePressurePredictionResponse(_ApiModel):
     model_key: str
     model_label: str
     filling_model_key: str
@@ -204,7 +208,6 @@ def _model_info(key: str, meta: dict[str, str]) -> ModelInfo:
         key=key,
         label=meta["label"],
         description=meta["description"],
-        path=str(path.relative_to(PROJECT_ROOT)),
         available=path.exists() and dependencies_available,
     )
 
@@ -234,7 +237,9 @@ def model_availability_status() -> dict[str, str]:
     return statuses
 
 
-def _ensure_available(model_key: str, registry: dict[str, dict[str, str]] | None = None) -> dict[str, str]:
+def _ensure_available(
+    model_key: str, registry: dict[str, dict[str, str]] | None = None
+) -> dict[str, str]:
     registry = registry or SPRUE_MODELS
     meta = registry[model_key]
     path = _model_path(meta)
@@ -314,7 +319,9 @@ def _predict_filling_pressure_summary(
             )
 
             return FillingPressureSummary.model_validate(
-                _with_filling_pressure_assets(predict_filling_pressure_goint(model_path, geometry, process, device="cpu"))
+                _with_filling_pressure_assets(
+                    predict_filling_pressure_goint(model_path, geometry, process, device="cpu")
+                )
             )
         if model_key == "filling_deeponet":
             from src.ml.simple_injection.predict_filling_pressure import (
@@ -322,7 +329,9 @@ def _predict_filling_pressure_summary(
             )
 
             return FillingPressureSummary.model_validate(
-                _with_filling_pressure_assets(predict_filling_pressure_deeponet(model_path, geometry, process, device="cpu"))
+                _with_filling_pressure_assets(
+                    predict_filling_pressure_deeponet(model_path, geometry, process, device="cpu")
+                )
             )
         from src.ml.simple_injection.predict_filling_pressure import predict_filling_pressure
 
@@ -344,28 +353,102 @@ def _with_filling_pressure_assets(summary: dict[str, object]) -> dict[str, objec
     return out
 
 
-FEATURE_EXPLANATIONS: dict[str, tuple[str, Literal["geometry", "process", "gate", "derived", "other"], str]] = {
-    "L_mm": ("Length", "geometry", "Overall part length. Longer flow paths can increase pressure demand and shift the curve timing."),
-    "W_mm": ("Width", "geometry", "Overall part width. It changes the projected area and available flow region."),
-    "t_mm": ("Thickness", "geometry", "Part thickness. Thicker cavities usually reduce flow resistance, while thin sections tend to raise pressure sensitivity."),
-    "D_mm": ("Hole diameter", "geometry", "Central hole diameter. It reduces net flow area and changes the local filling path around the hole."),
-    "R_mm": ("Hole radius", "geometry", "Central hole radius. This is paired with hole diameter and affects the available cross-section."),
-    "gate_size_width_mm": ("Gate width", "gate", "Gate opening width. Larger gate area can reduce local pressure losses near the inlet."),
-    "gate_size_height_mm": ("Gate height", "gate", "Gate opening height. It directly changes gate area and gate restriction."),
-    "melt_temp_C": ("Melt temperature", "process", "Melt temperature. Higher temperature generally lowers viscosity and can reduce required pressure."),
-    "mold_temp_C": ("Mold temperature", "process", "Mold temperature. It affects cooling rate, viscosity growth, and near-wall flow resistance."),
-    "injection_time_s": ("Injection time", "process", "Filling time target. Faster injection can raise peak pressure, while slower injection changes the pressure curve shape."),
-    "packing_pressure_MPa": ("Packing pressure", "process", "Packing pressure setpoint. It can influence late pressure level and peak pressure response."),
-    "packing_time_s": ("Packing time", "process", "Packing duration. It mainly affects late-stage pressure behavior after filling."),
+FEATURE_EXPLANATIONS: dict[
+    str, tuple[str, Literal["geometry", "process", "gate", "derived", "other"], str]
+] = {
+    "L_mm": (
+        "Length",
+        "geometry",
+        "Overall part length. Longer flow paths can increase pressure demand and shift the curve timing.",
+    ),
+    "W_mm": (
+        "Width",
+        "geometry",
+        "Overall part width. It changes the projected area and available flow region.",
+    ),
+    "t_mm": (
+        "Thickness",
+        "geometry",
+        "Part thickness. Thicker cavities usually reduce flow resistance, while thin sections tend to raise pressure sensitivity.",
+    ),
+    "D_mm": (
+        "Hole diameter",
+        "geometry",
+        "Central hole diameter. It reduces net flow area and changes the local filling path around the hole.",
+    ),
+    "R_mm": (
+        "Hole radius",
+        "geometry",
+        "Central hole radius. This is paired with hole diameter and affects the available cross-section.",
+    ),
+    "gate_size_width_mm": (
+        "Gate width",
+        "gate",
+        "Gate opening width. Larger gate area can reduce local pressure losses near the inlet.",
+    ),
+    "gate_size_height_mm": (
+        "Gate height",
+        "gate",
+        "Gate opening height. It directly changes gate area and gate restriction.",
+    ),
+    "melt_temp_C": (
+        "Melt temperature",
+        "process",
+        "Melt temperature. Higher temperature generally lowers viscosity and can reduce required pressure.",
+    ),
+    "mold_temp_C": (
+        "Mold temperature",
+        "process",
+        "Mold temperature. It affects cooling rate, viscosity growth, and near-wall flow resistance.",
+    ),
+    "injection_time_s": (
+        "Injection time",
+        "process",
+        "Filling time target. Faster injection can raise peak pressure, while slower injection changes the pressure curve shape.",
+    ),
+    "packing_pressure_MPa": (
+        "Packing pressure",
+        "process",
+        "Packing pressure setpoint. It can influence late pressure level and peak pressure response.",
+    ),
+    "packing_time_s": (
+        "Packing time",
+        "process",
+        "Packing duration. It mainly affects late-stage pressure behavior after filling.",
+    ),
     "area_mm2": ("Part area", "derived", "Derived plate area from length and width."),
     "hole_area_mm2": ("Hole area", "derived", "Derived removed area from the center hole."),
-    "net_area_mm2": ("Net area", "derived", "Derived available area after subtracting the hole area."),
+    "net_area_mm2": (
+        "Net area",
+        "derived",
+        "Derived available area after subtracting the hole area.",
+    ),
     "volume_mm3": ("Part volume", "derived", "Derived cavity volume from net area and thickness."),
-    "aspect_ratio": ("Aspect ratio", "derived", "Length-to-width shape ratio. It indicates how elongated the flow domain is."),
-    "hole_diameter_ratio": ("Hole diameter ratio", "derived", "Hole diameter normalized by the smaller plate dimension."),
-    "gate_area_mm2": ("Gate area", "derived", "Derived gate cross-sectional area from gate width and height."),
-    "gate_to_thickness_ratio": ("Gate/thickness ratio", "derived", "Gate height relative to part thickness."),
-    "flow_length_to_thickness": ("Flow length/thickness", "derived", "Approximate flow slenderness. Large values often make filling pressure more sensitive."),
+    "aspect_ratio": (
+        "Aspect ratio",
+        "derived",
+        "Length-to-width shape ratio. It indicates how elongated the flow domain is.",
+    ),
+    "hole_diameter_ratio": (
+        "Hole diameter ratio",
+        "derived",
+        "Hole diameter normalized by the smaller plate dimension.",
+    ),
+    "gate_area_mm2": (
+        "Gate area",
+        "derived",
+        "Derived gate cross-sectional area from gate width and height.",
+    ),
+    "gate_to_thickness_ratio": (
+        "Gate/thickness ratio",
+        "derived",
+        "Gate height relative to part thickness.",
+    ),
+    "flow_length_to_thickness": (
+        "Flow length/thickness",
+        "derived",
+        "Approximate flow slenderness. Large values often make filling pressure more sensitive.",
+    ),
     "process_total_time_s": ("Total process time", "derived", "Injection time plus packing time."),
 }
 
@@ -416,7 +499,9 @@ def _xai_feature(
 
 
 def _normalize_scores(scores: dict[str, float]) -> dict[str, float]:
-    clean = {key: max(float(value), 0.0) for key, value in scores.items() if math.isfinite(float(value))}
+    clean = {
+        key: max(float(value), 0.0) for key, value in scores.items() if math.isfinite(float(value))
+    }
     total = sum(clean.values())
     if total <= 0:
         count = max(len(clean), 1)
@@ -526,7 +611,9 @@ def _cached_filling_deeponet_artifacts(path: str) -> tuple[dict[str, Any], Any]:
 def _sprue_output_vector(model_key: str, model_path: Path, x: np.ndarray) -> np.ndarray:
     if model_key == "sprue_classical":
         bundle = _cached_joblib_model(str(model_path))
-        scalars = np.log1p(np.clip(np.asarray(bundle["scalar_model"].predict(x)[0], dtype=float), 0.0, None))
+        scalars = np.log1p(
+            np.clip(np.asarray(bundle["scalar_model"].predict(x)[0], dtype=float), 0.0, None)
+        )
         curve_scores = np.asarray(bundle["curve_model"].predict(x)[0], dtype=float)
         return np.concatenate([scalars, curve_scores])
 
@@ -571,7 +658,9 @@ def _filling_output_vector(model_key: str, model_path: Path, x: np.ndarray) -> n
     feature_mean = np.asarray(checkpoint["feature_mean"], dtype=float)
     feature_std = np.maximum(np.asarray(checkpoint["feature_std"], dtype=float), 1e-9)
     x_norm = (x - feature_mean) / feature_std
-    bin_grid = torch.linspace(0.0, 1.0, int(checkpoint["model_config"]["bins"]), dtype=torch.float32)
+    bin_grid = torch.linspace(
+        0.0, 1.0, int(checkpoint["model_config"]["bins"]), dtype=torch.float32
+    )
     with torch.inference_mode():
         pred_norm = model(torch.tensor(x_norm, dtype=torch.float32), bin_grid).cpu().numpy()[0]
     return pred_norm
@@ -617,7 +706,15 @@ def _load_local_xai_for_prediction(
             else _cached_torch_checkpoint(str(sprue_model_path))
         )
         gate_types = list(sprue_bundle_or_checkpoint.get("gate_types") or [])
-        x, feature_columns = build_record_from_inputs(geometry, process, gate_types=gate_types)
+        geometry_values: dict[str, float | str] = {
+            key: value for key, value in geometry.items() if value is not None
+        }
+        process_values: dict[str, float | str] = {
+            key: value for key, value in process.items() if value is not None
+        }
+        x, feature_columns = build_record_from_inputs(
+            geometry_values, process_values, gate_types=gate_types
+        )
         base_output = _combined_injection_output_vector(
             sprue_model_key,
             sprue_model_path,
@@ -654,7 +751,9 @@ def _load_local_xai_for_prediction(
                 local_value=values.get(feature),
                 perturbation=perturbations.get(feature),
             )
-            for feature, importance in sorted(normalized.items(), key=lambda item: item[1], reverse=True)
+            for feature, importance in sorted(
+                normalized.items(), key=lambda item: item[1], reverse=True
+            )
         ]
         return InjectionXAIExplanation(
             title="Why this prediction?",
@@ -679,7 +778,9 @@ def _csv_rows_from_upload(content: bytes) -> list[list[str]]:
     return [row for row in csv.reader(io.StringIO(text)) if any(cell.strip() for cell in row)]
 
 
-def _parse_uploaded_sprue_curves(content: bytes, filename: str) -> dict[str, tuple[np.ndarray, np.ndarray]]:
+def _parse_uploaded_sprue_curves(
+    content: bytes, filename: str
+) -> dict[str, tuple[np.ndarray, np.ndarray]]:
     rows = _csv_rows_from_upload(content)
     header_idx = next(
         (
@@ -690,7 +791,9 @@ def _parse_uploaded_sprue_curves(content: bytes, filename: str) -> dict[str, tup
         None,
     )
     if header_idx is None:
-        raise ValueError("Could not find a Time(sec) header row in the uploaded Sprue Pressure CSV.")
+        raise ValueError(
+            "Could not find a Time(sec) header row in the uploaded Sprue Pressure CSV."
+        )
 
     curves: dict[str, tuple[np.ndarray, np.ndarray]] = {}
     header = rows[header_idx]
@@ -775,7 +878,11 @@ def _select_actual_curve(
 ) -> tuple[str, tuple[np.ndarray, np.ndarray]]:
     candidates = [
         _normal_sample_id(requested_sample_id),
-        _normal_sample_id(str(prediction.get("inputs", {}).get("geometry_id", "")) + "_" + str(prediction.get("inputs", {}).get("process_id", ""))),
+        _normal_sample_id(
+            str(prediction.get("inputs", {}).get("geometry_id", ""))
+            + "_"
+            + str(prediction.get("inputs", {}).get("process_id", ""))
+        ),
     ]
     for candidate in candidates:
         if candidate and candidate in curves:
@@ -784,13 +891,19 @@ def _select_actual_curve(
     return first_key, curves[first_key]
 
 
-def _sprue_comparison(prediction: dict[str, Any], actual_curve: tuple[np.ndarray, np.ndarray]) -> dict[str, object]:
+def _sprue_comparison(
+    prediction: dict[str, Any], actual_curve: tuple[np.ndarray, np.ndarray]
+) -> dict[str, object]:
     predicted_curve = prediction.get("curve") or []
     pred_t = np.asarray([float(point["time_s"]) for point in predicted_curve], dtype=float)
-    pred_p = np.asarray([float(point["sprue_pressure_MPa"]) for point in predicted_curve], dtype=float)
+    pred_p = np.asarray(
+        [float(point["sprue_pressure_MPa"]) for point in predicted_curve], dtype=float
+    )
     actual_t, actual_p = actual_curve
     if pred_t.size < 2 or actual_t.size < 2:
-        raise ValueError("Both predicted and actual Sprue Pressure curves need at least two points.")
+        raise ValueError(
+            "Both predicted and actual Sprue Pressure curves need at least two points."
+        )
 
     start = max(float(np.min(pred_t)), float(np.min(actual_t)))
     end = min(float(np.max(pred_t)), float(np.max(actual_t)))
@@ -817,7 +930,9 @@ def _sprue_comparison(prediction: dict[str, Any], actual_curve: tuple[np.ndarray
             "predicted_peak_time_s": float(pred_t[pred_peak_idx]),
             "actual_peak_time_s": float(actual_t[actual_peak_idx]),
             "peak_time_error_s": float(pred_t[pred_peak_idx] - actual_t[actual_peak_idx]),
-            "area_error_pct": float(((pred_area - actual_area) / max(abs(actual_area), 1e-9)) * 100.0),
+            "area_error_pct": float(
+                ((pred_area - actual_area) / max(abs(actual_area), 1e-9)) * 100.0
+            ),
         },
         "curve": [
             {
@@ -837,12 +952,16 @@ def _sprue_comparison(prediction: dict[str, Any], actual_curve: tuple[np.ndarray
     }
 
 
-def _filling_comparison(predicted_summary: dict[str, Any], actual_summary: dict[str, Any]) -> dict[str, object]:
+def _filling_comparison(
+    predicted_summary: dict[str, Any], actual_summary: dict[str, Any]
+) -> dict[str, object]:
     predicted_bins = {int(row["group"]): row for row in predicted_summary.get("bins", [])}
     actual_bins = {int(row["group"]): row for row in actual_summary.get("bins", [])}
     groups = sorted(set(predicted_bins) & set(actual_bins))
     if not groups:
-        raise ValueError("Predicted and actual Filling Pressure distributions have no matching groups.")
+        raise ValueError(
+            "Predicted and actual Filling Pressure distributions have no matching groups."
+        )
 
     rows = []
     pred_ratios = []
@@ -868,10 +987,15 @@ def _filling_comparison(predicted_summary: dict[str, Any], actual_summary: dict[
     pred_arr = np.asarray(pred_ratios, dtype=float)
     actual_arr = np.asarray(actual_ratios, dtype=float)
     ratio_error = pred_arr - actual_arr
-    cosine = float(np.dot(pred_arr, actual_arr) / max(np.linalg.norm(pred_arr) * np.linalg.norm(actual_arr), 1e-9))
+    cosine = float(
+        np.dot(pred_arr, actual_arr)
+        / max(np.linalg.norm(pred_arr) * np.linalg.norm(actual_arr), 1e-9)
+    )
     stat_errors = {}
     for key in ["min_MPa", "max_MPa", "avg_MPa", "sd_MPa"]:
-        stat_errors[key] = float(predicted_summary.get("stats", {}).get(key, 0.0)) - float(actual_summary.get("stats", {}).get(key, 0.0))
+        stat_errors[key] = float(predicted_summary.get("stats", {}).get(key, 0.0)) - float(
+            actual_summary.get("stats", {}).get(key, 0.0)
+        )
     return {
         "metrics": {
             "volume_ratio_mae_pct": float(np.mean(np.abs(ratio_error))),
@@ -886,12 +1010,16 @@ def _filling_comparison(predicted_summary: dict[str, Any], actual_summary: dict[
     }
 
 
-@router.get("/models", response_model=SimpleInjectionModelsResponse, summary="List Simple Injection models")
+@router.get(
+    "/models", response_model=SimpleInjectionModelsResponse, summary="List Simple Injection models"
+)
 async def list_simple_injection_models() -> SimpleInjectionModelsResponse:
     return _models_response()
 
 
-@router.get("/doe", response_model=SimpleInjectionDoeResponse, summary="List Simple Injection DOE values")
+@router.get(
+    "/doe", response_model=SimpleInjectionDoeResponse, summary="List Simple Injection DOE values"
+)
 async def list_simple_injection_doe() -> SimpleInjectionDoeResponse:
     doe_dir = PROJECT_ROOT / "data/datasets/Simple_Injection/DOE"
     training_dir = PROJECT_ROOT / "data/datasets/Simple_Injection/Training"
@@ -938,26 +1066,36 @@ async def predict_sprue_pressure(
         if payload.model == "sprue_goint":
             from src.ml.simple_injection.predict_sprue_pressure import predict_goint
 
-            result = predict_goint(model_path=model_path, geometry=geometry, process=process, device="cpu")
+            result = predict_goint(
+                model_path=model_path, geometry=geometry, process=process, device="cpu"
+            )
         elif payload.model == "sprue_deeponet":
             from src.ml.simple_injection.predict_sprue_pressure import predict_deeponet
 
-            result = predict_deeponet(model_path=model_path, geometry=geometry, process=process, device="cpu")
+            result = predict_deeponet(
+                model_path=model_path, geometry=geometry, process=process, device="cpu"
+            )
         else:
             from src.ml.simple_injection.predict_sprue_pressure import predict_classical
 
             result = predict_classical(model_path=model_path, geometry=geometry, process=process)
     except Exception as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
 
     notes = [
         "Current model is trained on 360 Moldex3D cases covering G01-G42.",
         "Use the classical surrogate as the practical default for this Simple Injection DOE set.",
     ]
     if payload.model == "sprue_goint":
-        notes[1] = "The GointMLP-style model is a deep-learning baseline and is less stable than the classical surrogate on this DOE set."
+        notes[1] = (
+            "The GointMLP-style model is a deep-learning baseline and is less stable than the classical surrogate on this DOE set."
+        )
     elif payload.model == "sprue_deeponet":
-        notes[1] = "The DeepONet model is an operator-learning research model for smoother curve behavior on user-edited DOE conditions."
+        notes[1] = (
+            "The DeepONet model is an operator-learning research model for smoother curve behavior on user-edited DOE conditions."
+        )
 
     return SpruePressurePredictionResponse(
         model_key=payload.model,
@@ -972,7 +1110,9 @@ async def predict_sprue_pressure(
         notes=notes,
         validation_warnings=validation_warnings,
         filling_pressure=_filling_pressure_summary(geometry, process),
-        predicted_filling_pressure=_predict_filling_pressure_summary(payload.filling_model, filling_model_path, geometry, process),
+        predicted_filling_pressure=_predict_filling_pressure_summary(
+            payload.filling_model, filling_model_path, geometry, process
+        ),
         xai=_load_local_xai_for_prediction(
             payload.model,
             model_path,
@@ -997,7 +1137,9 @@ async def compare_moldex3d_result(
     try:
         prediction = json.loads(prediction_json)
     except json.JSONDecodeError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid prediction JSON.") from exc
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid prediction JSON."
+        ) from exc
 
     if sprue_pressure_csv is None and filling_pressure_csv is None:
         raise HTTPException(
@@ -1013,9 +1155,14 @@ async def compare_moldex3d_result(
     }
 
     if sprue_pressure_csv is not None:
+        content = await read_upload_limited(
+            sprue_pressure_csv,
+            description=sprue_pressure_csv.filename or "Sprue Pressure CSV",
+        )
         try:
-            content = await sprue_pressure_csv.read()
-            curves = _parse_uploaded_sprue_curves(content, sprue_pressure_csv.filename or "sprue_pressure.csv")
+            curves = _parse_uploaded_sprue_curves(
+                content, sprue_pressure_csv.filename or "sprue_pressure.csv"
+            )
             selected_sample_id, actual_curve = _select_actual_curve(curves, sample_id, prediction)
             sprue = _sprue_comparison(prediction, actual_curve)
             comparison["sprue_pressure"] = {
@@ -1031,10 +1178,17 @@ async def compare_moldex3d_result(
             ) from exc
 
     if filling_pressure_csv is not None:
+        content = await read_upload_limited(
+            filling_pressure_csv,
+            description=filling_pressure_csv.filename or "Filling Pressure CSV",
+        )
         try:
-            content = await filling_pressure_csv.read()
-            actual_summary = _parse_uploaded_filling_pressure(content, filling_pressure_csv.filename or "filling_pressure.csv")
-            predicted_summary = prediction.get("predicted_filling_pressure") or prediction.get("filling_pressure")
+            actual_summary = _parse_uploaded_filling_pressure(
+                content, filling_pressure_csv.filename or "filling_pressure.csv"
+            )
+            predicted_summary = prediction.get("predicted_filling_pressure") or prediction.get(
+                "filling_pressure"
+            )
             if not predicted_summary:
                 raise ValueError("Prediction does not include a Filling Pressure summary.")
             comparison["filling_pressure"] = _filling_comparison(predicted_summary, actual_summary)
@@ -1046,6 +1200,10 @@ async def compare_moldex3d_result(
 
     notes = comparison["notes"]
     if isinstance(notes, list):
-        notes.append("Sprue Pressure errors are calculated after interpolating prediction and Moldex3D curves to a shared time grid.")
-        notes.append("Filling Pressure errors use the exported histogram values; chart PNGs are visual references only.")
+        notes.append(
+            "Sprue Pressure errors are calculated after interpolating prediction and Moldex3D curves to a shared time grid."
+        )
+        notes.append(
+            "Filling Pressure errors use the exported histogram values; chart PNGs are visual references only."
+        )
     return comparison

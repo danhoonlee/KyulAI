@@ -30,7 +30,9 @@ class ProcessParameters(BaseModel):
 
     # Pressure / Force
     injection_pressure_Pa: float | None = Field(None, description="Injection pressure [Pa]")
-    compaction_pressure_Pa: float | None = Field(None, description="Compaction/autoclave pressure [Pa]")
+    compaction_pressure_Pa: float | None = Field(
+        None, description="Compaction/autoclave pressure [Pa]"
+    )
     blank_holder_force_N: float | None = Field(None, description="Blank holder force [N]")
 
     # Time
@@ -51,9 +53,7 @@ class ProcessParameters(BaseModel):
     band_width_m: float | None = Field(None, description="Tow/band width [m]")
 
     # Forming-specific
-    layup_sequence: list[float] | None = Field(
-        None, description="Ply angles in layup order [deg]"
-    )
+    layup_sequence: list[float] | None = Field(None, description="Ply angles in layup order [deg]")
     num_plies: int | None = Field(None, ge=1, description="Number of plies")
 
     # Catch-all for tool-specific parameters not covered above

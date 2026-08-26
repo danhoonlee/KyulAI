@@ -1,0 +1,19 @@
+tunnel: e8928d27-7518-4ba9-ac36-108ca3a78718
+credentials-file: /home/user/.cloudflared/e8928d27-7518-4ba9-ac36-108ca3a78718.json
+
+ingress:
+  - hostname: imperialax.com
+    service: http://127.0.0.1:8000
+  - hostname: www.imperialax.com
+    service: http://127.0.0.1:8000
+  - hostname: ai.imperialax.com
+    service: http://127.0.0.1:8000
+  - hostname: app.imperialax.com
+    service: http://127.0.0.1:8000
+  - hostname: laminate.imperialax.com
+    service: http://127.0.0.1:8000
+  - hostname: dd.imperialax.com
+    service: http://127.0.0.1:8000
+  - hostname: injection.imperialax.com
+    service: http://127.0.0.1:8010
+  - service: http_status:404

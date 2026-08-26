@@ -1,0 +1,240 @@
+{"kind":"deck","id":"pr/ckl4sv","name":"Deck"}
+{"kind":"layout","layoutId":"/ppt/slideMasters/slideMaster1.xml","name":"","type":"master","placeholders":[{"name":"title","type":"title","textPreview":"마스터 제목 스타일 편집"},{"name":"body","type":"body","textPreview":"마스터 텍스트 스타일을 편집하려면 클릭 | 두 번째 수준 | 세 번째 수준 | 네 번째 수준 | 다섯 번째 수준"},{"name":"dateTime","type":"dateTime","textPreview":"2023-04-24"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout1.xml","name":"제목 슬라이드","type":"title","placeholders":[{"name":"title","type":"title","textPreview":"마스터 제목 스타일 편집"},{"name":"subtitle","type":"subtitle","textPreview":"클릭하여 마스터 부제목 스타일 편집"},{"name":"dateTime","type":"dateTime","textPreview":"2023-04-24"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout2.xml","name":"제목 및 내용","type":"obj","placeholders":[{"name":"title","type":"title","textPreview":"마스터 제목 스타일 편집"},{"name":"2","textPreview":"마스터 텍스트 스타일을 편집하려면 클릭 | 두 번째 수준 | 세 번째 수준 | 네 번째 수준 | 다섯 번째 수준"},{"name":"dateTime","type":"dateTime","textPreview":"2023-04-24"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout3.xml","name":"구역 머리글","type":"secHead","placeholders":[{"name":"title","type":"title","textPreview":"마스터 제목 스타일 편집"},{"name":"body","type":"body","textPreview":"마스터 텍스트 스타일을 편집하려면 클릭"},{"name":"dateTime","type":"dateTime","textPreview":"2023-04-24"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout4.xml","name":"콘텐츠 2개","type":"twoObj","placeholders":[{"name":"title","type":"title","textPreview":"마스터 제목 스타일 편집"},{"name":"2","textPreview":"마스터 텍스트 스타일을 편집하려면 클릭 | 두 번째 수준 | 세 번째 수준 | 네 번째 수준 | 다섯 번째 수준"},{"name":"3","textPreview":"마스터 텍스트 스타일을 편집하려면 클릭 | 두 번째 수준 | 세 번째 수준 | 네 번째 수준 | 다섯 번째 수준"},{"name":"dateTime","type":"dateTime","textPreview":"2023-04-24"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout5.xml","name":"비교","type":"twoTxTwoObj","placeholders":[{"name":"title","type":"title","textPreview":"마스터 제목 스타일 편집"},{"name":"body","type":"body","textPreview":"마스터 텍스트 스타일을 편집하려면 클릭"},{"name":"3","textPreview":"마스터 텍스트 스타일을 편집하려면 클릭 | 두 번째 수준 | 세 번째 수준 | 네 번째 수준 | 다섯 번째 수준"},{"name":"body","type":"body","textPreview":"마스터 텍스트 스타일을 편집하려면 클릭"},{"name":"5","textPreview":"마스터 텍스트 스타일을 편집하려면 클릭 | 두 번째 수준 | 세 번째 수준 | 네 번째 수준 | 다섯 번째 수준"},{"name":"dateTime","type":"dateTime","textPreview":"2023-04-24"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout6.xml","name":"제목만","type":"titleOnly","placeholders":[{"name":"title","type":"title","textPreview":"마스터 제목 스타일 편집"},{"name":"dateTime","type":"dateTime","textPreview":"2023-04-24"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout7.xml","name":"빈 화면","type":"blank","placeholders":[{"name":"dateTime","type":"dateTime","textPreview":"2023-04-24"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout8.xml","name":"1_빈 화면","type":"blank","placeholders":[{"name":"dateTime","type":"dateTime","textPreview":"2023-04-24"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout9.xml","name":"캡션 있는 콘텐츠","type":"objTx","placeholders":[{"name":"title","type":"title","textPreview":"마스터 제목 스타일 편집"},{"name":"2","textPreview":"마스터 텍스트 스타일을 편집하려면 클릭 | 두 번째 수준 | 세 번째 수준 | 네 번째 수준 | 다섯 번째 수준"},{"name":"body","type":"body","textPreview":"마스터 텍스트 스타일을 편집하려면 클릭"},{"name":"dateTime","type":"dateTime","textPreview":"2023-04-24"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout10.xml","name":"캡션 있는 그림","type":"picTx","placeholders":[{"name":"title","type":"title","textPreview":"마스터 제목 스타일 편집"},{"name":"picture","type":"picture"},{"name":"body","type":"body","textPreview":"마스터 텍스트 스타일을 편집하려면 클릭"},{"name":"dateTime","type":"dateTime","textPreview":"2023-04-24"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout11.xml","name":"제목 및 세로 텍스트","type":"vertTx","placeholders":[{"name":"title","type":"title","textPreview":"마스터 제목 스타일 편집"},{"name":"body","type":"body","textPreview":"마스터 텍스트 스타일을 편집하려면 클릭 | 두 번째 수준 | 세 번째 수준 | 네 번째 수준 | 다섯 번째 수준"},{"name":"dateTime","type":"dateTime","textPreview":"2023-04-24"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout12.xml","name":"세로 제목 및 텍스트","type":"vertTitleAndTx","placeholders":[{"name":"title","type":"title","textPreview":"마스터 제목 스타일 편집"},{"name":"body","type":"body","textPreview":"마스터 텍스트 스타일을 편집하려면 클릭 | 두 번째 수준 | 세 번째 수준 | 네 번째 수준 | 다섯 번째 수준"},{"name":"dateTime","type":"dateTime","textPreview":"2023-04-24"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"slide","id":"sl/y90nupkv","slide":1,"title":"PRESENTATION","textShapes":1}
+{"kind":"textbox","id":"sh/7qp4be9c","slide":1,"name":"TextBox 3","text":"PRESENTATION","textPreview":"PRESENTATION","textChars":12,"textLines":1,"bbox":[468.24,546.73,343.52,74.32]}
+{"kind":"shape","id":"sh/ts7md4r2","slide":1,"name":"TextBox 5","bbox":[1049.68,690.69,230.43,24.23]}
+{"kind":"shape","id":"sh/fu94fe98","slide":1,"bbox":[1038,680,242,40]}
+{"kind":"image","id":"im/dkb2xcfy","slide":1,"name":"그림 2","alt":"ImperialAX logo","bbox":[439.74,72.59,400.52,454.24]}
+{"kind":"notes","id":"nt/y90nupkv","slide":1,"text":"[Sources]\n- User-provided reference decks: data/PPT/Samples/230424_Black_White_sbppt.pptx; data/PPT/Samples/221212_deep_leaning_sbppt.pptx\n- User-provided brand assets: data/Logo/Original/PNG_new/1x\n[/Sources]"}
+{"kind":"slide","id":"sl/hwbqtkby","slide":2,"title":"목차","textShapes":13}
+{"kind":"shape","id":"sh/b29kza94","slide":2,"name":"직선 연결선 3","bbox":[92.14,95.3,562.53,0]}
+{"kind":"textbox","id":"sh/a10jqpsj","slide":2,"name":"TextBox 4","text":"목차","textPreview":"목차","textChars":2,"textLines":1,"bbox":[101.72,119.34,84.69,54.93]}
+{"kind":"shape","id":"sh/9o7ulg3y","slide":2,"name":"타원 32","bbox":[53.13,365.92,161.22,161.22]}
+{"kind":"textbox","id":"sh/x4r21kru","slide":2,"name":"TextBox 5","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[97.87,423.07,76.65,68.22]}
+{"kind":"textbox","id":"sh/w3i1sfa9","slide":2,"name":"TextBox 6","text":"핵심 메시지","textPreview":"핵심 메시지","textChars":6,"textLines":1,"bbox":[97.87,478.41,211.92,42.01]}
+{"kind":"textbox","id":"sh/wjy9sry9","slide":2,"name":"TextBox 13","text":"한 줄 요약\n주요 근거\n기대 효과","textPreview":"한 줄 요약 | 주요 근거 | 기대 효과","textChars":18,"textLines":3,"bbox":[101.72,527.13,202.49,101.76]}
+{"kind":"shape","id":"sh/ba9cn6l4","slide":2,"name":"직선 연결선 34","bbox":[42.85,338.7,117.93,141.83]}
+{"kind":"shape","id":"sh/r65knqtk","slide":2,"name":"타원 7","bbox":[362.83,365.92,161.22,161.22]}
+{"kind":"textbox","id":"sh/q5wjelsz","slide":2,"name":"TextBox 8","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[407.57,423.07,83.84,67.86]}
+{"kind":"textbox","id":"sh/ove9o7yd","slide":2,"name":"TextBox 9","text":"근거와 인사이트","textPreview":"근거와 인사이트","textChars":8,"textLines":1,"bbox":[407.57,478.41,211.92,42.01]}
+{"kind":"textbox","id":"sh/9wnqhczy","slide":2,"name":"TextBox 10","text":"핵심 데이터\n해석 포인트\n시사점","textPreview":"핵심 데이터 | 해석 포인트 | 시사점","textChars":17,"textLines":3,"bbox":[411.41,527.13,202.49,101.76]}
+{"kind":"shape","id":"sh/mtwrmxg7","slide":2,"name":"직선 연결선 11","bbox":[352.54,338.7,117.92,141.83]}
+{"kind":"shape","id":"sh/xk7qlczu","slide":2,"name":"타원 14","bbox":[672.52,365.92,161.22,161.22]}
+{"kind":"textbox","id":"sh/ahwrqhgj","slide":2,"name":"TextBox 15","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[717.26,423.07,85.19,67.86]}
+{"kind":"textbox","id":"sh/t8byxkn2","slide":2,"name":"TextBox 19","text":"실행 계획","textPreview":"실행 계획","textChars":5,"textLines":1,"bbox":[717.26,478.41,211.92,42.01]}
+{"kind":"textbox","id":"sh/hcvy14ne","slide":2,"name":"TextBox 23","text":"주요 과제\n일정과 역할\n성과 지표","textPreview":"주요 과제 | 일정과 역할 | 성과 지표","textChars":18,"textLines":3,"bbox":[721.11,527.13,202.49,101.76]}
+{"kind":"shape","id":"sh/p0vy54na","slide":2,"name":"직선 연결선 27","bbox":[662.24,321.43,117.92,159.1]}
+{"kind":"shape","id":"sh/mlgvq147","slide":2,"name":"타원 29","bbox":[982.22,365.92,161.22,161.22]}
+{"kind":"textbox","id":"sh/nmpcj6ls","slide":2,"name":"TextBox 30","text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[1026.96,423.07,86.37,67.86]}
+{"kind":"textbox","id":"sh/onydsbmd","slide":2,"name":"TextBox 31","text":"다음 단계","textPreview":"다음 단계","textChars":5,"textLines":1,"bbox":[1026.96,478.41,211.92,42.01]}
+{"kind":"textbox","id":"sh/a9gvulkj","slide":2,"name":"TextBox 33","text":"결정 사항\n후속 조치\n담당자","textPreview":"결정 사항 | 후속 조치 | 담당자","textChars":15,"textLines":3,"bbox":[1030.8,527.13,202.49,101.76]}
+{"kind":"shape","id":"sh/xcrupg3u","slide":2,"name":"직선 연결선 36","bbox":[971.94,321.43,117.92,159.1]}
+{"kind":"shape","id":"sh/je9crql0","slide":2,"bbox":[1038,680,242,40]}
+{"kind":"image","id":"im/tgritonm","slide":2,"name":"그림 2","bbox":[48.02,43.79,1188.19,237.76]}
+{"kind":"image","id":"im/onmt8ral","slide":2,"name":"","alt":"ImperialAX logo","bbox":[1080,676,160,28]}
+{"kind":"notes","id":"nt/hwbqtkby","slide":2,"text":"[Sources]\n- User-provided reference decks: data/PPT/Samples/230424_Black_White_sbppt.pptx; data/PPT/Samples/221212_deep_leaning_sbppt.pptx\n- User-provided brand assets: data/Logo/Original/PNG_new/1x\n[/Sources]"}
+{"kind":"slide","id":"sl/ofy9wn61","slide":3,"title":"01","textShapes":2}
+{"kind":"shape","id":"sh/298ryl4v","slide":3,"name":"직선 연결선 3","bbox":[77.47,269.85,562.53,0]}
+{"kind":"textbox","id":"sh/pcjqtg36","slide":3,"name":"TextBox 6","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[77.47,294.52,104.71,48.47]}
+{"kind":"textbox","id":"sh/cza94vmx","slide":3,"name":"TextBox 1","text":"기본 메시지","textPreview":"기본 메시지","textChars":6,"textLines":1,"bbox":[182.19,294.52,290,54.93]}
+{"kind":"shape","id":"sh/obq90bml","slide":3,"name":"TextBox 5","bbox":[1049.68,690.69,230.43,24.23]}
+{"kind":"image","id":"im/rqxozmh4","slide":3,"name":"그림 7","bbox":[641.92,0,638.08,720]}
+{"kind":"image","id":"im/qpon6hgj","slide":3,"name":"","alt":"ImperialAX logo","bbox":[1080,676,160,28]}
+{"kind":"notes","id":"nt/ofy9wn61","slide":3,"text":"[Sources]\n- User-provided reference decks: data/PPT/Samples/230424_Black_White_sbppt.pptx; data/PPT/Samples/221212_deep_leaning_sbppt.pptx\n- User-provided brand assets: data/Logo/Original/PNG_new/1x\n[/Sources]"}
+{"kind":"slide","id":"sl/jyx0ra1s","slide":4,"title":"ImperialAX","textShapes":4}
+{"kind":"textbox","id":"sh/ql8jytsj","slide":4,"name":"TextBox 4","text":"ImperialAX","textPreview":"ImperialAX","textChars":10,"textLines":1,"bbox":[27.55,19.67,102.69,32.31]}
+{"kind":"textbox","id":"sh/doj29oba","slide":4,"name":"TextBox 5","text":"핵심 메시지","textPreview":"핵심 메시지","textChars":6,"textLines":1,"bbox":[134.46,20.14,211.92,42.01]}
+{"kind":"shape","id":"sh/tsrqlc7u","slide":4,"name":"직선 연결선 27","bbox":[121.12,76.1,1158.88,0]}
+{"kind":"textbox","id":"sh/1cj2d8b6","slide":4,"name":"TextBox 1","text":"ONE MESSAGE","textPreview":"ONE MESSAGE","textChars":11,"textLines":1,"bbox":[447.96,280.6,384.08,126.02]}
+{"kind":"textbox","id":"sh/0ba143al","slide":4,"name":"TextBox 2","text":"한 장에는 하나의 메시지만 담습니다","textPreview":"한 장에는 하나의 메시지만 담습니다","textChars":19,"textLines":1,"bbox":[436.6,430.06,406.8,48.47]}
+{"kind":"shape","id":"sh/rm1k7yt4","slide":4,"name":"양쪽 대괄호 3","bbox":[122.11,223.61,1037.47,323.12]}
+{"kind":"shape","id":"sh/sri9s7q9","slide":4,"bbox":[1038,680,242,40]}
+{"kind":"image","id":"im/tona5s3y","slide":4,"name":"","alt":"ImperialAX logo","bbox":[1080,676,160,28]}
+{"kind":"notes","id":"nt/jyx0ra1s","slide":4,"text":"[Sources]\n- User-provided reference decks: data/PPT/Samples/230424_Black_White_sbppt.pptx; data/PPT/Samples/221212_deep_leaning_sbppt.pptx\n- User-provided brand assets: data/Logo/Original/PNG_new/1x\n[/Sources]"}
+{"kind":"slide","id":"sl/i107q5of","slide":5,"title":"ImperialAX","textShapes":11}
+{"kind":"textbox","id":"sh/yhkbe1o7","slide":5,"name":"TextBox 4","text":"ImperialAX","textPreview":"ImperialAX","textChars":10,"textLines":1,"bbox":[27.55,19.67,106.9,32.31]}
+{"kind":"textbox","id":"sh/l4bupwny","slide":5,"name":"TextBox 5","text":"3가지 핵심 축","textPreview":"3가지 핵심 축","textChars":8,"textLines":1,"bbox":[134.46,20.14,211.92,42.01]}
+{"kind":"shape","id":"sh/w32dkbuh","slide":5,"name":"직선 연결선 9","bbox":[121.12,76.1,1158.88,0]}
+{"kind":"shape","id":"sh/dgbulwnm","slide":5,"name":"직선 연결선 1","bbox":[640.26,331.01,0,125.23]}
+{"kind":"shape","id":"sh/cf2tcr61","slide":5,"name":"직선 연결선 2","bbox":[503.14,457.01,135.22,81.31]}
+{"kind":"shape","id":"sh/z2tcnm5s","slide":5,"name":"직선 연결선 3","bbox":[643.3,457.01,112.62,71.31]}
+{"kind":"shape","id":"sh/032tgr6d","slide":5,"name":"타원 6","bbox":[373.79,478.67,184.65,184.65]}
+{"kind":"shape","id":"sh/n6dcr65o","slide":5,"name":"타원 7","bbox":[547.68,147.32,184.65,184.65]}
+{"kind":"shape","id":"sh/m5kbi1oj","slide":5,"name":"타원 8","bbox":[732.32,478.67,184.65,184.65]}
+{"kind":"textbox","id":"sh/x4vedgvm","slide":5,"name":"TextBox 10","text":"A","textPreview":"A","textChars":1,"textLines":1,"bbox":[604.76,201.82,69.2,80.78]}
+{"kind":"textbox","id":"sh/ahkvi1cb","slide":5,"name":"TextBox 11","text":"I","textPreview":"I","textChars":1,"textLines":1,"bbox":[437.4,534.15,57.42,80.78]}
+{"kind":"textbox","id":"sh/sb6xsvu9","slide":5,"name":"TextBox 17","text":"X","textPreview":"X","textChars":1,"textLines":1,"bbox":[787.69,534.33,73.91,80.78]}
+{"kind":"textbox","id":"sh/pkr6tgjy","slide":5,"name":"TextBox 23","text":"결정을 뒷받침하는 핵심 데이터와 관찰을 정리합니다.","textPreview":"결정을 뒷받침하는 핵심 데이터와 관찰을 정리합니다.","textChars":28,"textLines":1,"bbox":[56.63,556.11,244.8,87.24]}
+{"kind":"textbox","id":"sh/4ji5kbid","slide":5,"name":"TextBox 24","text":"인사이트","textPreview":"인사이트","textChars":4,"textLines":1,"bbox":[56.63,505.73,211.07,42.01]}
+{"kind":"textbox","id":"sh/kny587i9","slide":5,"name":"TextBox 28","text":"누가 무엇을 언제까지 할지 구체적인 행동으로 연결합니다.","textPreview":"누가 무엇을 언제까지 할지 구체적인 행동으로 연결합니다.","textChars":31,"textLines":1,"bbox":[964.51,556.11,244.8,87.24]}
+{"kind":"textbox","id":"sh/atcjidg7","slide":5,"name":"TextBox 29","text":"실행","textPreview":"실행","textChars":2,"textLines":1,"bbox":[964.51,505.73,211.07,42.01]}
+{"kind":"textbox","id":"sh/vu5kbihc","slide":5,"name":"TextBox 30","text":"우리가 달성하려는 결과와 고객 가치를 간결하게 설명합니다.","textPreview":"우리가 달성하려는 결과와 고객 가치를 간결하게 설명합니다.","textChars":32,"textLines":1,"bbox":[769.93,222.64,244.8,87.24]}
+{"kind":"textbox","id":"sh/wve1knyx","slide":5,"name":"TextBox 31","text":"목표","textPreview":"목표","textChars":2,"textLines":1,"bbox":[769.93,172.26,211.07,42.01]}
+{"kind":"shape","id":"sh/xwn2dszi","slide":5,"bbox":[1038,680,242,40]}
+{"kind":"image","id":"im/t4fid4ry","slide":5,"name":"","alt":"ImperialAX logo","bbox":[1080,676,160,28]}
+{"kind":"notes","id":"nt/i107q5of","slide":5,"text":"[Sources]\n- User-provided reference decks: data/PPT/Samples/230424_Black_White_sbppt.pptx; data/PPT/Samples/221212_deep_leaning_sbppt.pptx\n- User-provided brand assets: data/Logo/Original/PNG_new/1x\n[/Sources]"}
+{"kind":"slide","id":"sl/x8f69ofe","slide":6,"title":"ImperialAX","textShapes":4}
+{"kind":"textbox","id":"sh/98rqt4r6","slide":6,"name":"TextBox 4","text":"ImperialAX","textPreview":"ImperialAX","textChars":10,"textLines":1,"bbox":[27.55,19.67,106.9,32.31]}
+{"kind":"textbox","id":"sh/ml07i9sv","slide":6,"name":"TextBox 5","text":"두 가지 안 비교","textPreview":"두 가지 안 비교","textChars":9,"textLines":1,"bbox":[134.46,20.14,211.92,42.01]}
+{"kind":"shape","id":"sh/w32twb6l","slide":6,"name":"직사각형 10","bbox":[52,189.33,573.79,409.33]}
+{"kind":"shape","id":"sh/v2tcn650","slide":6,"name":"직사각형 11","bbox":[654.21,189.33,571.13,409.33]}
+{"kind":"shape","id":"sh/twfux0ne","slide":6,"name":"직사각형 17","bbox":[84.93,222.26,512.41,252]}
+{"kind":"shape","id":"sh/svmt4v6t","slide":6,"name":"직사각형 18","bbox":[682.67,222.26,512.41,252]}
+{"kind":"textbox","id":"sh/0fy5k3id","slide":6,"name":"TextBox 23","text":"Option A · 설명을 입력하세요","textPreview":"Option A · 설명을 입력하세요","textChars":20,"textLines":1,"bbox":[231.55,507.19,219.15,48.47]}
+{"kind":"textbox","id":"sh/lg76d8zy","slide":6,"name":"TextBox 24","text":"Option B · 설명을 입력하세요","textPreview":"Option B · 설명을 입력하세요","textChars":20,"textLines":1,"bbox":[830.19,507.19,219.15,48.47]}
+{"kind":"shape","id":"sh/gju58ji9","slide":6,"name":"직선 연결선 27","bbox":[121.12,76.1,1158.88,0]}
+{"kind":"shape","id":"sh/1k3mhozu","slide":6,"bbox":[1038,680,242,40]}
+{"kind":"image","id":"im/sn25c7q9","slide":6,"name":"","alt":"ImperialAX logo","bbox":[1080,676,160,28]}
+{"kind":"notes","id":"nt/x8f69ofe","slide":6,"text":"[Sources]\n- User-provided reference decks: data/PPT/Samples/230424_Black_White_sbppt.pptx; data/PPT/Samples/221212_deep_leaning_sbppt.pptx\n- User-provided brand assets: data/Logo/Original/PNG_new/1x\n[/Sources]"}
+{"kind":"slide","id":"sl/gnmp4jqx","slide":7,"title":"ImperialAX","textShapes":9}
+{"kind":"textbox","id":"sh/zedcfa9g","slide":7,"name":"TextBox 4","text":"ImperialAX","textPreview":"ImperialAX","textChars":10,"textLines":1,"bbox":[27.55,19.67,106.9,32.31]}
+{"kind":"textbox","id":"sh/kzmdova1","slide":7,"name":"TextBox 5","text":"프로세스 + 설명","textPreview":"프로세스 + 설명","textChars":9,"textLines":1,"bbox":[134.46,20.14,211.92,42.01]}
+{"kind":"shape","id":"sh/e5o32lor","slide":7,"name":"직선 연결선 27","bbox":[121.12,76.1,1158.88,0]}
+{"kind":"shape","id":"sh/cb2tkvap","slide":7,"name":"직사각형 1","bbox":[121.12,333.21,420.13,221.23]}
+{"kind":"shape","id":"sh/dcbud0ra","slide":7,"name":"직사각형 2","bbox":[121.12,135.38,420.13,75.52]}
+{"kind":"shape","id":"sh/ydkbm5sv","slide":7,"name":"직사각형 3","bbox":[121.12,231.1,420.13,75.52]}
+{"kind":"shape","id":"sh/l0vuh0rm","slide":7,"name":"직사각형 6","bbox":[121.12,572.52,420.13,75.52]}
+{"kind":"shape","id":"sh/eh0ba1sr","slide":7,"name":"직사각형 7","bbox":[158.08,371.23,346.21,62.23]}
+{"kind":"shape","id":"sh/fi9c369c","slide":7,"name":"직사각형 8","bbox":[158.08,463.76,346.21,62.23]}
+{"kind":"shape","id":"sh/lsj6t47m","slide":7,"name":"직선 화살표 연결선 9","bbox":[331.19,210.89,0,20.21]}
+{"kind":"shape","id":"sh/kra50jqh","slide":7,"name":"직선 화살표 연결선 12","bbox":[331.19,306.62,0,26.59]}
+{"kind":"shape","id":"sh/wneps3ap","slide":7,"name":"직선 화살표 연결선 13","bbox":[331.19,554.44,0,20.21]}
+{"kind":"textbox","id":"sh/25ojml43","slide":7,"name":"TextBox 14","text":"Input","textPreview":"Input","textChars":5,"textLines":1,"bbox":[234.99,153.75,192.39,38.78]}
+{"kind":"textbox","id":"sh/p8fih03e","slide":7,"name":"TextBox 15","text":"Analyze","textPreview":"Analyze","textChars":7,"textLines":1,"bbox":[234.99,249.76,192.39,38.78]}
+{"kind":"textbox","id":"sh/o761ov2t","slide":7,"name":"TextBox 16","text":"Build","textPreview":"Build","textChars":5,"textLines":1,"bbox":[225.23,381.62,211.92,42.01]}
+{"kind":"textbox","id":"sh/id4ju1oz","slide":7,"name":"TextBox 19","text":"Validate","textPreview":"Validate","textChars":8,"textLines":1,"bbox":[225.23,473.88,211.92,42.01]}
+{"kind":"textbox","id":"sh/jedkn654","slide":7,"name":"TextBox 20","text":"Outcome","textPreview":"Outcome","textChars":7,"textLines":1,"bbox":[169.86,586.08,322.65,48.47]}
+{"kind":"shape","id":"sh/4fm1wb6p","slide":7,"name":"직사각형 21","bbox":[571.44,135.38,645.93,517.86]}
+{"kind":"textbox","id":"sh/50v2pgna","slide":7,"name":"TextBox 22","text":"이 영역에는 프로세스의 전제, 중요한 판단 기준, 기대 결과를 3~4개의 짧은 문장으로 설명하세요. 왼쪽 단계와 같은 순서로 읽히도록 구성하면 발표 흐름이 자연스럽습니다.","textPreview":"이 영역에는 프로세스의 전제, 중요한 판단 기준, 기대 결과를 3~4개의 짧은 문장으로 설명하세요. 왼쪽 단계와 같은 순서로 읽히도록 구성하면 발표 흐름이 자연스럽습니다.","textChars":95,"textLines":1,"bbox":[617.47,367.39,563.75,224.13]}
+{"kind":"textbox","id":"sh/s3ml0v61","slide":7,"name":"TextBox 25","text":"핵심 포인트","textPreview":"핵심 포인트","textChars":6,"textLines":1,"bbox":[617.47,246.28,250.12,48.47]}
+{"kind":"shape","id":"sh/d4f2t0nm","slide":7,"name":"직선 연결선 26","bbox":[607.87,322.82,418.69,0]}
+{"kind":"shape","id":"sh/honq18ru","slide":7,"bbox":[1038,680,242,40]}
+{"kind":"image","id":"im/1gfipcvq","slide":7,"name":"","alt":"ImperialAX logo","bbox":[1080,676,160,28]}
+{"kind":"notes","id":"nt/gnmp4jqx","slide":7,"text":"[Sources]\n- User-provided reference decks: data/PPT/Samples/230424_Black_White_sbppt.pptx; data/PPT/Samples/221212_deep_leaning_sbppt.pptx\n- User-provided brand assets: data/Logo/Original/PNG_new/1x\n[/Sources]"}
+{"kind":"slide","id":"sl/fu1gfa1s","slide":8,"title":"ImperialAX","textShapes":13}
+{"kind":"textbox","id":"sh/6h0fypgb","slide":8,"name":"TextBox 4","text":"ImperialAX","textPreview":"ImperialAX","textChars":10,"textLines":1,"bbox":[27.55,19.67,98.49,32.31]}
+{"kind":"textbox","id":"sh/tkby9kzm","slide":8,"name":"TextBox 5","text":"실행 로드맵","textPreview":"실행 로드맵","textChars":6,"textLines":1,"bbox":[134.46,20.14,211.92,42.01]}
+{"kind":"shape","id":"sh/x4ne1wni","slide":8,"name":"직선 연결선 27","bbox":[121.12,76.1,1158.88,0]}
+{"kind":"shape","id":"sh/18byd4zy","slide":8,"name":"직사각형 1","bbox":[97.45,213.81,214.33,368.38]}
+{"kind":"shape","id":"sh/g72x4zyd","slide":8,"name":"직사각형 2","bbox":[97.45,213.81,214.33,63.44]}
+{"kind":"shape","id":"sh/ri9g7uhw","slide":8,"name":"직사각형 3","bbox":[966.29,213.81,214.33,368.38]}
+{"kind":"shape","id":"sh/sjix0zy1","slide":8,"name":"직사각형 6","bbox":[387.06,213.81,214.33,368.38]}
+{"kind":"shape","id":"sh/je9g3ahk","slide":8,"name":"직사각형 7","bbox":[676.68,213.81,214.33,368.38]}
+{"kind":"textbox","id":"sh/id0fu50z","slide":8,"name":"TextBox 8","text":">>","textPreview":">>","textChars":2,"textLines":1,"bbox":[328.96,390.95,40.93,38.78]}
+{"kind":"textbox","id":"sh/o7ydoret","slide":8,"name":"TextBox 9","text":">>","textPreview":">>","textChars":2,"textLines":1,"bbox":[620.21,390.95,40.93,38.78]}
+{"kind":"textbox","id":"sh/m5gvmhwn","slide":8,"name":"TextBox 11","text":">>","textPreview":">>","textChars":2,"textLines":1,"bbox":[906.54,390.95,40.93,38.78]}
+{"kind":"textbox","id":"sh/n6pwfmd8","slide":8,"name":"TextBox 12","text":"Step 1","textPreview":"Step 1","textChars":6,"textLines":1,"bbox":[159.8,225.88,86.37,38.78]}
+{"kind":"shape","id":"sh/0jydkreh","slide":8,"name":"직사각형 13","bbox":[387.06,213.81,214.33,63.44]}
+{"kind":"textbox","id":"sh/1k7edwv2","slide":8,"name":"TextBox 14","text":"Step 2","textPreview":"Step 2","textChars":6,"textLines":1,"bbox":[450,225.88,90.07,38.78]}
+{"kind":"shape","id":"sh/ehgvihwr","slide":8,"name":"직사각형 15","bbox":[676.68,213.81,214.33,63.44]}
+{"kind":"textbox","id":"sh/zipwbmdc","slide":8,"name":"TextBox 16","text":"Step 3","textPreview":"Step 3","textChars":6,"textLines":1,"bbox":[739.36,225.88,90.74,38.78]}
+{"kind":"shape","id":"sh/kfixwbe1","slide":8,"name":"직사각형 17","bbox":[966.29,213.81,214.33,63.44]}
+{"kind":"textbox","id":"sh/tw7e9gnq","slide":8,"name":"TextBox 19","text":"Step 4","textPreview":"Step 4","textChars":6,"textLines":1,"bbox":[1028.02,225.88,90.91,38.78]}
+{"kind":"textbox","id":"sh/svydgb65","slide":8,"name":"TextBox 20","text":"문제를 정의하고\n성공 기준을\n합의합니다.","textPreview":"문제를 정의하고 | 성공 기준을 | 합의합니다.","textChars":22,"textLines":3,"bbox":[115.27,343.65,176.68,170.98]}
+{"kind":"textbox","id":"sh/7u5w765k","slide":8,"name":"TextBox 21","text":"필요한 데이터와\n이해관계자 의견을\n수집합니다.","textPreview":"필요한 데이터와 | 이해관계자 의견을 | 수집합니다.","textChars":25,"textLines":3,"bbox":[404.88,343.65,176.68,170.98]}
+{"kind":"textbox","id":"sh/6twve1oz","slide":8,"name":"TextBox 22","text":"우선순위에 따라\n해결안을 만들고\n검증합니다.","textPreview":"우선순위에 따라 | 해결안을 만들고 | 검증합니다.","textChars":24,"textLines":3,"bbox":[694.5,343.65,176.68,170.98]}
+{"kind":"textbox","id":"sh/5sne5wne","slide":8,"name":"TextBox 23","text":"결과를 공유하고\n다음 실행으로\n연결합니다.","textPreview":"결과를 공유하고 | 다음 실행으로 | 연결합니다.","textChars":23,"textLines":3,"bbox":[985.11,343.65,176.68,170.98]}
+{"kind":"shape","id":"sh/w3ed8r6x","slide":8,"bbox":[1038,680,242,40]}
+{"kind":"image","id":"im/pc3upgn2","slide":8,"name":"","alt":"ImperialAX logo","bbox":[1080,676,160,28]}
+{"kind":"notes","id":"nt/fu1gfa1s","slide":8,"text":"[Sources]\n- User-provided reference decks: data/PPT/Samples/230424_Black_White_sbppt.pptx; data/PPT/Samples/221212_deep_leaning_sbppt.pptx\n- User-provided brand assets: data/Logo/Original/PNG_new/1x\n[/Sources]"}
+{"kind":"slide","id":"sl/udsvah03","slide":9,"title":"ImperialAX","textShapes":17}
+{"kind":"textbox","id":"sh/mdonql4z","slide":9,"name":"TextBox 4","text":"ImperialAX","textPreview":"ImperialAX","textChars":10,"textLines":1,"bbox":[27.55,19.67,98.49,32.31]}
+{"kind":"textbox","id":"sh/9gzml0nq","slide":9,"name":"TextBox 5","text":"단계별 타임라인","textPreview":"단계별 타임라인","textChars":8,"textLines":1,"bbox":[134.46,20.14,211.92,42.01]}
+{"kind":"shape","id":"sh/xgzitk76","slide":9,"name":"직선 연결선 27","bbox":[121.12,76.1,1158.88,0]}
+{"kind":"shape","id":"sh/p0ji9kf2","slide":9,"name":"직선 연결선 10","bbox":[0,381.21,1281.3,0]}
+{"kind":"shape","id":"sh/lsn2h4fa","slide":9,"name":"타원 18","bbox":[125.62,359.05,49.13,49.13]}
+{"kind":"textbox","id":"sh/xcfy90n6","slide":9,"name":"TextBox 36","text":"Phase 1","textPreview":"Phase 1","textChars":7,"textLines":1,"bbox":[111.54,425.27,77.28,38.78]}
+{"kind":"textbox","id":"sh/w3u5g3u5","slide":9,"name":"TextBox 46","text":"목표와 범위를 정하고 필요한 조건을 확인합니다.","textPreview":"목표와 범위를 정하고 필요한 조건을 확인합니다.","textChars":26,"textLines":1,"bbox":[39.46,538,221.44,128.42]}
+{"kind":"textbox","id":"sh/j6l4ritg","slide":9,"name":"TextBox 47","text":"준비","textPreview":"준비","textChars":2,"textLines":1,"bbox":[37.73,501.68,224.91,35.2]}
+{"kind":"shape","id":"sh/yx4j2pkj","slide":9,"name":"직사각형 62","bbox":[67.03,163.08,166.3,166.3]}
+{"kind":"shape","id":"sh/ze9gzqh0","slide":9,"name":"타원 70","bbox":[373.45,359.05,49.13,49.13]}
+{"kind":"textbox","id":"sh/0zih8bil","slide":9,"name":"TextBox 71","text":"Phase 2","textPreview":"Phase 2","textChars":7,"textLines":1,"bbox":[357.53,425.27,80.98,38.78]}
+{"kind":"textbox","id":"sh/rapgv61o","slide":9,"name":"TextBox 74","text":"핵심 과제와 담당자, 일정을 구체화합니다.","textPreview":"핵심 과제와 담당자, 일정을 구체화합니다.","textChars":23,"textLines":1,"bbox":[287.3,538,221.44,128.42]}
+{"kind":"textbox","id":"sh/cbyx4bi9","slide":9,"name":"TextBox 75","text":"설계","textPreview":"설계","textChars":2,"textLines":1,"bbox":[285.56,501.68,224.91,35.2]}
+{"kind":"shape","id":"sh/q9gf210j","slide":9,"name":"직사각형 73","bbox":[314.87,163.08,166.3,166.3]}
+{"kind":"shape","id":"sh/a5kze50n","slide":9,"name":"타원 77","bbox":[621.29,359.05,49.13,49.13]}
+{"kind":"textbox","id":"sh/b6tg7ah8","slide":9,"name":"TextBox 78","text":"Phase 3","textPreview":"Phase 3","textChars":7,"textLines":1,"bbox":[607.64,425.27,76.44,38.78]}
+{"kind":"textbox","id":"sh/lc7qdgn6","slide":9,"name":"TextBox 81","text":"우선순위에 따라 주요 활동을 진행합니다.","textPreview":"우선순위에 따라 주요 활동을 진행합니다.","textChars":22,"textLines":1,"bbox":[535.14,538,221.44,128.42]}
+{"kind":"textbox","id":"sh/kbep4b6l","slide":9,"name":"TextBox 82","text":"실행","textPreview":"실행","textChars":2,"textLines":1,"bbox":[533.4,501.68,224.91,35.2]}
+{"kind":"shape","id":"sh/y9w721of","slide":9,"name":"직사각형 80","bbox":[562.71,163.08,166.3,166.3]}
+{"kind":"shape","id":"sh/alw7yhoj","slide":9,"name":"타원 84","bbox":[869.13,359.05,49.13,49.13]}
+{"kind":"textbox","id":"sh/x8n69wnu","slide":9,"name":"TextBox 85","text":"Phase 4","textPreview":"Phase 4","textChars":7,"textLines":1,"bbox":[853.79,425.27,79.81,38.78]}
+{"kind":"textbox","id":"sh/mhc7uho7","slide":9,"name":"TextBox 88","text":"결과를 측정하고 개선 포인트를 확인합니다.","textPreview":"결과를 측정하고 개선 포인트를 확인합니다.","textChars":23,"textLines":1,"bbox":[782.97,538,221.44,128.42]}
+{"kind":"textbox","id":"sh/sna54nm5","slide":9,"name":"TextBox 89","text":"검증","textPreview":"검증","textChars":2,"textLines":1,"bbox":[781.24,501.68,224.91,35.2]}
+{"kind":"shape","id":"sh/nilo3m5s","slide":9,"name":"직사각형 87","bbox":[810.54,163.08,166.3,166.3]}
+{"kind":"shape","id":"sh/ql832d4z","slide":9,"name":"타원 91","bbox":[1116.96,359.05,49.13,49.13]}
+{"kind":"textbox","id":"sh/rm14vilk","slide":9,"name":"TextBox 92","text":"Phase 5","textPreview":"Phase 5","textChars":7,"textLines":1,"bbox":[1101.29,425.27,80.48,38.78]}
+{"kind":"textbox","id":"sh/epsn6x4b","slide":9,"name":"TextBox 95","text":"검증된 방식을 조직 전체로 확장합니다.","textPreview":"검증된 방식을 조직 전체로 확장합니다.","textChars":21,"textLines":1,"bbox":[1030.81,538,221.44,128.42]}
+{"kind":"textbox","id":"sh/zq14zilw","slide":9,"name":"TextBox 96","text":"확장","textPreview":"확장","textChars":2,"textLines":1,"bbox":[1029.07,501.68,224.91,35.2]}
+{"kind":"shape","id":"sh/1sjm1s3m","slide":9,"name":"직사각형 94","bbox":[1058.38,163.08,166.3,166.3]}
+{"kind":"shape","id":"sh/gvqlw3mx","slide":9,"bbox":[1038,680,242,40]}
+{"kind":"image","id":"im/2ds3e1oz","slide":9,"name":"","alt":"ImperialAX logo","bbox":[1080,676,160,28]}
+{"kind":"notes","id":"nt/udsvah03","slide":9,"text":"[Sources]\n- User-provided reference decks: data/PPT/Samples/230424_Black_White_sbppt.pptx; data/PPT/Samples/221212_deep_leaning_sbppt.pptx\n- User-provided brand assets: data/Logo/Original/PNG_new/1x\n[/Sources]"}
+{"kind":"slide","id":"sl/m90b6t0r","slide":10,"title":"ImperialAX","textShapes":3}
+{"kind":"textbox","id":"sh/ydcnatkn","slide":10,"name":"TextBox 4","text":"ImperialAX","textPreview":"ImperialAX","textChars":10,"textLines":1,"bbox":[27.55,19.67,98.49,32.31]}
+{"kind":"textbox","id":"sh/l036l83y","slide":10,"name":"TextBox 5","text":"비교 표","textPreview":"비교 표","textChars":4,"textLines":1,"bbox":[134.46,20.14,211.92,42.01]}
+{"kind":"shape","id":"sh/1o3ahwvq","slide":10,"name":"직선 연결선 27","bbox":[121.12,76.1,1158.88,0]}
+{"kind":"textbox","id":"sh/lk7ut0va","slide":10,"name":"TextBox 23","text":"비교 기준과 해석의 전제를 한 문장으로 설명하세요.","textPreview":"비교 기준과 해석의 전제를 한 문장으로 설명하세요.","textChars":28,"textLines":1,"bbox":[178.38,153.16,1008.71,100.17]}
+{"kind":"shape","id":"sh/kjytkvup","slide":10,"name":"양쪽 대괄호 24","bbox":[121.12,118.67,1117.91,162.67]}
+{"kind":"shape","id":"sh/q9srixs3","slide":10,"bbox":[1038,680,242,40]}
+{"kind":"table","id":"tb/3mh0fihk","slide":10,"name":"표 10","rows":6,"cols":4,"preview":"구분 | 기준 A | 기준 B | 비고","bbox":[121.12,321.44,1117.91,351.93]}
+{"kind":"image","id":"im/s3axkfad","slide":10,"name":"","alt":"ImperialAX logo","bbox":[1080,676,160,28]}
+{"kind":"notes","id":"nt/m90b6t0r","slide":10,"text":"[Sources]\n- User-provided reference decks: data/PPT/Samples/230424_Black_White_sbppt.pptx; data/PPT/Samples/221212_deep_leaning_sbppt.pptx\n- User-provided brand assets: data/Logo/Original/PNG_new/1x\n[/Sources]"}
+{"kind":"slide","id":"sl/jetc3ut0","slide":11,"title":"ImperialAX","textShapes":3}
+{"kind":"textbox","id":"sh/250zy18b","slide":11,"name":"TextBox 4","text":"ImperialAX","textPreview":"ImperialAX","textChars":10,"textLines":1,"bbox":[27.55,19.67,98.49,32.31]}
+{"kind":"textbox","id":"sh/98rytw72","slide":11,"name":"TextBox 5","text":"데이터 시각화","textPreview":"데이터 시각화","textChars":7,"textLines":1,"bbox":[134.46,20.14,211.92,42.01]}
+{"kind":"shape","id":"sh/p07ixkn6","slide":11,"name":"직선 연결선 27","bbox":[121.12,76.1,1158.88,0]}
+{"kind":"shape","id":"sh/9gza9sze","slide":11,"name":"직사각형 10","bbox":[659.67,143.53,566.54,515.62]}
+{"kind":"shape","id":"sh/j2lgjq5w","slide":11,"name":"직사각형 25","bbox":[57.96,143.53,568.36,515.62]}
+{"kind":"shape","id":"sh/4zyhofml","slide":11,"name":"직사각형 28","bbox":[81.86,165.84,522.88,71.86]}
+{"kind":"textbox","id":"sh/m58fih43","slide":11,"name":"TextBox 29","text":"분기 성과 예시","textPreview":"분기 성과 예시","textChars":8,"textLines":1,"bbox":[168.84,174.3,337.3,54.93]}
+{"kind":"shape","id":"sh/98jedc3u","slide":11,"bbox":[1038,680,242,40]}
+{"kind":"chart","id":"ch/bud83i5g","slide":11,"name":"차트 18","chartType":"bar","title":"성과 추이","bbox":[687.24,172.79,516.75,454.64]}
+{"kind":"chart","id":"ch/cvmpcnm1","slide":11,"name":"차트 26","chartType":"pie","title":"구성 비중","bbox":[108.69,243.5,464,412.99]}
+{"kind":"image","id":"im/xgjmdcra","slide":11,"name":"","alt":"ImperialAX logo","bbox":[1080,676,160,28]}
+{"kind":"notes","id":"nt/jetc3ut0","slide":11,"text":"[Sources]\n- User-provided reference decks: data/PPT/Samples/230424_Black_White_sbppt.pptx; data/PPT/Samples/221212_deep_leaning_sbppt.pptx\n- User-provided brand assets: data/Logo/Original/PNG_new/1x\n[/Sources]"}
+{"kind":"slide","id":"sl/8f2psfyx","slide":12,"title":"ImperialAX","textShapes":10}
+{"kind":"textbox","id":"sh/q903ad4n","slide":12,"name":"TextBox 4","text":"ImperialAX","textPreview":"ImperialAX","textChars":10,"textLines":1,"bbox":[27.55,19.67,98.49,32.31]}
+{"kind":"textbox","id":"sh/dcbm583y","slide":12,"name":"TextBox 5","text":"SWOT 분석","textPreview":"SWOT 분석","textChars":7,"textLines":1,"bbox":[134.46,20.14,211.92,42.01]}
+{"kind":"shape","id":"sh/dcv6dgz2","slide":12,"name":"직선 연결선 27","bbox":[121.12,76.1,1158.88,0]}
+{"kind":"shape","id":"sh/1gbm9s3a","slide":12,"name":"직사각형 1","bbox":[120.23,158.4,529.13,238.11]}
+{"kind":"shape","id":"sh/0f2lgnmp","slide":12,"name":"직사각형 2","bbox":[650.06,158.44,529.13,238.11]}
+{"kind":"shape","id":"sh/ra943il8","slide":12,"name":"직사각형 3","bbox":[120.23,396.46,529.13,238.11]}
+{"kind":"shape","id":"sh/sb2lcnmd","slide":12,"name":"직사각형 6","bbox":[650.06,396.46,529.13,238.11]}
+{"kind":"shape","id":"sh/b6d4f2lc","slide":12,"name":"직사각형 7","bbox":[580.29,328.22,50.67,50.67]}
+{"kind":"textbox","id":"sh/a543mx4r","slide":12,"name":"TextBox 8","text":"S","textPreview":"S","textChars":1,"textLines":1,"bbox":[585.04,329.32,40.93,48.47]}
+{"kind":"shape","id":"sh/wvupgz6t","slide":12,"name":"직사각형 9","bbox":[669.18,328.22,50.67,50.67]}
+{"kind":"textbox","id":"sh/bulo7u58","slide":12,"name":"TextBox 12","text":"W","textPreview":"W","textChars":1,"textLines":1,"bbox":[668.33,331.14,51.7,48.47]}
+{"kind":"shape","id":"sh/orapcf6h","slide":12,"name":"직사각형 13","bbox":[580.29,418,50.67,50.67]}
+{"kind":"textbox","id":"sh/9sj65kn2","slide":12,"name":"TextBox 14","text":"O","textPreview":"O","textChars":1,"textLines":1,"bbox":[582.83,419.1,44.8,48.47]}
+{"kind":"shape","id":"sh/mps7a5or","slide":12,"name":"직사각형 15","bbox":[669.36,418,50.67,50.67]}
+{"kind":"textbox","id":"sh/nq1o3a5w","slide":12,"name":"TextBox 16","text":"T","textPreview":"T","textChars":1,"textLines":1,"bbox":[674.62,419.1,40.09,48.47]}
+{"kind":"textbox","id":"sh/hkbm5wzu","slide":12,"name":"TextBox 19","text":"핵심 기술\n차별화 자산\n전문 인력\n고객 신뢰","textPreview":"핵심 기술 | 차별화 자산 | 전문 인력 | 고객 신뢰","textChars":24,"textLines":4,"bbox":[147.63,189.13,324.35,182.4]}
+{"kind":"textbox","id":"sh/gj25cry9","slide":12,"name":"TextBox 20","text":"제한된 자원\n운영 복잡도\n인지도 과제\n보완 역량","textPreview":"제한된 자원 | 운영 복잡도 | 인지도 과제 | 보완 역량","textChars":26,"textLines":4,"bbox":[838.12,189.13,310.2,182.4]}
+{"kind":"textbox","id":"sh/fit436ho","slide":12,"name":"TextBox 21","text":"시장 성장\n신규 수요\n파트너십\n확장 가능성","textPreview":"시장 성장 | 신규 수요 | 파트너십 | 확장 가능성","textChars":23,"textLines":4,"bbox":[147.63,422.32,324.35,182.4]}
+{"kind":"textbox","id":"sh/uh0na1g3","slide":12,"name":"TextBox 22","text":"경쟁 심화\n정책 변화\n기술 변화\n실행 리스크","textPreview":"경쟁 심화 | 정책 변화 | 기술 변화 | 실행 리스크","textChars":24,"textLines":4,"bbox":[886.12,422.1,262.2,182.4]}
+{"kind":"shape","id":"sh/cbm5kbyh","slide":12,"bbox":[1038,680,242,40]}
+{"kind":"image","id":"im/ps7mlwbu","slide":12,"name":"","alt":"ImperialAX logo","bbox":[1080,676,160,28]}
+{"kind":"notes","id":"nt/8f2psfyx","slide":12,"text":"[Sources]\n- User-provided reference decks: data/PPT/Samples/230424_Black_White_sbppt.pptx; data/PPT/Samples/221212_deep_leaning_sbppt.pptx\n- User-provided brand assets: data/Logo/Original/PNG_new/1x\n[/Sources]"}
+{"kind":"slide","id":"sl/hgzapcr6","slide":13,"title":"Q&A","textShapes":1}
+{"kind":"textbox","id":"sh/o3i5w3ad","slide":13,"name":"TextBox 3","text":"Q&A","textPreview":"Q&A","textChars":3,"textLines":1,"bbox":[320,38.99,640,232.65]}
+{"kind":"shape","id":"sh/21gnuts7","slide":13,"bbox":[1038,680,242,40]}
+{"kind":"image","id":"im/cbm54fqd","slide":13,"name":"그림 2","alt":"ImperialAX logo","bbox":[400,72.56,480,647.44]}
+{"kind":"notes","id":"nt/hgzapcr6","slide":13,"text":"[Sources]\n- User-provided reference decks: data/PPT/Samples/230424_Black_White_sbppt.pptx; data/PPT/Samples/221212_deep_leaning_sbppt.pptx\n- User-provided brand assets: data/Logo/Original/PNG_new/1x\n[/Sources]"}
+{"kind":"slide","id":"sl/6lsnupw7","slide":14,"title":"감사합니다","textShapes":1}
+{"kind":"textbox","id":"sh/jepwf2pc","slide":14,"name":"TextBox 3","text":"감사합니다","textPreview":"감사합니다","textChars":5,"textLines":1,"bbox":[624.84,475.79,640,171.26]}
+{"kind":"image","id":"im/j65k72x8","slide":14,"name":"그림 2","bbox":[0,0,1280,720]}
+{"kind":"image","id":"im/47y107ed","slide":14,"name":"","alt":"ImperialAX logo","bbox":[950,630,250,44]}
+{"kind":"notes","id":"nt/6lsnupw7","slide":14,"text":"[Sources]\n- User-provided reference decks: data/PPT/Samples/230424_Black_White_sbppt.pptx; data/PPT/Samples/221212_deep_leaning_sbppt.pptx\n- User-provided brand assets: data/Logo/Original/PNG_new/1x\n[/Sources]"}

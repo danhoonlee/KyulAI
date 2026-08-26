@@ -116,6 +116,7 @@ public struct CurveChartView: View {
                         drawBilinearFit(context: clippedContext, layout: layout, fit: bilinearFit)
                         drawPtKink(context: clippedContext, layout: layout, fit: bilinearFit)
                     }
+                    drawPredictedPt(context: clippedContext, layout: layout)
                 }
                 if let layout = ChartLayout(points: points, size: proxy.size, predictedPt: predictedPt, fitMode: fitMode, curveFit: curveFit, viewport: viewport), let selectedPoint {
                     selectionOverlay(point: selectedPoint, layout: layout)
@@ -383,8 +384,8 @@ public struct CurveChartView: View {
         let items: [(CurveLegendStyle, String)] = [
             (.curve, L10n.t("curve.legend.predicted.curve")),
             (.linearFit, L10n.t("curve.legend.linear.fit")),
-            (.kinkGuide, L10n.t("curve.legend.kink.guide")),
-            (.point, L10n.t("predicted.pt")),
+            (.fitIntersection, L10n.t("curve.legend.fit.intersection")),
+            (.predictedPoint, L10n.t("predicted.pt")),
         ]
 
         return ViewThatFits(in: .horizontal) {
@@ -470,13 +471,7 @@ public struct CurveChartView: View {
             style: StrokeStyle(lineWidth: 1.9, lineCap: .round, lineJoin: .round, dash: [7, 5])
         )
 
-        let guideMarker: CurveCoordinate
-        switch layout.fitMode {
-        case .standard:
-            guideMarker = fit.detectedKink ?? fit.kink
-        case .u3:
-            guideMarker = layout.fitIntersection ?? fit.kink
-        }
+        let guideMarker = layout.fitIntersection ?? fit.kink
         let kink = layout.coordinate(displacement: guideMarker.displacement, force: guideMarker.force)
         var guide = Path()
         guide.move(to: CGPoint(x: kink.x, y: layout.plotFrame.minY))
@@ -489,13 +484,7 @@ public struct CurveChartView: View {
     }
 
     private func drawPtKink(context: GraphicsContext, layout: ChartLayout, fit: BilinearFit) {
-        let marker: CurveCoordinate
-        switch layout.fitMode {
-        case .standard:
-            marker = fit.kink
-        case .u3:
-            marker = layout.fitIntersection ?? fit.kink
-        }
+        let marker = layout.fitIntersection ?? fit.kink
         let coordinate = layout.coordinate(displacement: marker.displacement, force: marker.force)
         var diamond = Path()
         diamond.move(to: CGPoint(x: coordinate.x, y: coordinate.y - 7))
@@ -505,6 +494,19 @@ public struct CurveChartView: View {
         diamond.closeSubpath()
         context.fill(diamond, with: .color(.white))
         context.stroke(diamond, with: .color(Color.purple), lineWidth: 2)
+    }
+
+    private func drawPredictedPt(context: GraphicsContext, layout: ChartLayout) {
+        guard let marker = layout.ptMarker(force: predictedPt) else { return }
+        let radius: CGFloat = 6
+        let rect = CGRect(
+            x: marker.x - radius,
+            y: marker.y - radius,
+            width: radius * 2,
+            height: radius * 2
+        )
+        context.fill(Path(ellipseIn: rect), with: .color(AppTheme.danger))
+        context.stroke(Path(ellipseIn: rect), with: .color(.white), lineWidth: 2)
     }
 
     private func selectionOverlay(point: ResponseCurvePoint, layout: ChartLayout) -> some View {
@@ -552,8 +554,8 @@ public enum CurveFitMode {
 private enum CurveLegendStyle {
     case curve
     case linearFit
-    case kinkGuide
-    case point
+    case fitIntersection
+    case predictedPoint
 }
 
 private struct ChartIconButtonStyle: ButtonStyle {
@@ -601,7 +603,7 @@ private struct CurveLegendSwatch: View {
                     with: .color(AppTheme.danger.opacity(0.94)),
                     style: StrokeStyle(lineWidth: 1.9, lineCap: .round, dash: [7, 5])
                 )
-            case .kinkGuide:
+            case .fitIntersection:
                 var path = Path()
                 path.move(to: CGPoint(x: size.width / 2, y: 1))
                 path.addLine(to: CGPoint(x: size.width / 2, y: size.height - 1))
@@ -610,16 +612,11 @@ private struct CurveLegendSwatch: View {
                     with: .color(Color.purple.opacity(0.62)),
                     style: StrokeStyle(lineWidth: 1.4, lineCap: .round, dash: [5, 4])
                 )
-            case .point:
+            case .predictedPoint:
                 let center = CGPoint(x: size.width / 2, y: midY)
-                var diamond = Path()
-                diamond.move(to: CGPoint(x: center.x, y: center.y - 5))
-                diamond.addLine(to: CGPoint(x: center.x + 5, y: center.y))
-                diamond.addLine(to: CGPoint(x: center.x, y: center.y + 5))
-                diamond.addLine(to: CGPoint(x: center.x - 5, y: center.y))
-                diamond.closeSubpath()
-                context.fill(diamond, with: .color(.white))
-                context.stroke(diamond, with: .color(Color.purple), lineWidth: 2)
+                let rect = CGRect(x: center.x - 5, y: center.y - 5, width: 10, height: 10)
+                context.fill(Path(ellipseIn: rect), with: .color(AppTheme.danger))
+                context.stroke(Path(ellipseIn: rect), with: .color(.white), lineWidth: 1.5)
             }
         }
         .frame(width: 28, height: 16)
@@ -825,7 +822,7 @@ private struct ChartLayout {
 
     private func interpolatedPoint(atForce targetForce: Double) -> CurveCoordinate? {
         if targetForce <= points[0].force {
-            return CurveCoordinate(displacement: points[0].displacement, force: points[0].force)
+            return CurveCoordinate(displacement: points[0].displacement, force: targetForce)
         }
         for index in 1..<points.count {
             let previous = points[index - 1]
@@ -846,7 +843,7 @@ private struct ChartLayout {
             )
         }
         guard let last = points.last else { return nil }
-        return CurveCoordinate(displacement: last.displacement, force: last.force)
+        return CurveCoordinate(displacement: last.displacement, force: targetForce)
     }
 
     private static func tickValues(min: Double, max: Double, count: Int) -> [Double] {
@@ -1152,7 +1149,7 @@ private struct ChartLayout {
     private static func pointAtForce(points: [ResponseCurvePoint], force: Double) -> CurveCoordinate? {
         guard let first = points.first else { return nil }
         if force <= first.force {
-            return CurveCoordinate(displacement: first.displacement, force: first.force)
+            return CurveCoordinate(displacement: first.displacement, force: force)
         }
         for index in 1..<points.count {
             let previous = points[index - 1]
@@ -1171,7 +1168,7 @@ private struct ChartLayout {
             )
         }
         guard let last = points.last else { return nil }
-        return CurveCoordinate(displacement: last.displacement, force: last.force)
+        return CurveCoordinate(displacement: last.displacement, force: force)
     }
 
     private static func linearFit(_ samples: [ResponseCurvePoint]) -> FittedLine? {

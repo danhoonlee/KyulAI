@@ -3,7 +3,7 @@
 - Status: **ready**
 - Prepared experiment: `20260811-uq-mondrian-ood-tree-v2`
 - Git branch: `codex/dd-aicomp2026-uq`
-- Git commit: `744dc2b530ebc36f00d8fd5eee2c33a4bb932c33`
+- Git commit: `06210e5f64cdc1766b94e987218c797dd1d82da0`
 - Production endpoints changed: **No**
 
 ## Checks

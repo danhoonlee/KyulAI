@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ImperialAX 적층 예측 — 구조 재설계</title>
+    <link rel="alternate" hreflang="ko" href="/v2/ko" />
+    <link rel="alternate" hreflang="en" href="/v2/en" />
+  <link rel="stylesheet" href="/styles-rebuild.css?v=20260816-mobile-polish-2" />
+  </head>
+  <body>
+    <main class="rebuild-shell">
+      <header class="rebuild-header">
+        <a class="brand" href="/" aria-label="현재 운영 화면으로 돌아가기">
+          <img src="/assets/imperialax-logo-black.png?v=20260812-v2-logo-1" alt="ImperialAX" />
+        </a>
+        <div class="header-title">
+          <span>Laminate Forecast</span>
+          <strong>적층 후보 스크리닝</strong>
+        </div>
+        <div class="header-actions">
+          <span class="status-badge"><i></i>Concept preview</span>
+          <a href="/">현재 운영 화면</a>
+        </div>
+      </header>
+
+      <section class="command-bar" aria-label="분석 모드와 현재 입력">
+        <div class="analysis-mode">
+          <span>분석 모드</span>
+          <div class="segmented-control" role="radiogroup" aria-label="분석 모드">
+            <button type="button" role="radio" aria-checked="true" tabindex="0" data-analysis-mode="quick">빠른 스크리닝</button>
+            <button type="button" role="radio" aria-checked="false" tabindex="-1" data-analysis-mode="deep">딥 다이브</button>
+          </div>
+        </div>
+        <p class="current-input" id="current-input-summary">
+          <span>현재 입력</span>
+          <strong>Case 2 · θ 30° / −30° · 6 × 4 in</strong>
+        </p>
+      </section>
+
+      <section class="forecast-layout">
+        <aside class="setup-panel" id="setup-panel" aria-labelledby="setup-title">
+          <form id="rebuild-forecast-form" novalidate>
+            <div class="section-heading">
+              <span>Forecast setup</span>
+              <h1 id="setup-title">후보 조건 설정</h1>
+              <p>핵심 변수만 조정해 빠르게 후보를 선별합니다.</p>
+            </div>
+
+            <label class="field">
+              <span>모델</span>
+              <select name="model" id="rebuild-model-select">
+                <optgroup label="3-Size Pt-Consistent">
+                  <option value="response_pt_consistent_tree_3size_grouped_v1">Machine Learning · Tree</option>
+                  <option value="response_pt_consistent_goint_3size_grouped_v1">Deep Learning · GointMLP</option>
+                  <option value="response_pt_consistent_hybrid_3size_grouped_v1">Hybrid · Teacher–Student</option>
+                </optgroup>
+              </select>
+              <small class="model-description" id="model-description">빠르고 안정적인 Tree 기반 3-Size Pt 일관성 모델입니다.</small>
+            </label>
+
+            <div class="angle-fields">
+              <label class="angle-field">
+                <span class="field-head"><span>Theta 1</span><output data-angle-output="theta1">+30°</output></span>
+                <input name="theta1" type="number" min="-90" max="90" value="30" required />
+                <input name="theta1_range" type="range" min="-90" max="90" value="30" aria-label="Theta 1 슬라이더" />
+              </label>
+              <label class="angle-field">
+                <span class="field-head"><span>Theta 2</span><output data-angle-output="theta2">−30°</output></span>
+                <input name="theta2" type="number" min="-90" max="90" value="-30" required />
+                <input name="theta2_range" type="range" min="-90" max="90" value="-30" aria-label="Theta 2 슬라이더" />
+              </label>
+            </div>
+
+            <label class="field">
+              <span>Case</span>
+              <select name="case">
+                <option value="Case2">Case 2</option>
+                <option value="Case3">Case 3</option>
+                <option value="Case4">Case 4</option>
+              </select>
+            </label>
+
+            <div class="panel-fields">
+              <label class="field">
+                <span>패널 길이 a (in)</span>
+                <input name="panel_a" type="number" min="0.1" step="0.1" value="6" required />
+              </label>
+              <label class="field">
+                <span>패널 폭 b (in)</span>
+                <input name="panel_b" type="number" min="0.1" step="0.1" value="4" required />
+              </label>
+            </div>
+
+            <details class="stack-preview-details">
+              <summary>
+                <span><strong>적층 미리보기</strong><small id="stack-preview-summary">Case 2 · θ +30° / −30°</small></span>
+                <i aria-hidden="true"></i>
+              </summary>
+              <div class="mini-stack" id="stack-preview-visual" aria-label="Double-Double 적층 미리보기"></div>
+              <div class="stack-preview-legend" aria-label="적층 미리보기 범례">
+                <span class="theta-one"><i aria-hidden="true"></i>θ₁ 계열</span>
+                <span class="theta-two"><i aria-hidden="true"></i>θ₂ 계열</span>
+                <strong id="stack-preview-count">16 plies</strong>
+              </div>
+              <p id="stack-formula">Case 2 · [[±θ₁]/[±θ₂]]₄</p>
+            </details>
+
+            <button class="run-button" type="submit">
+              <span>예측 실행</span>
+              <small>새 결과를 비교 목록에 추가</small>
+            </button>
+            <p class="inline-state" id="inline-state" aria-live="polite"></p>
+          </form>
+        </aside>
+
+        <section class="result-workspace" aria-labelledby="result-workspace-title">
+          <div class="workspace-heading">
+            <div>
+              <span>Analysis workspace</span>
+              <h2 id="result-workspace-title">예측 결과</h2>
+            </div>
+            <p id="result-timestamp">아직 실행된 결과 없음</p>
+          </div>
+
+          <section class="result-empty-state" id="result-empty-state" aria-labelledby="result-empty-title">
+            <div class="result-empty-mark" aria-hidden="true"><i></i><i></i><i></i></div>
+            <span>Forecast result</span>
+            <h3 id="result-empty-title">아직 실행된 예측이 없습니다</h3>
+            <p>왼쪽에서 조건을 설정한 후 예측을 실행하세요.</p>
+            <button type="button" id="show-example-result">예시 결과 보기</button>
+            <small>예시 데이터는 모델을 실행한 결과가 아닙니다.</small>
+          </section>
+
+          <div class="result-tabs" role="tablist" aria-label="예측 결과 보기" hidden>
+            <button role="tab" id="tab-summary" aria-selected="true" aria-controls="panel-summary" tabindex="0" data-result-tab="summary">요약</button>
+            <button role="tab" id="tab-curve" aria-selected="false" aria-controls="panel-curve" tabindex="-1" data-result-tab="curve">곡선</button>
+            <button role="tab" id="tab-ply" aria-selected="false" aria-controls="panel-ply" tabindex="-1" data-result-tab="ply">Ply Sequence</button>
+            <button role="tab" id="tab-xai" aria-selected="false" aria-controls="panel-xai" tabindex="-1" data-result-tab="xai">XAI</button>
+            <button role="tab" id="tab-space" aria-selected="false" aria-controls="panel-space" tabindex="-1" data-result-tab="space">디자인 스페이스</button>
+          </div>
+
+          <div class="tab-panels" hidden>
+            <section role="tabpanel" id="panel-summary" aria-labelledby="tab-summary" data-result-panel="summary">
+              <article class="decision-hero" aria-labelledby="decision-hero-title">
+                  <header class="decision-section-heading">
+                    <h3 id="decision-hero-title">예측 거동</h3>
+                    <strong id="screening-verdict">딥 다이브 검토 권장</strong>
+                  </header>
+
+                  <div class="result-metric-strip" aria-label="핵심 예측 지표">
+                    <article>
+                      <span>Type</span>
+                      <strong id="metric-type">Type 2</strong>
+                    </article>
+                    <article>
+                      <span>Type 확률</span>
+                      <strong id="metric-probability">87.4%</strong>
+                    </article>
+                    <article>
+                      <span>Transition Pt</span>
+                      <strong id="metric-pt">17,190.00</strong>
+                      <small>N</small>
+                    </article>
+                    <article>
+                      <span>최대 하중</span>
+                      <strong id="metric-max-force-summary">23,152.50</strong>
+                      <small>N</small>
+                    </article>
+                    <article>
+                      <span>최대 변위</span>
+                      <strong id="metric-displacement">0.0832</strong>
+                      <small>in</small>
+                    </article>
+                  </div>
+
+                  <p class="result-summary-copy" id="screening-copy">Pt는 상위권이지만 Type 2 전환 거동이 보여 곡선과 XAI 확인이 유용합니다.</p>
+
+                  <div class="summary-curve-shell">
+                    <canvas id="rebuild-summary-curve-canvas" width="960" height="320" aria-label="요약 예측 응답 곡선"></canvas>
+                  </div>
+                  <footer class="decision-stack-row">
+                    <div class="decision-stack-heading">
+                      <div>
+                        <span>Ply fingerprint</span>
+                        <strong id="summary-stack-label">Case 2 · θ +30° / −30°</strong>
+                        <small id="summary-stack-meta">16 plies · Double-Double laminate</small>
+                      </div>
+                      <button type="button" data-open-deep="ply">3D에서 보기</button>
+                    </div>
+                    <div class="summary-stack-visual ply-sequence" id="summary-stack-visual" aria-label="요약 적층 fingerprint"></div>
+                  </footer>
+              </article>
+
+              <aside class="result-context" id="result-context" aria-label="예측 문맥">
+                <dl>
+                  <div><dt>모델</dt><dd id="trust-model">Machine Learning · Tree</dd></div>
+                  <div><dt>학습 범위</dt><dd id="trust-domain">Case 2–4 · 3 panel sizes</dd></div>
+                  <div><dt>현재 위치</dt><dd id="trust-position">보간 영역</dd></div>
+                  <div class="result-context-reliability"><dt>신뢰도</dt><dd><strong id="metric-reliability">높음</strong><span id="metric-reliability-score">91.2%</span></dd></div>
+                </dl>
+                <button type="button" data-open-deep="xai">XAI 보기</button>
+              </aside>
+            </section>
+
+            <section role="tabpanel" id="panel-curve" aria-labelledby="tab-curve" data-result-panel="curve" hidden>
+              <div class="panel-title">
+                <div><span>Response curve</span><h3>예측 하중–변위 곡선</h3></div>
+              </div>
+              <div class="tab-metric-row" aria-label="곡선 핵심 지표">
+                <article><span>최대 하중</span><strong id="curve-max-force">-</strong><small>N</small></article>
+                <article><span>최대 변위</span><strong id="curve-max-displacement">-</strong><small>in</small></article>
+                <article><span>전이점 Pt</span><strong id="curve-pt">-</strong><small>N</small></article>
+              </div>
+              <div class="curve-viewer-head">
+                <span>곡선 상세 보기 · 드래그 이동 · 두 손가락 확대</span>
+                <div class="curve-tools" aria-label="응답 곡선 확대/축소">
+                  <button type="button" data-curve-zoom="out" title="축소" aria-label="곡선 축소">−</button>
+                  <output id="rebuild-curve-zoom-label">100%</output>
+                  <button type="button" data-curve-zoom="in" title="확대" aria-label="곡선 확대">+</button>
+                  <button type="button" data-curve-zoom="reset" title="초기화" aria-label="곡선 보기 초기화">Reset</button>
+                </div>
+              </div>
+              <canvas id="rebuild-curve-canvas" width="960" height="480" aria-label="예측 응답 곡선"></canvas>
+              <div class="chart-legend curve-legend-row" aria-label="응답 곡선 범례"><span><i class="curve-line"></i>예측 곡선</span><span><i class="fit-line"></i>P1 선형 피팅</span><span><i class="pt-dot"></i>예측 Pt</span></div>
+              <p class="tab-note" id="curve-note">모델이 예측한 원시 곡선과 전이점 Pt를 함께 표시합니다.</p>
+            </section>
+
+            <section role="tabpanel" id="panel-ply" aria-labelledby="tab-ply" data-result-panel="ply" hidden>
+              <div class="panel-title">
+                <div><span>Laminate architecture</span><h3>전체 Ply Sequence</h3></div>
+                <p>16개 ply의 3D 적층 방향을 확인합니다.</p>
+              </div>
+              <div class="ply-detail-layout">
+                <div class="result-stack-visual" id="result-stack-visual" aria-label="상세 3D 적층 구조"></div>
+                <aside class="ply-detail-meta" aria-label="적층 구조 요약">
+                  <div><span>Stack case</span><strong id="result-stack-summary">Case 2 · θ +30° / −30°</strong></div>
+                  <div><span>Sequence formula</span><strong id="result-stack-formula">[[±θ₁]/[±θ₂]]₄</strong></div>
+                  <div><span>Total</span><strong id="result-stack-count">16 plies</strong></div>
+                  <p>색은 θ 계열을, 사선 방향은 각 ply의 양·음 방향을 나타냅니다.</p>
+                </aside>
+              </div>
+              <div class="ply-sequence-detail">
+                <div class="ply-sequence-heading">
+                  <div><span>Sequence map</span><strong>표면에서 바닥 방향 · P1 → P16</strong></div>
+                  <div class="stack-preview-legend" aria-label="Ply Sequence 범례">
+                    <span class="theta-one"><i aria-hidden="true"></i>θ₁ 계열</span>
+                    <span class="theta-two"><i aria-hidden="true"></i>θ₂ 계열</span>
+                  </div>
+                </div>
+                <div class="ply-sequence ply-sequence-large" id="result-ply-sequence" aria-label="전체 Ply Sequence"></div>
+              </div>
+            </section>
+
+            <section role="tabpanel" id="panel-xai" aria-labelledby="tab-xai" data-result-panel="xai" hidden>
+              <div class="panel-title">
+                <div><span>Local explanation</span><h3>왜 이런 예측인가요?</h3></div>
+                <p>현재 입력이 예측에 미치는 영향을 비교합니다.</p>
+              </div>
+              <div class="xai-summary-card">
+                <div><span>설명 방식</span><strong id="xai-method">Occlusion sensitivity</strong></div>
+                <p id="xai-summary">현재 입력에서 예측 변화가 큰 물리 feature 순서입니다.</p>
+              </div>
+              <div class="xai-list" id="rebuild-xai-list"></div>
+              <details class="xai-more hidden" id="rebuild-xai-more">
+                <summary><span>추가 Feature <strong id="rebuild-xai-more-count">0개</strong></span><i aria-hidden="true"></i></summary>
+                <div class="xai-list xai-more-list" id="rebuild-xai-more-list"></div>
+              </details>
+              <ul class="tab-notes" id="xai-notes"></ul>
+            </section>
+
+            <section role="tabpanel" id="panel-space" aria-labelledby="tab-space" data-result-panel="space" hidden>
+              <div class="panel-title">
+                <div><span>Design space</span><h3>현재 후보의 설계 공간 위치</h3></div>
+                <p>기존 해석 데이터와 현재 위치를 비교합니다.</p>
+              </div>
+              <div class="space-filter-toolbar" aria-label="설계 공간 Case 필터">
+                <div class="space-filter-buttons">
+                  <button type="button" data-space-case="current" aria-pressed="true">현재 Case</button>
+                  <button type="button" data-space-case="all" aria-pressed="false">전체</button>
+                  <button type="button" data-space-case="Case2" aria-pressed="false">Case 2</button>
+                  <button type="button" data-space-case="Case3" aria-pressed="false">Case 3</button>
+                  <button type="button" data-space-case="Case4" aria-pressed="false">Case 4</button>
+                </div>
+                <span id="space-filter-count" aria-live="polite">데이터 불러오는 중</span>
+              </div>
+              <div class="space-canvas-shell">
+                <canvas id="rebuild-space-canvas" width="960" height="420" aria-label="설계 공간 산점도"></canvas>
+                <div class="space-point-tooltip hidden" id="rebuild-space-tooltip" role="tooltip"></div>
+              </div>
+              <div class="space-map-legend" aria-label="설계 공간 지도 범례">
+                <span><i class="map-dot type-1"></i>Type 1</span>
+                <span><i class="map-dot type-2"></i>Type 2</span>
+                <span><i class="map-dot type-3"></i>Type 3</span>
+                <span><i class="map-dot current"></i>현재 입력</span>
+                <span><i class="map-dot selected-case"></i>현재 Case는 진하게 표시</span>
+              </div>
+              <div class="space-insights">
+                <article><span>Case 위험도</span><strong id="space-risk">낮음 · 24%</strong></article>
+                <article><span>가까운 해석</span><strong id="space-nearest">Case 2 · Δθ 5.0°</strong></article>
+                <article><span>추천 후보</span><strong id="space-recommendation">Case 2 · θ 55° / −20°</strong></article>
+              </div>
+              <p class="tab-note" id="space-note">현재 패널 크기와 가장 가까운 기존 해석 데이터를 기준으로 비교합니다.</p>
+            </section>
+          </div>
+        </section>
+      </section>
+
+      <section class="comparison-section" aria-labelledby="comparison-title">
+        <div class="comparison-heading">
+          <div><span>Run comparison</span><h2 id="comparison-title">실행 이력 비교</h2></div>
+          <p>행을 선택하면 입력값을 다시 불러옵니다.</p>
+        </div>
+        <div class="comparison-table-wrap">
+          <p class="comparison-empty" id="comparison-empty">아직 실행 이력이 없습니다. 예측을 실행하면 결과가 여기에 추가됩니다.</p>
+          <table class="comparison-table" id="comparison-table" hidden>
+            <thead>
+              <tr>
+                <th><button type="button" data-sort="case" aria-sort="none">Case</button></th>
+                <th><button type="button" data-sort="modelLabel" aria-sort="none">모델</button></th>
+                <th><button type="button" data-sort="theta1" aria-sort="none">θ₁</button></th>
+                <th><button type="button" data-sort="theta2" aria-sort="none">θ₂</button></th>
+                <th><button type="button" data-sort="type" aria-sort="none">Type</button></th>
+                <th><button type="button" data-sort="pt" aria-sort="none">Pt</button></th>
+                <th><button type="button" data-sort="reliability" aria-sort="none">신뢰도</button></th>
+              </tr>
+            </thead>
+            <tbody id="comparison-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+  <script src="/locales-rebuild.js?v=20260813-mobile-design-space-1"></script>
+  <script src="/app-rebuild-preview.js?v=20260816-clean-preview-1"></script>
+  </body>
+</html>

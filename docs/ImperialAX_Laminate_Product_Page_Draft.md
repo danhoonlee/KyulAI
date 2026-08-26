@@ -81,7 +81,7 @@
   <h3>지원하는 적층 Case</h3>
   <ul>
     <li><strong>Case 2</strong>: [[±θ₁]/[±θ₂]]₄</li>
-    <li><strong>Case 3</strong>: [[±θ₁]/[±θ₂]/[∓θ₂]/[∓θ₂]]₂</li>
+    <li><strong>Case 3</strong>: [[±θ₁]/[±θ₂]/[∓θ₁]/[∓θ₂]]₂</li>
     <li><strong>Case 4</strong>: [([±θ₁]/[±θ₂])₂ / ([∓θ₁]/[∓θ₂])₂]</li>
   </ul>
   <p>

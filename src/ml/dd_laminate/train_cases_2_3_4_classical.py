@@ -111,7 +111,9 @@ def load_records(data_dir: Path) -> list[DDRecord]:
             reader = csv.DictReader(handle)
             for row in reader:
                 test_id = _normalize_test_id(_row_value(row, "Test_ID", "test_id"))
-                csv_path = _resolve_csv_path(data_dir, _row_value(row, "csv_path", "curve_csv"), case, test_id)
+                csv_path = _resolve_csv_path(
+                    data_dir, _row_value(row, "csv_path", "curve_csv"), case, test_id
+                )
                 if not csv_path.exists():
                     raise FileNotFoundError(csv_path)
                 label_raw = _row_value(row, "type", "predicted_type", "label")
@@ -250,7 +252,9 @@ def make_curve_matrix(records: list[DDRecord]) -> np.ndarray:
     return np.hstack([theta, curve])
 
 
-def make_response_arrays(records: list[DDRecord]) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def make_response_arrays(
+    records: list[DDRecord],
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     grid = np.linspace(0.0, 1.0, CURVE_GRID_LEN)
     scalars = []
     curves = []
@@ -263,7 +267,12 @@ def make_response_arrays(records: list[DDRecord]) -> tuple[np.ndarray, np.ndarra
         y_norm = np.clip(y_interp / max_force, 0.0, None)
         scalars.append([record.pt, max_disp, max_force])
         curves.append(y_norm)
-    return np.asarray(scalars, dtype=float), np.asarray(curves, dtype=float), grid, make_theta_matrix(records)
+    return (
+        np.asarray(scalars, dtype=float),
+        np.asarray(curves, dtype=float),
+        grid,
+        make_theta_matrix(records),
+    )
 
 
 def candidate_classifiers(random_state: int) -> dict[str, object]:
@@ -375,10 +384,16 @@ def train_response_surrogate(
             class_weight="balanced",
             n_jobs=-1,
         )
-        scalar_model = ExtraTreesRegressor(n_estimators=600, random_state=random_state + 100 + fold, n_jobs=-1)
-        pca = PCA(n_components=min(18, y_curve.shape[1], len(train_idx)), random_state=random_state + fold)
+        scalar_model = ExtraTreesRegressor(
+            n_estimators=600, random_state=random_state + 100 + fold, n_jobs=-1
+        )
+        pca = PCA(
+            n_components=min(18, y_curve.shape[1], len(train_idx)), random_state=random_state + fold
+        )
         curve_scores = pca.fit_transform(y_curve[train_idx])
-        curve_model = ExtraTreesRegressor(n_estimators=600, random_state=random_state + 200 + fold, n_jobs=-1)
+        curve_model = ExtraTreesRegressor(
+            n_estimators=600, random_state=random_state + 200 + fold, n_jobs=-1
+        )
 
         classifier.fit(x[train_idx], y_class[train_idx])
         scalar_model.fit(x[train_idx], y_scalars[train_idx])
@@ -393,8 +408,12 @@ def train_response_surrogate(
                 "accuracy": float(accuracy_score(y_class[val_idx], pred_class)),
                 "macro_f1": float(f1_score(y_class[val_idx], pred_class, average="macro")),
                 "pt_mae": float(mean_absolute_error(y_scalars[val_idx, 0], pred_scalars[:, 0])),
-                "max_displacement_mae": float(mean_absolute_error(y_scalars[val_idx, 1], pred_scalars[:, 1])),
-                "max_force_mae": float(mean_absolute_error(y_scalars[val_idx, 2], pred_scalars[:, 2])),
+                "max_displacement_mae": float(
+                    mean_absolute_error(y_scalars[val_idx, 1], pred_scalars[:, 1])
+                ),
+                "max_force_mae": float(
+                    mean_absolute_error(y_scalars[val_idx, 2], pred_scalars[:, 2])
+                ),
                 "curve_norm_rmse": float(np.sqrt(np.mean((pred_curve - y_curve[val_idx]) ** 2))),
             }
         )
@@ -403,7 +422,14 @@ def train_response_surrogate(
         "n_samples": len(records),
         "seq_len": CURVE_GRID_LEN,
     }
-    for key in ["accuracy", "macro_f1", "pt_mae", "max_displacement_mae", "max_force_mae", "curve_norm_rmse"]:
+    for key in [
+        "accuracy",
+        "macro_f1",
+        "pt_mae",
+        "max_displacement_mae",
+        "max_force_mae",
+        "curve_norm_rmse",
+    ]:
         values = [row[key] for row in fold_rows]
         metrics[f"cv_{key}_mean"] = float(np.mean(values))
         metrics[f"cv_{key}_std"] = float(np.std(values))
@@ -476,10 +502,14 @@ def fit_and_save_classifier(
         "fold_metrics": fold_rows,
         "training_data_dir": str(dataset_dir),
     }
-    model_filename = "theta_classifier.joblib" if model_kind == "theta" else "curve_classifier.joblib"
+    model_filename = (
+        "theta_classifier.joblib" if model_kind == "theta" else "curve_classifier.joblib"
+    )
     joblib.dump(bundle, output_dir / model_filename)
     (output_dir / f"{model_kind}_classifier_metrics.json").write_text(
-        json.dumps({"best_model": best_name, "metrics": cv_summary, "fold_metrics": fold_rows}, indent=2),
+        json.dumps(
+            {"best_model": best_name, "metrics": cv_summary, "fold_metrics": fold_rows}, indent=2
+        ),
         encoding="utf-8",
     )
     return {"best_model": best_name, "metrics": cv_summary, "fold_metrics": fold_rows}
@@ -525,7 +555,9 @@ def write_report(output_root: Path, data_dir: Path, results: dict[str, object]) 
             "- This is a separate new-model experiment. Existing DD production model folders are not overwritten.",
         ]
     )
-    (output_root / "cases_2_3_4_training_report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (output_root / "cases_2_3_4_training_report.md").write_text(
+        "\n".join(lines) + "\n", encoding="utf-8"
+    )
 
 
 def main() -> None:

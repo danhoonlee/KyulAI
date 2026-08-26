@@ -206,6 +206,19 @@ def test_injection_answer_does_not_confuse_packing_time_with_packing_pressure() 
     assert "importance 20.0%" not in answer
 
 
+def test_injection_answer_stays_in_domain_before_a_forecast_is_run() -> None:
+    answer = build_extractive_answer(
+        "수지 온도가 Sprue Pressure에 왜 영향을 줘?",
+        [],
+        language="ko",
+        prediction_context={"mode": "Injection Forecast", "inputs": {}},
+    )
+
+    assert "수지 온도" in answer
+    assert "점도" in answer
+    assert "아직 예측을 실행하지 않아" in answer
+
+
 def test_extractive_answer_explains_physics_feature_question() -> None:
     citation = RagCitation(
         index=1,

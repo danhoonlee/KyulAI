@@ -84,6 +84,12 @@ Both apps currently:
   fails.
 - Open Laminate as a native module inside the ImperialAX shell.
 - Open Injection as a native module inside the ImperialAX shell.
+- Use real account sign-in plus a dedicated `Try demo workspace` action when
+  `IMPERIALAX_ENABLE_DEMO_LOGIN=1` is enabled on the server.
+- Keep the public demo fixed to `demo@imperialax.com` with Laminate and
+  Injection entitlements only; it never reuses typed credentials or an admin
+  identity.
+- Keep primary controls and result tabs at touch-sized heights.
 
 The catalog request currently points at:
 
@@ -146,6 +152,14 @@ Android:
 - The Activity calls the same Laminate models and response prediction API.
 - The Injection Activity calls the same Simple Injection models, DOE catalog,
   and sprue/filling prediction API.
+- Laminate results are split into Summary, Curve, Ply Sequence, XAI, and Design
+  Space tabs.
+- Injection results are split into Summary, Sprue Curve, Filling Distribution,
+  XAI, Validation, and History tabs.
+- Both platforms show indeterminate in-page progress while a forecast runs,
+  disclose XAI after the first five features, and preserve recent input history.
 
-The next migration step is to bring richer charts, recent history, and sharing
-from the standalone module apps into the unified ImperialAX native modules.
+The remaining Android Injection gap is the Sprue Curve payload: the Android
+parser currently receives the curve point count but not the coordinate array.
+The tab intentionally shows an unavailable state until those coordinates are
+connected; it does not fabricate a chart.

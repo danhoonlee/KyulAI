@@ -128,8 +128,8 @@ public struct ResponseEnsemblePredictionRequest: Codable, Equatable, Hashable, S
         theta1: Double,
         theta2: Double,
         case laminateCase: DDLaminateCase,
-        teacherModel: String = "response_geometry_tree_v1",
-        studentModel: String = "response_hybrid_student_deploy_quick_v1",
+        teacherModel: String = "response_geometry_tree_canonical_v2",
+        studentModel: String = "response_hybrid_student_canonical_v2",
         panelAIn: Double = 6,
         panelBIn: Double = 4
     ) {
@@ -147,8 +147,8 @@ public struct ResponseEnsemblePredictionRequest: Codable, Equatable, Hashable, S
             theta1: request.theta1,
             theta2: request.theta2,
             case: request.case,
-            teacherModel: "response_geometry_tree_v1",
-            studentModel: "response_hybrid_student_deploy_quick_v1",
+            teacherModel: "response_geometry_tree_canonical_v2",
+            studentModel: "response_hybrid_student_canonical_v2",
             panelAIn: request.panelAIn,
             panelBIn: request.panelBIn
         )
@@ -756,16 +756,16 @@ public enum JSONValue: Codable, Equatable, Hashable, Sendable {
 }
 
 public enum DDLaminateDefaults {
-    public static let responseModelKey = "response_geometry_tree_v1"
+    public static let responseModelKey = "response_geometry_tree_canonical_v2"
     public static let responseModelKeys = [
-        "response_geometry_tree_v1",
-        "response_geometry_goint_v1",
-        "response_hybrid_student_deploy_quick_v1",
+        "response_geometry_tree_canonical_v2",
+        "response_geometry_goint_canonical_v2",
+        "response_hybrid_student_canonical_v2",
     ]
-    public static let u3PtModelKey = "u3_forecast_physics_v2"
+    public static let u3PtModelKey = "u3_forecast_physics_canonical_v2"
     public static let u3PtModelKeys = [
-        "u3_forecast_physics_v2",
-        "u3_forecast_goint_physics_v2",
+        "u3_forecast_physics_canonical_v2",
+        "u3_forecast_goint_physics_canonical_v2",
     ]
     public static let fallbackBaseURL = "https://laminate.imperialax.com"
 }
@@ -827,11 +827,14 @@ enum DDLaminateModelDisplayLabel {
         "response_surrogate_physics": "Laminate Forecast - Machine Learning",
         "response_geometry_tree_v1": "Laminate Forecast - Machine Learning",
         "response_geometry_goint_v1": "Laminate Forecast - Deep Learning",
+        "response_geometry_tree_canonical_v2": "Laminate Forecast - Machine Learning",
+        "response_geometry_goint_canonical_v2": "Laminate Forecast - Deep Learning",
         "response_surrogate_physics_v2": "Laminate Forecast - Machine Learning",
         "response_goint_physics": "Laminate Forecast - Deep Learning",
         "response_goint_physics_nn_v2": "Laminate Forecast - Deep Learning",
         "response_distilled_grid_conf_v1": "Laminate Forecast - Distilled NN v3",
         "response_hybrid_student_deploy_quick_v1": "Laminate Forecast - Hybrid Student",
+        "response_hybrid_student_canonical_v2": "Laminate Forecast - Hybrid Student",
         "response_distilled_grid_v1": "Laminate Forecast - Distilled NN v2",
         "response_distilled_v1": "Laminate Forecast - Distilled NN",
         "theta_classical": "RandomForest",
@@ -841,8 +844,10 @@ enum DDLaminateModelDisplayLabel {
         "u3_forecast": "u3 Forecast - Tree (Theta)",
         "u3_forecast_physics": "u3 Forecast - Machine Learning",
         "u3_forecast_physics_v2": "u3 Forecast - Machine Learning",
+        "u3_forecast_physics_canonical_v2": "u3 Forecast - Machine Learning",
         "u3_forecast_goint": "u3 Forecast - GointMLP (Theta)",
         "u3_forecast_goint_physics": "u3 Forecast - Deep Learning",
         "u3_forecast_goint_physics_v2": "u3 Forecast - Deep Learning",
+        "u3_forecast_goint_physics_canonical_v2": "u3 Forecast - Deep Learning",
     ]
 }

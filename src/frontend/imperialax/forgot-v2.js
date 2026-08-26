@@ -40,7 +40,8 @@ function setMessage(text, type = "") {
 }
 
 function saveSession(session) {
-  window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  const metadata = { user: session.user, entitlements: session.entitlements || [] };
+  window.localStorage.setItem(SESSION_KEY, JSON.stringify(metadata));
 }
 
 function isValid() {

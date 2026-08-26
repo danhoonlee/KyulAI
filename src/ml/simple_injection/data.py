@@ -169,7 +169,9 @@ SINGLE_SPRUE_PRESSURE_RE = re.compile(r"(G\d{2})_(P\d{2})_.*Sprue.*Pressure.*\.c
 SUPPLEMENTAL_CASE_MATRIX = "supplemental_v02_v03_case_matrix_60.csv"
 
 
-def load_result_curves(result_dir: str | Path = DEFAULT_RESULT_DIR) -> dict[str, tuple[np.ndarray, np.ndarray]]:
+def load_result_curves(
+    result_dir: str | Path = DEFAULT_RESULT_DIR,
+) -> dict[str, tuple[np.ndarray, np.ndarray]]:
     curves: dict[str, tuple[np.ndarray, np.ndarray]] = {}
     for path in sorted(Path(result_dir).rglob("*.csv")):
         name = path.name.upper()
@@ -223,7 +225,9 @@ def load_result_curves(result_dir: str | Path = DEFAULT_RESULT_DIR) -> dict[str,
     return curves
 
 
-def load_training_2_result_curves(data_dir: str | Path = DEFAULT_DATA_DIR) -> dict[str, tuple[np.ndarray, np.ndarray]]:
+def load_training_2_result_curves(
+    data_dir: str | Path = DEFAULT_DATA_DIR,
+) -> dict[str, tuple[np.ndarray, np.ndarray]]:
     """Load one-case sprue pressure CSV files from the Training_2 extension set."""
     root = Path(data_dir) / "Training_2"
     curves: dict[str, tuple[np.ndarray, np.ndarray]] = {}
@@ -337,7 +341,9 @@ def _validation_set_case_map(data_dir: str | Path) -> dict[Path, str]:
     return case_map
 
 
-def load_validation_set_result_curves(data_dir: str | Path = DEFAULT_DATA_DIR) -> dict[str, tuple[np.ndarray, np.ndarray]]:
+def load_validation_set_result_curves(
+    data_dir: str | Path = DEFAULT_DATA_DIR,
+) -> dict[str, tuple[np.ndarray, np.ndarray]]:
     curves: dict[str, tuple[np.ndarray, np.ndarray]] = {}
     for process_dir, sample_id in _validation_set_case_map(data_dir).items():
         path = process_dir / "Packing-Sprue Pressure.csv"
@@ -349,7 +355,9 @@ def load_validation_set_result_curves(data_dir: str | Path = DEFAULT_DATA_DIR) -
     return curves
 
 
-def _parse_filling_pressure_csv(path: Path, sample_id: str, source_file: str) -> dict[str, object] | None:
+def _parse_filling_pressure_csv(
+    path: Path, sample_id: str, source_file: str
+) -> dict[str, object] | None:
     with path.open(newline="", encoding="utf-8-sig") as f:
         rows = [row for row in csv.reader(f) if any(cell.strip() for cell in row)]
 
@@ -430,7 +438,9 @@ def load_filling_pressure_distribution(
     return distributions
 
 
-def load_validation_set_filling_pressure_distribution(data_dir: str | Path = DEFAULT_DATA_DIR) -> dict[str, dict[str, object]]:
+def load_validation_set_filling_pressure_distribution(
+    data_dir: str | Path = DEFAULT_DATA_DIR,
+) -> dict[str, dict[str, object]]:
     distributions: dict[str, dict[str, object]] = {}
     data_path = Path(data_dir)
     for process_dir, sample_id in _validation_set_case_map(data_path).items():
@@ -440,7 +450,9 @@ def load_validation_set_filling_pressure_distribution(data_dir: str | Path = DEF
         path = next((candidate for candidate in candidates if candidate.exists()), None)
         if path is None:
             continue
-        parsed = _parse_filling_pressure_csv(path, sample_id, path.relative_to(data_path).as_posix())
+        parsed = _parse_filling_pressure_csv(
+            path, sample_id, path.relative_to(data_path).as_posix()
+        )
         if parsed is not None:
             distributions[sample_id] = parsed
     return distributions
@@ -597,7 +609,11 @@ def make_feature_matrix(
 ) -> tuple[np.ndarray, list[str], list[str]]:
     if gate_types is None:
         gate_types = sorted({record.gate_type for record in records})
-    feature_columns = BASE_FEATURE_COLUMNS + [f"gate_type__{gate}" for gate in gate_types] + DERIVED_FEATURE_COLUMNS
+    feature_columns = (
+        BASE_FEATURE_COLUMNS
+        + [f"gate_type__{gate}" for gate in gate_types]
+        + DERIVED_FEATURE_COLUMNS
+    )
     rows = []
     for record in records:
         row = [float(record.features[col]) for col in BASE_FEATURE_COLUMNS]
@@ -611,7 +627,15 @@ def load_training_arrays(
     data_dir: str | Path = DEFAULT_DATA_DIR,
     seq_len: int = 128,
     gate_types: list[str] | None = None,
-) -> tuple[list[SimpleInjectionRecord], np.ndarray, np.ndarray, np.ndarray, np.ndarray, list[str], list[str]]:
+) -> tuple[
+    list[SimpleInjectionRecord],
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    list[str],
+    list[str],
+]:
     records = load_records(data_dir)
     if not records:
         raise ValueError(f"No sprue pressure result curves found under {data_dir}")
@@ -627,12 +651,20 @@ def load_training_arrays(
         pressure_norm = np.clip(pressure_norm, 0.0, None)
         scalars.append([max_time, max_pressure])
         curves.append(pressure_norm)
-    return records, x, np.asarray(scalars, dtype=float), np.asarray(curves, dtype=float), grid, feature_columns, gate_types
+    return (
+        records,
+        x,
+        np.asarray(scalars, dtype=float),
+        np.asarray(curves, dtype=float),
+        grid,
+        feature_columns,
+        gate_types,
+    )
 
 
 def build_record_from_inputs(
     geometry: dict[str, float | str],
-    process: dict[str, float],
+    process: dict[str, float | str],
     gate_types: list[str],
 ) -> tuple[np.ndarray, list[str]]:
     geometry_id = str(geometry.get("geometry_id", "GXX"))

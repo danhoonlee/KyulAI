@@ -1,0 +1,19 @@
+tunnel: 68025491-2fa9-48a3-bc61-9caf6bd8e6d5
+credentials-file: /home/user/.cloudflared/68025491-2fa9-48a3-bc61-9caf6bd8e6d5.json
+
+ingress:
+  - hostname: cafedecafe.co.kr
+    service: http://127.0.0.1:8000
+  - hostname: www.cafedecafe.co.kr
+    service: http://127.0.0.1:8000
+  - hostname: ds-wedding.cafedecafe.co.kr
+    service: http://127.0.0.1:8000
+  - hostname: laminate.cafedecafe.co.kr
+    service: http://127.0.0.1:8000
+  - hostname: dd.cafedecafe.co.kr
+    service: http://127.0.0.1:8000
+  - hostname: injection.cafedecafe.co.kr
+    service: http_status:410
+  - hostname: nangman.cafedecafe.co.kr
+    service: http://127.0.0.1:8020
+  - service: http_status:404

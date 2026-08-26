@@ -1,15 +1,23 @@
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
 
 from src.backend.api.v1 import rag as rag_api
 from src.backend.dd_laminate_app import app
 
 
+@pytest.fixture(autouse=True)
+def local_api_access(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("IMPERIALAX_DISABLE_AUTH_FOR_LOCAL_DEV", "1")
+
+
 def test_rag_search_endpoint_returns_ranked_results() -> None:
     client = TestClient(app)
 
-    response = client.get("/api/v1/rag/search", params={"q": "Double-Double laminate Pt", "top_k": 3})
+    response = client.get(
+        "/api/v1/rag/search", params={"q": "Double-Double laminate Pt", "top_k": 3}
+    )
 
     assert response.status_code == 200
     payload = response.json()
@@ -17,6 +25,7 @@ def test_rag_search_endpoint_returns_ranked_results() -> None:
     assert 1 <= payload["result_count"] <= 3
     assert payload["results"][0]["score"] > 0
     assert payload["results"][0]["title"]
+    assert "source_path" not in payload["results"][0]
 
 
 def test_rag_answer_endpoint_returns_fallback_answer() -> None:
@@ -87,5 +96,6 @@ def test_rag_answer_endpoint_falls_back_when_answer_generation_fails(monkeypatch
     assert payload["provider"] == "extractive"
     assert payload["model"] == "local-error-fallback"
     assert payload["used_llm"] is False
-    assert "synthetic rag failure" in payload["error"]
+    assert "synthetic rag failure" not in payload["error"]
+    assert "temporarily unavailable" in payload["error"]
     assert "수지 온도" in payload["answer"]

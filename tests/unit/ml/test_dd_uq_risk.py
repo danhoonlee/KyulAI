@@ -11,9 +11,7 @@ from src.ml.dd_laminate.uq_risk import (
 
 
 def test_design_space_distance_flags_far_query() -> None:
-    reference = np.asarray(
-        [[0.0, 0.0], [0.1, 0.0], [0.0, 0.1], [0.1, 0.1], [0.05, 0.05]]
-    )
+    reference = np.asarray([[0.0, 0.0], [0.1, 0.0], [0.0, 0.1], [0.1, 0.1], [0.05, 0.05]])
     model = fit_design_space_distance(
         reference,
         neighbor_count=2,

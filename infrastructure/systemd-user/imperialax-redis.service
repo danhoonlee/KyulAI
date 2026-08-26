@@ -1,0 +1,19 @@
+[Unit]
+Description=ImperialAX private Redis rate-limit store
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+StateDirectory=imperialax-redis
+ExecStart=%h/.local/opt/redis/bin/redis-server --daemonize no --port 0 --unixsocket %S/imperialax-redis/redis.sock --unixsocketperm 700 --protected-mode yes --appendonly yes --appenddirname appendonlydir --dir %S/imperialax-redis --save 900 1 --save 300 10
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%S/imperialax-redis
+
+[Install]
+WantedBy=default.target

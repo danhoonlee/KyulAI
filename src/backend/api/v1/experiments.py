@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.backend.db.session import get_db
-from src.backend.exceptions import InvalidStateError, NotFoundError
+from src.backend.exceptions import NotFoundError
 from src.backend.schemas.common import PaginatedResponse
 from src.backend.schemas.experiment import (
     ExperimentCompareResponse,
@@ -71,7 +71,7 @@ async def get_experiment(
     try:
         experiment = await svc.get(experiment_id)
     except NotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     return ExperimentResponse.model_validate(experiment)
 
 
@@ -86,7 +86,7 @@ async def get_experiment_metrics(
     try:
         return await svc.get_metrics(experiment_id)
     except NotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
 
 @router.get(
@@ -101,7 +101,7 @@ async def compare_experiments(
     try:
         experiments = await svc.compare(ids)
     except NotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
     summaries = [ExperimentSummary.model_validate(e) for e in experiments]
 
@@ -112,10 +112,7 @@ async def compare_experiments(
             metric_keys.update(exp.metrics.keys())
 
     metric_table = {
-        key: {
-            str(exp.id): (exp.metrics or {}).get(key)
-            for exp in experiments
-        }
+        key: {str(exp.id): (exp.metrics or {}).get(key) for exp in experiments}
         for key in sorted(metric_keys)
     }
 

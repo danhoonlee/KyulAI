@@ -22,9 +22,9 @@ import numpy as np
 class EnsembleResult:
     """Statistics from an ensemble of model predictions."""
 
-    mean: np.ndarray            # ensemble mean
-    std: np.ndarray             # ensemble standard deviation (epistemic uncertainty)
-    predictions: np.ndarray     # (n_models, ...) raw predictions
+    mean: np.ndarray  # ensemble mean
+    std: np.ndarray  # ensemble standard deviation (epistemic uncertainty)
+    predictions: np.ndarray  # (n_models, ...) raw predictions
     n_models: int
 
     @property
@@ -80,7 +80,7 @@ class EnsembleDisagreement:
         """
         n = len(self._preds)
         shape = self._preds.shape[1:]
-        mat = np.zeros((n, n) + shape)
+        mat = np.zeros((n, n, *shape))
         for i in range(n):
             for j in range(i + 1, n):
                 diff = np.abs(self._preds[i] - self._preds[j])

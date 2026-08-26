@@ -1,4 +1,3 @@
-const TOKEN_KEY = "imperialax.admin.token.v1";
 const IS_KO = document.documentElement.lang.toLowerCase().startsWith("ko");
 
 const TEXT = {
@@ -39,9 +38,6 @@ const sessionCount = document.querySelector("#session-count");
 const entitlementCount = document.querySelector("#entitlement-count");
 const usersBody = document.querySelector("#admin-users");
 
-const launchParams = new URLSearchParams(window.location.search);
-const launchToken = launchParams.get("session_token") || launchParams.get("admin_token") || "";
-tokenInput.value = launchToken || window.localStorage.getItem(TOKEN_KEY) || "";
 let currentUsers = [];
 let adminModules = [];
 
@@ -79,7 +75,8 @@ function optionalInputValue(selector) {
 }
 
 function tokenHeaders(extra = {}) {
-  return { ...extra, "X-ImperialAX-Admin-Token": tokenInput.value.trim() };
+  const token = tokenInput.value.trim();
+  return token ? { ...extra, "X-ImperialAX-Admin-Token": token } : extra;
 }
 
 function selectedCreateEntitlements() {
@@ -187,20 +184,14 @@ function renderSummary(users) {
 }
 
 async function loadUsers() {
-  const token = tokenInput.value.trim();
-  if (!token) {
-    setStatus(TEXT.missing, true);
-    return;
-  }
   loadButton.disabled = true;
   setStatus("");
   try {
     const response = await fetch("/api/v1/modules/admin/users", {
-      headers: { "X-ImperialAX-Admin-Token": token },
+      headers: tokenHeaders(),
     });
     if (!response.ok) throw new Error(`Admin users failed: ${response.status}`);
     const data = await response.json();
-    window.localStorage.setItem(TOKEN_KEY, token);
     adminModules = data.modules || [];
     currentUsers = data.users || [];
     renderCreateEntitlements();
@@ -215,12 +206,6 @@ async function loadUsers() {
 }
 
 async function updateEntitlements(user, cellElement, changedInput) {
-  const token = tokenInput.value.trim();
-  if (!token) {
-    changedInput.checked = !changedInput.checked;
-    setStatus(TEXT.missing, true);
-    return;
-  }
   const inputs = Array.from(cellElement.querySelectorAll("input[type='checkbox']"));
   const entitlements = inputs
     .filter((input) => input.checked)
@@ -255,11 +240,6 @@ async function updateEntitlements(user, cellElement, changedInput) {
 
 async function createUser(event) {
   event.preventDefault();
-  const token = tokenInput.value.trim();
-  if (!token) {
-    setStatus(TEXT.missing, true);
-    return;
-  }
   createButton.disabled = true;
   setStatus("");
   try {
@@ -279,7 +259,6 @@ async function createUser(event) {
     if (!response.ok) throw new Error(`Admin account create failed: ${response.status}`);
     createForm.reset();
     renderCreateEntitlements();
-    window.localStorage.setItem(TOKEN_KEY, token);
     setStatus(TEXT.createDone);
     await loadUsers();
   } catch {
@@ -290,11 +269,6 @@ async function createUser(event) {
 }
 
 async function editProfile(user, button) {
-  const token = tokenInput.value.trim();
-  if (!token) {
-    setStatus(TEXT.missing, true);
-    return;
-  }
   const name = window.prompt(`${TEXT.editName}\n\n${user.email}`, user.name || "");
   if (name === null) return;
   const company = window.prompt(TEXT.editCompany, user.company || "");
@@ -329,11 +303,6 @@ async function editProfile(user, button) {
 }
 
 async function resetPassword(user, button) {
-  const token = tokenInput.value.trim();
-  if (!token) {
-    setStatus(TEXT.missing, true);
-    return;
-  }
   const password = window.prompt(`${TEXT.resetPrompt}\n\n${user.email}`);
   if (password === null) return;
   if (password.length < 8) {
@@ -351,7 +320,6 @@ async function resetPassword(user, button) {
       body: JSON.stringify({ password }),
     });
     if (!response.ok) throw new Error(`Admin password reset failed: ${response.status}`);
-    window.localStorage.setItem(TOKEN_KEY, token);
     setStatus(`${TEXT.resetDone} ${user.email}`);
     await loadUsers();
   } catch {
@@ -369,7 +337,6 @@ tokenInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") loadUsers();
 });
 clearButton.addEventListener("click", () => {
-  window.localStorage.removeItem(TOKEN_KEY);
   tokenInput.value = "";
   currentUsers = [];
   adminModules = [];
@@ -379,6 +346,4 @@ clearButton.addEventListener("click", () => {
   setStatus("");
 });
 
-if (launchToken) {
-  loadUsers();
-}
+loadUsers();

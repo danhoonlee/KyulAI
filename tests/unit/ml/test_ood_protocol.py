@@ -12,14 +12,12 @@ from __future__ import annotations
 import json
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-import numpy as np
 import pytest
 
 from src.ml.evaluation.ood_protocol import (
     FieldOODStatus,
-    OODEvaluationProtocol,
     OODEvaluationResult,
     PerToolMetrics,
 )

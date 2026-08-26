@@ -12,7 +12,7 @@ from typing import Any
 
 from sqlalchemy import Boolean, DateTime, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSON, UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
 from src.backend.db.base import Base
@@ -21,9 +21,7 @@ from src.backend.db.base import Base
 class TrainedModel(Base):
     __tablename__ = "trained_models"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     version: Mapped[str] = mapped_column(
         String(50), nullable=False, comment="Semantic version string, e.g. '1.0.0'"

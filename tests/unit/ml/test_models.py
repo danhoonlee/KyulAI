@@ -28,9 +28,8 @@ from src.ml.models.configs import (
     MLPConfig,
     NormLayer,
 )
-from src.ml.models.surrogates.mlp import MLPSurrogate
 from src.ml.models.surrogates.cnn import CNNSurrogate
-
+from src.ml.models.surrogates.mlp import MLPSurrogate
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -220,12 +219,14 @@ class TestMLPSurrogate:
 
     def test_wrong_config_type_raises(self):
         with pytest.raises(TypeError):
-            MLPSurrogate.from_config(CNNConfig(
-                in_channels=4,
-                encoder_channels=[16, 32],
-                output_heads={"x": 1},
-                output_field_types={"x": "scalar"},
-            ))
+            MLPSurrogate.from_config(
+                CNNConfig(
+                    in_channels=4,
+                    encoder_channels=[16, 32],
+                    output_heads={"x": 1},
+                    output_field_types={"x": "scalar"},
+                )
+            )
 
     def test_residual_connections_same_dim(self):
         """Residual connections only apply when in_dim == out_dim."""
@@ -275,8 +276,11 @@ class TestCNNSurrogate:
         cfg = _make_cnn_config(spatial=spatial)
         model = CNNSurrogate.from_config(cfg)
         batch = _make_batch(
-            batch_size=2, input_dim=32, include_grid=True,
-            grid_channels=4, spatial=spatial,
+            batch_size=2,
+            input_dim=32,
+            include_grid=True,
+            grid_channels=4,
+            spatial=spatial,
         )
         output = model(batch)
         # Scalar field: (B, N_cells) after flattening

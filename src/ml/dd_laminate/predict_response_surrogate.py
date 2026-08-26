@@ -110,7 +110,9 @@ def predict_response_from_bundle(
     else:
         curve_norm = np.clip(pca.inverse_transform(curve_model.predict(x))[0], 0.0, None)
     grid = np.asarray(bundle["grid"], dtype=float)
-    consistency_fn = enforce_pt_curve_consistency if postprocess_curve else measure_pt_curve_consistency
+    consistency_fn = (
+        enforce_pt_curve_consistency if postprocess_curve else measure_pt_curve_consistency
+    )
     if pt_consistent_fit is not None:
         consistency_fn = measure_pt_curve_consistency
     consistency = consistency_fn(

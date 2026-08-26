@@ -14,13 +14,14 @@ import math
 import re
 import zipfile
 from collections import Counter
-from dataclasses import asdict, dataclass, field
+from collections.abc import Mapping
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import SupportsFloat, SupportsIndex, SupportsInt
 from xml.etree import ElementTree
 
 from src.data.rag.collector import chunk_text, extract_pdf_text, normalize_text
-
 
 TOKEN_RE = re.compile(r"[A-Za-z][A-Za-z0-9_+\-]{1,}|[가-힣]{2,}|\d+(?:\.\d+)?")
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -58,7 +59,7 @@ class KnowledgeChunk:
     topic: str = "composites"
     tags: list[str] = field(default_factory=list)
     chunk_index: int = 0
-    token_counts: dict[str, int] = field(default_factory=dict)
+    token_counts: dict[str, float] = field(default_factory=dict)
     norm: float = 0.0
 
     def to_dict(self) -> dict[str, object]:
@@ -75,10 +76,10 @@ class KnowledgeChunk:
             source_path=str(payload.get("source_path", "")),
             url=str(payload.get("url", "")),
             topic=str(payload.get("topic", "composites")),
-            tags=[str(tag) for tag in payload.get("tags", [])],
-            chunk_index=int(payload.get("chunk_index", 0)),
-            token_counts={str(k): int(v) for k, v in dict(payload.get("token_counts", {})).items()},
-            norm=float(payload.get("norm", 0.0)),
+            tags=_string_list_from_json(payload.get("tags", [])),
+            chunk_index=_int_from_json(payload.get("chunk_index", 0)),
+            token_counts=_float_mapping_from_json(payload.get("token_counts", {})),
+            norm=_float_from_json(payload.get("norm", 0.0)),
         )
 
 
@@ -120,7 +121,9 @@ def build_knowledge_index(
     }
     index_path = Path(output_path)
     index_path.parent.mkdir(parents=True, exist_ok=True)
-    index_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    index_path.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
     return payload
 
 
@@ -253,7 +256,9 @@ def extract_pptx_text_from_zip(path: Path) -> str:
     namespaces = {"a": "http://schemas.openxmlformats.org/drawingml/2006/main"}
     parts: list[str] = []
     with zipfile.ZipFile(path) as archive:
-        slide_names = sorted(name for name in archive.namelist() if name.startswith("ppt/slides/slide"))
+        slide_names = sorted(
+            name for name in archive.namelist() if name.startswith("ppt/slides/slide")
+        )
         for slide_number, name in enumerate(slide_names, start=1):
             root = ElementTree.fromstring(archive.read(name))
             texts = [node.text or "" for node in root.findall(".//a:t", namespaces)]
@@ -278,12 +283,10 @@ def attach_tfidf_vectors(chunks: list[KnowledgeChunk]) -> list[KnowledgeChunk]:
             for token, count in counts.items()
         }
         indexed.append(
-            KnowledgeChunk(
-                **{
-                    **chunk.to_dict(),
-                    "token_counts": {token: round(weight, 6) for token, weight in weights.items()},
-                    "norm": round(vector_norm(weights), 6),
-                }
+            replace(
+                chunk,
+                token_counts={token: round(weight, 6) for token, weight in weights.items()},
+                norm=round(vector_norm(weights), 6),
             )
         )
     return indexed
@@ -305,13 +308,39 @@ def vector_norm(vector: dict[str, float] | Counter[str]) -> float:
 def cosine_score(
     query_vector: dict[str, float],
     query_norm: float,
-    chunk_vector: dict[str, int],
+    chunk_vector: dict[str, float],
     chunk_norm: float,
 ) -> float:
     if chunk_norm == 0:
         return 0.0
-    dot = sum(query_vector.get(token, 0.0) * float(chunk_vector.get(token, 0)) for token in query_vector)
+    dot = sum(
+        query_vector.get(token, 0.0) * float(chunk_vector.get(token, 0)) for token in query_vector
+    )
     return dot / (query_norm * chunk_norm)
+
+
+def _string_list_from_json(value: object) -> list[str]:
+    if isinstance(value, (list, tuple)):
+        return [str(item) for item in value]
+    return []
+
+
+def _int_from_json(value: object) -> int:
+    if isinstance(value, (str, bytes, bytearray, SupportsInt, SupportsIndex)):
+        return int(value)
+    raise TypeError(f"Expected JSON scalar convertible to int, got {type(value).__name__}")
+
+
+def _float_from_json(value: object) -> float:
+    if isinstance(value, (str, bytes, bytearray, SupportsFloat, SupportsIndex)):
+        return float(value)
+    raise TypeError(f"Expected JSON scalar convertible to float, got {type(value).__name__}")
+
+
+def _float_mapping_from_json(value: object) -> dict[str, float]:
+    if not isinstance(value, Mapping):
+        return {}
+    return {str(key): _float_from_json(item) for key, item in value.items()}
 
 
 def internal_source_id(project_root: Path, path: Path) -> str:

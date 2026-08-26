@@ -44,10 +44,18 @@ class ElasticProperties(BaseModel):
 class StrengthProperties(BaseModel):
     """Strength and failure properties."""
 
-    tensile_strength_1_Pa: float | None = Field(None, description="Longitudinal tensile strength [Pa]")
-    compressive_strength_1_Pa: float | None = Field(None, description="Longitudinal compressive strength [Pa]")
-    tensile_strength_2_Pa: float | None = Field(None, description="Transverse tensile strength [Pa]")
-    compressive_strength_2_Pa: float | None = Field(None, description="Transverse compressive strength [Pa]")
+    tensile_strength_1_Pa: float | None = Field(
+        None, description="Longitudinal tensile strength [Pa]"
+    )
+    compressive_strength_1_Pa: float | None = Field(
+        None, description="Longitudinal compressive strength [Pa]"
+    )
+    tensile_strength_2_Pa: float | None = Field(
+        None, description="Transverse tensile strength [Pa]"
+    )
+    compressive_strength_2_Pa: float | None = Field(
+        None, description="Transverse compressive strength [Pa]"
+    )
     shear_strength_12_Pa: float | None = Field(None, description="In-plane shear strength [Pa]")
     interlaminar_shear_strength_Pa: float | None = Field(None, description="ILSS [Pa]")
 
@@ -136,9 +144,7 @@ class LoadingConditions(BaseModel):
     )
 
     # Additional
-    extra: dict[str, Any] = Field(
-        default_factory=dict, description="Additional loading conditions"
-    )
+    extra: dict[str, Any] = Field(default_factory=dict, description="Additional loading conditions")
 
     model_config = {"extra": "forbid"}
 
@@ -163,16 +169,16 @@ class ProcessConditions(BaseModel):
     # Forming
     tool_geometry_ref: str | None = Field(None, description="Reference to tool/mold geometry")
     forming_speed_m_per_s: float | None = Field(None, description="Forming/punch speed [m/s]")
-    friction_coefficient: float | None = Field(None, description="Tool-ply friction coefficient [-]")
+    friction_coefficient: float | None = Field(
+        None, description="Tool-ply friction coefficient [-]"
+    )
 
     # Winding
     mandrel_geometry_ref: str | None = Field(None, description="Reference to mandrel geometry")
     winding_pattern: str | None = Field(None, description="Winding pattern description")
     winding_tension_N: float | None = Field(None, description="Fiber/tow tension [N]")
 
-    extra: dict[str, Any] = Field(
-        default_factory=dict, description="Additional process conditions"
-    )
+    extra: dict[str, Any] = Field(default_factory=dict, description="Additional process conditions")
 
     model_config = {"extra": "forbid"}
 

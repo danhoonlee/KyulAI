@@ -104,7 +104,7 @@ struct ContentView: View {
         }
         .navigationDestination(isPresented: $isShowingResult) {
             if let selectedResult {
-                ResultDetailView(result: selectedResult)
+                ResultDetailView(result: selectedResult, recentRuns: viewModel.recentRuns)
                     .environmentObject(settings)
             }
         }
@@ -126,7 +126,7 @@ struct ContentView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .center, spacing: 12) {
-                Text(localText(en: "Injection Forecast AI", ko: "사출 예측 AI"))
+                Text(localText(en: "Injection Molding AI", ko: "사출 성형 AI"))
                     .font(.caption.weight(.black))
                     .foregroundStyle(AppTheme.primary)
                     .textCase(.uppercase)

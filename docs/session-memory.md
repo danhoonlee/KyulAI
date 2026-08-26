@@ -4083,6 +4083,41 @@ Latest Simple Injection reminder:
 - Proposed future DOE entries such as `G43+` and `P21+` should not appear in the
   web dropdown until corresponding training results exist.
 
+## 2026-08-25 Simple Injection Public Server Shutdown
+
+User said `injection.cafedecafe.co.kr` can be taken down. Current local checks
+showed no active Mac `com.kyulai.simple-injection-api` launchctl service and no
+Mac listener on port `8010`, but public verification later showed the real
+production WSL tunnel was still serving the Injection UI with HTTP 200.
+
+Operational changes:
+
+- Disabled `com.kyulai.simple-injection-api` with `launchctl disable` so it does
+  not auto-start for the current user session.
+- Updated `infrastructure/cloudflare/kclab-composite-ai.yml` so legacy Injection
+  tunnel hostnames return `http_status:410` instead of forwarding to
+  `127.0.0.1:8010`.
+- Updated WSL tunnel config files locally so `injection.cafedecafe.co.kr`
+  returns `http_status:410`:
+  - `infrastructure/cloudflare/cafedecafe-wsl.yml`
+  - `infrastructure/cloudflare/cafedecafe-legacy-wsl.yml`
+- Affected legacy hostnames:
+  - `injection.cafedecafe.co.kr`
+  - `injection.imperialax.com`
+
+Important status:
+
+- Public `https://injection.cafedecafe.co.kr/` still returned HTTP 200 after the
+  first Mac-only shutdown because the active route is the WSL
+  `cafedecafe-cloudflared.service`, not the Mac LaunchAgent.
+- The Codex App sandbox blocked SSH to the WSL host with `Operation not
+  permitted`, so the production WSL config was not changed from this session.
+- To finish the shutdown, run the WSL-side command sequence from an environment
+  with SSH/WSL access and restart `cafedecafe-cloudflared.service`.
+
+Do not restart the Simple Injection public tunnel/API unless the user explicitly
+asks for it.
+
 ## ImperialAX Native App Integration Update
 
 As of 2026-06-11, the ImperialAX iOS host no longer opens reduced Laminate and
@@ -16144,3 +16179,143 @@ Follow-up in same debugging pass:
   are under `research/dd_aicomp2026/campaigns/20260811-untouched-3size-v1/`.
 - No production model, API endpoint, or UI was changed. Final model evaluation begins only after all
   540 returned rows pass the blind result audit.
+
+## 2026-08-12 - Injection rebuild published at `/v2`
+
+- Published the approved Injection rebuild at `https://injection.imperialax.com/v2` while keeping
+  the existing root Injection UI at `https://injection.imperialax.com/` unchanged.
+- The `/v2` route uses the existing production Injection model API and exposes the six current Sprue
+  and Filling model choices through the redesigned setup, result tabs, XAI, validation, and run
+  comparison experience.
+- Created a timestamped backup of the replaced production files before deployment and restarted only
+  the Injection service; the Cloudflare route and Laminate service were not changed.
+- Production readiness reports all six models as available. A public G01/P01 Machine Learning smoke
+  prediction returned 69.00 MPa peak Sprue pressure, 22.053 s max time, 128 curve points, 10 Filling
+  bins, 35.98 MPa Filling maximum, and 23 XAI features.
+- Browser verification confirmed the branded `/v2` screen loads, DOE options populate, the existing
+  root remains available, and an actual prediction renders the expected summary result.
+
+## 2026-08-12 - Injection v2 review corrections prepared locally
+
+- Applied the actionable items from `injection-v2-review.md` to the isolated Injection `/v2`
+  rebuild; the production deployment was not changed in this step.
+- Korean-first labels now cover result tabs, model choices, DOE controls, process controls, the
+  current-input summary, validation inputs, and newly created run-history labels while retaining
+  XAI and Moldex3D as established engineering names.
+- Quick screening now explains that XAI and Moldex3D validation are available in Deep Dive and
+  provides an inline action to switch modes.
+- Moldex3D validation now has a progressive CSV-format disclosure plus narrowly published real
+  G01/P01 Sprue and Filling example downloads. The complete dataset remains unpublished.
+- The Sprue curve is explicitly redrawn from the latest prediction after its hidden tab becomes
+  visible, with a brief rendering state. Empty run history hides its disabled clear action.
+- Local browser verification confirmed a real G01/P01 prediction, visible Sprue curve canvas, CSV
+  guide and links, Deep Dive discovery, root isolation, and no horizontal overflow at 390x844.
+- Targeted backend/module tests passed: 40 tests. JavaScript syntax and patch whitespace checks also
+  passed.
+
+## 2026-08-12 - Injection v2 Shape Preview placement deployed
+
+- Moved Shape Preview directly below DOE Case on `https://injection.imperialax.com/v2`, ahead of
+  the readiness state and the always-visible process and geometry detail sections.
+- Deployed the matching v2 app script, styles, and Korean/English locale pack with a new cache key;
+  the previous production locale file had been absent and the stale style asset could hide geometry
+  details in Quick screening.
+- Backed up the replaced production files under
+  `.remote-backups/injection_v2_shape_preview_20260812_163918` and restarted only the Injection
+  service.
+- Public verification confirmed all six models ready, a successful G01/P01 Machine Learning
+  prediction, the intended desktop/mobile ordering, both detail sections visible, and no 390 px
+  horizontal overflow. The existing root Injection UI remained unchanged.
+
+## 2026-08-14 - ImperialAX production account audit
+
+- Read the live WSL authentication database used by `ai.imperialax.com` and confirmed that the
+  Laminate service is active. The admin API and direct SQLite audit both report five accounts.
+- Two human accounts have Laminate, Injection, and Optimization access; two legacy demo accounts
+  and one obsolete local smoke-test account are also still present.
+- The database still stores the original `@luvelox.com` demo/admin addresses and Luvelox company
+  labels. The current frontend instead suggests `demo@imperialax.com`, so that suggested address
+  does not currently match a registered row.
+- No account has a persisted `module.admin` entitlement, and the running service does not configure
+  `IMPERIALAX_ADMIN_EMAILS`. Administrative access currently depends on the separate server-side
+  admin token.
+- Passwords remain PBKDF2 hashes and were neither displayed nor modified. No account, entitlement,
+  session, or production setting was changed during this audit.
+
+## 2026-08-14 - ImperialAX production account migration
+
+- Migrated the live WSL authentication database and the Mac parity copy after creating SQLite and
+  raw-file backups. The WSL SQLite backup is
+  `runtime/backups/auth/imperialax_auth.pre-account-migration.20260814T020743Z.sqlite3`; the broader
+  pre-change snapshot is `.remote-backups/imperialax_auth_migration_20260814T020643Z/`.
+- Renamed `dannylee9295@gmail.com` to `dannylee@imperialax.com` while preserving its password hash,
+  profile, user ID, and sessions. Merged the former Dan Lee Luvelox account's entitlements into it,
+  removed that legacy account and its long-lived sessions, and granted `module.admin` explicitly.
+- Renamed the legacy demo account to `demo@imperialax.com`, preserved its password hash and sessions,
+  and changed its company label to `ImperialAX Demo`. The obsolete local smoke-test account was
+  deleted.
+- The final production account set contains `dannylee@imperialax.com`, `demo@imperialax.com`, and the
+  existing Dongwon Lee account. No email or company value containing `Luvelox` remains.
+- Set `IMPERIALAX_ADMIN_EMAILS=dannylee@imperialax.com` in the WSL `.env.local` and restarted both
+  Laminate and Injection services. The running Laminate process exposes the expected admin email,
+  retains the OpenAI API key, and reports healthy/ready publicly.
+- Added `scripts/migrate_imperialax_accounts.py` with dry-run, transactional apply, SQLite backup,
+  integrity validation, password-hash preservation, idempotency, and legacy-identity checks. Added
+  focused migration tests and updated the seeded admin identity and API tests to use
+  `dannylee@imperialax.com`.
+- Verification: 36 focused tests passed on Mac; Ruff and mypy passed. WSL passed 35 of the same 36
+  tests, with the sole failure caused by the WSL checkout not containing the renamed iOS source path
+  inspected by a bundle-only test. Public health and readiness are both successful, the admin API
+  returns exactly three accounts, SQLite integrity is `ok`, and recent service logs contain no errors.
+- The public Demo shortcut remains disabled by the existing production security setting
+  (`IMPERIALAX_ENABLE_DEMO_LOGIN` is not enabled). The account exists, but anonymous blank-password
+  demo access was not opened as part of this migration.
+
+## 2026-08-14 - Laminate v2 summary and curve layout rebalanced
+
+- Reduced the vertical footprint of the marked result metrics on the Laminate rebuild UI. Summary
+  metrics now place units beside their values in a compact two-row layout, and Curve-tab metric cards
+  use tighter padding, spacing, and line height.
+- Increased the summary curve canvas ratio from `960x240` to `960x280` and the detailed curve canvas
+  from `960x360` to `960x400`, using the space recovered from the metric rows so the response curve
+  no longer appears vertically compressed.
+- Updated the rebuild stylesheet cache key and deployed the two changed frontend files to the WSL
+  production host. The rollback snapshot is
+  `.remote-backups/laminate_v2_curve_layout_20260814T095954Z/` in the WSL repository.
+- Verified locally and publicly at `https://laminate.imperialax.com/v2`: the desktop summary metric row
+  and Curve metric row are compact, both canvases receive the new height ratio, Korean and English use
+  the shared layout, 390 px mobile has no horizontal overflow, and the public browser console reports
+  no errors or warnings.
+
+## 2026-08-14 - Laminate v2 curve panels expanded
+
+- Increased the detailed Curve-tab canvas from `960x400` to `960x480`. At the 2048 px desktop QA
+  viewport, the right curve panel is now 733 px high versus the left Forecast Setup panel at 753 px,
+  making the two primary columns visually balanced without stretching the metric row again.
+- Increased the Summary canvas intrinsic ratio from `960x280` to `960x320`, while limiting its
+  desktop width to 840 px and centering it. This gives the compact summary graph a less flattened
+  proportion without making the entire summary card taller than necessary.
+- Preserved the existing responsive behavior: the Summary canvas remains 310x220 and the detailed
+  Curve canvas remains 335x220 at the 390 px mobile viewport, with zero horizontal overflow.
+- Deployed the HTML and CSS to the WSL production host with cache key
+  `20260814-curve-balance-2`. The rollback snapshot is
+  `.remote-backups/laminate_v2_curve_layout_20260814T101325Z/` in the WSL repository.
+- Verified the public `/v2` HTML and CSS, matching local/remote SHA-256 hashes, healthy and ready API
+  endpoints, the live desktop Summary and Curve layouts, and an empty browser error log.
+
+## 2026-08-14 - ImperialAX administrator password recovery
+
+- Reset the production password for `dannylee@imperialax.com` to a generated temporary password
+  after creating and integrity-checking the SQLite backup at
+  `runtime/backups/auth/imperialax_auth.pre-password-reset.20260814T101853Z.sqlite3`.
+- Found and fixed an authentication regression: disabling anonymous demo login also blocked normal
+  password login for the administrator because both seeded addresses shared the same demo-email
+  guard. The guard now applies only to `demo@imperialax.com`; the administrator remains a normal
+  password-authenticated account while public demo login stays disabled.
+- Added a regression test proving that administrator password login works with demo login disabled
+  and that the demo account remains blocked. The full ImperialAX module test file passes (35 tests),
+  and Ruff plus focused mypy checks pass.
+- Deployed the auth-store fix to the WSL production host after backing up the prior source at
+  `.remote-backups/imperialax_admin_login_20260814T102209Z/`, then restarted both ImperialAX API
+  services. A live login check returned HTTP 200 with admin, Laminate, Injection, and Optimization
+  entitlements intact; all verification sessions were removed afterward.

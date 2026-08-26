@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import random
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import joblib
 import numpy as np
@@ -22,12 +24,18 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.dd_response_physics_xai_train import _fit_tree, make_response_targets
-from src.ml.dd_laminate.response_deep import DDResponseGointSurrogate, ordinal_targets, predict_from_logits
-from src.ml.dd_laminate.response_feature_sets import ResponseFeatureRecord, response_feature_matrix
-from src.ml.dd_laminate.train_cases_2_3_4_classical import CASES
-from src.ml.dd_laminate.train_cases_2_3_4_classical import load_records
+from src.ml.dd_laminate.response_deep import (
+    DDResponseGointSurrogate,
+    ordinal_targets,
+    predict_from_logits,
+)
+from src.ml.dd_laminate.response_feature_sets import (
+    SUPPORTED_RESPONSE_FEATURE_SETS,
+    ResponseFeatureRecord,
+    response_feature_matrix,
+)
+from src.ml.dd_laminate.train_cases_2_3_4_classical import CASES, load_records
 from src.ml.dd_laminate.train_cases_2_3_4_goint import normalize
-
 
 METRIC_KEYS = (
     "accuracy",
@@ -471,6 +479,30 @@ def synthetic_exclusion_mask(
     return keep
 
 
+def response_group_key(record: Any) -> str:
+    return f"{record.case}|{float(record.theta1):.8g}|{float(record.theta2):.8g}"
+
+
+def load_locked_design_records(path: Path) -> list[ResponseFeatureRecord]:
+    records: dict[str, ResponseFeatureRecord] = {}
+    with path.open("r", encoding="utf-8-sig", newline="") as handle:
+        for row in csv.DictReader(handle):
+            split = str(row.get("split", "")).strip().lower().replace("-", "_")
+            if split not in {"holdout", "locked", "locked_holdout", "test"}:
+                continue
+            record = ResponseFeatureRecord(
+                case=row["case"],
+                theta1=float(row["theta1"]),
+                theta2=float(row["theta2"]),
+                panel_a_in=float(row.get("panel_a_in") or 6.0),
+                panel_b_in=float(row.get("panel_b_in") or 4.0),
+            )
+            records.setdefault(response_group_key(record), record)
+    if not records:
+        raise ValueError(f"No locked design groups found in {path}")
+    return list(records.values())
+
+
 def train_strict_cv(
     records,
     x_raw: np.ndarray,
@@ -478,9 +510,10 @@ def train_strict_cv(
     y_scalars: np.ndarray,
     y_curve: np.ndarray,
     args,
+    locked_records: list[ResponseFeatureRecord] | None = None,
 ) -> list[dict[str, float]]:
     rows: list[dict[str, float]] = []
-    groups = np.asarray([f"{record.theta1}:{record.theta2}" for record in records])
+    groups = np.asarray([response_group_key(record) for record in records])
     splitter = GroupKFold(n_splits=args.splits)
     for fold, (train_idx, val_idx) in enumerate(splitter.split(x_raw, y_class, groups), start=1):
         fold_teacher = tree_bundle_from_parts(
@@ -534,6 +567,12 @@ def train_strict_cv(
                     [records[int(i)] for i in val_idx],
                     radius=args.strict_synthetic_exclusion_radius,
                 )
+                if locked_records:
+                    keep &= synthetic_exclusion_mask(
+                        synthetic_raw.records,
+                        locked_records,
+                        radius=args.locked_synthetic_exclusion_radius,
+                    )
                 synthetic_count_kept = int(np.sum(keep))
                 if synthetic_count_kept:
                     synth_scalars_norm = (np.log1p(np.clip(synthetic_raw.y_scalars[keep], 0.0, None)) - scalar_mean) / scalar_std
@@ -685,6 +724,8 @@ def summarize_metrics(rows: list[dict[str, float]], *, n_samples: int, input_dim
         "strict_cv": bool(args.strict_cv),
         "strict_cv_only": bool(args.strict_cv_only),
         "strict_synthetic_exclusion_radius": float(args.strict_synthetic_exclusion_radius),
+        "locked_synthetic_exclusion_radius": float(args.locked_synthetic_exclusion_radius),
+        "locked_group_count": int(getattr(args, "locked_group_count", 0)),
         "teacher_n_components": int(args.teacher_n_components),
     }
     for key in METRIC_KEYS:
@@ -725,6 +766,8 @@ def write_report(output_dir: Path, metrics: dict[str, float | int | str], fold_r
         f"- Synthetic teacher confidence mean: {metrics['synthetic_teacher_confidence_mean']:.4f}",
         f"- Strict CV: {metrics['strict_cv']}",
         f"- Strict synthetic exclusion radius: {metrics['strict_synthetic_exclusion_radius']}",
+        f"- Locked groups excluded from real/synthetic training: {metrics.get('locked_group_count', 0)}",
+        f"- Locked synthetic exclusion radius: {metrics.get('locked_synthetic_exclusion_radius', 0.0)}",
         f"- Fold-local teacher PCA components: {metrics['teacher_n_components']}",
         "",
     ]
@@ -783,7 +826,7 @@ def main() -> None:
     parser.add_argument(
         "--feature-set",
         default="theta_physics_v2",
-        choices=["theta", "theta_physics", "theta_physics_v2", "theta_physics_nn_v2", "theta_physics_geometry_v1"],
+        choices=SUPPORTED_RESPONSE_FEATURE_SETS,
     )
     parser.add_argument("--splits", type=int, default=5)
     parser.add_argument("--epochs", type=int, default=220)
@@ -817,6 +860,18 @@ def main() -> None:
     parser.add_argument("--final-only", action="store_true", help="Skip CV and train only the final deployment artifact.")
     parser.add_argument("--reference-metrics", default="", help="Optional metrics JSON to copy into a final-only deployment artifact/report.")
     parser.add_argument("--strict-synthetic-exclusion-radius", type=float, default=0.0, help="Chebyshev theta radius around validation case/theta points to remove from synthetic fold training.")
+    parser.add_argument(
+        "--locked-manifest",
+        type=Path,
+        default=None,
+        help="Split manifest whose locked groups must be absent from real and synthetic training data.",
+    )
+    parser.add_argument(
+        "--locked-synthetic-exclusion-radius",
+        type=float,
+        default=0.0,
+        help="Chebyshev theta radius around locked Case/theta groups removed from final synthetic training.",
+    )
     parser.add_argument("--teacher-n-components", type=int, default=18)
     parser.add_argument("--synthetic-grid-step", type=float, default=0.0, help="Theta grid step in degrees. Use 0 to disable synthetic grid distillation.")
     parser.add_argument("--synthetic-theta-min", type=float, default=-90.0)
@@ -847,6 +902,17 @@ def main() -> None:
     set_seed(args.seed)
 
     records = load_records(Path(args.data_dir))
+    locked_records = load_locked_design_records(args.locked_manifest) if args.locked_manifest else []
+    args.locked_group_count = len(locked_records)
+    if locked_records:
+        training_groups = {response_group_key(record) for record in records}
+        locked_groups = {response_group_key(record) for record in locked_records}
+        overlap = training_groups & locked_groups
+        if overlap:
+            preview = ", ".join(sorted(overlap)[:5])
+            raise ValueError(
+                f"Development dataset contains {len(overlap)} locked design groups: {preview}"
+            )
     x_raw, feature_names = response_feature_matrix(records, args.feature_set)
     x_norm, feature_mean, feature_std = normalize(x_raw, x_raw)
     y_class = np.asarray([record.label for record in records], dtype=int)
@@ -882,6 +948,24 @@ def main() -> None:
         else:
             confidence_multiplier = np.ones_like(synth_confidence)
         synth_weight = float(args.synthetic_weight) * confidence_multiplier
+        if locked_records:
+            keep = synthetic_exclusion_mask(
+                synthetic_records,
+                locked_records,
+                radius=args.locked_synthetic_exclusion_radius,
+            )
+            synthetic_records = [
+                record
+                for record, include in zip(synthetic_records, keep, strict=True)
+                if include
+            ]
+            x_synth_raw = x_synth_raw[keep]
+            synth_probs = synth_probs[keep]
+            synth_scalars = synth_scalars[keep]
+            synth_curve = synth_curve[keep]
+            synth_class = synth_class[keep]
+            synth_confidence = synth_confidence[keep]
+            synth_weight = synth_weight[keep]
         synth_scalars_norm = (np.log1p(np.clip(synth_scalars, 0.0, None)) - scalar_mean) / scalar_std
         synth_x_norm = (x_synth_raw - feature_mean) / np.maximum(feature_std, 1e-9)
         synthetic = DistillationArrays(
@@ -917,9 +1001,10 @@ def main() -> None:
             y_scalars,
             y_curve,
             args,
+            locked_records,
         )
     else:
-        groups = np.asarray([f"{record.theta1}:{record.theta2}" for record in records])
+        groups = np.asarray([response_group_key(record) for record in records])
         fold_rows = train_cv(
             x_norm,
             y_class,
@@ -959,6 +1044,8 @@ def main() -> None:
             "strict_cv": bool(args.strict_cv),
             "strict_cv_only": bool(args.strict_cv_only),
             "strict_synthetic_exclusion_radius": float(args.strict_synthetic_exclusion_radius),
+            "locked_synthetic_exclusion_radius": float(args.locked_synthetic_exclusion_radius),
+            "locked_group_count": int(getattr(args, "locked_group_count", 0)),
             "teacher_n_components": int(args.teacher_n_components),
             "final_only": True,
             "reference_metrics": args.reference_metrics or None,
@@ -1015,6 +1102,9 @@ def main() -> None:
                 "synthetic_confidence_power": float(args.synthetic_confidence_power),
                 "synthetic_min_confidence_weight": float(args.synthetic_min_confidence_weight),
                 "synthetic_effective_weight_mean": float(getattr(args, "synthetic_effective_weight_mean", 0.0)),
+                "locked_manifest": str(args.locked_manifest) if args.locked_manifest else None,
+                "locked_group_count": int(getattr(args, "locked_group_count", 0)),
+                "locked_synthetic_exclusion_radius": float(args.locked_synthetic_exclusion_radius),
             },
             "feature_builder": args.feature_set,
             "feature_columns": feature_names,

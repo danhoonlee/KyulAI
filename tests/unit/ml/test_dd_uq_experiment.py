@@ -28,9 +28,10 @@ def test_cross_fitted_mondrian_uses_geometry_specific_widths() -> None:
         minimum_group_size=2,
     )
 
-    assert result["mondrian"]["0.50"]["mean_applied_quantile"] != result["pooled"]["0.50"][
-        "mean_applied_quantile"
-    ]
+    assert (
+        result["mondrian"]["0.50"]["mean_applied_quantile"]
+        != result["pooled"]["0.50"]["mean_applied_quantile"]
+    )
     assert result["mondrian"]["0.50"]["fallback_rate"] == 0.0
     summary = interval_selection_summary(result, subgroup_prefix="geometry")
     assert set(summary) == {"pooled", "mondrian"}
@@ -145,12 +146,11 @@ def test_fold_robust_cross_fit_increases_coverage_for_shifted_folds() -> None:
         quantile_strategy="fold_max",
     )["mondrian"]
 
-    assert robust["0.50"]["overall"]["empirical_coverage"] >= standard["0.50"][
-        "overall"
-    ]["empirical_coverage"]
-    assert robust["0.50"]["overall"]["mean_width"] >= standard["0.50"]["overall"][
-        "mean_width"
-    ]
+    assert (
+        robust["0.50"]["overall"]["empirical_coverage"]
+        >= standard["0.50"]["overall"]["empirical_coverage"]
+    )
+    assert robust["0.50"]["overall"]["mean_width"] >= standard["0.50"]["overall"]["mean_width"]
 
 
 def test_robust_selection_prioritizes_undercoverage_with_width_guard() -> None:

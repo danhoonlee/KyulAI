@@ -13,7 +13,9 @@ import torch
 def set_random_seeds():
     """Set deterministic seeds for reproducible test results."""
     import random
+
     import numpy as np
+
     torch.manual_seed(42)
     np.random.seed(42)
     random.seed(42)

@@ -450,6 +450,100 @@ textarea:focus {
   padding: 14px;
 }
 
+.standard-result-tabs {
+  display: flex;
+  gap: 6px;
+  margin: -4px -4px 20px;
+  padding: 4px;
+  overflow-x: auto;
+  border: 1px solid var(--line, #dfe5ec);
+  border-radius: 12px;
+  background: #f5f7fa;
+  scrollbar-width: thin;
+}
+
+.standard-result-tabs button {
+  flex: 1 1 0;
+  min-height: 40px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 9px;
+  color: #637083;
+  background: transparent;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 750;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.standard-result-tabs button[aria-selected="true"] {
+  color: #111827;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+
+.standard-result-tabs button[aria-disabled="true"] {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.standard-result-panel[hidden] { display: none !important; }
+
+.standard-result-panel {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.prediction-progress {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding: 18px;
+  overflow: hidden;
+  border: 1px solid #bfd3ff;
+  border-radius: 14px;
+  color: #16233b;
+  background: #f4f7ff;
+}
+
+.prediction-progress.hidden { display: none; }
+.prediction-progress > div { display: grid; gap: 3px; }
+.prediction-progress strong { font-size: 0.96rem; }
+.prediction-progress span { color: #64748b; font-size: 0.84rem; }
+.prediction-progress > i {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #2f6fed, transparent);
+  animation: prediction-progress-slide 1.35s ease-in-out infinite;
+}
+.prediction-progress-spinner {
+  width: 22px;
+  height: 22px;
+  border: 3px solid #cfdbf5;
+  border-top-color: #2f6fed;
+  border-radius: 50%;
+  animation: prediction-progress-spin 0.8s linear infinite;
+}
+
+@keyframes prediction-progress-spin { to { transform: rotate(360deg); } }
+@keyframes prediction-progress-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prediction-progress-spinner,
+  .prediction-progress > i { animation: none; }
+}
+
 .input-panel {
   position: sticky;
   top: 14px;
@@ -961,6 +1055,35 @@ select:focus {
   background: #fbfdff;
 }
 
+.result-reading-guide {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #dce5ef;
+  border-radius: 7px;
+  padding: 10px 12px;
+  background: #f5f8fc;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 690;
+  line-height: 1.5;
+}
+
+.result-reading-guide strong {
+  color: var(--ink);
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.result-reading-guide p,
+.result-reading-guide span {
+  margin: 0;
+}
+
+.result-reading-guide span {
+  color: #64748b;
+  font-size: 0.73rem;
+}
+
 .compact-action {
   width: auto;
   min-height: 34px;
@@ -1279,6 +1402,21 @@ select:focus {
 }
 
 @media (max-width: 760px) {
+  .standard-result-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
+    margin-inline: -8px;
+    overflow: visible;
+    border-radius: 10px;
+  }
+
+  .standard-result-tabs button {
+    width: 100%;
+    min-height: 44px;
+    padding-inline: 5px;
+    font-size: 0.76rem;
+  }
   :root {
     --workspace-columns: 1fr;
     --workspace-gap: 8px;
@@ -1322,8 +1460,9 @@ select:focus {
   }
 
   .status-pill,
-  .language-link {
-    min-height: 30px;
+  .language-link,
+  .utility-trigger {
+    min-height: 44px;
     padding: 0 9px;
     font-size: 0.7rem;
   }
@@ -1412,11 +1551,15 @@ select:focus {
     font-size: 0.8rem;
   }
 
-  .model-grid,
   .doe-grid,
   .field-grid,
   .compare-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .model-grid {
+    grid-template-columns: 1fr;
     gap: 7px;
   }
 
@@ -1448,8 +1591,15 @@ select:focus {
   }
 
   .primary {
-    min-height: 40px;
+    min-height: 44px;
     font-size: 0.85rem;
+  }
+
+  .mobile-quick-run {
+    display: grid;
+    place-items: center;
+    min-height: 48px;
+    margin-top: 1px;
   }
 
   .viewer-card {
@@ -1483,5 +1633,11 @@ select:focus {
   .filling-row {
     grid-template-columns: 46px minmax(0, 1fr) 44px;
     font-size: 0.68rem;
+  }
+}
+
+@media (min-width: 761px) {
+  .mobile-quick-run {
+    display: none;
   }
 }

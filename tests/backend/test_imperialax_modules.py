@@ -1,18 +1,229 @@
 from __future__ import annotations
 
+import sqlite3
+import stat
+
 import pytest
 from fastapi.testclient import TestClient
 
-from src.backend.imperialax_app import app
+from src.backend.imperialax_app import PROJECT_ROOT, app
+from src.backend.security.request_limits import reset_security_limits
 
 
 @pytest.fixture(autouse=True)
 def imperialax_auth_db(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("IMPERIALAX_AUTH_DB_PATH", str(tmp_path / "imperialax_auth.sqlite3"))
+    monkeypatch.setenv("IMPERIALAX_ENABLE_DEMO_LOGIN", "1")
+    monkeypatch.setenv("IMPERIALAX_ENABLE_PUBLIC_SIGNUP", "1")
+    monkeypatch.setenv("IMPERIALAX_ENABLE_SELF_SERVICE_PASSWORD_RESET", "1")
+    monkeypatch.setenv("IMPERIALAX_ENABLE_DEV_ENTITLEMENT_OVERRIDE", "1")
     monkeypatch.delenv("IMPERIALAX_ADMIN_TOKEN", raising=False)
-    monkeypatch.delenv("IMPERIALAX_ADMIN_TOKEN", raising=False)
-    monkeypatch.delenv("IMPERIALAX_ADMIN_EMAILS", raising=False)
-    monkeypatch.delenv("IMPERIALAX_ADMIN_EMAILS", raising=False)
+    monkeypatch.setenv("IMPERIALAX_ADMIN_EMAILS", "dannylee@imperialax.com")
+    reset_security_limits()
+
+
+def _demo_session(client: TestClient, email: str = "demo@imperialax.com") -> dict[str, object]:
+    response = client.post(
+        "/api/v1/modules/auth/demo-login",
+        json={"email": email, "password": ""},
+    )
+    assert response.status_code == 200
+    return response.json()
+
+
+def _admin_session(client: TestClient) -> dict[str, object]:
+    response = client.post(
+        "/api/v1/modules/auth/signup",
+        json={
+            "email": "dannylee@imperialax.com",
+            "password": "admin-test-password-123",
+            "name": "Danny Lee",
+            "company": "ImperialAX",
+        },
+    )
+    assert response.status_code == 200
+    session = response.json()
+    entitlement_response = client.put(
+        f"/api/v1/modules/admin/users/{session['user']['id']}/entitlements",
+        headers={"Authorization": f"Bearer {session['access_token']}"},
+        json={
+            "entitlements": [
+                "module.laminate",
+                "module.injection",
+                "module.optimization",
+            ]
+        },
+    )
+    assert entitlement_response.status_code == 200
+    return session
+
+
+def _optimization_headers(client: TestClient) -> dict[str, str]:
+    session = _admin_session(client)
+    return {"Authorization": f"Bearer {session['access_token']}"}
+
+
+def test_demo_login_repairs_a_legacy_seeded_password(tmp_path, monkeypatch) -> None:
+    from src.backend.services import imperialax_auth_store
+
+    database_path = tmp_path / "legacy-demo.sqlite3"
+    monkeypatch.setenv("IMPERIALAX_AUTH_DB_PATH", str(database_path))
+    client = TestClient(app)
+    assert _demo_session(client)["user"]["email"] == "demo@imperialax.com"
+
+    with sqlite3.connect(database_path) as connection:
+        connection.execute(
+            "UPDATE users SET password_hash = ? WHERE email = ?",
+            ("legacy-password-hash", "demo@imperialax.com"),
+        )
+        connection.commit()
+
+    # A legacy row is repaired once when a new server process initializes the store.
+    imperialax_auth_store._INITIALIZED_DATABASES.clear()
+
+    repaired = client.post(
+        "/api/v1/modules/auth/demo-login",
+        json={"email": "demo@imperialax.com", "password": ""},
+    )
+
+    assert repaired.status_code == 200
+    assert repaired.json()["user"]["email"] == "demo@imperialax.com"
+
+
+def test_auth_database_is_owner_read_write_only(tmp_path, monkeypatch) -> None:
+    database_path = tmp_path / "private-auth.sqlite3"
+    monkeypatch.setenv("IMPERIALAX_AUTH_DB_PATH", str(database_path))
+
+    _demo_session(TestClient(app))
+
+    assert stat.S_IMODE(database_path.stat().st_mode) == 0o600
+
+
+def test_imperialax_does_not_publish_the_auth_database() -> None:
+    client = TestClient(app)
+
+    response = client.get("/data/imperialax_auth.sqlite3")
+
+    assert response.status_code == 404
+    assert not any(getattr(route, "path", None) == "/data" for route in app.routes)
+
+
+def test_security_sensitive_auth_features_are_disabled_by_default(monkeypatch) -> None:
+    monkeypatch.delenv("IMPERIALAX_ENABLE_DEMO_LOGIN", raising=False)
+    monkeypatch.delenv("IMPERIALAX_ENABLE_PUBLIC_SIGNUP", raising=False)
+    monkeypatch.delenv("IMPERIALAX_ENABLE_SELF_SERVICE_PASSWORD_RESET", raising=False)
+    client = TestClient(app)
+
+    demo = client.post(
+        "/api/v1/modules/auth/demo-login",
+        json={"email": "demo@imperialax.com", "password": ""},
+    )
+    signup = client.post(
+        "/api/v1/modules/auth/signup",
+        json={
+            "email": "closed.signup@imperialax.com",
+            "password": "strong-pass-123",
+            "name": "Closed Signup",
+        },
+    )
+    reset = client.post(
+        "/api/v1/modules/auth/forgot-password",
+        json={
+            "email": "closed.signup@imperialax.com",
+            "name": "Closed Signup",
+            "password": "new-pass-456",
+        },
+    )
+    legacy_session = client.get(
+        "/api/v1/modules/me",
+        headers={"Authorization": "Bearer danlee-token"},
+    )
+
+    assert demo.status_code == 403
+    assert signup.status_code == 403
+    assert reset.status_code == 403
+    assert legacy_session.status_code == 200
+    assert legacy_session.json()["user"] is None
+
+
+def test_self_service_password_reset_remains_fail_closed_when_flag_is_enabled(
+    monkeypatch,
+) -> None:
+    client = TestClient(app)
+    _admin_session(client)
+    reset = client.post(
+        "/api/v1/modules/auth/forgot-password",
+        json={
+            "email": "dannylee@imperialax.com",
+            "name": "Danny Lee",
+            "password": "replacement-admin-pass-123",
+        },
+    )
+    assert reset.status_code == 403
+
+    monkeypatch.delenv("IMPERIALAX_ENABLE_DEMO_LOGIN", raising=False)
+    admin_login = client.post(
+        "/api/v1/modules/auth/login",
+        json={
+            "email": "dannylee@imperialax.com",
+            "password": "admin-test-password-123",
+        },
+    )
+    demo_login = client.post(
+        "/api/v1/modules/auth/login",
+        json={"email": "demo@imperialax.com", "password": ""},
+    )
+
+    assert admin_login.status_code == 200
+    assert admin_login.json()["user"]["email"] == "dannylee@imperialax.com"
+    assert demo_login.status_code == 401
+
+
+def test_public_signup_creates_pending_account_without_model_entitlements() -> None:
+    client = TestClient(app)
+    response = client.post(
+        "/api/v1/modules/auth/signup",
+        json={
+            "email": "pending@example.com",
+            "password": "pending-password-123",
+            "name": "Pending User",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["entitlements"] == []
+    modules = {item["id"]: item for item in client.get("/api/v1/modules/me").json()["modules"]}
+    assert modules["laminate"]["access"] == "locked"
+    assert modules["injection"]["access"] == "locked"
+
+
+def test_client_entitlement_override_is_disabled_by_default(monkeypatch) -> None:
+    monkeypatch.delenv("IMPERIALAX_ENABLE_DEV_ENTITLEMENT_OVERRIDE", raising=False)
+    client = TestClient(app)
+
+    response = client.get(
+        "/api/v1/modules/me?entitlements=module.optimization",
+        headers={"X-ImperialAX-Entitlements": "module.optimization"},
+    )
+
+    assert response.status_code == 200
+    modules = {module["id"]: module for module in response.json()["modules"]}
+    assert modules["optimization"]["access"] == "locked"
+
+
+def test_client_bundles_do_not_embed_legacy_session_tokens() -> None:
+    client_sources = (
+        PROJECT_ROOT / "src/frontend/imperialax/login-v2.js",
+        PROJECT_ROOT / "src/frontend/imperialax/app.js",
+        PROJECT_ROOT / "ios/ImperialAXMVP/Sources/ImperialAXApp/ImperialAXModels.swift",
+        PROJECT_ROOT / "android/ImperialAXMVP/app/src/main/java/com/imperialax/app/MainActivity.kt",
+    )
+
+    for source in client_sources:
+        text = source.read_text(encoding="utf-8")
+        assert "demo-token" not in text, source
+        assert "danlee-token" not in text, source
+        assert "session_token" not in text, source
 
 
 def test_imperialax_module_catalog_lists_active_modules() -> None:
@@ -30,27 +241,91 @@ def test_imperialax_module_catalog_lists_active_modules() -> None:
     assert modules["injection"]["route"]["models_path"] == "/api/v1/simple-injection/models"
     assert modules["laminate"]["entitlement_key"] == "module.laminate"
     assert modules["optimization"]["status"] == "active"
-    assert modules["optimization"]["route"]["web_url"] == "https://ai.imperialax.com/optimization.html"
+    assert (
+        modules["optimization"]["route"]["web_url"] == "https://ai.imperialax.com/optimization.html"
+    )
 
 
-def test_ai_imperialax_root_serves_imperialax_login_entry() -> None:
+def test_ai_imperialax_root_matches_the_canonical_workspace_entry() -> None:
     client = TestClient(app)
 
     response = client.get("/", headers={"host": "ai.imperialax.com"})
+    canonical = client.get("/index.html", headers={"host": "ai.imperialax.com"})
 
     assert response.status_code == 200
-    assert "ImperialAX Account Access" in response.text
-    assert "./login-v2.js" in response.text
+    assert response.text == canonical.text
+    assert "ImperialAX AI Workspace" in response.text
+    assert "./app.js" in response.text
+    assert "/brand/imperialax-logo-black.png?v=20260814-logo-rollout-1" in response.text
+
+    logo = client.get("/brand/imperialax-logo-black.png")
+    mark = client.get("/brand/imperialax-mark-black.png")
+    assert logo.status_code == 200
+    assert logo.headers["content-type"] == "image/png"
+    assert mark.status_code == 200
+    assert mark.headers["content-type"] == "image/png"
+
+
+def test_ai_imperialax_admin_route_uses_the_imperialax_admin() -> None:
+    client = TestClient(app, follow_redirects=False)
+
+    response = client.get("/admin", headers={"host": "ai.imperialax.com"})
+
+    assert response.status_code == 308
+    assert response.headers["location"] == "/admin.html"
+
+
+def test_imperialax_locale_entries_and_legacy_login_routes_are_canonical() -> None:
+    client = TestClient(app, follow_redirects=False)
+
+    korean = client.get("/ko")
+    english = client.get("/en")
+    legacy_english = client.get("/login-v2.html")
+    legacy_korean = client.get("/login-v2.ko.html")
+
+    assert korean.status_code == 200
+    assert '<html lang="ko">' in korean.text
+    assert "ImperialAX AI 워크스페이스" in korean.text
+    assert english.status_code == 200
+    assert '<html lang="en">' in english.text
+    assert "ImperialAX AI Workspace" in english.text
+    assert legacy_english.status_code == 308
+    assert legacy_english.headers["location"] == "/index.html"
+    assert legacy_korean.status_code == 308
+    assert legacy_korean.headers["location"] == "/index.ko.html"
+
+
+def test_auth_capabilities_reflect_enabled_server_features(monkeypatch) -> None:
+    client = TestClient(app)
+    monkeypatch.setenv("IMPERIALAX_ENABLE_PUBLIC_SIGNUP", "0")
+    monkeypatch.setenv("IMPERIALAX_ENABLE_SELF_SERVICE_PASSWORD_RESET", "1")
+    monkeypatch.setenv("IMPERIALAX_ENABLE_DEMO_LOGIN", "0")
+
+    response = client.get("/api/v1/modules/auth/capabilities")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "public_signup": False,
+        "self_service_password_reset": False,
+        "demo_login": False,
+    }
 
 
 def test_local_imperialax_root_keeps_current_workspace_entry() -> None:
     client = TestClient(app)
 
     response = client.get("/")
+    styles = client.get("/styles.css")
 
     assert response.status_code == 200
     assert "ImperialAX AI Workspace" in response.text
     assert "./app.js" in response.text
+    assert "./styles.css?v=20260815-login-card-height-1" in response.text
+    assert response.text.count('class="platform-logo-link"') == 2
+    assert styles.status_code == 200
+    assert "@media (min-width: 981px)" in styles.text
+    assert "align-content: center;" in styles.text
+    assert "align-items: stretch;" in styles.text
 
 
 def test_imperialax_workspace_has_korean_entry() -> None:
@@ -62,6 +337,27 @@ def test_imperialax_workspace_has_korean_entry() -> None:
     assert 'lang="ko"' in response.text
     assert "ImperialAX 예측 워크스페이스" in response.text
     assert "./app.js" in response.text
+    assert "./styles.css?v=20260815-login-card-height-1" in response.text
+
+
+def test_imperialax_workspace_accepts_central_signout_requests() -> None:
+    client = TestClient(app)
+
+    english = client.get("/index.html")
+    korean = client.get("/index.ko.html")
+    app_script = client.get("/app.js")
+
+    assert english.status_code == 200
+    assert korean.status_code == 200
+    assert app_script.status_code == 200
+    assert "./app.js?v=20260814-central-signout-1" in english.text
+    assert "./app.js?v=20260814-central-signout-1" in korean.text
+    assert 'new URLSearchParams(window.location.search).get("signout") === "1"' in app_script.text
+    assert "window.localStorage.removeItem(SESSION_KEY);" in app_script.text
+    assert (
+        "window.history.replaceState({}, document.title, window.location.pathname);"
+        in app_script.text
+    )
 
 
 def test_imperialax_signup_pages_are_served() -> None:
@@ -125,8 +421,8 @@ def test_imperialax_my_modules_exposes_granted_and_locked_modules() -> None:
     modules = {module["id"]: module for module in data["modules"]}
     assert data["license_mode"] == "demo"
     assert data["user"] is None
-    assert modules["laminate"]["access"] == "granted"
-    assert modules["injection"]["access"] == "granted"
+    assert modules["laminate"]["access"] == "locked"
+    assert modules["injection"]["access"] == "locked"
     assert modules["optimization"]["access"] == "locked"
     assert "admin" not in modules
 
@@ -157,12 +453,66 @@ def test_imperialax_demo_login_returns_account_session() -> None:
     assert response.status_code == 200
     data = response.json()
     assert data["token_type"] == "bearer"
-    assert data["access_token"] == "demo-token"
+    assert data["access_token"]
+    assert data["access_token"] not in {"demo-token", "danlee-token"}
     assert data["user"]["email"] == "demo@imperialax.com"
     assert data["entitlements"] == ["module.injection", "module.laminate"]
 
+    workspace = client.get(
+        "/api/v1/modules/me",
+        headers={"Authorization": f"Bearer {data['access_token']}"},
+    )
+    modules = {module["id"]: module for module in workspace.json()["modules"]}
+    assert modules["optimization"]["access"] == "locked"
+    assert "admin" not in modules
 
-def test_imperialax_signup_creates_account_session_and_default_modules() -> None:
+
+def test_imperialax_demo_login_rejects_privileged_account() -> None:
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/v1/modules/auth/demo-login",
+        json={"email": "dannylee@imperialax.com", "password": ""},
+    )
+
+    assert response.status_code == 401
+
+
+def test_imperialax_demo_account_cannot_use_regular_blank_password_login() -> None:
+    client = TestClient(app)
+    _demo_session(client)
+
+    response = client.post(
+        "/api/v1/modules/auth/login",
+        json={"email": "demo@imperialax.com", "password": ""},
+    )
+
+    assert response.status_code == 401
+
+
+def test_imperialax_demo_login_removes_accidental_elevated_entitlements(monkeypatch) -> None:
+    client = TestClient(app)
+    session = _demo_session(client)
+    monkeypatch.setenv("IMPERIALAX_ADMIN_TOKEN", "test-admin-token")
+    elevated = client.put(
+        f"/api/v1/modules/admin/users/{session['user']['id']}/entitlements",
+        headers={"X-ImperialAX-Admin-Token": "test-admin-token"},
+        json={
+            "entitlements": [
+                "module.laminate",
+                "module.injection",
+                "module.optimization",
+            ]
+        },
+    )
+    assert elevated.status_code == 200
+
+    refreshed = _demo_session(client)
+
+    assert refreshed["entitlements"] == ["module.injection", "module.laminate"]
+
+
+def test_imperialax_signup_creates_pending_account_session() -> None:
     client = TestClient(app)
 
     signup_response = client.post(
@@ -186,7 +536,7 @@ def test_imperialax_signup_creates_account_session_and_default_modules() -> None
     assert session["user"]["company"] == "ImperialAX Lab"
     assert session["user"]["location"] == "Seoul"
     assert session["user"]["mobile"] == "+82-10-0000-0000"
-    assert session["entitlements"] == ["module.injection", "module.laminate"]
+    assert session["entitlements"] == []
 
     modules_response = client.get(
         "/api/v1/modules/me",
@@ -198,8 +548,8 @@ def test_imperialax_signup_creates_account_session_and_default_modules() -> None
     modules = {module["id"]: module for module in data["modules"]}
     assert data["license_mode"] == "entitled"
     assert data["user"]["email"] == "new.user@imperialax.com"
-    assert modules["laminate"]["access"] == "granted"
-    assert modules["injection"]["access"] == "granted"
+    assert modules["laminate"]["access"] == "locked"
+    assert modules["injection"]["access"] == "locked"
     assert modules["optimization"]["access"] == "locked"
 
 
@@ -244,7 +594,7 @@ def test_imperialax_login_accepts_registered_account() -> None:
     assert data["access_token"]
 
 
-def test_imperialax_forgot_password_resets_password_with_name_and_email() -> None:
+def test_imperialax_forgot_password_cannot_reset_with_name_and_email() -> None:
     client = TestClient(app)
 
     client.post(
@@ -266,10 +616,7 @@ def test_imperialax_forgot_password_resets_password_with_name_and_email() -> Non
         },
     )
 
-    assert reset_response.status_code == 200
-    reset_session = reset_response.json()
-    assert reset_session["user"]["email"] == "reset.check@imperialax.com"
-    assert reset_session["access_token"]
+    assert reset_response.status_code == 403
 
     old_login = client.post(
         "/api/v1/modules/auth/login",
@@ -280,8 +627,8 @@ def test_imperialax_forgot_password_resets_password_with_name_and_email() -> Non
         json={"email": "reset.check@imperialax.com", "password": "new-pass-456"},
     )
 
-    assert old_login.status_code == 401
-    assert new_login.status_code == 200
+    assert old_login.status_code == 200
+    assert new_login.status_code == 401
 
 
 def test_imperialax_forgot_password_rejects_wrong_name() -> None:
@@ -304,13 +651,12 @@ def test_imperialax_forgot_password_rejects_wrong_name() -> None:
         },
     )
 
-    assert response.status_code == 401
+    assert response.status_code == 403
 
 
 def test_imperialax_admin_users_requires_configured_token(monkeypatch) -> None:
     client = TestClient(app)
 
-    monkeypatch.delenv("IMPERIALAX_ADMIN_TOKEN", raising=False)
     monkeypatch.delenv("IMPERIALAX_ADMIN_TOKEN", raising=False)
     response = client.get("/api/v1/modules/admin/users")
 
@@ -321,7 +667,9 @@ def test_imperialax_admin_users_requires_matching_token(monkeypatch) -> None:
     client = TestClient(app)
 
     monkeypatch.setenv("IMPERIALAX_ADMIN_TOKEN", "secret-admin-token")
-    response = client.get("/api/v1/modules/admin/users", headers={"X-ImperialAX-Admin-Token": "wrong"})
+    response = client.get(
+        "/api/v1/modules/admin/users", headers={"X-ImperialAX-Admin-Token": "wrong"}
+    )
 
     assert response.status_code == 401
 
@@ -338,7 +686,9 @@ def test_imperialax_admin_users_accepts_imperialax_admin_token(monkeypatch) -> N
     assert response.status_code == 200
 
 
-def test_imperialax_admin_users_lists_registered_accounts_without_password_fields(monkeypatch) -> None:
+def test_imperialax_admin_users_lists_registered_accounts_without_password_fields(
+    monkeypatch,
+) -> None:
     client = TestClient(app)
 
     monkeypatch.setenv("IMPERIALAX_ADMIN_TOKEN", "secret-admin-token")
@@ -367,7 +717,7 @@ def test_imperialax_admin_users_lists_registered_accounts_without_password_field
     assert listed["company"] == "ImperialAX"
     assert listed["location"] == "Seoul"
     assert listed["mobile"] == "+82-10-1111-2222"
-    assert listed["entitlements"] == ["module.injection", "module.laminate"]
+    assert listed["entitlements"] == []
     assert "password_hash" not in listed
     assert "password_salt" not in listed
     assert {module["entitlement_key"] for module in data["modules"]} == {
@@ -409,7 +759,9 @@ def test_imperialax_admin_can_create_account_with_selected_entitlements(monkeypa
     assert login_response.status_code == 200
     token = login_response.json()["access_token"]
 
-    modules_response = client.get("/api/v1/modules/me", headers={"Authorization": f"Bearer {token}"})
+    modules_response = client.get(
+        "/api/v1/modules/me", headers={"Authorization": f"Bearer {token}"}
+    )
     modules = {module["id"]: module for module in modules_response.json()["modules"]}
     assert modules["laminate"]["access"] == "locked"
     assert modules["injection"]["access"] == "locked"
@@ -550,7 +902,9 @@ def test_imperialax_admin_can_update_user_entitlements_and_module_access(monkeyp
     assert response.status_code == 200
     assert response.json()["entitlements"] == ["module.optimization"]
 
-    modules_response = client.get("/api/v1/modules/me", headers={"Authorization": f"Bearer {token}"})
+    modules_response = client.get(
+        "/api/v1/modules/me", headers={"Authorization": f"Bearer {token}"}
+    )
     modules = {module["id"]: module for module in modules_response.json()["modules"]}
     assert modules["laminate"]["access"] == "locked"
     assert modules["injection"]["access"] == "locked"
@@ -579,17 +933,18 @@ def test_imperialax_admin_entitlement_update_rejects_unknown_key(monkeypatch) ->
 
 def test_imperialax_bearer_token_loads_user_modules() -> None:
     client = TestClient(app)
+    session = _admin_session(client)
 
     response = client.get(
         "/api/v1/modules/me",
-        headers={"Authorization": "Bearer danlee-token"},
+        headers={"Authorization": f"Bearer {session['access_token']}"},
     )
 
     assert response.status_code == 200
     data = response.json()
     modules = {module["id"]: module for module in data["modules"]}
     assert data["license_mode"] == "entitled"
-    assert data["user"]["email"] == "danlee@imperialax.com"
+    assert data["user"]["email"] == "dannylee@imperialax.com"
     assert modules["optimization"]["access"] == "granted"
     assert modules["admin"]["access"] == "granted"
     assert modules["admin"]["route"]["web_url"] == "https://ai.imperialax.com/admin.html"
@@ -597,11 +952,12 @@ def test_imperialax_bearer_token_loads_user_modules() -> None:
 
 def test_imperialax_admin_session_token_can_access_admin_api(monkeypatch) -> None:
     client = TestClient(app)
+    session = _admin_session(client)
 
     monkeypatch.delenv("IMPERIALAX_ADMIN_TOKEN", raising=False)
     response = client.get(
         "/api/v1/modules/admin/users",
-        headers={"X-ImperialAX-Admin-Token": "danlee-token"},
+        headers={"X-ImperialAX-Admin-Token": str(session["access_token"])},
     )
 
     assert response.status_code == 200
@@ -622,10 +978,11 @@ def test_imperialax_non_admin_session_token_cannot_access_admin_api(monkeypatch)
 
 def test_imperialax_request_access_accepts_known_module() -> None:
     client = TestClient(app)
+    session = _demo_session(client)
 
     response = client.post(
         "/api/v1/modules/request-access",
-        headers={"Authorization": "Bearer demo-token"},
+        headers={"Authorization": f"Bearer {session['access_token']}"},
         json={"module_id": "optimization", "message": "Please unlock optimization."},
     )
 
@@ -638,6 +995,7 @@ def test_imperialax_request_access_accepts_known_module() -> None:
 
 def test_imperialax_optimization_search_ranks_laminate_candidates(monkeypatch) -> None:
     client = TestClient(app)
+    headers = _optimization_headers(client)
 
     async def fake_predict(model, case, theta1, theta2):
         pt = 10.0 + theta1 * 0.1 - abs(theta2) * 0.02
@@ -659,6 +1017,7 @@ def test_imperialax_optimization_search_ranks_laminate_candidates(monkeypatch) -
     monkeypatch.setattr("src.backend.api.v1.optimization._predict_laminate_candidate", fake_predict)
     response = client.post(
         "/api/v1/optimization/search",
+        headers=headers,
         json={
             "objective": "maximize_pt",
             "top_k": 2,
@@ -683,6 +1042,7 @@ def test_imperialax_optimization_search_ranks_laminate_candidates(monkeypatch) -
 
 def test_imperialax_optimization_search_applies_constraints(monkeypatch) -> None:
     client = TestClient(app)
+    headers = _optimization_headers(client)
 
     async def fake_predict(model, case, theta1, theta2):
         predicted_type = 3 if theta1 > 0 else 2
@@ -703,6 +1063,7 @@ def test_imperialax_optimization_search_applies_constraints(monkeypatch) -> None
     monkeypatch.setattr("src.backend.api.v1.optimization._predict_laminate_candidate", fake_predict)
     response = client.post(
         "/api/v1/optimization/search",
+        headers=headers,
         json={
             "objective": "balanced",
             "top_k": 5,
@@ -724,9 +1085,11 @@ def test_imperialax_optimization_search_applies_constraints(monkeypatch) -> None
 
 def test_imperialax_optimization_search_rejects_oversized_design_space() -> None:
     client = TestClient(app)
+    headers = _optimization_headers(client)
 
     response = client.post(
         "/api/v1/optimization/search",
+        headers=headers,
         json={
             "max_candidates": 2,
             "design_space": {

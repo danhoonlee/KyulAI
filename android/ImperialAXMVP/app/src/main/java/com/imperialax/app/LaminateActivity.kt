@@ -34,11 +34,11 @@ import java.net.URL
 import kotlin.math.roundToInt
 
 private const val LAMINATE_BASE_URL = "https://laminate.imperialax.com"
-private const val DEFAULT_RESPONSE_MODEL = "response_geometry_tree_v1"
-private const val DEEP_RESPONSE_MODEL = "response_geometry_goint_v1"
-private const val DISTILLED_RESPONSE_MODEL = "response_hybrid_student_deploy_quick_v1"
-private const val DEFAULT_U3_MODEL = "u3_forecast_physics_v2"
-private const val DEEP_U3_MODEL = "u3_forecast_goint_physics_v2"
+private const val DEFAULT_RESPONSE_MODEL = "response_geometry_tree_canonical_v2"
+private const val DEEP_RESPONSE_MODEL = "response_geometry_goint_canonical_v2"
+private const val DISTILLED_RESPONSE_MODEL = "response_hybrid_student_canonical_v2"
+private const val DEFAULT_U3_MODEL = "u3_forecast_physics_canonical_v2"
+private const val DEEP_U3_MODEL = "u3_forecast_goint_physics_canonical_v2"
 private const val LAMINATE_HISTORY_PREFS = "laminate_prediction_history"
 private const val LAMINATE_HISTORY_KEY = "recent_runs_v1"
 private const val LAMINATE_HISTORY_LIMIT = 5
@@ -63,6 +63,7 @@ private enum class LaminateForecastMode(
 }
 
 class LaminateActivity : Activity() {
+    private var authToken: String = ""
     private lateinit var theta1Input: EditText
     private lateinit var theta2Input: EditText
     private lateinit var panelAInput: EditText
@@ -91,6 +92,7 @@ class LaminateActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        authToken = intent.getStringExtra(EXTRA_AUTH_TOKEN).orEmpty()
         render()
         loadModels()
     }
@@ -239,7 +241,7 @@ class LaminateActivity : Activity() {
     private fun loadModels() {
         Thread {
             val loaded = runCatching {
-                LaminateApi().models()
+                LaminateApi(authToken).models()
             }.getOrElse { LaminateModelCatalog(emptyList(), emptyList()) }
             runOnUiThread {
                 responseModels = optimalResponseModels(loaded.responseModels.filter { it.available }).ifEmpty {
@@ -309,7 +311,7 @@ class LaminateActivity : Activity() {
         }
         statusText.text = "Predicting"
         Thread {
-            val api = LaminateApi()
+            val api = LaminateApi(authToken)
             val result = runCatching {
                 when (mode) {
                     LaminateForecastMode.RESPONSE -> api.predictResponse(
@@ -1398,7 +1400,7 @@ data class LaminateDesignSpaceCaseInsight(
     val bestType: Int?,
 ) : Serializable
 
-class LaminateApi {
+class LaminateApi(private val authToken: String = "") {
     fun models(): LaminateModelCatalog {
         val json = JSONObject(request("GET", endpoint("/api/v1/dd-laminate/models")))
         return LaminateModelCatalog(
@@ -1477,6 +1479,9 @@ class LaminateApi {
             requestMethod = method
             connectTimeout = 8_000
             readTimeout = 20_000
+            if (authToken.isNotEmpty()) {
+                setRequestProperty("Authorization", "Bearer $authToken")
+            }
             if (body != null) {
                 doOutput = true
                 setRequestProperty("Content-Type", "application/json")
@@ -1722,13 +1727,13 @@ private fun String.cleanModelLabel(): String {
     val cleaned = trim()
     val lower = cleaned.lowercase()
     return when {
-        lower == "u3_forecast_physics_v2" || lower == "u3_forecast_physics" -> "u3 Forecast - Machine Learning"
-        lower == "u3_forecast_goint_physics_v2" || lower == "u3_forecast_goint_physics" -> "u3 Forecast - Deep Learning"
+        lower == "u3_forecast_physics_canonical_v2" || lower == "u3_forecast_physics_v2" || lower == "u3_forecast_physics" -> "u3 Forecast - Machine Learning"
+        lower == "u3_forecast_goint_physics_canonical_v2" || lower == "u3_forecast_goint_physics_v2" || lower == "u3_forecast_goint_physics" -> "u3 Forecast - Deep Learning"
         lower == "u3 forecast - physics xai" || lower == "u3 forecast - machine learning" -> "u3 Forecast - Machine Learning"
         lower == "u3 forecast - gointmlp nn" || lower == "u3 forecast - deep learning" -> "u3 Forecast - Deep Learning"
-        lower == "response_surrogate_physics" || lower == "response_surrogate_physics_v2" || lower == "response_geometry_tree_v1" || lower == "laminate forecast - geometry ml" -> "Laminate Forecast - Machine Learning"
-        lower == "response_goint_physics" || lower == "response_goint_physics_nn_v2" || lower == "response_geometry_goint_v1" || lower == "laminate forecast - geometry dl" -> "Laminate Forecast - Deep Learning"
-        lower == "response_hybrid_student_deploy_quick_v1" || lower == "laminate forecast - hybrid student" -> "Laminate Forecast - Hybrid Student"
+        lower == "response_surrogate_physics" || lower == "response_surrogate_physics_v2" || lower == "response_geometry_tree_v1" || lower == "response_geometry_tree_canonical_v2" || lower == "laminate forecast - geometry ml" -> "Laminate Forecast - Machine Learning"
+        lower == "response_goint_physics" || lower == "response_goint_physics_nn_v2" || lower == "response_geometry_goint_v1" || lower == "response_geometry_goint_canonical_v2" || lower == "laminate forecast - geometry dl" -> "Laminate Forecast - Deep Learning"
+        lower == "response_hybrid_student_canonical_v2" || lower == "response_hybrid_student_deploy_quick_v1" || lower == "laminate forecast - hybrid student" -> "Laminate Forecast - Hybrid Student"
         lower == "response_distilled_grid_conf_v1" || lower == "laminate forecast - distilled nn v3" -> "Laminate Forecast - Distilled NN v3"
         lower == "response_distilled_grid_v1" || lower == "laminate forecast - distilled nn v2" -> "Laminate Forecast - Distilled NN v2"
         lower == "response_distilled_v1" || lower == "laminate forecast - distilled nn" -> "Laminate Forecast - Distilled NN"

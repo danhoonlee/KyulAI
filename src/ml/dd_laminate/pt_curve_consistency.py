@@ -251,9 +251,7 @@ def _best_p1_second_window(
     are never modified.
     """
 
-    candidates: list[
-        tuple[int, int, tuple[float, float], float, int, float, float]
-    ] = []
+    candidates: list[tuple[int, int, tuple[float, float], float, int, float, float]] = []
     start_min = max(0, int(start_after_idx))
     x_min = float(np.min(displacement))
     x_max = float(np.max(displacement))
@@ -272,9 +270,7 @@ def _best_p1_second_window(
             pt_x, pt_y = pt
             if not (x_min <= pt_x <= x_max and y_min <= pt_y <= y_max * 1.25):
                 continue
-            r2 = _line_r2(
-                displacement[start : end + 1], force[start : end + 1], line
-            )
+            r2 = _line_r2(displacement[start : end + 1], force[start : end + 1], line)
             candidates.append((start, end, line, r2, length, pt_x, pt_y))
 
     if not candidates:
@@ -285,9 +281,7 @@ def _best_p1_second_window(
         # Keep only genuinely linear windows, then use Pt proximity to resolve
         # the near-identical R2 values created by 128-point curve compression.
         linear_candidates = [
-            candidate
-            for candidate in candidates
-            if candidate[3] >= max(0.98, max_r2 - 1e-3)
+            candidate for candidate in candidates if candidate[3] >= max(0.98, max_r2 - 1e-3)
         ]
         if not linear_candidates:
             linear_candidates = [
@@ -379,9 +373,7 @@ def p1_transition_fit_details(
         "first_window": {"start": int(first[0]), "end": int(first[1])},
         "second_window": {"start": int(second[0]), "end": int(second[1])},
         "target_force": None if target_force is None else float(target_force),
-        "target_force_gap": None
-        if target_force is None
-        else float(target_force - pt_y),
+        "target_force_gap": None if target_force is None else float(target_force - pt_y),
     }
 
 

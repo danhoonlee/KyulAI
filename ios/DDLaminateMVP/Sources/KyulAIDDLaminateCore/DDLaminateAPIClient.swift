@@ -46,11 +46,13 @@ public struct DDLaminateAPIClient: DDLaminateAPIClientProtocol {
     private let urlSession: URLSession
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
+    private let bearerToken: String?
 
-    public init(urlSession: URLSession = .shared) {
+    public init(urlSession: URLSession = .shared, bearerToken: String? = nil) {
         self.urlSession = urlSession
         self.decoder = JSONDecoder()
         self.encoder = JSONEncoder()
+        self.bearerToken = bearerToken
     }
 
     public func health(baseURL: URL) async throws -> HealthResponse {
@@ -65,13 +67,13 @@ public struct DDLaminateAPIClient: DDLaminateAPIClientProtocol {
         baseURL: URL,
         request: ResponsePredictionRequest
     ) async throws -> ResponsePredictionResult {
-        let path = request.model == "response_geometry_tree_v1"
+        let path = request.model == DDLaminateDefaults.responseModelKey
             ? "/api/v1/dd-laminate/predict/response-ensemble"
             : "/api/v1/dd-laminate/predict/response"
         var urlRequest = URLRequest(url: Self.endpoint(baseURL: baseURL, path: path))
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        if request.model == "response_geometry_tree_v1" {
+        if request.model == DDLaminateDefaults.responseModelKey {
             urlRequest.httpBody = try encoder.encode(ResponseEnsemblePredictionRequest(from: request))
         } else {
             urlRequest.httpBody = try encoder.encode(request)
@@ -174,7 +176,11 @@ public struct DDLaminateAPIClient: DDLaminateAPIClientProtocol {
     }
 
     private func send<T: Decodable>(_ request: URLRequest) async throws -> T {
-        let (data, response) = try await urlSession.data(for: request)
+        var authorizedRequest = request
+        if let bearerToken, !bearerToken.isEmpty {
+            authorizedRequest.setValue("Bearer \(bearerToken)", forHTTPHeaderField: "Authorization")
+        }
+        let (data, response) = try await urlSession.data(for: authorizedRequest)
         guard let http = response as? HTTPURLResponse else {
             throw DDLaminateAPIError.invalidResponse
         }
