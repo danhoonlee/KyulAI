@@ -10,12 +10,16 @@ def _peak_normalize(curve: torch.Tensor) -> torch.Tensor:
     return curve / torch.clamp(torch.amax(curve, dim=1, keepdim=True), min=1e-6)
 
 
-def _soft_peak_position(curve: torch.Tensor, grid: torch.Tensor, temperature: float) -> torch.Tensor:
+def _soft_peak_position(
+    curve: torch.Tensor, grid: torch.Tensor, temperature: float
+) -> torch.Tensor:
     weights = torch.softmax(curve * temperature, dim=1)
     return torch.sum(weights * grid.reshape(1, -1), dim=1)
 
 
-def sprue_physics_loss(pred_curve: torch.Tensor, true_curve: torch.Tensor, grid: torch.Tensor, args) -> torch.Tensor:
+def sprue_physics_loss(
+    pred_curve: torch.Tensor, true_curve: torch.Tensor, grid: torch.Tensor, args
+) -> torch.Tensor:
     """Small differentiable penalties for nonphysical pressure-curve behavior."""
 
     pred_shape = _peak_normalize(pred_curve)

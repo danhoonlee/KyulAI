@@ -4,22 +4,26 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#f7f3ec" />
+  <meta name="color-scheme" content="only light" />
+  <meta name="supported-color-schemes" content="light" />
   <meta name="description" content="이동훈 · 신세연 결혼식에 초대합니다. 2026년10월10일 토요일 낮 12시, 크레스트 72 글라스홀" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://cafedecafe.co.kr/wedding/" />
   <meta property="og:title" content="이동훈 ❤️ 신세연" />
   <meta property="og:description" content="동훈 · 세연의 결혼을 축하해 주세요" />
-  <meta property="og:image" content="https://cafedecafe.co.kr/wedding/assets/og-classic-v2.png" />
+  <meta property="og:image" content="https://cafedecafe.co.kr/wedding/assets/og-classic-v3.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:image" content="https://cafedecafe.co.kr/wedding/assets/og-classic-v2.png" />
+  <meta name="twitter:image" content="https://cafedecafe.co.kr/wedding/assets/og-classic-v3.png" />
   <title>이동훈 · 신세연 모바일 청첩장 - Classic</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Gowun+Batang:wght@400;700&family=Pinyon+Script&display=swap" rel="stylesheet" />
+  <link href="/wedding/assets/fonts/wedding-fonts.css?v=20260722-3" rel="stylesheet" />
   <style>
     :root {
+      color-scheme: only light;
       --bg: #f3efe7;
       --paper: #fffdf8;
       --paper-2: #ebe4da;
@@ -35,15 +39,24 @@
       --shadow: 0 28px 74px rgba(31, 31, 28, .14);
       --radius: 18px;
       --safe-bottom: env(safe-area-inset-bottom, 0px);
-      --font-serif: "Gowun Batang", "AppleMyungjo", "Nanum Myeongjo", serif;
-      --font-display: "Gowun Batang", "AppleMyungjo", "Nanum Myeongjo", serif;
-      --font-latin: "Cormorant Garamond", Georgia, "Times New Roman", serif;
-      --font-script: "Pinyon Script", "Cormorant Garamond", cursive;
+      --font-serif: "Gowun Batang", "Wedding Gowun Batang", "Noto Serif KR", "Nanum Myeongjo", "AppleMyungjo", serif;
+      --font-display: "Gowun Batang", "Wedding Gowun Batang", "Noto Serif KR", "Nanum Myeongjo", "AppleMyungjo", serif;
+      --font-latin: "Cormorant Garamond", "Wedding Cormorant Garamond", Georgia, "Times New Roman", serif;
+      --font-script: "Pinyon Script", "Wedding Pinyon Script", "Cormorant Garamond", "Wedding Cormorant Garamond", cursive;
     }
 
     * { box-sizing: border-box; }
 
-    html { scroll-behavior: smooth; }
+    body,
+    body * {
+      font-family: var(--font-serif) !important;
+    }
+
+    html {
+      color-scheme: only light;
+      scroll-behavior: smooth;
+      background-color: var(--bg);
+    }
 
     body {
       margin: 0;
@@ -52,7 +65,8 @@
         radial-gradient(circle at 16% 8%, rgba(211, 195, 172, .32) 0, transparent 26%),
         radial-gradient(circle at 86% 4%, rgba(255, 255, 255, .82) 0, transparent 22%),
         linear-gradient(180deg, #f9f6f1 0%, var(--bg) 54%, #e7ded2 100%);
-      font-family: var(--font-serif);
+      font-family: var(--font-serif) !important;
+      font-synthesis: none;
       line-height: 1.75;
       word-break: keep-all;
       overflow-x: hidden;
@@ -130,14 +144,15 @@
     }
 
     .hero-title h1 {
-      font-family: var(--font-script);
-      font-weight: 400;
-      font-size: clamp(26px, 6.9vw, 38px);
-      line-height: 1.02;
-      letter-spacing: 0;
       margin: 0;
-      white-space: nowrap;
-      transform: none;
+      line-height: 1;
+    }
+
+    .hero-signature {
+      display: block;
+      width: min(100%, 340px);
+      height: auto;
+      margin: 0 auto;
     }
 
     .classic-cover {
@@ -162,43 +177,25 @@
       min-width: 0;
     }
 
+    .classic-kicker,
+    .classic-date,
+    .classic-tagline {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      margin-left: auto;
+      margin-right: auto;
+      object-fit: contain;
+    }
+
     .classic-kicker {
-      margin: 0 0 48px;
-      color: rgba(31,31,28,.56);
-      font-family: var(--font-latin);
-      font-size: 13px;
-      letter-spacing: .18em;
-      padding-left: .18em;
-      text-transform: uppercase;
+      width: 300px;
+      margin-bottom: 48px;
     }
 
     .classic-date {
+      width: 340px;
       margin-top: 62px;
-      color: #24241f;
-      font-family: var(--font-latin);
-      font-size: 16px;
-      font-weight: 600;
-      letter-spacing: .08em;
-      padding-left: .08em;
-      line-height: 1.7;
-      text-transform: uppercase;
-    }
-
-    .classic-date .venue-en {
-      display: block;
-      margin-top: 3px;
-      color: rgba(31,31,28,.62);
-      font-family: var(--font-latin);
-      font-size: 14px;
-      font-weight: 600;
-      letter-spacing: .06em;
-      padding-left: .06em;
-      text-transform: uppercase;
-    }
-
-    .classic-date .time-main {
-      font-size: 1.16em;
-      letter-spacing: .04em;
     }
 
     .classic-bottom {
@@ -208,12 +205,11 @@
       padding: 28px 16px;
       background: #161614;
       color: #f9f4ea;
-      font-family: var(--font-latin);
-      font-size: 13px;
-      line-height: 1.7;
-      letter-spacing: .09em;
       text-align: center;
-      text-transform: uppercase;
+    }
+
+    .classic-tagline {
+      width: 300px;
     }
 
     .hero-divider {
@@ -236,14 +232,14 @@
     }
 
     .hero-divider span {
-      font-family: var(--font-latin);
+      font-family: var(--font-latin) !important;
       font-size: 18px;
       line-height: 1;
     }
 
     .names-ko {
       color: var(--ink);
-      font-family: var(--font-serif);
+      font-family: var(--font-serif) !important;
       font-size: clamp(23px, 6.5vw, 31px);
       font-weight: 400;
       letter-spacing: .12em;
@@ -261,7 +257,7 @@
     }
 
     .hero-date {
-      font-family: var(--font-latin);
+      font-family: var(--font-latin) !important;
       font-size: 18px;
       letter-spacing: .06em;
       color: #8c6c37;
@@ -269,7 +265,7 @@
 
     .hero-place {
       margin-top: 16px;
-      font-family: var(--font-serif);
+      font-family: var(--font-serif) !important;
       color: var(--muted);
       font-size: 15px;
       letter-spacing: .02em;
@@ -328,7 +324,7 @@
       align-items: center;
       gap: 9px;
       color: var(--gold);
-      font-family: var(--font-latin);
+      font-family: var(--font-latin) !important;
       letter-spacing: .15em;
       font-size: 12px;
       text-transform: uppercase;
@@ -344,7 +340,7 @@
     }
 
     h2 {
-      font-family: var(--font-display);
+      font-family: var(--font-display) !important;
       font-weight: 500;
       margin: 9px 0 0;
       letter-spacing: -.045em;
@@ -354,7 +350,7 @@
     .invitation-text {
       text-align: center;
       color: #4b4239;
-      font-family: var(--font-serif);
+      font-family: var(--font-serif) !important;
       font-size: 16px;
       line-height: 2.05;
       letter-spacing: 0;
@@ -406,7 +402,7 @@
 
     .family-child {
       color: var(--ink);
-      font-family: var(--font-display);
+      font-family: var(--font-display) !important;
       font-size: 18px;
       font-weight: 700;
       line-height: 1.35;
@@ -422,7 +418,7 @@
     }
 
     .month {
-      font-family: var(--font-latin);
+      font-family: var(--font-latin) !important;
       letter-spacing: .14em;
       color: var(--gold);
       font-size: 15px;
@@ -483,7 +479,7 @@
       border-top: 1px solid var(--accent-line);
       border-bottom: 1px solid var(--accent-line);
       color: var(--ink);
-      font-family: var(--font-serif);
+      font-family: var(--font-serif) !important;
       font-size: 15px;
       line-height: 1.9;
       letter-spacing: .02em;
@@ -516,7 +512,7 @@
 
     .time-chip b {
       display: block;
-      font-family: var(--font-latin);
+      font-family: var(--font-latin) !important;
       font-size: 20px;
       line-height: 1;
       color: var(--ink);
@@ -543,7 +539,7 @@
       display: block;
       margin-bottom: 5px;
       color: var(--ink);
-      font-family: var(--font-display);
+      font-family: var(--font-display) !important;
       font-weight: 500;
       font-size: 18px;
       letter-spacing: -.035em;
@@ -676,7 +672,7 @@
 
     .venue-marker span {
       transform: rotate(45deg);
-      font-family: var(--font-latin);
+      font-family: var(--font-latin) !important;
       letter-spacing: .02em;
     }
 
@@ -703,7 +699,7 @@
       justify-items: center;
       padding-top: 2px;
       color: var(--accent);
-      font-family: var(--font-latin);
+      font-family: var(--font-latin) !important;
       font-size: 13px;
       font-weight: 700;
       letter-spacing: .08em;
@@ -813,7 +809,7 @@
 
     .photo-placeholder b {
       display: block;
-      font-family: var(--font-latin);
+      font-family: var(--font-latin) !important;
       letter-spacing: .12em;
       color: rgba(44,38,33,.72);
       font-size: 12px;
@@ -889,7 +885,7 @@
       max-width: 330px;
       margin: -10px auto 20px;
       color: var(--ink);
-      font-family: var(--font-serif);
+      font-family: var(--font-serif) !important;
       font-size: 14px;
       font-weight: 700;
       line-height: 1.8;
@@ -908,7 +904,7 @@
 
     .rsvp-card h3 {
       margin: 0 0 16px;
-      font-family: var(--font-display);
+      font-family: var(--font-display) !important;
       font-weight: 500;
       letter-spacing: -.035em;
       font-size: 20px;
@@ -958,7 +954,7 @@
     }
 
     .guestbook-entry strong {
-      font-family: var(--font-serif);
+      font-family: var(--font-serif) !important;
       font-size: 16px;
       font-weight: 600;
     }
@@ -971,7 +967,7 @@
     .guestbook-entry p {
       margin: 0;
       color: var(--ink);
-      font-family: var(--font-serif);
+      font-family: var(--font-serif) !important;
       font-size: 17px;
       line-height: 1.92;
       white-space: pre-wrap;
@@ -1062,7 +1058,7 @@
 
     .account-number {
       color: var(--ink);
-      font-family: var(--font-latin);
+      font-family: var(--font-latin) !important;
       font-size: 15px;
       font-weight: 600;
       line-height: 1.2;
@@ -1145,7 +1141,7 @@
       border: 1px solid rgba(31, 31, 28, .1);
       background: rgba(255, 255, 255, .72);
       color: var(--ink);
-      font-family: var(--font-sans);
+      font-family: var(--font-sans) !important;
       font-size: 13px;
       font-weight: 700;
       box-shadow: none;
@@ -1166,7 +1162,7 @@
 
     .footer b {
       display: block;
-      font-family: var(--font-latin);
+      font-family: var(--font-latin) !important;
       letter-spacing: .18em;
       padding-left: .18em;
       color: var(--gold);
@@ -1214,7 +1210,7 @@
 
     .modal-head h3 {
       margin: 0;
-      font-family: var(--font-display);
+      font-family: var(--font-display) !important;
       font-weight: 500;
       font-size: 22px;
       letter-spacing: -.04em;
@@ -1339,15 +1335,18 @@
       .contact-card, .two { grid-template-columns: 1fr; }
       .btn-row, .share-fixed { grid-template-columns: 1fr; }
       .countdown { gap: 6px; }
-      .hero-title h1 { font-size: 24px; transform: none; }
       .hero { padding-left: 0; padding-right: 0; }
       .classic-cover { border-width: 9px; min-height: 100svh; }
       .classic-panel { min-height: 0; padding-left: 14px; padding-right: 14px; }
-      .classic-kicker { font-size: 12px; }
-      .classic-date { font-size: 12px; letter-spacing: .04em; padding-left: .04em; transform: none; }
-      .classic-date span { font-size: 12px; letter-spacing: .04em; padding-left: .04em; }
-      .classic-bottom { min-height: 112px; font-size: 12px; padding-top: 24px; padding-bottom: 24px; }
+      .classic-kicker { width: 280px; }
+      .classic-date { width: 320px; }
+      .classic-bottom { min-height: 112px; padding-top: 24px; padding-bottom: 24px; }
+      .classic-tagline { width: 280px; }
       .invitation-text { font-size: 15px; line-height: 1.95; max-width: 310px; }
+    }
+
+    @media (max-width: 320px) {
+      .classic-panel { padding-left: 10px; padding-right: 10px; }
     }
 
     @media print {
@@ -1363,17 +1362,12 @@
       <div class="hero-title">
         <div class="classic-cover">
           <div class="classic-panel">
-            <p class="classic-kicker">Wedding Invitation</p>
-            <h1>Donghoon Lee &amp; Seyeon Shin</h1>
-            <div class="classic-date">
-              Saturday | October 10, 2026 | <span class="time-main">12:00</span>PM
-              <span class="venue-en">Crest 72 Glass Hall</span>
-            </div>
+            <img class="classic-kicker" src="/wedding/assets/cover-kicker.png?v=20260722-1" alt="Wedding Invitation" width="1200" height="112" loading="eager" decoding="sync" />
+            <h1><img class="hero-signature" src="/wedding/assets/donghoon-seyeon-signature.png?v=20260722-2" alt="Donghoon Lee &amp; Seyeon Shin" width="3462" height="404" loading="eager" decoding="sync" fetchpriority="high" /></h1>
+            <img class="classic-date" src="/wedding/assets/cover-date-venue.png?v=20260722-1" alt="Saturday, October 10, 2026, 12:00 PM, Crest 72 Glass Hall" width="1360" height="364" loading="eager" decoding="sync" />
           </div>
           <div class="classic-bottom">
-            From shared days<br />
-            and quiet moments,<br />
-            we arrive at forever.
+            <img class="classic-tagline" src="/wedding/assets/cover-tagline.png?v=20260722-1" alt="From shared days and quiet moments, we arrive at forever." width="1200" height="312" loading="eager" decoding="sync" />
           </div>
         </div>
       </div>
@@ -1527,15 +1521,15 @@
           </div>
           <div class="map-buttons" aria-label="지도 링크">
             <a href="https://map.naver.com/p/entry/place/1482913853" onclick="openNaverMap(event)" target="_blank" rel="noopener" aria-label="네이버 지도 열기">
-              <img class="map-icon naver" src="./assets/naver-map.png" alt="" aria-hidden="true" />
+              <img class="map-icon naver" src="/wedding/assets/naver-map.png" alt="" aria-hidden="true" />
               <span>네이버</span>
             </a>
             <a href="https://kko.to/Vf69JrsOH7" target="_blank" rel="noopener" aria-label="카카오맵 열기">
-              <img class="map-icon kakao" src="./assets/kakao-map.png" alt="" aria-hidden="true" />
+              <img class="map-icon kakao" src="/wedding/assets/kakao-map.png" alt="" aria-hidden="true" />
               <span>카카오</span>
             </a>
             <a href="https://maps.app.goo.gl/VLqs5ZuWFu34Hg2K6" target="_blank" rel="noopener" aria-label="구글 지도 열기">
-              <img class="map-icon google" src="./assets/google-map.svg" alt="" aria-hidden="true" />
+              <img class="map-icon google" src="/wedding/assets/google-map.svg" alt="" aria-hidden="true" />
               <span>구글</span>
             </a>
           </div>
@@ -1847,7 +1841,7 @@
       venue: '크레스트 72 글라스홀',
       address: '서울특별시 중구 장충단로 72',
       publicUrl: 'https://cafedecafe.co.kr/wedding/',
-      ogImage: 'https://cafedecafe.co.kr/wedding/assets/og-classic-v2.png',
+      ogImage: 'https://cafedecafe.co.kr/wedding/assets/og-classic-v3.png',
       kakaoJsKey: '29f08843d61cd2977cf05fdca869b95d',
       rsvpEndpoint: './api/rsvp.php',
       guestbookEndpoint: './api/guestbook',
@@ -2279,7 +2273,7 @@
     setInterval(updateCountdown, 1000);
 
     function saveCalendar() {
-      const calendarUrl = './assets/donghoon-seyeon-wedding.ics';
+      const calendarUrl = '/wedding/assets/donghoon-seyeon-wedding.ics';
       const calendarHref = new URL(calendarUrl, window.location.href).href;
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       if (isMobile) {

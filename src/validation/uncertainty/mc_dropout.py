@@ -15,8 +15,9 @@ Usage:
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
 
@@ -25,9 +26,9 @@ import numpy as np
 class MCDropoutResult:
     """Statistics from MC Dropout forward passes."""
 
-    mean: np.ndarray       # (output_dim,) or (N, output_dim)
-    std: np.ndarray        # same shape
-    samples: np.ndarray    # (n_samples, ...) raw draws
+    mean: np.ndarray  # (output_dim,) or (N, output_dim)
+    std: np.ndarray  # same shape
+    samples: np.ndarray  # (n_samples, ...) raw draws
     n_samples: int
 
     def confidence_interval(self, coverage: float = 0.95) -> tuple[np.ndarray, np.ndarray]:
@@ -99,6 +100,7 @@ class MCDropoutUncertainty:
         """
         try:
             import torch.nn as nn
+
             for m in model.modules():
                 if isinstance(m, nn.Dropout) or isinstance(m, nn.Dropout2d):
                     m.train()

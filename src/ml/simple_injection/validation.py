@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-
 ValidationIssue = dict[str, str]
 
 
@@ -31,6 +30,7 @@ def validate_simple_injection_inputs(inputs: dict[str, Any]) -> list[ValidationI
     thickness = float(inputs.get("t_mm", 0.0) or 0.0)
     diameter = float(inputs.get("D_mm", 0.0) or 0.0)
     radius = float(inputs.get("R_mm", diameter / 2.0) or diameter / 2.0)
+    gate_type = str(inputs.get("gate_type", "") or "").strip().lower()
     gate_width = float(inputs.get("gate_size_width_mm", 0.0) or 0.0)
     gate_height = float(inputs.get("gate_size_height_mm", 0.0) or 0.0)
     melt_temp = float(inputs.get("melt_temp_C", 0.0) or 0.0)
@@ -53,6 +53,34 @@ def validate_simple_injection_inputs(inputs: dict[str, Any]) -> list[ValidationI
     for field, value in positive_fields:
         if value <= 0:
             issues.append(_issue("error", "input", field, f"{field} must be greater than 0."))
+
+    if gate_type != "edge_gate":
+        issues.append(
+            _issue(
+                "error",
+                "gate",
+                "gate_type",
+                "Gate type is fixed to edge_gate in the current training DOE.",
+            )
+        )
+    if abs(gate_width - 10.0) > 1e-6:
+        issues.append(
+            _issue(
+                "error",
+                "gate",
+                "gate_size_width_mm",
+                "Gate width is fixed to 10.0 mm in the current training DOE.",
+            )
+        )
+    if abs(gate_height - 1.5) > 1e-6:
+        issues.append(
+            _issue(
+                "error",
+                "gate",
+                "gate_size_height_mm",
+                "Gate height is fixed to 1.5 mm in the current training DOE.",
+            )
+        )
 
     if diameter > 0 and radius > 0 and abs(radius - diameter / 2.0) > max(0.05, diameter * 0.02):
         issues.append(
@@ -295,4 +323,3 @@ def validate_simple_injection_inputs(inputs: dict[str, Any]) -> list[ValidationI
 
 def has_blocking_issues(issues: list[ValidationIssue]) -> bool:
     return any(issue["severity"] == "error" for issue in issues)
-

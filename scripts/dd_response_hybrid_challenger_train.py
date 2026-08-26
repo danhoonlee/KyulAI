@@ -30,10 +30,12 @@ from scripts.dd_response_dl_challengers_train import (
     state_dict_cpu,
 )
 from scripts.dd_response_physics_xai_train import make_response_targets
-from src.ml.dd_laminate.response_feature_sets import response_feature_matrix
+from src.ml.dd_laminate.response_feature_sets import (
+    SUPPORTED_RESPONSE_FEATURE_SETS,
+    response_feature_matrix,
+)
 from src.ml.dd_laminate.train_cases_2_3_4_classical import CURVE_GRID_LEN, load_records
 from src.ml.dd_laminate.train_cases_2_3_4_goint import denormalize_scalars, normalize
-
 
 METRIC_KEYS = (
     "accuracy",
@@ -345,8 +347,16 @@ def main() -> None:
     parser.add_argument("--report-dir", default="reports/dd_response_hybrid_challenger_v1")
     parser.add_argument("--baseline-tree-metrics", default="models/dd_laminate_response_physics_xai_v2/response_surrogate_metrics.json")
     parser.add_argument("--baseline-goint-metrics", default="models/dd_laminate_response_goint_physics_nn_v2/response_goint_metrics.json")
-    parser.add_argument("--type-feature-set", choices=["theta_physics", "theta_physics_v2", "theta_physics_nn_v2"], default="theta_physics_v2")
-    parser.add_argument("--curve-feature-set", choices=["theta_physics", "theta_physics_v2", "theta_physics_nn_v2"], default="theta_physics_nn_v2")
+    parser.add_argument(
+        "--type-feature-set",
+        choices=SUPPORTED_RESPONSE_FEATURE_SETS,
+        default="theta_physics_v2",
+    )
+    parser.add_argument(
+        "--curve-feature-set",
+        choices=SUPPORTED_RESPONSE_FEATURE_SETS,
+        default="theta_physics_nn_v2",
+    )
     parser.add_argument("--seq-len", type=int, default=CURVE_GRID_LEN)
     parser.add_argument("--splits", type=int, default=5)
     parser.add_argument("--epochs", type=int, default=90)

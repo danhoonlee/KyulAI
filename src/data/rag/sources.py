@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from typing import SupportsIndex, SupportsInt
 from urllib.parse import urlparse
-
 
 DEFAULT_ALLOWED_DOMAINS: tuple[str, ...] = (
     "nasa.gov",
@@ -57,7 +57,7 @@ class RagSource:
             url=str(data["url"]),
             topic=str(data.get("topic", "composites")),
             source_type=str(data.get("source_type", "web")),
-            priority=int(data.get("priority", 3)),
+            priority=_int_from_json(data.get("priority", 3)),
             tags=tags_value,
             ingest_mode=str(data.get("ingest_mode", "download")),
             license_note=str(data.get("license_note", "")),
@@ -113,4 +113,12 @@ def dump_source_catalog(path: str | Path, sources: list[RagSource]) -> None:
     output_path = Path(path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     payload = {"sources": [source.to_dict() for source in sources]}
-    output_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    output_path.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+
+
+def _int_from_json(value: object) -> int:
+    if isinstance(value, (str, bytes, bytearray, SupportsInt, SupportsIndex)):
+        return int(value)
+    raise TypeError(f"Expected JSON scalar convertible to int, got {type(value).__name__}")

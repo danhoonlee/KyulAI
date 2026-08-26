@@ -12,8 +12,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 from PIL import Image
-from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.model_selection import StratifiedKFold
 from torch.utils.data import DataLoader, Dataset
 
 from .classifier import DDAnglePredictor, DDImageClassifier, DDPtPredictor, get_image_transforms
@@ -32,7 +32,10 @@ class DDImageDataset(Dataset):
 
     def __getitem__(self, idx: int):
         sample = self.samples[idx]
-        img = Image.open(sample.image_path_p1).convert("RGB")
+        image_path = sample.image_path_p1
+        if image_path is None:
+            raise ValueError("DDImageDataset samples must have an image_path_p1")
+        img = Image.open(image_path).convert("RGB")
         if self.transform:
             img = self.transform(img)
         label = sample.label - 1  # 0-indexed for CrossEntropyLoss
@@ -82,9 +85,9 @@ def train_image_classifier(
     fold_results = []
 
     for fold, (train_idx, val_idx) in enumerate(skf.split(samples, labels)):
-        print(f"\n{'='*50}")
+        print(f"\n{'=' * 50}")
         print(f"Fold {fold + 1}/5")
-        print(f"{'='*50}")
+        print(f"{'=' * 50}")
 
         train_samples = [samples[i] for i in train_idx]
         val_samples = [samples[i] for i in val_idx]
@@ -104,9 +107,7 @@ def train_image_classifier(
 
         model = DDImageClassifier(pretrained=True).to(device)
         criterion = nn.CrossEntropyLoss(weight=weight_tensor)
-        optimizer = torch.optim.Adam(
-            filter(lambda p: p.requires_grad, model.parameters()), lr=lr
-        )
+        optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=lr)
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
 
         best_val_acc = 0.0
@@ -147,9 +148,9 @@ def train_image_classifier(
             val_acc = val_correct / val_total
             if (epoch + 1) % 5 == 0 or epoch == 0:
                 print(
-                    f"  Epoch {epoch+1:>3d}/{epochs}: "
-                    f"train_loss={train_loss/len(train_loader):.4f} "
-                    f"train_acc={train_correct/train_total:.3f} "
+                    f"  Epoch {epoch + 1:>3d}/{epochs}: "
+                    f"train_loss={train_loss / len(train_loader):.4f} "
+                    f"train_acc={train_correct / train_total:.3f} "
                     f"val_acc={val_acc:.3f}"
                 )
 
@@ -158,14 +159,17 @@ def train_image_classifier(
 
         print(f"\n  Best val accuracy: {best_val_acc:.3f}")
         print(f"  Confusion matrix:\n{confusion_matrix(all_labels, all_preds)}")
-        print(classification_report(
-            all_labels, all_preds,
-            target_names=["Type 1", "Type 2", "Type 3"],
-        ))
+        print(
+            classification_report(
+                all_labels,
+                all_preds,
+                target_names=["Type 1", "Type 2", "Type 3"],
+            )
+        )
         fold_results.append(best_val_acc)
 
     mean_acc = np.mean(fold_results)
-    print(f"\n{'='*50}")
+    print(f"\n{'=' * 50}")
     print(f"Mean CV accuracy: {mean_acc:.3f} (+/- {np.std(fold_results):.3f})")
 
     # Train final model on all data
@@ -181,11 +185,9 @@ def train_image_classifier(
 
     final_model = DDImageClassifier(pretrained=True).to(device)
     criterion = nn.CrossEntropyLoss(weight=weight_tensor)
-    optimizer = torch.optim.Adam(
-        filter(lambda p: p.requires_grad, final_model.parameters()), lr=lr
-    )
+    optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, final_model.parameters()), lr=lr)
 
-    for epoch in range(epochs):
+    for _epoch in range(epochs):
         final_model.train()
         for imgs, labels_batch, _ in full_loader:
             imgs, labels_batch = imgs.to(device), labels_batch.to(device)
@@ -243,7 +245,7 @@ def train_angle_predictor(
         optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
         best_val_acc = 0.0
-        for epoch in range(epochs):
+        for _epoch in range(epochs):
             model.train()
             for features, labels_batch in train_loader:
                 features, labels_batch = features.to(device), labels_batch.to(device)
@@ -286,7 +288,7 @@ def train_angle_predictor(
     criterion = nn.CrossEntropyLoss(weight=weight_tensor)
     optimizer = torch.optim.Adam(final_model.parameters(), lr=lr)
 
-    for epoch in range(epochs):
+    for _epoch in range(epochs):
         final_model.train()
         for features, labels_batch in full_loader:
             features, labels_batch = features.to(device), labels_batch.to(device)
@@ -344,6 +346,7 @@ def train_pt_predictor(
     print(f"Pt stats: mean={pt_mean:.0f}, std={pt_std:.0f}")
 
     from sklearn.model_selection import KFold
+
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
     fold_results = []
 
@@ -362,7 +365,7 @@ def train_pt_predictor(
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
 
         best_val_mae = float("inf")
-        for epoch in range(epochs):
+        for _epoch in range(epochs):
             model.train()
             for features, pt_batch in train_loader:
                 features, pt_batch = features.to(device), pt_batch.to(device)
@@ -375,14 +378,16 @@ def train_pt_predictor(
             scheduler.step()
 
             model.eval()
-            val_errors = []
+            val_errors: list[float] = []
             with torch.no_grad():
                 for features, pt_batch in val_loader:
                     features, pt_batch = features.to(device), pt_batch.to(device)
                     preds = model(features) * pt_std + pt_mean
-                    val_errors.extend(torch.abs(preds - pt_batch).cpu().numpy())
+                    val_errors.extend(
+                        float(err) for err in torch.abs(preds - pt_batch).cpu().numpy()
+                    )
 
-            val_mae = np.mean(val_errors)
+            val_mae = float(np.mean(val_errors))
             if val_mae < best_val_mae:
                 best_val_mae = val_mae
 
@@ -391,7 +396,7 @@ def train_pt_predictor(
         fold_results.append(best_val_mae)
 
     mean_mae = np.mean(fold_results)
-    print(f"\nPt predictor mean CV MAE: {mean_mae:.0f} ({mean_mae/pt_mean*100:.1f}%)")
+    print(f"\nPt predictor mean CV MAE: {mean_mae:.0f} ({mean_mae / pt_mean * 100:.1f}%)")
 
     # Train final model
     full_ds = DDPtDataset(samples)
@@ -400,7 +405,7 @@ def train_pt_predictor(
     final_model = DDPtPredictor(hidden_dim=128).to(device)
     optimizer = torch.optim.Adam(final_model.parameters(), lr=lr)
 
-    for epoch in range(epochs):
+    for _epoch in range(epochs):
         final_model.train()
         for features, pt_batch in full_loader:
             features, pt_batch = features.to(device), pt_batch.to(device)
@@ -413,11 +418,14 @@ def train_pt_predictor(
     out_path = Path(output_dir)
     out_path.mkdir(parents=True, exist_ok=True)
     model_path = out_path / "pt_predictor.pt"
-    torch.save({
-        "model_state_dict": final_model.state_dict(),
-        "pt_mean": float(pt_mean),
-        "pt_std": float(pt_std),
-    }, model_path)
+    torch.save(
+        {
+            "model_state_dict": final_model.state_dict(),
+            "pt_mean": float(pt_mean),
+            "pt_std": float(pt_std),
+        },
+        model_path,
+    )
     print(f"Model saved to {model_path}")
 
     return {"cv_mae": mean_mae, "fold_results": fold_results}
@@ -454,16 +462,18 @@ def review_classifications(
             predicted = logits.argmax(1).item() + 1
 
         if predicted != sample.label:
-            disagreements.append({
-                "test_id": sample.test_id,
-                "case": sample.case,
-                "theta1": sample.theta1,
-                "theta2": sample.theta2,
-                "manual_label": sample.label,
-                "predicted_label": predicted,
-                "confidence": probs[predicted - 1].item(),
-                "probs": {f"type{i+1}": probs[i].item() for i in range(3)},
-            })
+            disagreements.append(
+                {
+                    "test_id": sample.test_id,
+                    "case": sample.case,
+                    "theta1": sample.theta1,
+                    "theta2": sample.theta2,
+                    "manual_label": sample.label,
+                    "predicted_label": predicted,
+                    "confidence": probs[predicted - 1].item(),
+                    "probs": {f"type{i + 1}": probs[i].item() for i in range(3)},
+                }
+            )
 
     print(f"\nFound {len(disagreements)} disagreements out of {len(dataset)} samples")
     for d in sorted(disagreements, key=lambda x: -x["confidence"]):

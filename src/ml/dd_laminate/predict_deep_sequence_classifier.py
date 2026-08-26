@@ -3,14 +3,22 @@
 from __future__ import annotations
 
 import argparse
+from functools import lru_cache
 from pathlib import Path
 
 import torch
 
-from .deep_sequence import DDGointSequenceClassifier, DDSequenceDataset, DDSequenceSample, predict_from_logits
+from .deep_sequence import (
+    DDGointSequenceClassifier,
+    DDSequenceDataset,
+    DDSequenceSample,
+    predict_from_logits,
+)
 
 
-def load_model(model_path: str | Path, device: torch.device):
+@lru_cache(maxsize=4)
+def _load_model_cached(model_path: str, device_name: str):
+    device = torch.device(device_name)
     checkpoint = torch.load(model_path, map_location=device, weights_only=False)
     config = checkpoint["model_config"]
     model = DDGointSequenceClassifier(
@@ -24,6 +32,10 @@ def load_model(model_path: str | Path, device: torch.device):
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
     return model, checkpoint
+
+
+def load_model(model_path: str | Path, device: torch.device):
+    return _load_model_cached(str(Path(model_path).resolve()), str(device))
 
 
 def predict_deep_type(
@@ -65,7 +77,9 @@ def predict_deep_type(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Predict DD Type with the deep sequence model")
     parser.add_argument("csv_path")
-    parser.add_argument("--model", default="models/dd_laminate_deep_sequence_v1/dd_goint_sequence.pt")
+    parser.add_argument(
+        "--model", default="models/dd_laminate_deep_sequence_v1/dd_goint_sequence.pt"
+    )
     parser.add_argument("--pt", type=float, required=True)
     parser.add_argument("--case", required=True)
     parser.add_argument("--theta1", type=float, required=True)

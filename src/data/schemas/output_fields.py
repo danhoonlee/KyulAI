@@ -9,10 +9,9 @@ All field values in SI units. Field arrays are indexed by node ID
 
 from __future__ import annotations
 
-import numpy as np
 from pydantic import BaseModel, Field, model_validator
 
-from src.data.schemas.fields import NumpyArray, NumpyArray2D, NumpyArray3D
+from src.data.schemas.fields import NumpyArray
 
 
 class ScalarField(BaseModel):
@@ -22,7 +21,9 @@ class ScalarField(BaseModel):
     """
 
     name: str = Field(..., description="Field name (e.g. 'temperature')")
-    values: NumpyArray = Field(..., description="Field values, shape (N,) or (T, N) for time-varying")
+    values: NumpyArray = Field(
+        ..., description="Field values, shape (N,) or (T, N) for time-varying"
+    )
     unit: str = Field(..., description="SI unit string (e.g. 'K', 'Pa', '-')")
     location: str = Field("node", description="'node' or 'element' — where values are defined")
     description: str = Field("", description="Human-readable description")
@@ -46,9 +47,7 @@ class VectorField(BaseModel):
     """
 
     name: str = Field(..., description="Field name (e.g. 'displacement')")
-    values: NumpyArray = Field(
-        ..., description="Field values, shape (N, 3) or (T, N, 3)"
-    )
+    values: NumpyArray = Field(..., description="Field values, shape (N, 3) or (T, N, 3)")
     unit: str = Field(..., description="SI unit string (e.g. 'm', 'm/s')")
     location: str = Field("node", description="'node' or 'element'")
     description: str = Field("")
@@ -57,13 +56,11 @@ class VectorField(BaseModel):
     def _check_vector_shape(self) -> VectorField:
         if self.values.ndim == 2 and self.values.shape[1] != 3:
             raise ValueError(
-                f"Vector field '{self.name}' shape {self.values.shape}: "
-                f"expected last dim = 3"
+                f"Vector field '{self.name}' shape {self.values.shape}: expected last dim = 3"
             )
         if self.values.ndim == 3 and self.values.shape[2] != 3:
             raise ValueError(
-                f"Vector field '{self.name}' shape {self.values.shape}: "
-                f"expected last dim = 3"
+                f"Vector field '{self.name}' shape {self.values.shape}: expected last dim = 3"
             )
         return self
 

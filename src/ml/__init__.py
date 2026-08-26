@@ -14,32 +14,32 @@ models at package import time.
 from importlib import import_module
 
 __all__ = [
-    # Models
-    "KyulBaseModel",
-    "ModelBatch",
-    "ModelOutput",
-    "MLPSurrogate",
-    "MLPConfig",
-    "CNNSurrogate",
-    "CNNConfig",
-    "ModelConfig",
     "MODEL_REGISTRY",
     # Training
     "BaseTrainer",
-    "TrainingConfig",
-    "TrainingResult",
+    "CNNConfig",
+    "CNNSurrogate",
+    "EvaluationReport",
+    "KyulAIDataset",
     # Data
     "KyulAISample",
-    "KyulAIDataset",
-    "SimulationDataset",
+    # Models
+    "KyulBaseModel",
+    "MLPConfig",
+    "MLPSurrogate",
     # Evaluation
     "MetricsResult",
+    "ModelBatch",
+    "ModelConfig",
+    "ModelEvaluator",
+    "ModelOutput",
+    "OODEvaluationProtocol",
     "OODMetrics",
+    "SimulationDataset",
+    "TrainingConfig",
+    "TrainingResult",
     "compute_metrics",
     "compute_ood_metrics",
-    "ModelEvaluator",
-    "EvaluationReport",
-    "OODEvaluationProtocol",
 ]
 
 _LAZY_EXPORTS = {

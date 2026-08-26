@@ -40,9 +40,7 @@ class Measurement(BaseModel):
         "absolute",
         description="'absolute', 'relative', 'std_dev', 'confidence_interval'",
     )
-    num_specimens: int | None = Field(
-        None, ge=1, description="Number of specimens tested"
-    )
+    num_specimens: int | None = Field(None, ge=1, description="Number of specimens tested")
     measurement_method: str | None = Field(
         None, description="Method (e.g. 'DIC', 'extensometer', 'strain_gauge')"
     )
@@ -64,9 +62,7 @@ class TestConditions(BaseModel):
     standard: str | None = Field(
         None, description="Test standard followed (e.g. 'ASTM D3039', 'ISO 527')"
     )
-    extra: dict[str, Any] = Field(
-        default_factory=dict, description="Additional test conditions"
-    )
+    extra: dict[str, Any] = Field(default_factory=dict, description="Additional test conditions")
 
     model_config = {"extra": "forbid"}
 

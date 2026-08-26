@@ -94,9 +94,9 @@ class TsaiWuValidator(Validator):
         F11 = 1.0 / (Xt * Xc)
         F22 = 1.0 / (Yt * Yc)
         F33 = F22
-        F44 = 1.0 / (S23 ** 2)
-        F55 = 1.0 / (S12 ** 2)
-        F66 = 1.0 / (S12 ** 2)
+        F44 = 1.0 / (S23**2)
+        F55 = 1.0 / (S12**2)
+        F66 = 1.0 / (S12**2)
 
         # Tsai-Hahn interaction term
         F12 = -0.5 / math.sqrt(Xt * Xc * Yt * Yc)
@@ -108,7 +108,9 @@ class TsaiWuValidator(Validator):
         for i, s in enumerate(stress):
             s1, s2, s3, t23, t13, t12 = s
             FI = (
-                F1 * s1 + F2 * s2 + F3 * s3
+                F1 * s1
+                + F2 * s2
+                + F3 * s3
                 + F11 * s1**2
                 + F22 * s2**2
                 + F33 * s3**2
@@ -190,7 +192,7 @@ class MaxStressValidator(Validator):
         near_failures: list[str] = []
 
         for i, s in enumerate(stress):
-            s1, s2, s3, t23, t13, t12 = s
+            s1, s2, _s3, t23, t13, t12 = s
 
             checks = [
                 ("σ₁+", s1, Xt),

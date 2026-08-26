@@ -1,0 +1,12 @@
+[Unit]
+Description=CafeDeCafe Legacy Tunnel Migration Bridge
+After=network-online.target imperialax-laminate.service imperialax-injection.service cafedecafe-nangman.service
+Wants=network-online.target imperialax-laminate.service imperialax-injection.service cafedecafe-nangman.service
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/cloudflared --config %h/projects/KyulAI/infrastructure/cloudflare/cafedecafe-legacy-wsl.yml tunnel run
+Restart=always
+RestartSec=5
+StandardOutput=append:%h/projects/KyulAI/logs/cafedecafe-legacy-cloudflared.log
+StandardError=append:%h/projects/KyulAI/logs/cafedecafe-legacy-cloudflared.err.log

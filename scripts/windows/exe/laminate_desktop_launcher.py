@@ -53,10 +53,10 @@ def main() -> int:
     env["LAMINATE_HOST"] = "127.0.0.1"
     env["LAMINATE_PORT"] = str(args.port)
     env["LAMINATE_REQUIRE_AUTH"] = "1"
-    env["LUVELOX_DISABLE_DEMO_LOGIN"] = "1"
+    env["IMPERIALAX_ENABLE_DEMO_LOGIN"] = "0"
     env["KYULAI_PROJECT_ROOT"] = str(root)
     env["LAMINATE_FRONTEND_DIR"] = str(root / "src" / "frontend" / "dd-laminate")
-    env["LUVELOX_FRONTEND_DIR"] = str(root / "src" / "frontend" / "luvelox")
+    env["IMPERIALAX_FRONTEND_DIR"] = str(root / "src" / "frontend" / "imperialax")
     env.setdefault("LAMINATE_ENV", "portable_exe")
 
     stdout = None if args.debug else subprocess.DEVNULL

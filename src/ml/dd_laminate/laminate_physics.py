@@ -4,8 +4,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from math import cos, radians, sin
+from typing import Literal
 
 import numpy as np
+
+from .case_definitions import canonical_case_stack
 
 
 @dataclass(frozen=True)
@@ -121,7 +124,19 @@ NN_FRIENDLY_PHYSICS_FEATURE_COLUMNS = [
 ]
 
 
-def _case_stack(case: str, theta1: float, theta2: float) -> list[float]:
+CANONICAL_STACK_VERSION = "canonical_v2"
+LEGACY_STACK_VERSION = "legacy_case3_v1"
+StackVersion = Literal["canonical_v2", "legacy_case3_v1"]
+
+
+def legacy_case_stack_v1(case: str, theta1: float, theta2: float) -> list[float]:
+    """Return the historical stack used by already-trained physics artifacts.
+
+    Case3 in this schema duplicated the theta2 reverse pair and omitted the
+    theta1 reverse pair. Keep it isolated so old artifacts remain reproducible
+    while corrected models use the canonical registry.
+    """
+
     pm1 = [theta1, -theta1]
     pm2 = [theta2, -theta2]
     mp1 = [-theta1, theta1]
@@ -135,10 +150,27 @@ def _case_stack(case: str, theta1: float, theta2: float) -> list[float]:
     raise ValueError(f"Unsupported DD laminate case: {case}")
 
 
+def _case_stack(case: str, theta1: float, theta2: float) -> list[float]:
+    return canonical_case_stack(case, theta1, theta2)
+
+
 def case_stack(case: str, theta1: float, theta2: float) -> list[float]:
-    """Return the built-in case stack used by trained model feature builders."""
+    """Return the canonical built-in Case2/Case3/Case4 ply stack."""
 
     return _case_stack(case, theta1, theta2)
+
+
+def _versioned_case_stack(
+    case: str,
+    theta1: float,
+    theta2: float,
+    stack_version: StackVersion,
+) -> list[float]:
+    if stack_version == CANONICAL_STACK_VERSION:
+        return canonical_case_stack(case, theta1, theta2)
+    if stack_version == LEGACY_STACK_VERSION:
+        return legacy_case_stack_v1(case, theta1, theta2)
+    raise ValueError(f"Unsupported DD stack version: {stack_version}")
 
 
 def _reduced_stiffness(material: MaterialProperties) -> np.ndarray:
@@ -187,8 +219,10 @@ def abd_matrices(
     theta1: float,
     theta2: float,
     material: MaterialProperties = DEFAULT_MATERIAL,
+    *,
+    stack_version: StackVersion = CANONICAL_STACK_VERSION,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, list[float]]:
-    stack = _case_stack(case, theta1, theta2)
+    stack = _versioned_case_stack(case, theta1, theta2, stack_version)
     ply_t = material.ply_thickness_in
     total_h = ply_t * len(stack)
     z_edges = np.linspace(-total_h / 2.0, total_h / 2.0, len(stack) + 1)
@@ -272,9 +306,18 @@ def stack_physics_summary(
         "d66": float(d_norm[2, 2]),
         "a11_a22_ratio": float(a_norm[0, 0] / max(abs(a_norm[1, 1]), eps)),
         "d11_d22_ratio": float(d_norm[0, 0] / max(abs(d_norm[1, 1]), eps)),
-        "a_coupling_norm": float((abs(a_norm[0, 2]) + abs(a_norm[1, 2])) / max(abs(a_norm[0, 0]) + abs(a_norm[1, 1]), eps)),
-        "b_coupling_norm": float((abs(b_norm[0, 2]) + abs(b_norm[1, 2])) / max(abs(a_norm[0, 0]) + abs(a_norm[1, 1]), eps)),
-        "d_coupling_norm": float((abs(d_norm[0, 2]) + abs(d_norm[1, 2])) / max(abs(d_norm[0, 0]) + abs(d_norm[1, 1]), eps)),
+        "a_coupling_norm": float(
+            (abs(a_norm[0, 2]) + abs(a_norm[1, 2]))
+            / max(abs(a_norm[0, 0]) + abs(a_norm[1, 1]), eps)
+        ),
+        "b_coupling_norm": float(
+            (abs(b_norm[0, 2]) + abs(b_norm[1, 2]))
+            / max(abs(a_norm[0, 0]) + abs(a_norm[1, 1]), eps)
+        ),
+        "d_coupling_norm": float(
+            (abs(d_norm[0, 2]) + abs(d_norm[1, 2]))
+            / max(abs(d_norm[0, 0]) + abs(d_norm[1, 1]), eps)
+        ),
         "membrane_anisotropy": float((a[0, 0] - a[1, 1]) / max(abs(a[0, 0]) + abs(a[1, 1]), eps)),
         "bending_anisotropy": float((d[0, 0] - d[1, 1]) / max(abs(d[0, 0]) + abs(d[1, 1]), eps)),
         "angle_mean": float(np.mean(stack_arr)),
@@ -293,8 +336,12 @@ def physics_feature_vector(
     theta1: float,
     theta2: float,
     material: MaterialProperties = DEFAULT_MATERIAL,
+    *,
+    stack_version: StackVersion = CANONICAL_STACK_VERSION,
 ) -> np.ndarray:
-    a, b, d, stack = abd_matrices(case, theta1, theta2, material)
+    a, b, d, stack = abd_matrices(
+        case, theta1, theta2, material, stack_version=stack_version
+    )
     h = material.ply_thickness_in * len(stack)
     a_norm = a / max(h, 1e-12)
     b_norm = 2.0 * b / max(h**2, 1e-12)
@@ -335,6 +382,8 @@ def extended_physics_feature_vector(
     theta1: float,
     theta2: float,
     material: MaterialProperties = DEFAULT_MATERIAL,
+    *,
+    stack_version: StackVersion = CANONICAL_STACK_VERSION,
 ) -> np.ndarray:
     """Return CLT features plus PPT-driven layup descriptors.
 
@@ -344,8 +393,12 @@ def extended_physics_feature_vector(
     anisotropy, symmetry mismatch, and balanced angle descriptors.
     """
 
-    base = physics_feature_vector(case, theta1, theta2, material)
-    a, b, d, stack = abd_matrices(case, theta1, theta2, material)
+    base = physics_feature_vector(
+        case, theta1, theta2, material, stack_version=stack_version
+    )
+    a, b, d, stack = abd_matrices(
+        case, theta1, theta2, material, stack_version=stack_version
+    )
     h = material.ply_thickness_in * len(stack)
     b_norm = 2.0 * b / max(h**2, 1e-12)
     d_norm = 12.0 * d / max(h**3, 1e-12)
@@ -388,13 +441,17 @@ def compact_physics_feature_vector(
     theta1: float,
     theta2: float,
     material: MaterialProperties = DEFAULT_MATERIAL,
+    *,
+    stack_version: StackVersion = CANONICAL_STACK_VERSION,
 ) -> np.ndarray:
     """Return the de-duplicated physics feature pack for XAI v2 models."""
 
     values = dict(
         zip(
             EXTENDED_PHYSICS_FEATURE_COLUMNS,
-            extended_physics_feature_vector(case, theta1, theta2, material),
+            extended_physics_feature_vector(
+                case, theta1, theta2, material, stack_version=stack_version
+            ),
             strict=True,
         )
     )
@@ -406,6 +463,8 @@ def nn_friendly_physics_feature_vector(
     theta1: float,
     theta2: float,
     material: MaterialProperties = DEFAULT_MATERIAL,
+    *,
+    stack_version: StackVersion = CANONICAL_STACK_VERSION,
 ) -> np.ndarray:
     """Return the GointMLP-oriented physics feature pack.
 
@@ -416,7 +475,9 @@ def nn_friendly_physics_feature_vector(
     values = dict(
         zip(
             EXTENDED_PHYSICS_FEATURE_COLUMNS,
-            extended_physics_feature_vector(case, theta1, theta2, material),
+            extended_physics_feature_vector(
+                case, theta1, theta2, material, stack_version=stack_version
+            ),
             strict=True,
         )
     )
@@ -424,9 +485,11 @@ def nn_friendly_physics_feature_vector(
 
 
 __all__ = [
+    "CANONICAL_STACK_VERSION",
     "COMPACT_PHYSICS_FEATURE_COLUMNS",
     "DEFAULT_MATERIAL",
     "EXTENDED_PHYSICS_FEATURE_COLUMNS",
+    "LEGACY_STACK_VERSION",
     "NN_FRIENDLY_PHYSICS_FEATURE_COLUMNS",
     "PHYSICS_FEATURE_COLUMNS",
     "MaterialProperties",
@@ -435,6 +498,7 @@ __all__ = [
     "case_stack",
     "compact_physics_feature_vector",
     "extended_physics_feature_vector",
+    "legacy_case_stack_v1",
     "nn_friendly_physics_feature_vector",
     "physics_feature_vector",
     "stack_physics_summary",

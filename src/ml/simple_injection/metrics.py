@@ -58,7 +58,7 @@ def sprue_curve_shape_metrics(
     true_time = grid.reshape(1, -1) * np.maximum(y_scalars_true[:, 0:1], 1e-9)
     pred_time = grid.reshape(1, -1) * np.maximum(y_scalars_pred[:, 0:1], 1e-9)
 
-    correlations = [_safe_corr(t, p) for t, p in zip(true_shape, pred_shape)]
+    correlations = [_safe_corr(t, p) for t, p in zip(true_shape, pred_shape, strict=False)]
     true_auc_norm = np.trapz(true_shape, grid, axis=1)
     pred_auc_norm = np.trapz(pred_shape, grid, axis=1)
     true_auc_pressure = np.trapz(true_pressure, true_time, axis=1)

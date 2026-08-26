@@ -11,18 +11,19 @@ All estimators conform to the fit / predict_interval interface.
 
 from __future__ import annotations
 
-import numpy as np
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
+
+import numpy as np
 
 
 @dataclass
 class PredictionInterval:
     """Lower / upper bound for a point prediction."""
 
-    mean: np.ndarray       # (N,) or scalar
-    lower: np.ndarray      # (N,) or scalar
-    upper: np.ndarray      # (N,) or scalar
+    mean: np.ndarray  # (N,) or scalar
+    lower: np.ndarray  # (N,) or scalar
+    upper: np.ndarray  # (N,) or scalar
     coverage_level: float  # nominal e.g. 0.95
 
     @property
@@ -57,7 +58,7 @@ class SplitConformalIntervals:
     def fit(
         self,
         residuals: np.ndarray,
-    ) -> "SplitConformalIntervals":
+    ) -> SplitConformalIntervals:
         """
         Parameters
         ----------
@@ -128,7 +129,7 @@ class PredictionIntervalEstimator:
         self.coverage = coverage
         self._impl: SplitConformalIntervals | None = None
 
-    def fit_conformal(self, residuals: np.ndarray) -> "PredictionIntervalEstimator":
+    def fit_conformal(self, residuals: np.ndarray) -> PredictionIntervalEstimator:
         self._impl = SplitConformalIntervals(coverage=self.coverage).fit(residuals)
         return self
 

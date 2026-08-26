@@ -1,0 +1,53 @@
+@font-face {
+  font-family: "Wedding Gowun Batang";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src:
+    url("./wedding-gowun-batang-regular.woff2") format("woff2"),
+    url("./wedding-gowun-batang-regular.woff") format("woff");
+}
+
+@font-face {
+  font-family: "Wedding Gowun Batang";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src:
+    url("./wedding-gowun-batang-bold.woff2") format("woff2"),
+    url("./wedding-gowun-batang-bold.woff") format("woff");
+}
+
+@font-face {
+  font-family: "Wedding Cormorant Garamond";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./wedding-cormorant-garamond-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Wedding Cormorant Garamond";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("./wedding-cormorant-garamond-500.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Wedding Cormorant Garamond";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("./wedding-cormorant-garamond-600.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Wedding Pinyon Script";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src:
+    url("./wedding-pinyon-script.woff2") format("woff2"),
+    url("./wedding-pinyon-script.woff") format("woff");
+}

@@ -76,16 +76,12 @@ class StiffnessTensorValidator(Validator):
             min_eigs.append(min_eig)
 
             if min_eig <= self._eigenvalue_tol:
-                failures.append(
-                    f"[{i}] not positive-definite (min eigenvalue={min_eig:.3e})"
-                )
+                failures.append(f"[{i}] not positive-definite (min eigenvalue={min_eig:.3e})")
 
             cond = float(np.linalg.cond(Ci))
             cond_numbers.append(cond)
             if cond > self._warn_cond:
-                warnings.append(
-                    f"[{i}] ill-conditioned stiffness matrix (cond={cond:.2e})"
-                )
+                warnings.append(f"[{i}] ill-conditioned stiffness matrix (cond={cond:.2e})")
 
         if failures:
             return ValidationResult(

@@ -21,7 +21,10 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.ml.dd_laminate.response_feature_sets import response_feature_matrix
+from src.ml.dd_laminate.response_feature_sets import (
+    SUPPORTED_RESPONSE_FEATURE_SETS,
+    response_feature_matrix,
+)
 from src.ml.dd_laminate.train_cases_2_3_4_classical import CURVE_GRID_LEN, load_records, read_curve
 from src.ml.dd_laminate.train_cases_2_3_4_goint import (
     ResponseDataset,
@@ -323,7 +326,7 @@ def main() -> None:
     parser.add_argument("--tree-n-jobs", type=int, default=-1)
     parser.add_argument(
         "--feature-set",
-        choices=["theta_physics", "theta_physics_v2", "theta_physics_nn_v2", "theta_physics_geometry_v1"],
+        choices=SUPPORTED_RESPONSE_FEATURE_SETS,
         default="theta_physics",
     )
     parser.add_argument("--skip-tree", action="store_true")

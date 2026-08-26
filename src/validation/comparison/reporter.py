@@ -5,12 +5,12 @@ a structured report for a single sim/AI vs. experiment comparison event.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import numpy as np
 
-from src.validation.comparison.metrics import ComparisonMetrics, FieldErrorReport
 from src.validation.comparison.bias import BiasDetector, BiasReport
+from src.validation.comparison.metrics import ComparisonMetrics, FieldErrorReport
 
 
 @dataclass

@@ -11,6 +11,7 @@ import numpy as np
 import torch
 
 from scripts.dd_response_dl_challengers_train import PCACurveMLPResponse
+
 from .pt_curve_consistency import enforce_pt_curve_consistency
 from .response_feature_sets import prediction_feature_matrix
 
@@ -42,7 +43,9 @@ def predict_response_hybrid(
 ) -> dict:
     model_root = Path(model_dir)
     bundle = joblib.load(model_root / "hybrid_type_bundle.joblib")
-    checkpoint = torch.load(model_root / "pca_curve_mlp_expert.pt", map_location=device, weights_only=False)
+    checkpoint = torch.load(
+        model_root / "pca_curve_mlp_expert.pt", map_location=device, weights_only=False
+    )
 
     x_type = prediction_feature_matrix(theta1, theta2, case, bundle["type_feature_set"])
     classifier = bundle["type_classifier"]
@@ -51,7 +54,7 @@ def predict_response_hybrid(
     if hasattr(classifier, "predict_proba"):
         probs = classifier.predict_proba(x_type)[0]
         probabilities = {f"type{label}": 0.0 for label in [1, 2, 3]}
-        for cls, prob in zip(classifier.classes_, probs):
+        for cls, prob in zip(classifier.classes_, probs, strict=False):
             probabilities[f"type{int(cls)}"] = float(prob)
 
     x_curve_raw = prediction_feature_matrix(theta1, theta2, case, bundle["curve_feature_set"])
@@ -60,7 +63,9 @@ def predict_response_hybrid(
     x_curve = (x_curve_raw - feature_mean) / np.maximum(feature_std, 1e-9)
     model = _load_curve_expert(checkpoint, device)
     with torch.no_grad():
-        _class_logits, _ordinal_logits, scalar_norm, curve_norm = model(torch.tensor(x_curve, dtype=torch.float32, device=device))
+        _class_logits, _ordinal_logits, scalar_norm, curve_norm = model(
+            torch.tensor(x_curve, dtype=torch.float32, device=device)
+        )
 
     scalar_log_mean = np.asarray(bundle["scalar_log_mean"], dtype=float)
     scalar_log_std = np.asarray(bundle["scalar_log_std"], dtype=float)
@@ -90,21 +95,28 @@ def predict_response_hybrid(
         "predicted_pt": pt,
         "predicted_max_displacement": max_displacement,
         "predicted_max_force": max_force,
-        "curve": [{"displacement": float(d), "force": float(f)} for d, f in zip(displacement, force)],
+        "curve": [
+            {"displacement": float(d), "force": float(f)}
+            for d, f in zip(displacement, force, strict=False)
+        ],
         "model_name": bundle.get("model_name", "hybrid_type_tree_pca_curve_mlp"),
         "metrics": metrics,
     }
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Predict DD response with the hybrid expert bundle.")
+    parser = argparse.ArgumentParser(
+        description="Predict DD response with the hybrid expert bundle."
+    )
     parser.add_argument("--theta1", type=float, required=True)
     parser.add_argument("--theta2", type=float, required=True)
     parser.add_argument("--case", choices=["Case2", "Case3", "Case4"], required=True)
     parser.add_argument("--model-dir", default="models/dd_laminate_response_hybrid_challenger_v1")
     parser.add_argument("--device", default="cpu")
     args = parser.parse_args()
-    result = predict_response_hybrid(args.model_dir, args.theta1, args.theta2, args.case, args.device)
+    result = predict_response_hybrid(
+        args.model_dir, args.theta1, args.theta2, args.case, args.device
+    )
     print(json.dumps(result, indent=2))
 
 

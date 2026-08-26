@@ -5,9 +5,9 @@ from __future__ import annotations
 import csv
 import math
 import warnings
-from dataclasses import dataclass, asdict
+from collections.abc import Iterable
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Iterable
 
 import numpy as np
 
@@ -117,7 +117,9 @@ def _curve_arrays(path: Path) -> tuple[np.ndarray, np.ndarray]:
     return arr[:, 0].astype(float), arr[:, 1].astype(float)
 
 
-def load_curve_records(data_dir: str | Path, cases: Iterable[str] = ("Case3", "Case4")) -> list[DDCurveRecord]:
+def load_curve_records(
+    data_dir: str | Path, cases: Iterable[str] = ("Case3", "Case4")
+) -> list[DDCurveRecord]:
     """Load curve metadata from transition_load.csv and csv_load folders."""
     data_path = Path(data_dir)
     records: list[DDCurveRecord] = []
@@ -180,7 +182,9 @@ def extract_curve_features(record: DDCurveRecord) -> DDCurveFeatures:
             post_slope_drop = math.nan
 
         slopes = []
-        for start_frac, end_frac in zip(np.linspace(0, 0.8, 5), np.linspace(0.2, 1.0, 5)):
+        for start_frac, end_frac in zip(
+            np.linspace(0, 0.8, 5), np.linspace(0.2, 1.0, 5), strict=False
+        ):
             i = int(start_frac * post_points)
             j = max(i + 4, int(end_frac * post_points))
             slopes.append(_linfit(post_x[i:j], post_y[i:j])[0])
@@ -261,12 +265,18 @@ def extract_curve_features(record: DDCurveRecord) -> DDCurveFeatures:
     )
 
 
-def build_feature_rows(data_dir: str | Path, cases: Iterable[str] = ("Case3", "Case4")) -> list[dict]:
+def build_feature_rows(
+    data_dir: str | Path, cases: Iterable[str] = ("Case3", "Case4")
+) -> list[dict]:
     """Build serializable feature rows for all DD curve records."""
-    return [asdict(extract_curve_features(record)) for record in load_curve_records(data_dir, cases)]
+    return [
+        asdict(extract_curve_features(record)) for record in load_curve_records(data_dir, cases)
+    ]
 
 
-def feature_matrix(rows: list[dict], feature_columns: list[str] | None = None) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def feature_matrix(
+    rows: list[dict], feature_columns: list[str] | None = None
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Return X, y, groups from feature rows.
 
     Groups are Test_IDs, so CV can keep matching Case3/Case4 tests together.

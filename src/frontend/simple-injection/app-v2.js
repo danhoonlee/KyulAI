@@ -13,7 +13,7 @@ const IS_KO = document.documentElement.lang.toLowerCase().startsWith("ko");
 
 const TEXT = {
   checking: IS_KO ? "확인 중" : "Checking",
-  apiReady: IS_KO ? "API ready" : "API ready",
+  apiReady: IS_KO ? "모델 API 연결됨" : "Model API connected",
   apiOffline: IS_KO ? "API offline" : "API offline",
   loading: IS_KO ? "예측 중..." : "Predicting...",
   ready: IS_KO ? "준비됨" : "Ready",
@@ -170,6 +170,8 @@ const ragQueryInput = ragForm?.querySelector('textarea[name="query"]');
 let geometries = [];
 let processes = [];
 let latestPredictionData = null;
+let predictionProgressTimer = 0;
+let standardResultTabs = null;
 let hasBlockingValidation = false;
 let THREE = null;
 let shapeEnginePromise = null;
@@ -180,7 +182,8 @@ let activePredictionFlowData = null;
 let applyingDoeValues = false;
 const PREDICTION_FLOW_DURATION_MS = 5200;
 const SHAPE_DEFAULT_ROTATION = { x: -0.82, z: -0.58 };
-const INJECTION_HISTORY_KEY = "c2es.injection.recentRuns.v1";
+const INJECTION_HISTORY_KEY = "imperialax.injection.recentRuns.v1";
+const HIDDEN_GEOMETRY_IDS = new Set(["G11"]);
 
 function formatMetric(value, digits = 2) {
   const numeric = Number(value);
@@ -205,13 +208,142 @@ function clearError() {
   errorPanel.classList.add("hidden");
 }
 
-function setLoading(loading) {
-  const button = form.querySelector("button[type='submit']");
-  if (!button.dataset.defaultText) {
-    button.dataset.defaultText = button.textContent;
-  }
-  button.disabled = loading || hasBlockingValidation;
-  button.textContent = loading ? TEXT.loading : button.dataset.defaultText;
+function ensurePredictionProgress() {
+  let progress = document.querySelector("#prediction-progress");
+  const workspace = resultPanel?.parentElement;
+  if (progress || !workspace) return progress;
+  progress = document.createElement("section");
+  progress.id = "prediction-progress";
+  progress.className = "prediction-progress hidden";
+  progress.setAttribute("role", "status");
+  progress.setAttribute("aria-live", "polite");
+  progress.setAttribute("aria-atomic", "true");
+  progress.innerHTML = `
+    <span class="prediction-progress-spinner" aria-hidden="true"></span>
+    <div><strong>${IS_KO ? "예측 진행 중" : "Forecast in progress"}</strong><span id="prediction-progress-detail"></span></div>
+    <i aria-hidden="true"></i>
+  `;
+  workspace.insertBefore(progress, emptyState);
+  return progress;
+}
+
+function setPredictionProgress(loading) {
+  const progress = ensurePredictionProgress();
+  if (!progress) return;
+  window.clearInterval(predictionProgressTimer);
+  predictionProgressTimer = 0;
+  progress.classList.toggle("hidden", !loading);
+  progress.parentElement?.setAttribute("aria-busy", String(loading));
+  if (!loading) return;
+  const messages = IS_KO
+    ? ["DOE 입력을 확인하고 있습니다.", "Sprue·Filling 모델을 실행하고 있습니다.", "곡선과 XAI 결과를 준비하고 있습니다."]
+    : ["Checking the DOE inputs.", "Running the Sprue and Filling models.", "Preparing curve and XAI results."];
+  let messageIndex = 0;
+  const detail = progress.querySelector("#prediction-progress-detail");
+  if (detail) detail.textContent = messages[messageIndex];
+  predictionProgressTimer = window.setInterval(() => {
+    messageIndex = Math.min(messageIndex + 1, messages.length - 1);
+    if (detail) detail.textContent = messages[messageIndex];
+  }, 2400);
+}
+
+function setupStandardResultTabs() {
+  if (!resultPanel || document.documentElement.classList.contains("injection-rebuild")) return null;
+  const definitions = [
+    ["summary", IS_KO ? "요약" : "Summary"],
+    ["curve", IS_KO ? "스프루 곡선" : "Sprue Curve"],
+    ["filling", IS_KO ? "필링 분포" : "Filling Distribution"],
+    ["xai", "XAI"],
+    ["validation", IS_KO ? "검증" : "Validation"],
+    ["history", IS_KO ? "기록" : "History"],
+  ];
+  const tabList = document.createElement("div");
+  tabList.className = "standard-result-tabs";
+  tabList.setAttribute("role", "tablist");
+  tabList.setAttribute("aria-label", IS_KO ? "예측 결과 보기" : "Prediction result views");
+  const panels = {};
+  definitions.forEach(([key, label], index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.standardResultTab = key;
+    button.id = `standard-injection-tab-${key}`;
+    button.textContent = label;
+    button.setAttribute("role", "tab");
+    button.setAttribute("aria-controls", `standard-injection-panel-${key}`);
+    button.setAttribute("aria-selected", String(index === 0));
+    button.tabIndex = index === 0 ? 0 : -1;
+    tabList.appendChild(button);
+    const panel = document.createElement("section");
+    panel.id = `standard-injection-panel-${key}`;
+    panel.className = "standard-result-panel";
+    panel.dataset.standardResultPanel = key;
+    panel.setAttribute("role", "tabpanel");
+    panel.setAttribute("aria-labelledby", button.id);
+    panel.hidden = index !== 0;
+    panels[key] = panel;
+  });
+  [resultPanel.querySelector(":scope > .result-head"), resultPanel.querySelector(":scope > .result-hero"), resultPanel.querySelector(":scope > .stats"), notes]
+    .filter(Boolean).forEach((node) => panels.summary.appendChild(node));
+  const cardMap = {
+    curve: resultPanel.querySelector(":scope > .chart-card"),
+    filling: resultPanel.querySelector(":scope > .filling-card"),
+    xai: xaiCard,
+    validation: resultPanel.querySelector(":scope > .compare-card"),
+    history: historyCard,
+  };
+  Object.entries(cardMap).forEach(([key, node]) => { if (node) panels[key].appendChild(node); });
+  resultPanel.append(tabList, ...definitions.map(([key]) => panels[key]));
+  const buttons = [...tabList.querySelectorAll("[data-standard-result-tab]")];
+  const select = (key, focus = false) => {
+    const target = buttons.find((button) => button.dataset.standardResultTab === key);
+    if (!target || target.getAttribute("aria-disabled") === "true") return;
+    buttons.forEach((button) => {
+      const selected = button === target;
+      button.setAttribute("aria-selected", String(selected));
+      button.tabIndex = selected ? 0 : -1;
+    });
+    Object.entries(panels).forEach(([panelKey, panel]) => { panel.hidden = panelKey !== key; });
+    if (key === "curve") requestAnimationFrame(() => drawPressureCurve(latestPredictionData?.curve || []));
+    if (focus) target.focus();
+  };
+  buttons.forEach((button) => {
+    button.addEventListener("click", () => select(button.dataset.standardResultTab));
+    button.addEventListener("keydown", (event) => {
+      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+      event.preventDefault();
+      const enabled = buttons.filter((item) => item.getAttribute("aria-disabled") !== "true");
+      const current = enabled.indexOf(button);
+      const next = event.key === "Home" ? 0 : event.key === "End" ? enabled.length - 1
+        : event.key === "ArrowRight" ? (current + 1) % enabled.length
+          : (current - 1 + enabled.length) % enabled.length;
+      select(enabled[next].dataset.standardResultTab, true);
+    });
+  });
+  const updateAvailability = () => {
+    buttons.forEach((button) => {
+      const source = cardMap[button.dataset.standardResultTab];
+      const disabled = Boolean(source?.classList.contains("hidden"));
+      button.setAttribute("aria-disabled", String(disabled));
+    });
+  };
+  if (xaiCard) new MutationObserver(updateAvailability).observe(xaiCard, { attributes: true, attributeFilter: ["class"] });
+  updateAvailability();
+  return { select, updateAvailability };
+}
+
+function setLoading(targetOrLoading, maybeLoading) {
+  const targetForm = typeof targetOrLoading === "boolean" ? form : targetOrLoading;
+  const loading = typeof targetOrLoading === "boolean" ? targetOrLoading : Boolean(maybeLoading);
+  const buttons = [...(targetForm?.querySelectorAll("button[type='submit']") || [])];
+  if (!buttons.length) return;
+  buttons.forEach((button) => {
+    if (!button.dataset.defaultText) {
+      button.dataset.defaultText = button.textContent;
+    }
+    button.disabled = loading || hasBlockingValidation;
+    button.textContent = loading ? TEXT.loading : button.dataset.defaultText;
+  });
+  if (targetForm === form) setPredictionProgress(loading);
 }
 
 function simplifiedModelLabel(model) {
@@ -1310,6 +1442,13 @@ function drawPressureCurve(points) {
   ctx.restore();
 }
 
+window.addEventListener("injection:curve-tab-activated", () => {
+  if (!latestPredictionData) {
+    return;
+  }
+  requestAnimationFrame(() => drawPressureCurve(latestPredictionData.curve || []));
+});
+
 function renderFillingPressure(summary) {
   fillingHistogram.innerHTML = "";
   if (!summary || !summary.bins || !summary.bins.length) {
@@ -1496,7 +1635,8 @@ function translatedPerturbation(perturbation) {
     return perturbation;
   }
   if (perturbation.startsWith("toggled to ")) {
-    return `${perturbation.replace("toggled to ", "")}(으)로 전환`;
+    const value = perturbation.replace("toggled to ", "");
+    return `${value}${value === "1" ? "로" : "으로"} 전환`;
   }
   return XAI_KO_COPY.perturbations[perturbation] || perturbation;
 }
@@ -1571,6 +1711,7 @@ function renderResult(data) {
   latestPredictionData = data;
   emptyState.classList.add("hidden");
   resultPanel.classList.remove("hidden");
+  standardResultTabs?.select("summary");
   maxPressure.textContent = `${formatMetric(data.predicted_max_pressure_MPa, 2)} MPa`;
   maxTime.textContent = `${formatMetric(data.predicted_max_time_s, 3)} s`;
   curvePoints.textContent = String(data.curve?.length || 0);
@@ -1589,6 +1730,10 @@ function renderResult(data) {
     : "";
   comparisonOutput.classList.add("hidden");
   comparisonOutput.innerHTML = "";
+  window.dispatchEvent(new CustomEvent("injection:result-rendered", { detail: { source: "api" } }));
+  if (standardResultTabs) {
+    requestAnimationFrame(() => resultPanel.parentElement?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }
 }
 
 async function submitPrediction(event) {
@@ -1700,7 +1845,7 @@ async function postRagJson(path, payload) {
 
 function buildAssistantPredictionContext(data) {
   if (!data) {
-    return null;
+    return { mode: "Injection Forecast", inputs: {} };
   }
   const filling = data.predicted_filling_pressure || data.filling_pressure || null;
   const topFeatures = Array.isArray(data.xai?.top_features)
@@ -1839,7 +1984,7 @@ async function loadBootstrapData() {
     }
     const models = await modelsResponse.json();
     const doe = await doeResponse.json();
-    geometries = doe.geometries || [];
+    geometries = (doe.geometries || []).filter((geometry) => !HIDDEN_GEOMETRY_IDS.has(geometry.id));
     processes = doe.processes || [];
     fillModelSelect(modelSelect, models.sprue_pressure_models || []);
     fillModelSelect(fillingModelSelect, models.filling_pressure_models || []);
@@ -1947,5 +2092,6 @@ if (ragForm) {
 }
 
 drawEmptyCurve();
+standardResultTabs = setupStandardResultTabs();
 renderPredictionHistory();
 loadBootstrapData();

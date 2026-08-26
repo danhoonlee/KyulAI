@@ -7,7 +7,6 @@ Supports Case3 and Case4 with Trial_1 (P1) and Trial_2 (P2) measurements.
 import csv
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 from PIL import Image
@@ -16,14 +15,15 @@ from PIL import Image
 @dataclass
 class DDSample:
     """A single DD laminate simulation sample."""
+
     test_id: str
-    case: str           # "Case3" or "Case4"
+    case: str  # "Case3" or "Case4"
     theta1: float
     theta2: float
-    pt: float           # transition load
-    label: int          # 1, 2, or 3
-    image_path_p1: Optional[Path] = None
-    image_path_p2: Optional[Path] = None
+    pt: float  # transition load
+    label: int  # 1, 2, or 3
+    image_path_p1: Path | None = None
+    image_path_p2: Path | None = None
 
 
 class DDDataset:
@@ -65,8 +65,18 @@ class DDDataset:
                     suffix_p2 = "P2"
 
                     # Find image paths
-                    img_p1 = case_dir / self.trial.replace("2", "1") / f"type{label}" / f"plot_{test_id}_{suffix_p1}.png"
-                    img_p2 = case_dir / self.trial.replace("1", "2") / f"type{label}" / f"plot_{test_id}_{suffix_p2}.png"
+                    img_p1 = (
+                        case_dir
+                        / self.trial.replace("2", "1")
+                        / f"type{label}"
+                        / f"plot_{test_id}_{suffix_p1}.png"
+                    )
+                    img_p2 = (
+                        case_dir
+                        / self.trial.replace("1", "2")
+                        / f"type{label}"
+                        / f"plot_{test_id}_{suffix_p2}.png"
+                    )
 
                     sample = DDSample(
                         test_id=test_id,

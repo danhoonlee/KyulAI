@@ -8,10 +8,12 @@ from pathlib import Path
 import torch
 
 from .theta_deep import DDThetaGointClassifier, predict_from_logits
-from .train_cases_2_3_4_classical import theta_feature_row, DDRecord
+from .train_cases_2_3_4_classical import DDRecord, theta_feature_row
 
 
-def predict(theta1: float, theta2: float, model_path: str | Path, case: str = "Case4", device: str = "cpu"):
+def predict(
+    theta1: float, theta2: float, model_path: str | Path, case: str = "Case4", device: str = "cpu"
+):
     checkpoint = torch.load(model_path, map_location=device, weights_only=False)
     cfg = checkpoint["model_config"]
     model = DDThetaGointClassifier(
@@ -37,7 +39,11 @@ def predict(theta1: float, theta2: float, model_path: str | Path, case: str = "C
         feature_std = torch.tensor(checkpoint["feature_std"], dtype=torch.float32)
         x = ((x_raw - feature_mean) / torch.clamp(feature_std, min=1e-9)).to(device)
     else:
-        x = torch.tensor([[theta1 / 90.0, theta2 / 90.0, 1.0 if case == "Case4" else 0.0]], dtype=torch.float32, device=device)
+        x = torch.tensor(
+            [[theta1 / 90.0, theta2 / 90.0, 1.0 if case == "Case4" else 0.0]],
+            dtype=torch.float32,
+            device=device,
+        )
     with torch.no_grad():
         logits, ordinal_logits = model(x)
         probs = torch.softmax(logits, dim=1).squeeze(0).cpu()
@@ -51,7 +57,9 @@ def predict(theta1: float, theta2: float, model_path: str | Path, case: str = "C
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Predict DD Type from theta1/theta2/case with theta Goint model")
+    parser = argparse.ArgumentParser(
+        description="Predict DD Type from theta1/theta2/case with theta Goint model"
+    )
     parser.add_argument("--theta1", type=float, required=True)
     parser.add_argument("--theta2", type=float, required=True)
     parser.add_argument("--case", choices=["Case2", "Case3", "Case4"], default="Case4")

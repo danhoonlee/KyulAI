@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ImperialAX Optimization</title>
+    <link rel="alternate" hreflang="ko" href="https://ai.imperialax.com/optimization.ko.html" />
+    <link rel="stylesheet" href="./styles.css?v=20260814-logo-rollout-1" />
+  </head>
+  <body>
+    <main class="app-shell optimization-shell">
+      <header class="workspace-hero optimization-hero">
+        <div class="brand-lockup">
+          <a class="platform-logo-link" href="https://ai.imperialax.com/index.html" aria-label="ImperialAX workspace home">
+            <img src="/brand/imperialax-logo-black.png?v=20260814-logo-rollout-1" alt="ImperialAX" />
+          </a>
+          <p class="eyebrow">ImperialAX Optimization</p>
+          <h1>
+            <span>Laminate</span>
+            <span>Design Search</span>
+          </h1>
+          <p class="hero-copy">
+            Search Double-Double laminate angle candidates and rank promising designs with the response surrogate.
+          </p>
+        </div>
+        <div class="account-cluster">
+          <a class="language-link" href="https://ai.imperialax.com/optimization.ko.html">한국어</a>
+          <a class="language-link" href="https://ai.imperialax.com/index.html">Modules</a>
+        </div>
+      </header>
+
+      <section class="optimization-workspace">
+        <form class="optimization-panel" id="optimization-form">
+          <div>
+            <p class="eyebrow">Search setup</p>
+            <h2>Design space</h2>
+          </div>
+
+          <div class="form-grid">
+            <label>
+              Objective
+              <select id="objective-input">
+                <option value="balanced">Balanced</option>
+                <option value="maximize_pt">Maximize Pt</option>
+                <option value="maximize_force">Maximize force</option>
+                <option value="minimize_displacement">Minimize displacement</option>
+                <option value="target_pt">Target Pt</option>
+              </select>
+            </label>
+            <label>
+              Target Pt
+              <input id="target-pt-input" type="number" inputmode="decimal" placeholder="Optional" />
+            </label>
+            <label>
+              Top candidates
+              <input id="top-k-input" type="number" min="1" max="25" value="5" />
+            </label>
+            <label>
+              Angle step
+              <input id="step-input" type="number" min="1" max="90" value="30" />
+            </label>
+          </div>
+
+          <div class="case-picker" aria-label="Cases">
+            <label><input type="checkbox" name="case" value="Case2" checked /> Case2</label>
+            <label><input type="checkbox" name="case" value="Case3" /> Case3</label>
+            <label><input type="checkbox" name="case" value="Case4" /> Case4</label>
+          </div>
+
+          <div class="form-grid">
+            <label>
+              Theta 1 min
+              <input id="theta1-min-input" type="number" min="-90" max="90" value="-30" />
+            </label>
+            <label>
+              Theta 1 max
+              <input id="theta1-max-input" type="number" min="-90" max="90" value="30" />
+            </label>
+            <label>
+              Theta 2 min
+              <input id="theta2-min-input" type="number" min="-90" max="90" value="-30" />
+            </label>
+            <label>
+              Theta 2 max
+              <input id="theta2-max-input" type="number" min="-90" max="90" value="30" />
+            </label>
+          </div>
+
+          <div class="form-grid">
+            <label>
+              Target type
+              <select id="target-type-input">
+                <option value="">Any</option>
+                <option value="1">Type 1</option>
+                <option value="2">Type 2</option>
+                <option value="3">Type 3</option>
+                <option value="4">Type 4</option>
+              </select>
+            </label>
+            <label>
+              Min confidence
+              <input id="min-confidence-input" type="number" min="0" max="1" step="0.01" placeholder="Optional" />
+            </label>
+            <label>
+              Min force
+              <input id="min-force-input" type="number" inputmode="decimal" placeholder="Optional" />
+            </label>
+            <label>
+              Max displacement
+              <input id="max-displacement-input" type="number" inputmode="decimal" placeholder="Optional" />
+            </label>
+          </div>
+
+          <button id="search-button" type="submit">Search candidates</button>
+          <p class="request-status" id="optimization-status" role="status"></p>
+        </form>
+
+        <section class="optimization-results" aria-live="polite">
+          <div class="admin-table-head">
+            <div>
+              <p class="eyebrow">Ranked output</p>
+              <h2>Top candidates</h2>
+            </div>
+            <strong id="search-summary">Ready</strong>
+          </div>
+          <div class="candidate-list" id="candidate-list"></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="./optimization.js?v=20260619-opt1" type="module"></script>
+  </body>
+</html>

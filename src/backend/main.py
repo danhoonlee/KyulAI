@@ -29,7 +29,9 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup / shutdown lifecycle."""
-    logger.info("Starting KyulAI backend (env=%s, version=%s)", settings.env.value, settings.version)
+    logger.info(
+        "Starting KyulAI backend (env=%s, version=%s)", settings.env.value, settings.version
+    )
 
     if settings.env == Environment.PROD and settings.debug:
         raise RuntimeError("debug=True is not allowed in production.")

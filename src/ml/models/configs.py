@@ -14,10 +14,9 @@ Adding a new architecture: add a new ``*Config`` class here and register it in
 from __future__ import annotations
 
 from enum import Enum
-from typing import Annotated, Literal, Union
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
-
 
 # ── Shared enums ──────────────────────────────────────────────────────────────
 
@@ -67,8 +66,9 @@ class MLPConfig(BaseModel):
 
     # ── Dimensions ────────────────────────────────────────────────────────────
     input_dim: int = Field(
-        ..., gt=0, description="Process feature vector size (D_in).  "
-        "Set by FeatureExtractor.feature_dim."
+        ...,
+        gt=0,
+        description="Process feature vector size (D_in).  Set by FeatureExtractor.feature_dim.",
     )
 
     # ── Backbone ─────────────────────────────────────────────────────────────
@@ -82,9 +82,7 @@ class MLPConfig(BaseModel):
     norm: NormLayer = Field(
         NormLayer.LAYER_NORM, description="Normalisation applied before activation."
     )
-    dropout: float = Field(
-        0.0, ge=0.0, lt=1.0, description="Dropout probability (0 = disabled)."
-    )
+    dropout: float = Field(0.0, ge=0.0, lt=1.0, description="Dropout probability (0 = disabled).")
     use_residual: bool = Field(
         True, description="Add skip connections when block in/out dims match."
     )
@@ -106,7 +104,7 @@ class MLPConfig(BaseModel):
         description="Field type for each head — drives output reshaping.",
     )
 
-    model_config = {"extra": "forbid"}
+    model_config = {"extra": "forbid", "protected_namespaces": ()}
 
     @field_validator("hidden_dims")
     @classmethod
@@ -162,9 +160,7 @@ class CNNConfig(BaseModel):
     in_channels: int = Field(
         ..., gt=0, description="Number of input channels per grid cell (C_in)."
     )
-    spatial_dims: int = Field(
-        2, ge=2, le=3, description="2 for 2D convolutions, 3 for 3D."
-    )
+    spatial_dims: int = Field(2, ge=2, le=3, description="2 for 2D convolutions, 3 for 3D.")
 
     # ── Encoder (shared encoder/decoder depth) ────────────────────────────────
     encoder_channels: list[int] = Field(
@@ -188,9 +184,7 @@ class CNNConfig(BaseModel):
             "Set to 0 to disable conditioning (pure grid-to-grid model)."
         ),
     )
-    conditioning_dim: int = Field(
-        256, description="Hidden dim of the FiLM conditioning MLP."
-    )
+    conditioning_dim: int = Field(256, description="Hidden dim of the FiLM conditioning MLP.")
 
     # ── Output heads ──────────────────────────────────────────────────────────
     output_heads: dict[str, int] = Field(
@@ -209,7 +203,7 @@ class CNNConfig(BaseModel):
     norm: NormLayer = Field(NormLayer.BATCH_NORM)
     kernel_size: int = Field(3, ge=1, description="Convolution kernel size (odd recommended).")
 
-    model_config = {"extra": "forbid"}
+    model_config = {"extra": "forbid", "protected_namespaces": ()}
 
     @field_validator("encoder_channels")
     @classmethod
@@ -222,16 +216,14 @@ class CNNConfig(BaseModel):
     def _heads_have_types(self) -> CNNConfig:
         missing = set(self.output_heads) - set(self.output_field_types)
         if missing:
-            raise ValueError(
-                f"output_field_types missing entries for: {missing}."
-            )
+            raise ValueError(f"output_field_types missing entries for: {missing}.")
         return self
 
 
 # ── Union type for type-discriminated deserialization ────────────────────────
 
 ModelConfig = Annotated[
-    Union[MLPConfig, CNNConfig],
+    MLPConfig | CNNConfig,
     Field(discriminator="model_type"),
 ]
 """Discriminated union over all model configs.

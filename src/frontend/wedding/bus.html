@@ -4,18 +4,22 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#f7f3ec" />
+  <meta name="color-scheme" content="only light" />
+  <meta name="supported-color-schemes" content="light" />
   <meta name="description" content="이동훈 · 신세연 결혼식 버스 탑승을 신청해 주세요." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://cafedecafe.co.kr/wedding/bus" />
   <meta property="og:title" content="이동훈 · 신세연 결혼식 버스 탑승 신청" />
   <meta property="og:description" content="세종-서울 왕복, 전주-서울 왕복 버스 탑승 신청" />
-  <meta property="og:image" content="https://cafedecafe.co.kr/wedding/assets/og-classic-v2.png" />
+  <meta property="og:image" content="https://cafedecafe.co.kr/wedding/assets/og-classic-v3.png" />
   <title>이동훈 · 신세연 결혼식 버스 탑승 신청</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet" />
+  <link href="/wedding/assets/fonts/wedding-fonts.css?v=20260722-3" rel="stylesheet" />
   <style>
     :root {
+      color-scheme: only light;
       --bg: #f3efe7;
       --paper: #fffdf8;
       --ink: #1f1f1c;
@@ -23,11 +27,21 @@
       --accent: #161614;
       --line: rgba(31, 31, 28, .16);
       --soft: rgba(22, 22, 20, .08);
-      --font-serif: "Gowun Batang", "AppleMyungjo", "Nanum Myeongjo", serif;
-      --font-latin: "Cormorant Garamond", Georgia, serif;
+      --font-serif: "Gowun Batang", "Wedding Gowun Batang", "Noto Serif KR", "Nanum Myeongjo", "AppleMyungjo", serif;
+      --font-latin: "Cormorant Garamond", "Wedding Cormorant Garamond", Georgia, "Times New Roman", serif;
     }
 
     * { box-sizing: border-box; }
+
+    body,
+    body * {
+      font-family: var(--font-serif) !important;
+    }
+
+    html {
+      color-scheme: only light;
+      background-color: var(--bg);
+    }
     body {
       margin: 0;
       min-height: 100svh;
@@ -35,7 +49,8 @@
       background:
         radial-gradient(circle at 18% 8%, rgba(211, 195, 172, .32) 0, transparent 28%),
         linear-gradient(180deg, #faf7f1 0%, var(--bg) 62%, #e8dfd3 100%);
-      font-family: var(--font-serif);
+      font-family: var(--font-serif) !important;
+      font-synthesis: none;
       line-height: 1.65;
       word-break: keep-all;
     }
@@ -56,7 +71,7 @@
     }
 
     .label {
-      font-family: var(--font-latin);
+      font-family: var(--font-latin) !important;
       text-transform: uppercase;
       letter-spacing: .22em;
       font-size: 13px;
@@ -65,7 +80,7 @@
 
     h1 {
       margin: 12px 0 10px;
-      font-family: var(--font-serif);
+      font-family: var(--font-serif) !important;
       font-size: clamp(25px, 7vw, 34px);
       font-weight: 500;
       letter-spacing: .02em;

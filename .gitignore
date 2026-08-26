@@ -81,3 +81,20 @@ models/dd_laminate_response_tabular_challengers_v1/extra_trees.joblib
 
 # Docker
 *.log
+
+# WSL serving host: local runtime state and backups (not for the public repo)
+runs/
+.codex-backups/
+.deploy-staging/
+.remote-backups/
+.omx/
+.cafedecafe-migration/
+.cafedecafe-legacy-migration/
+
+# Live account database (real user credentials) — never commit
+data/imperialax_auth.sqlite3
+data/imperialax_auth.sqlite3-*
+
+# Large raw simulation batches kept local
+data/New_Data/
+data/New_data/

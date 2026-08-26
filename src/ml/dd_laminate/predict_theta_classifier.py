@@ -27,7 +27,9 @@ def _theta_case_features(theta1: float, theta2: float, case: str) -> list[float]
     ]
 
 
-def predict_theta_type(model_path: str | Path, theta1: float, theta2: float, case: str = "Case4") -> dict:
+def predict_theta_type(
+    model_path: str | Path, theta1: float, theta2: float, case: str = "Case4"
+) -> dict:
     bundle = joblib.load(model_path)
     feature_columns = bundle.get("feature_columns", [])
     if "case_case2" in feature_columns:
@@ -41,7 +43,7 @@ def predict_theta_type(model_path: str | Path, theta1: float, theta2: float, cas
         classes = list(model.classes_)
         proba = model.predict_proba(x)[0]
         probabilities = {f"type{label}": 0.0 for label in [1, 2, 3]}
-        for cls, p in zip(classes, proba):
+        for cls, p in zip(classes, proba, strict=False):
             probabilities[f"type{int(cls)}"] = float(p)
     return {
         "predicted_type": pred,

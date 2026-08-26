@@ -63,7 +63,9 @@ def class_weights(labels_zero_based: np.ndarray, device: torch.device) -> torch.
     return torch.tensor(weights, dtype=torch.float32, device=device)
 
 
-def make_model(args, input_dim: int, seq_len: int, device: torch.device) -> DDResponseGointSurrogate:
+def make_model(
+    args, input_dim: int, seq_len: int, device: torch.device
+) -> DDResponseGointSurrogate:
     return DDResponseGointSurrogate(
         input_dim=input_dim,
         seq_len=seq_len,
@@ -98,10 +100,10 @@ def run_epoch(model, loader, optimizer, device, weights, train: bool, args):
         scalar_loss = F.smooth_l1_loss(pred_scalars, scalars)
         curve_loss = F.smooth_l1_loss(pred_curve, curve)
         loss = (
-            class_loss +
-            args.ordinal_weight * ordinal_loss +
-            args.scalar_weight * scalar_loss +
-            args.curve_weight * curve_loss
+            class_loss
+            + args.ordinal_weight * ordinal_loss
+            + args.scalar_weight * scalar_loss
+            + args.curve_weight * curve_loss
         )
 
         if train:
@@ -143,7 +145,9 @@ def metric_row(eval_out, scalar_mean, scalar_std):
     true_force = true_curve_norm * np.maximum(true_scalars[:, 2:3], 1e-9)
     return {
         "accuracy": float(accuracy_score(eval_out["y_true"], eval_out["y_pred"])),
-        "macro_f1": float(f1_score(eval_out["y_true"], eval_out["y_pred"], average="macro", zero_division=0)),
+        "macro_f1": float(
+            f1_score(eval_out["y_true"], eval_out["y_pred"], average="macro", zero_division=0)
+        ),
         "pt_mae": float(mean_absolute_error(true_scalars[:, 0], pred_scalars[:, 0])),
         "max_disp_mae": float(mean_absolute_error(true_scalars[:, 1], pred_scalars[:, 1])),
         "max_force_mae": float(mean_absolute_error(true_scalars[:, 2], pred_scalars[:, 2])),
@@ -153,12 +157,18 @@ def metric_row(eval_out, scalar_mean, scalar_std):
 
 
 def train_one_fold(dataset, train_idx, val_idx, labels, args, device, scalar_mean, scalar_std):
-    train_loader = DataLoader(Subset(dataset, train_idx.tolist()), batch_size=args.batch_size, shuffle=True, num_workers=0)
-    val_loader = DataLoader(Subset(dataset, val_idx.tolist()), batch_size=args.batch_size, shuffle=False, num_workers=0)
+    train_loader = DataLoader(
+        Subset(dataset, train_idx.tolist()), batch_size=args.batch_size, shuffle=True, num_workers=0
+    )
+    val_loader = DataLoader(
+        Subset(dataset, val_idx.tolist()), batch_size=args.batch_size, shuffle=False, num_workers=0
+    )
     model = make_model(args, dataset.x.shape[1], dataset.y_curve.shape[1], device)
     weights = class_weights(labels[train_idx] - 1, device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="max", factor=0.55, patience=12)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode="max", factor=0.55, patience=12
+    )
     best_state = None
     best_score = -1.0
     best_epoch = 0
@@ -172,7 +182,9 @@ def train_one_fold(dataset, train_idx, val_idx, labels, args, device, scalar_mea
         if score > best_score:
             best_score = score
             best_epoch = epoch
-            best_state = {key: value.detach().cpu().clone() for key, value in model.state_dict().items()}
+            best_state = {
+                key: value.detach().cpu().clone() for key, value in model.state_dict().items()
+            }
             stale = 0
         else:
             stale += 1
@@ -239,17 +251,29 @@ def train_response_deep_surrogate(
     splitter = GroupKFold(n_splits=args.splits)
     for fold, (train_idx, val_idx) in enumerate(splitter.split(x_norm, y_class, groups), start=1):
         print(f"Starting fold {fold}/{args.splits}...")
-        row = train_one_fold(dataset, train_idx, val_idx, y_class, args, args.device_torch, scalar_mean, scalar_std)
+        row = train_one_fold(
+            dataset, train_idx, val_idx, y_class, args, args.device_torch, scalar_mean, scalar_std
+        )
         row["fold"] = fold
         fold_rows.append(row)
-        print(f"Fold {fold}: acc={row['accuracy']:.4f}, macro_f1={row['macro_f1']:.4f}, pt_mae={row['pt_mae']:.2f}")
+        print(
+            f"Fold {fold}: acc={row['accuracy']:.4f}, macro_f1={row['macro_f1']:.4f}, pt_mae={row['pt_mae']:.2f}"
+        )
 
     metrics: dict[str, float | int] = {
         "n_samples": len(records),
         "seq_len": args.seq_len,
         "input_dim": int(x_norm.shape[1]),
     }
-    for key in ["accuracy", "macro_f1", "pt_mae", "max_disp_mae", "max_force_mae", "curve_norm_rmse", "curve_force_rmse"]:
+    for key in [
+        "accuracy",
+        "macro_f1",
+        "pt_mae",
+        "max_disp_mae",
+        "max_force_mae",
+        "curve_norm_rmse",
+        "curve_force_rmse",
+    ]:
         values = [row[key] for row in fold_rows]
         metrics[f"cv_{key}_mean"] = float(np.mean(values))
         metrics[f"cv_{key}_std"] = float(np.std(values))

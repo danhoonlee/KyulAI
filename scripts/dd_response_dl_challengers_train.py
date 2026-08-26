@@ -7,8 +7,9 @@ import json
 import random
 import sys
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
 import torch
@@ -24,16 +25,18 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.dd_response_physics_xai_train import make_response_targets
-from src.ml.dd_laminate.response_feature_sets import response_feature_matrix
 from src.ml.dd_laminate.laminate_physics import _case_stack
 from src.ml.dd_laminate.response_deep import ordinal_targets, predict_from_logits
+from src.ml.dd_laminate.response_feature_sets import (
+    SUPPORTED_RESPONSE_FEATURE_SETS,
+    response_feature_matrix,
+)
 from src.ml.dd_laminate.train_cases_2_3_4_classical import CURVE_GRID_LEN, load_records
 from src.ml.dd_laminate.train_cases_2_3_4_goint import (
     class_weights,
     normalize,
     response_metric_row,
 )
-
 
 METRIC_KEYS = (
     "accuracy",
@@ -71,10 +74,23 @@ class PlainMLPResponse(nn.Module):
         )
         self.classifier = nn.Linear(hidden_dim, 3)
         self.ordinal = nn.Linear(hidden_dim, 2)
-        self.scalar_head = nn.Sequential(nn.Linear(hidden_dim, hidden_dim), nn.GELU(), nn.Dropout(dropout), nn.Linear(hidden_dim, 3))
-        self.curve_head = nn.Sequential(nn.Linear(hidden_dim, hidden_dim * 2), nn.GELU(), nn.Dropout(dropout), nn.Linear(hidden_dim * 2, seq_len), nn.Softplus())
+        self.scalar_head = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, 3),
+        )
+        self.curve_head = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim * 2),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim * 2, seq_len),
+            nn.Softplus(),
+        )
 
-    def forward(self, x: torch.Tensor, stack: torch.Tensor | None = None) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    def forward(
+        self, x: torch.Tensor, stack: torch.Tensor | None = None
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         z = self.encoder(x)
         return self.classifier(z), self.ordinal(z), self.scalar_head(z), self.curve_head(z)
 
@@ -98,15 +114,30 @@ class ResidualBlock(nn.Module):
 class ResidualMLPResponse(nn.Module):
     def __init__(self, input_dim: int, seq_len: int, hidden_dim: int, depth: int, dropout: float):
         super().__init__()
-        self.input = nn.Sequential(nn.Linear(input_dim, hidden_dim), nn.LayerNorm(hidden_dim), nn.GELU())
+        self.input = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim), nn.LayerNorm(hidden_dim), nn.GELU()
+        )
         self.blocks = nn.Sequential(*[ResidualBlock(hidden_dim, dropout) for _ in range(depth)])
         self.norm = nn.LayerNorm(hidden_dim)
         self.classifier = nn.Linear(hidden_dim, 3)
         self.ordinal = nn.Linear(hidden_dim, 2)
-        self.scalar_head = nn.Sequential(nn.Linear(hidden_dim, hidden_dim), nn.GELU(), nn.Dropout(dropout), nn.Linear(hidden_dim, 3))
-        self.curve_head = nn.Sequential(nn.Linear(hidden_dim, hidden_dim * 2), nn.GELU(), nn.Dropout(dropout), nn.Linear(hidden_dim * 2, seq_len), nn.Softplus())
+        self.scalar_head = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, 3),
+        )
+        self.curve_head = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim * 2),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim * 2, seq_len),
+            nn.Softplus(),
+        )
 
-    def forward(self, x: torch.Tensor, stack: torch.Tensor | None = None) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    def forward(
+        self, x: torch.Tensor, stack: torch.Tensor | None = None
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         z = self.norm(self.blocks(self.input(x)))
         return self.classifier(z), self.ordinal(z), self.scalar_head(z), self.curve_head(z)
 
@@ -127,15 +158,30 @@ class GatedBlock(nn.Module):
 class GatedMLPResponse(nn.Module):
     def __init__(self, input_dim: int, seq_len: int, hidden_dim: int, depth: int, dropout: float):
         super().__init__()
-        self.input = nn.Sequential(nn.Linear(input_dim, hidden_dim), nn.LayerNorm(hidden_dim), nn.SiLU())
+        self.input = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim), nn.LayerNorm(hidden_dim), nn.SiLU()
+        )
         self.blocks = nn.Sequential(*[GatedBlock(hidden_dim, dropout) for _ in range(depth)])
         self.norm = nn.LayerNorm(hidden_dim)
         self.classifier = nn.Linear(hidden_dim, 3)
         self.ordinal = nn.Linear(hidden_dim, 2)
-        self.scalar_head = nn.Sequential(nn.Linear(hidden_dim, hidden_dim), nn.SiLU(), nn.Dropout(dropout), nn.Linear(hidden_dim, 3))
-        self.curve_head = nn.Sequential(nn.Linear(hidden_dim, hidden_dim * 2), nn.SiLU(), nn.Dropout(dropout), nn.Linear(hidden_dim * 2, seq_len), nn.Softplus())
+        self.scalar_head = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.SiLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, 3),
+        )
+        self.curve_head = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim * 2),
+            nn.SiLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim * 2, seq_len),
+            nn.Softplus(),
+        )
 
-    def forward(self, x: torch.Tensor, stack: torch.Tensor | None = None) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    def forward(
+        self, x: torch.Tensor, stack: torch.Tensor | None = None
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         z = self.norm(self.blocks(self.input(x)))
         return self.classifier(z), self.ordinal(z), self.scalar_head(z), self.curve_head(z)
 
@@ -147,15 +193,30 @@ class PhysicsGuidedMLPResponse(nn.Module):
 
     def __init__(self, input_dim: int, seq_len: int, hidden_dim: int, depth: int, dropout: float):
         super().__init__()
-        self.input = nn.Sequential(nn.Linear(input_dim, hidden_dim), nn.LayerNorm(hidden_dim), nn.SiLU())
+        self.input = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim), nn.LayerNorm(hidden_dim), nn.SiLU()
+        )
         self.blocks = nn.Sequential(*[GatedBlock(hidden_dim, dropout) for _ in range(depth)])
         self.norm = nn.LayerNorm(hidden_dim)
         self.classifier = nn.Linear(hidden_dim, 3)
         self.ordinal = nn.Linear(hidden_dim, 2)
-        self.scalar_head = nn.Sequential(nn.Linear(hidden_dim, hidden_dim), nn.SiLU(), nn.Dropout(dropout), nn.Linear(hidden_dim, 3))
-        self.curve_head = nn.Sequential(nn.Linear(hidden_dim, hidden_dim * 2), nn.SiLU(), nn.Dropout(dropout), nn.Linear(hidden_dim * 2, seq_len), nn.Softplus())
+        self.scalar_head = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.SiLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, 3),
+        )
+        self.curve_head = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim * 2),
+            nn.SiLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim * 2, seq_len),
+            nn.Softplus(),
+        )
 
-    def forward(self, x: torch.Tensor, stack: torch.Tensor | None = None) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    def forward(
+        self, x: torch.Tensor, stack: torch.Tensor | None = None
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         z = self.norm(self.blocks(self.input(x)))
         return self.classifier(z), self.ordinal(z), self.scalar_head(z), self.curve_head(z)
 
@@ -163,7 +224,9 @@ class PhysicsGuidedMLPResponse(nn.Module):
 class DeepONetResponse(nn.Module):
     """DeepONet-style response model: branch features times learned grid basis."""
 
-    def __init__(self, input_dim: int, seq_len: int, hidden_dim: int, basis_dim: int, dropout: float):
+    def __init__(
+        self, input_dim: int, seq_len: int, hidden_dim: int, basis_dim: int, dropout: float
+    ):
         super().__init__()
         self.branch = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
@@ -185,9 +248,16 @@ class DeepONetResponse(nn.Module):
         self.register_buffer("grid", grid)
         self.classifier = nn.Linear(hidden_dim, 3)
         self.ordinal = nn.Linear(hidden_dim, 2)
-        self.scalar_head = nn.Sequential(nn.Linear(hidden_dim, hidden_dim), nn.GELU(), nn.Dropout(dropout), nn.Linear(hidden_dim, 3))
+        self.scalar_head = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, 3),
+        )
 
-    def forward(self, x: torch.Tensor, stack: torch.Tensor | None = None) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    def forward(
+        self, x: torch.Tensor, stack: torch.Tensor | None = None
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         z = self.branch(x)
         coeff = self.coeff(z)
         basis = self.trunk(self.grid)
@@ -210,18 +280,34 @@ class PCACurveMLPResponse(nn.Module):
         curve_basis: np.ndarray,
     ):
         super().__init__()
-        self.input = nn.Sequential(nn.Linear(input_dim, hidden_dim), nn.LayerNorm(hidden_dim), nn.SiLU())
+        self.input = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim), nn.LayerNorm(hidden_dim), nn.SiLU()
+        )
         self.blocks = nn.Sequential(*[GatedBlock(hidden_dim, dropout) for _ in range(depth)])
         self.norm = nn.LayerNorm(hidden_dim)
         n_components = int(curve_basis.shape[0])
         self.classifier = nn.Linear(hidden_dim, 3)
         self.ordinal = nn.Linear(hidden_dim, 2)
-        self.scalar_head = nn.Sequential(nn.Linear(hidden_dim, hidden_dim), nn.SiLU(), nn.Dropout(dropout), nn.Linear(hidden_dim, 3))
-        self.curve_coeff_head = nn.Sequential(nn.Linear(hidden_dim, hidden_dim), nn.SiLU(), nn.Dropout(dropout), nn.Linear(hidden_dim, n_components))
+        self.scalar_head = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.SiLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, 3),
+        )
+        self.curve_coeff_head = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.SiLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, n_components),
+        )
+        self.curve_mean: torch.Tensor
+        self.curve_basis: torch.Tensor
         self.register_buffer("curve_mean", torch.tensor(curve_mean, dtype=torch.float32))
         self.register_buffer("curve_basis", torch.tensor(curve_basis, dtype=torch.float32))
 
-    def forward(self, x: torch.Tensor, stack: torch.Tensor | None = None) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    def forward(
+        self, x: torch.Tensor, stack: torch.Tensor | None = None
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         z = self.norm(self.blocks(self.input(x)))
         coeff = self.curve_coeff_head(z)
         curve = torch.einsum("bc,ct->bt", coeff, self.curve_basis) + self.curve_mean
@@ -260,7 +346,9 @@ def build_stack_features(records) -> np.ndarray:
     rows: list[np.ndarray] = []
     case_index = {"Case2": 0.0, "Case3": 0.5, "Case4": 1.0}
     for record in records:
-        stack = np.asarray(_case_stack(record.case, float(record.theta1), float(record.theta2)), dtype=float)
+        stack = np.asarray(
+            _case_stack(record.case, float(record.theta1), float(record.theta2)), dtype=float
+        )
         z = np.linspace(-1.0, 1.0, len(stack), dtype=float)
         theta_rad = np.deg2rad(stack)
         case_value = np.full_like(stack, case_index.get(record.case, 0.0), dtype=float)
@@ -287,7 +375,9 @@ def build_stack_features(records) -> np.ndarray:
 
 
 class LSTMStackResponse(nn.Module):
-    def __init__(self, input_dim: int, stack_dim: int, seq_len: int, hidden_dim: int, dropout: float):
+    def __init__(
+        self, input_dim: int, stack_dim: int, seq_len: int, hidden_dim: int, dropout: float
+    ):
         super().__init__()
         seq_hidden = max(32, hidden_dim // 2)
         self.stack_encoder = nn.LSTM(
@@ -298,7 +388,12 @@ class LSTMStackResponse(nn.Module):
             dropout=dropout,
             bidirectional=True,
         )
-        self.global_encoder = nn.Sequential(nn.Linear(input_dim, hidden_dim), nn.LayerNorm(hidden_dim), nn.GELU(), nn.Dropout(dropout))
+        self.global_encoder = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim),
+            nn.LayerNorm(hidden_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+        )
         joined_dim = hidden_dim + seq_hidden * 4
         self.fuse = nn.Sequential(
             nn.Linear(joined_dim, hidden_dim),
@@ -308,10 +403,23 @@ class LSTMStackResponse(nn.Module):
         )
         self.classifier = nn.Linear(hidden_dim, 3)
         self.ordinal = nn.Linear(hidden_dim, 2)
-        self.scalar_head = nn.Sequential(nn.Linear(hidden_dim, hidden_dim), nn.GELU(), nn.Dropout(dropout), nn.Linear(hidden_dim, 3))
-        self.curve_head = nn.Sequential(nn.Linear(hidden_dim, hidden_dim * 2), nn.GELU(), nn.Dropout(dropout), nn.Linear(hidden_dim * 2, seq_len), nn.Softplus())
+        self.scalar_head = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, 3),
+        )
+        self.curve_head = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim * 2),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim * 2, seq_len),
+            nn.Softplus(),
+        )
 
-    def forward(self, x: torch.Tensor, stack: torch.Tensor | None = None) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    def forward(
+        self, x: torch.Tensor, stack: torch.Tensor | None = None
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         if stack is None:
             raise ValueError("LSTMStackResponse requires stack features.")
         seq_out, _ = self.stack_encoder(stack)
@@ -321,7 +429,9 @@ class LSTMStackResponse(nn.Module):
 
 
 class GRUStackResponse(nn.Module):
-    def __init__(self, input_dim: int, stack_dim: int, seq_len: int, hidden_dim: int, dropout: float):
+    def __init__(
+        self, input_dim: int, stack_dim: int, seq_len: int, hidden_dim: int, dropout: float
+    ):
         super().__init__()
         seq_hidden = max(32, hidden_dim // 2)
         self.stack_encoder = nn.GRU(
@@ -332,7 +442,12 @@ class GRUStackResponse(nn.Module):
             dropout=dropout,
             bidirectional=True,
         )
-        self.global_encoder = nn.Sequential(nn.Linear(input_dim, hidden_dim), nn.LayerNorm(hidden_dim), nn.GELU(), nn.Dropout(dropout))
+        self.global_encoder = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim),
+            nn.LayerNorm(hidden_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+        )
         joined_dim = hidden_dim + seq_hidden * 4
         self.fuse = nn.Sequential(
             nn.Linear(joined_dim, hidden_dim),
@@ -342,10 +457,23 @@ class GRUStackResponse(nn.Module):
         )
         self.classifier = nn.Linear(hidden_dim, 3)
         self.ordinal = nn.Linear(hidden_dim, 2)
-        self.scalar_head = nn.Sequential(nn.Linear(hidden_dim, hidden_dim), nn.GELU(), nn.Dropout(dropout), nn.Linear(hidden_dim, 3))
-        self.curve_head = nn.Sequential(nn.Linear(hidden_dim, hidden_dim * 2), nn.GELU(), nn.Dropout(dropout), nn.Linear(hidden_dim * 2, seq_len), nn.Softplus())
+        self.scalar_head = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, 3),
+        )
+        self.curve_head = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim * 2),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim * 2, seq_len),
+            nn.Softplus(),
+        )
 
-    def forward(self, x: torch.Tensor, stack: torch.Tensor | None = None) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    def forward(
+        self, x: torch.Tensor, stack: torch.Tensor | None = None
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         if stack is None:
             raise ValueError("GRUStackResponse requires stack features.")
         seq_out, _ = self.stack_encoder(stack)
@@ -365,7 +493,9 @@ class GraphConvLayer(nn.Module):
 
 
 class StackGraphResponse(nn.Module):
-    def __init__(self, input_dim: int, stack_dim: int, seq_len: int, hidden_dim: int, dropout: float):
+    def __init__(
+        self, input_dim: int, stack_dim: int, seq_len: int, hidden_dim: int, dropout: float
+    ):
         super().__init__()
         graph_hidden = max(48, hidden_dim // 2)
         adjacency = torch.eye(16)
@@ -376,7 +506,12 @@ class StackGraphResponse(nn.Module):
         self.register_buffer("adjacency", adjacency / degree)
         self.gcn1 = GraphConvLayer(stack_dim, graph_hidden)
         self.gcn2 = GraphConvLayer(graph_hidden, graph_hidden)
-        self.global_encoder = nn.Sequential(nn.Linear(input_dim, hidden_dim), nn.LayerNorm(hidden_dim), nn.GELU(), nn.Dropout(dropout))
+        self.global_encoder = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim),
+            nn.LayerNorm(hidden_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+        )
         joined_dim = hidden_dim + graph_hidden * 2
         self.fuse = nn.Sequential(
             nn.Linear(joined_dim, hidden_dim),
@@ -387,10 +522,23 @@ class StackGraphResponse(nn.Module):
         )
         self.classifier = nn.Linear(hidden_dim, 3)
         self.ordinal = nn.Linear(hidden_dim, 2)
-        self.scalar_head = nn.Sequential(nn.Linear(hidden_dim, hidden_dim), nn.GELU(), nn.Dropout(dropout), nn.Linear(hidden_dim, 3))
-        self.curve_head = nn.Sequential(nn.Linear(hidden_dim, hidden_dim * 2), nn.GELU(), nn.Dropout(dropout), nn.Linear(hidden_dim * 2, seq_len), nn.Softplus())
+        self.scalar_head = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, 3),
+        )
+        self.curve_head = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim * 2),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim * 2, seq_len),
+            nn.Softplus(),
+        )
 
-    def forward(self, x: torch.Tensor, stack: torch.Tensor | None = None) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    def forward(
+        self, x: torch.Tensor, stack: torch.Tensor | None = None
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         if stack is None:
             raise ValueError("StackGraphResponse requires stack features.")
         nodes = self.gcn2(self.gcn1(stack, self.adjacency), self.adjacency)
@@ -419,7 +567,9 @@ class GraphAttentionLayer(nn.Module):
 
 
 class StackGATResponse(nn.Module):
-    def __init__(self, input_dim: int, stack_dim: int, seq_len: int, hidden_dim: int, dropout: float):
+    def __init__(
+        self, input_dim: int, stack_dim: int, seq_len: int, hidden_dim: int, dropout: float
+    ):
         super().__init__()
         graph_hidden = max(48, hidden_dim // 2)
         adjacency = torch.eye(16, dtype=torch.bool)
@@ -429,7 +579,12 @@ class StackGATResponse(nn.Module):
         self.register_buffer("adjacency_mask", adjacency)
         self.attn1 = GraphAttentionLayer(stack_dim, graph_hidden, dropout)
         self.attn2 = GraphAttentionLayer(graph_hidden, graph_hidden, dropout)
-        self.global_encoder = nn.Sequential(nn.Linear(input_dim, hidden_dim), nn.LayerNorm(hidden_dim), nn.GELU(), nn.Dropout(dropout))
+        self.global_encoder = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim),
+            nn.LayerNorm(hidden_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+        )
         joined_dim = hidden_dim + graph_hidden * 2
         self.fuse = nn.Sequential(
             nn.Linear(joined_dim, hidden_dim),
@@ -440,10 +595,23 @@ class StackGATResponse(nn.Module):
         )
         self.classifier = nn.Linear(hidden_dim, 3)
         self.ordinal = nn.Linear(hidden_dim, 2)
-        self.scalar_head = nn.Sequential(nn.Linear(hidden_dim, hidden_dim), nn.GELU(), nn.Dropout(dropout), nn.Linear(hidden_dim, 3))
-        self.curve_head = nn.Sequential(nn.Linear(hidden_dim, hidden_dim * 2), nn.GELU(), nn.Dropout(dropout), nn.Linear(hidden_dim * 2, seq_len), nn.Softplus())
+        self.scalar_head = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, 3),
+        )
+        self.curve_head = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim * 2),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim * 2, seq_len),
+            nn.Softplus(),
+        )
 
-    def forward(self, x: torch.Tensor, stack: torch.Tensor | None = None) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    def forward(
+        self, x: torch.Tensor, stack: torch.Tensor | None = None
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         if stack is None:
             raise ValueError("StackGATResponse requires stack features.")
         nodes = self.attn2(self.attn1(stack, self.adjacency_mask), self.adjacency_mask)
@@ -452,18 +620,52 @@ class StackGATResponse(nn.Module):
         return self.classifier(z), self.ordinal(z), self.scalar_head(z), self.curve_head(z)
 
 
-def candidate_factories(args: argparse.Namespace, stack_dim: int) -> dict[str, Callable[[int, int], nn.Module]]:
+def candidate_factories(
+    args: argparse.Namespace, stack_dim: int
+) -> dict[str, Callable[[int, int], nn.Module]]:
     return {
-        "plain_mlp": lambda input_dim, seq_len: PlainMLPResponse(input_dim, seq_len, args.hidden_dim, args.dropout),
-        "residual_mlp": lambda input_dim, seq_len: ResidualMLPResponse(input_dim, seq_len, args.hidden_dim, args.depth, args.dropout),
-        "gated_mlp": lambda input_dim, seq_len: GatedMLPResponse(input_dim, seq_len, max(64, args.hidden_dim - 32), args.depth + 1, max(0.05, args.dropout - 0.02)),
-        "physics_guided_mlp": lambda input_dim, seq_len: PhysicsGuidedMLPResponse(input_dim, seq_len, max(64, args.hidden_dim - 32), args.depth + 1, max(0.05, args.dropout - 0.02)),
-        "deeponet_response": lambda input_dim, seq_len: DeepONetResponse(input_dim, seq_len, args.hidden_dim, args.basis_dim, args.dropout),
-        "pca_curve_mlp": lambda input_dim, seq_len: GatedMLPResponse(input_dim, seq_len, max(64, args.hidden_dim - 32), args.depth + 1, max(0.05, args.dropout - 0.02)),
-        "stack_lstm": lambda input_dim, seq_len: LSTMStackResponse(input_dim, stack_dim, seq_len, args.hidden_dim, args.dropout),
-        "stack_gru": lambda input_dim, seq_len: GRUStackResponse(input_dim, stack_dim, seq_len, args.hidden_dim, args.dropout),
-        "stack_gnn": lambda input_dim, seq_len: StackGraphResponse(input_dim, stack_dim, seq_len, args.hidden_dim, args.dropout),
-        "stack_gat": lambda input_dim, seq_len: StackGATResponse(input_dim, stack_dim, seq_len, args.hidden_dim, args.dropout),
+        "plain_mlp": lambda input_dim, seq_len: PlainMLPResponse(
+            input_dim, seq_len, args.hidden_dim, args.dropout
+        ),
+        "residual_mlp": lambda input_dim, seq_len: ResidualMLPResponse(
+            input_dim, seq_len, args.hidden_dim, args.depth, args.dropout
+        ),
+        "gated_mlp": lambda input_dim, seq_len: GatedMLPResponse(
+            input_dim,
+            seq_len,
+            max(64, args.hidden_dim - 32),
+            args.depth + 1,
+            max(0.05, args.dropout - 0.02),
+        ),
+        "physics_guided_mlp": lambda input_dim, seq_len: PhysicsGuidedMLPResponse(
+            input_dim,
+            seq_len,
+            max(64, args.hidden_dim - 32),
+            args.depth + 1,
+            max(0.05, args.dropout - 0.02),
+        ),
+        "deeponet_response": lambda input_dim, seq_len: DeepONetResponse(
+            input_dim, seq_len, args.hidden_dim, args.basis_dim, args.dropout
+        ),
+        "pca_curve_mlp": lambda input_dim, seq_len: GatedMLPResponse(
+            input_dim,
+            seq_len,
+            max(64, args.hidden_dim - 32),
+            args.depth + 1,
+            max(0.05, args.dropout - 0.02),
+        ),
+        "stack_lstm": lambda input_dim, seq_len: LSTMStackResponse(
+            input_dim, stack_dim, seq_len, args.hidden_dim, args.dropout
+        ),
+        "stack_gru": lambda input_dim, seq_len: GRUStackResponse(
+            input_dim, stack_dim, seq_len, args.hidden_dim, args.dropout
+        ),
+        "stack_gnn": lambda input_dim, seq_len: StackGraphResponse(
+            input_dim, stack_dim, seq_len, args.hidden_dim, args.dropout
+        ),
+        "stack_gat": lambda input_dim, seq_len: StackGATResponse(
+            input_dim, stack_dim, seq_len, args.hidden_dim, args.dropout
+        ),
     }
 
 
@@ -476,7 +678,12 @@ def soft_physics_loss(pred_curve: torch.Tensor) -> torch.Tensor:
     return 0.15 * start_loss + 0.10 * peak_loss + 0.10 * monotonic_loss + 0.03 * curvature_loss
 
 
-def pt_consistency_loss(pred_curve: torch.Tensor, scalars_norm: torch.Tensor, scalar_mean: np.ndarray, scalar_std: np.ndarray) -> torch.Tensor:
+def pt_consistency_loss(
+    pred_curve: torch.Tensor,
+    scalars_norm: torch.Tensor,
+    scalar_mean: np.ndarray,
+    scalar_std: np.ndarray,
+) -> torch.Tensor:
     mean = torch.as_tensor(scalar_mean, dtype=pred_curve.dtype, device=pred_curve.device)
     std = torch.as_tensor(scalar_std, dtype=pred_curve.dtype, device=pred_curve.device)
     scalars = torch.expm1(scalars_norm * std + mean)
@@ -490,7 +697,9 @@ def pt_consistency_loss(pred_curve: torch.Tensor, scalars_norm: torch.Tensor, sc
     return soft_min.mean() + 0.5 * (outside_low.square().mean() + outside_high.square().mean())
 
 
-def run_epoch(model, loader, optimizer, weights, device: torch.device, train: bool, args) -> dict[str, Any]:
+def run_epoch(
+    model, loader, optimizer, weights, device: torch.device, train: bool, args
+) -> dict[str, Any]:
     model.train(mode=train)
     y_true: list[int] = []
     y_pred: list[int] = []
@@ -511,14 +720,23 @@ def run_epoch(model, loader, optimizer, weights, device: torch.device, train: bo
                 optimizer.zero_grad(set_to_none=True)
             class_logits, ordinal_logits, pred_scalars, pred_curve = model(x, stack)
             class_loss = F.cross_entropy(class_logits, labels, weight=weights)
-            ordinal_loss = F.binary_cross_entropy_with_logits(ordinal_logits, ordinal_targets(labels))
+            ordinal_loss = F.binary_cross_entropy_with_logits(
+                ordinal_logits, ordinal_targets(labels)
+            )
             scalar_loss = F.smooth_l1_loss(pred_scalars, scalars)
             curve_loss = F.smooth_l1_loss(pred_curve, curve)
-            loss = class_loss + args.ordinal_weight * ordinal_loss + args.scalar_weight * scalar_loss + args.curve_weight * curve_loss
+            loss = (
+                class_loss
+                + args.ordinal_weight * ordinal_loss
+                + args.scalar_weight * scalar_loss
+                + args.curve_weight * curve_loss
+            )
             if getattr(model, "physics_guided", False):
                 loss = loss + args.physics_weight * soft_physics_loss(pred_curve)
             if args.pt_consistency_weight > 0:
-                loss = loss + args.pt_consistency_weight * pt_consistency_loss(pred_curve, scalars, args.scalar_mean, args.scalar_std)
+                loss = loss + args.pt_consistency_weight * pt_consistency_loss(
+                    pred_curve, scalars, args.scalar_mean, args.scalar_std
+                )
             if train:
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 3.0)
@@ -594,19 +812,29 @@ def train_candidate(
     fit_seconds_total = 0.0
     for fold, (train_idx, val_idx) in enumerate(splitter.split(x_norm, y_class, groups), start=1):
         set_seed(args.seed + fold * 100)
-        train_loader = DataLoader(Subset(dataset, train_idx.tolist()), batch_size=args.batch_size, shuffle=True)
-        val_loader = DataLoader(Subset(dataset, val_idx.tolist()), batch_size=args.batch_size, shuffle=False)
+        train_loader = DataLoader(
+            Subset(dataset, train_idx.tolist()), batch_size=args.batch_size, shuffle=True
+        )
+        val_loader = DataLoader(
+            Subset(dataset, val_idx.tolist()), batch_size=args.batch_size, shuffle=False
+        )
         model = factory(x_norm.shape[1], y_curve.shape[1]).to(args.device_torch)
         weights = class_weights(y_class[train_idx] - 1, args.device_torch)
-        optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+        optimizer = torch.optim.AdamW(
+            model.parameters(), lr=args.lr, weight_decay=args.weight_decay
+        )
         best_state = None
         best_score = -1.0
         best_epoch = 0
         stale = 0
         started = time.perf_counter()
         for epoch in range(1, args.epochs + 1):
-            run_epoch(model, train_loader, optimizer, weights, args.device_torch, train=True, args=args)
-            out = run_epoch(model, val_loader, optimizer, weights, args.device_torch, train=False, args=args)
+            run_epoch(
+                model, train_loader, optimizer, weights, args.device_torch, train=True, args=args
+            )
+            out = run_epoch(
+                model, val_loader, optimizer, weights, args.device_torch, train=False, args=args
+            )
             score = f1_score(out["y_true"], out["y_pred"], average="macro", zero_division=0)
             if score > best_score:
                 best_score = score
@@ -621,26 +849,37 @@ def train_candidate(
         fit_seconds_total += fit_seconds
         if best_state is not None:
             model.load_state_dict(best_state)
-        out = run_epoch(model, val_loader, optimizer, weights, args.device_torch, train=False, args=args)
+        out = run_epoch(
+            model, val_loader, optimizer, weights, args.device_torch, train=False, args=args
+        )
         row = response_metric_row(out, scalar_mean, scalar_std)
         row["fold"] = fold
         row["best_epoch"] = best_epoch
         row["fit_seconds"] = fit_seconds
         fold_rows.append(row)
-        print(f"  {name} fold {fold}: f1={row['macro_f1']:.4f}, pt_mae={row['pt_mae']:.2f}, curve_rmse={row['curve_norm_rmse']:.5f}, epoch={best_epoch}", flush=True)
+        print(
+            f"  {name} fold {fold}: f1={row['macro_f1']:.4f}, pt_mae={row['pt_mae']:.2f}, curve_rmse={row['curve_norm_rmse']:.5f}, epoch={best_epoch}",
+            flush=True,
+        )
 
     set_seed(args.seed)
     final_model = factory(x_norm.shape[1], y_curve.shape[1]).to(args.device_torch)
     final_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
     weights = class_weights(y_class - 1, args.device_torch)
-    optimizer = torch.optim.AdamW(final_model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+    optimizer = torch.optim.AdamW(
+        final_model.parameters(), lr=args.lr, weight_decay=args.weight_decay
+    )
     started = time.perf_counter()
     for _ in range(args.final_epochs):
-        run_epoch(final_model, final_loader, optimizer, weights, args.device_torch, train=True, args=args)
+        run_epoch(
+            final_model, final_loader, optimizer, weights, args.device_torch, train=True, args=args
+        )
     final_fit_seconds = time.perf_counter() - started
     predict_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False)
     started = time.perf_counter()
-    run_epoch(final_model, predict_loader, optimizer, weights, args.device_torch, train=False, args=args)
+    run_epoch(
+        final_model, predict_loader, optimizer, weights, args.device_torch, train=False, args=args
+    )
     inference_seconds_per_sample = (time.perf_counter() - started) / max(1, len(dataset))
 
     summary: dict[str, Any] = {
@@ -663,7 +902,10 @@ def make_pca_curve_model(
     y_curve_train: np.ndarray,
     args: argparse.Namespace,
 ) -> tuple[PCACurveMLPResponse, PCA]:
-    pca = PCA(n_components=min(args.pca_components, y_curve_train.shape[0], y_curve_train.shape[1]), random_state=args.seed)
+    pca = PCA(
+        n_components=min(args.pca_components, y_curve_train.shape[0], y_curve_train.shape[1]),
+        random_state=args.seed,
+    )
     pca.fit(y_curve_train)
     model = PCACurveMLPResponse(
         input_dim=input_dim,
@@ -695,21 +937,33 @@ def train_pca_curve_candidate(
     fit_seconds_total = 0.0
     for fold, (train_idx, val_idx) in enumerate(splitter.split(x_norm, y_class, groups), start=1):
         set_seed(args.seed + fold * 100)
-        train_loader = DataLoader(Subset(dataset, train_idx.tolist()), batch_size=args.batch_size, shuffle=True)
-        val_loader = DataLoader(Subset(dataset, val_idx.tolist()), batch_size=args.batch_size, shuffle=False)
+        train_loader = DataLoader(
+            Subset(dataset, train_idx.tolist()), batch_size=args.batch_size, shuffle=True
+        )
+        val_loader = DataLoader(
+            Subset(dataset, val_idx.tolist()), batch_size=args.batch_size, shuffle=False
+        )
         model, pca = make_pca_curve_model(x_norm.shape[1], y_curve[train_idx], args)
         weights = class_weights(y_class[train_idx] - 1, args.device_torch)
-        optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+        optimizer = torch.optim.AdamW(
+            model.parameters(), lr=args.lr, weight_decay=args.weight_decay
+        )
         best_state = None
         best_score = float("inf")
         best_epoch = 0
         stale = 0
         started = time.perf_counter()
         for epoch in range(1, args.epochs + 1):
-            run_epoch(model, train_loader, optimizer, weights, args.device_torch, train=True, args=args)
-            out = run_epoch(model, val_loader, optimizer, weights, args.device_torch, train=False, args=args)
+            run_epoch(
+                model, train_loader, optimizer, weights, args.device_torch, train=True, args=args
+            )
+            out = run_epoch(
+                model, val_loader, optimizer, weights, args.device_torch, train=False, args=args
+            )
             row = response_metric_row(out, scalar_mean, scalar_std)
-            score = row["curve_norm_rmse"] + 0.0002 * (row["pt_mae"] / 100.0) - 0.002 * row["macro_f1"]
+            score = (
+                row["curve_norm_rmse"] + 0.0002 * (row["pt_mae"] / 100.0) - 0.002 * row["macro_f1"]
+            )
             if score < best_score:
                 best_score = score
                 best_epoch = epoch
@@ -723,27 +977,38 @@ def train_pca_curve_candidate(
         fit_seconds_total += fit_seconds
         if best_state is not None:
             model.load_state_dict(best_state)
-        out = run_epoch(model, val_loader, optimizer, weights, args.device_torch, train=False, args=args)
+        out = run_epoch(
+            model, val_loader, optimizer, weights, args.device_torch, train=False, args=args
+        )
         row = response_metric_row(out, scalar_mean, scalar_std)
         row["fold"] = fold
         row["best_epoch"] = best_epoch
         row["fit_seconds"] = fit_seconds
         row["pca_components"] = int(pca.n_components_)
         fold_rows.append(row)
-        print(f"  pca_curve_mlp fold {fold}: f1={row['macro_f1']:.4f}, pt_mae={row['pt_mae']:.2f}, curve_rmse={row['curve_norm_rmse']:.5f}, epoch={best_epoch}", flush=True)
+        print(
+            f"  pca_curve_mlp fold {fold}: f1={row['macro_f1']:.4f}, pt_mae={row['pt_mae']:.2f}, curve_rmse={row['curve_norm_rmse']:.5f}, epoch={best_epoch}",
+            flush=True,
+        )
 
     set_seed(args.seed)
     final_model, pca = make_pca_curve_model(x_norm.shape[1], y_curve, args)
     final_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
     weights = class_weights(y_class - 1, args.device_torch)
-    optimizer = torch.optim.AdamW(final_model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+    optimizer = torch.optim.AdamW(
+        final_model.parameters(), lr=args.lr, weight_decay=args.weight_decay
+    )
     started = time.perf_counter()
     for _ in range(args.final_epochs):
-        run_epoch(final_model, final_loader, optimizer, weights, args.device_torch, train=True, args=args)
+        run_epoch(
+            final_model, final_loader, optimizer, weights, args.device_torch, train=True, args=args
+        )
     final_fit_seconds = time.perf_counter() - started
     predict_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False)
     started = time.perf_counter()
-    run_epoch(final_model, predict_loader, optimizer, weights, args.device_torch, train=False, args=args)
+    run_epoch(
+        final_model, predict_loader, optimizer, weights, args.device_torch, train=False, args=args
+    )
     inference_seconds_per_sample = (time.perf_counter() - started) / max(1, len(dataset))
 
     summary: dict[str, Any] = {
@@ -764,22 +1029,34 @@ def train_pca_curve_candidate(
 
 def write_reports(report_dir: Path, output_dir: Path, payload: dict[str, Any]) -> None:
     report_dir.mkdir(parents=True, exist_ok=True)
-    (report_dir / "model_comparison.json").write_text(json.dumps(json_safe(payload), indent=2), encoding="utf-8")
+    (report_dir / "model_comparison.json").write_text(
+        json.dumps(json_safe(payload), indent=2), encoding="utf-8"
+    )
     tree = payload["reference_models"]["response_surrogate_physics_v2"]
     goint = payload["reference_models"]["response_goint_physics_nn_v2"]
-    trained = {name: row for name, row in payload["candidates"].items() if row.get("status") == "trained"}
-    best_name = min(
-        trained,
-        key=lambda key: (
-            float(trained[key].get("cv_pt_mae_mean", float("inf"))),
-            float(trained[key].get("cv_curve_norm_rmse_mean", float("inf"))),
-            -float(trained[key].get("cv_macro_f1_mean", 0.0)),
-        ),
-    ) if trained else None
+    trained = {
+        name: row for name, row in payload["candidates"].items() if row.get("status") == "trained"
+    }
+    best_name = (
+        min(
+            trained,
+            key=lambda key: (
+                float(trained[key].get("cv_pt_mae_mean", float("inf"))),
+                float(trained[key].get("cv_curve_norm_rmse_mean", float("inf"))),
+                -float(trained[key].get("cv_macro_f1_mean", 0.0)),
+            ),
+        )
+        if trained
+        else None
+    )
     recommendation = "No DL challenger was trained."
     if best_name:
         best = trained[best_name]
-        if float(best["cv_pt_mae_mean"]) < float(goint.get("cv_pt_mae_mean", float("inf"))) and float(best["cv_curve_norm_rmse_mean"]) < float(goint.get("cv_curve_norm_rmse_mean", float("inf"))):
+        if float(best["cv_pt_mae_mean"]) < float(
+            goint.get("cv_pt_mae_mean", float("inf"))
+        ) and float(best["cv_curve_norm_rmse_mean"]) < float(
+            goint.get("cv_curve_norm_rmse_mean", float("inf"))
+        ):
             recommendation = f"`{best_name}` beats the current GointMLP reference on Pt and normalized curve RMSE, but should remain research-only until API compatibility and the tree reference comparison are reviewed."
         else:
             recommendation = f"`{best_name}` is the best DL challenger in this run, but it does not clearly beat `response_goint_physics_nn_v2` across the main response metrics."
@@ -822,7 +1099,9 @@ def write_reports(report_dir: Path, output_dir: Path, payload: dict[str, Any]) -
     ]
     for name, row in payload["candidates"].items():
         if row.get("status") != "trained":
-            lines.append(f"| {name} | {row.get('status', 'not trained')}: {row.get('reason', '')} |  |  |  |  |  |  |  |  |  |  |")
+            lines.append(
+                f"| {name} | {row.get('status', 'not trained')}: {row.get('reason', '')} |  |  |  |  |  |  |  |  |  |  |"
+            )
             continue
         infer_ms = float(row.get("inference_seconds_per_sample", 0.0)) * 1000.0
         lines.append(
@@ -831,7 +1110,16 @@ def write_reports(report_dir: Path, output_dir: Path, payload: dict[str, Any]) -
             f"{row['cv_curve_force_rmse_mean']:.2f} | {row.get('final_fit_seconds', 0.0):.2f} | {infer_ms:.4f} | "
             f"{int(row.get('parameter_count', 0))} | {row.get('artifact_size_mb', 0.0):.3f} |"
         )
-    lines.extend(["", "## Recommendation", "", recommendation, "", "No backend model key or UI/API default was changed in this pass."])
+    lines.extend(
+        [
+            "",
+            "## Recommendation",
+            "",
+            recommendation,
+            "",
+            "No backend model key or UI/API default was changed in this pass.",
+        ]
+    )
     (report_dir / "model_comparison.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
@@ -861,9 +1149,31 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         print(f"training {name}...", flush=True)
         try:
             if name == "pca_curve_mlp":
-                row, model = train_pca_curve_candidate(x_norm, stack_features, y_class, y_scalars_norm, y_curve, groups, scalar_mean, scalar_std, args)
+                row, model = train_pca_curve_candidate(
+                    x_norm,
+                    stack_features,
+                    y_class,
+                    y_scalars_norm,
+                    y_curve,
+                    groups,
+                    scalar_mean,
+                    scalar_std,
+                    args,
+                )
             else:
-                row, model = train_candidate(name, factory, x_norm, stack_features, y_class, y_scalars_norm, y_curve, groups, scalar_mean, scalar_std, args)
+                row, model = train_candidate(
+                    name,
+                    factory,
+                    x_norm,
+                    stack_features,
+                    y_class,
+                    y_scalars_norm,
+                    y_curve,
+                    groups,
+                    scalar_mean,
+                    scalar_std,
+                    args,
+                )
             artifact_path = output_dir / f"{name}.pt"
             torch.save(
                 {
@@ -881,7 +1191,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     },
                     "feature_builder": args.feature_set,
                     "feature_columns": feature_names,
-                    "stack_feature_columns": ["angle_norm", "sin", "cos", "sin2", "cos2", "sign", "z", "case_index", "is_theta1", "is_theta2"],
+                    "stack_feature_columns": [
+                        "angle_norm",
+                        "sin",
+                        "cos",
+                        "sin2",
+                        "cos2",
+                        "sign",
+                        "z",
+                        "case_index",
+                        "is_theta1",
+                        "is_theta2",
+                    ],
                     "feature_mean": feature_mean,
                     "feature_std": feature_std,
                     "scalar_columns": ["pt", "max_displacement", "max_force"],
@@ -897,27 +1218,54 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             row["artifact_path"] = str(artifact_path)
             row["artifact_size_mb"] = float(artifact_path.stat().st_size / (1024 * 1024))
             candidates[name] = row
-            print(f"done {name}: f1={row['cv_macro_f1_mean']:.4f}, pt_mae={row['cv_pt_mae_mean']:.2f}, curve_rmse={row['cv_curve_norm_rmse_mean']:.5f}", flush=True)
+            print(
+                f"done {name}: f1={row['cv_macro_f1_mean']:.4f}, pt_mae={row['cv_pt_mae_mean']:.2f}, curve_rmse={row['cv_curve_norm_rmse_mean']:.5f}",
+                flush=True,
+            )
         except Exception as exc:
             candidates[name] = {"status": "failed", "reason": f"{type(exc).__name__}: {exc}"}
             print(f"failed {name}: {exc}", flush=True)
     payload = {
         "dataset": str(data_dir),
         "feature_set": args.feature_set,
-        "n_samples": int(len(records)),
+        "n_samples": len(records),
         "seq_len": int(args.seq_len),
         "splits": int(args.splits),
-        "loss_weights": {"ordinal_weight": float(args.ordinal_weight), "scalar_weight": float(args.scalar_weight), "curve_weight": float(args.curve_weight)},
+        "loss_weights": {
+            "ordinal_weight": float(args.ordinal_weight),
+            "scalar_weight": float(args.scalar_weight),
+            "curve_weight": float(args.curve_weight),
+        },
         "pt_consistency_weight": float(args.pt_consistency_weight),
         "physics_guided_loss": {
             "physics_weight": float(args.physics_weight),
-            "terms": ["curve_start_zero", "curve_peak_one", "monotonic_descent_penalty", "curvature_smoothness"],
+            "terms": [
+                "curve_start_zero",
+                "curve_peak_one",
+                "monotonic_descent_penalty",
+                "curvature_smoothness",
+            ],
         },
         "feature_columns": feature_names,
-        "stack_feature_columns": ["angle_norm", "sin", "cos", "sin2", "cos2", "sign", "z", "case_index", "is_theta1", "is_theta2"],
+        "stack_feature_columns": [
+            "angle_norm",
+            "sin",
+            "cos",
+            "sin2",
+            "cos2",
+            "sign",
+            "z",
+            "case_index",
+            "is_theta1",
+            "is_theta2",
+        ],
         "reference_models": {
-            "response_surrogate_physics_v2": load_reference_metrics(Path(args.baseline_tree_metrics)),
-            "response_goint_physics_nn_v2": load_reference_metrics(Path(args.baseline_goint_metrics)),
+            "response_surrogate_physics_v2": load_reference_metrics(
+                Path(args.baseline_tree_metrics)
+            ),
+            "response_goint_physics_nn_v2": load_reference_metrics(
+                Path(args.baseline_goint_metrics)
+            ),
         },
         "candidates": candidates,
     }
@@ -926,15 +1274,23 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Train DD response DL challengers without Curve CSV changes.")
+    parser = argparse.ArgumentParser(
+        description="Train DD response DL challengers without Curve CSV changes."
+    )
     parser.add_argument("--data-dir", default="data/datasets/DD_cases_2_3_4_curated_v1")
     parser.add_argument("--output-dir", default="models/dd_laminate_response_dl_challengers_v1")
     parser.add_argument("--report-dir", default="reports/dd_response_dl_challengers_v1")
-    parser.add_argument("--baseline-tree-metrics", default="models/dd_laminate_response_physics_xai_v2/response_surrogate_metrics.json")
-    parser.add_argument("--baseline-goint-metrics", default="models/dd_laminate_response_goint_physics_nn_v2/response_goint_metrics.json")
+    parser.add_argument(
+        "--baseline-tree-metrics",
+        default="models/dd_laminate_response_physics_xai_v2/response_surrogate_metrics.json",
+    )
+    parser.add_argument(
+        "--baseline-goint-metrics",
+        default="models/dd_laminate_response_goint_physics_nn_v2/response_goint_metrics.json",
+    )
     parser.add_argument(
         "--feature-set",
-        choices=["theta_physics", "theta_physics_v2", "theta_physics_nn_v2", "theta_physics_geometry_v1"],
+        choices=SUPPORTED_RESPONSE_FEATURE_SETS,
         default="theta_physics_nn_v2",
     )
     parser.add_argument("--seq-len", type=int, default=CURVE_GRID_LEN)
@@ -957,7 +1313,9 @@ def main() -> None:
     parser.add_argument("--pt-consistency-weight", type=float, default=0.0)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--device", choices=["cpu", "mps", "cuda"], default="cpu")
-    parser.add_argument("--candidates", default="", help="Comma-separated subset, e.g. plain_mlp,residual_mlp")
+    parser.add_argument(
+        "--candidates", default="", help="Comma-separated subset, e.g. plain_mlp,residual_mlp"
+    )
     args = parser.parse_args()
     payload = run(args)
     print(json.dumps(json_safe(payload), indent=2))

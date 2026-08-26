@@ -24,9 +24,9 @@ logger = logging.getLogger(__name__)
 
 
 class ValidationSeverity(str, Enum):
-    ERROR = "error"      # Record should not be used for ML
+    ERROR = "error"  # Record should not be used for ML
     WARNING = "warning"  # Suspicious but possibly valid
-    INFO = "info"        # Informational note
+    INFO = "info"  # Informational note
 
 
 @dataclass
@@ -101,18 +101,22 @@ def _check_completeness(record: UnifiedCAERecord) -> list[ValidationIssue]:
     issues: list[ValidationIssue] = []
 
     if record.geometry.num_nodes == 0:
-        issues.append(ValidationIssue(
-            severity=ValidationSeverity.ERROR,
-            check_name="completeness",
-            message="Geometry has 0 nodes",
-        ))
+        issues.append(
+            ValidationIssue(
+                severity=ValidationSeverity.ERROR,
+                check_name="completeness",
+                message="Geometry has 0 nodes",
+            )
+        )
 
     if not record.output_fields.field_names:
-        issues.append(ValidationIssue(
-            severity=ValidationSeverity.WARNING,
-            check_name="completeness",
-            message="No output fields present — record contains only geometry/metadata",
-        ))
+        issues.append(
+            ValidationIssue(
+                severity=ValidationSeverity.WARNING,
+                check_name="completeness",
+                message="No output fields present — record contains only geometry/metadata",
+            )
+        )
 
     return issues
 
@@ -127,40 +131,48 @@ def _check_nan_values(record: UnifiedCAERecord) -> list[ValidationIssue]:
         if nan_count > 0:
             ratio = nan_count / total
             severity = ValidationSeverity.ERROR if ratio > 0.5 else ValidationSeverity.WARNING
-            issues.append(ValidationIssue(
-                severity=severity,
-                check_name="nan_check",
-                message=f"{nan_count}/{total} NaN values ({ratio:.1%})",
-                field_name=sf.name,
-            ))
+            issues.append(
+                ValidationIssue(
+                    severity=severity,
+                    check_name="nan_check",
+                    message=f"{nan_count}/{total} NaN values ({ratio:.1%})",
+                    field_name=sf.name,
+                )
+            )
         inf_count = int(np.isinf(sf.values).sum())
         if inf_count > 0:
-            issues.append(ValidationIssue(
-                severity=ValidationSeverity.ERROR,
-                check_name="inf_check",
-                message=f"{inf_count} Inf values detected",
-                field_name=sf.name,
-            ))
+            issues.append(
+                ValidationIssue(
+                    severity=ValidationSeverity.ERROR,
+                    check_name="inf_check",
+                    message=f"{inf_count} Inf values detected",
+                    field_name=sf.name,
+                )
+            )
 
     for vf in record.output_fields.vector_fields:
         nan_count = int(np.isnan(vf.values).sum())
         if nan_count > 0:
-            issues.append(ValidationIssue(
-                severity=ValidationSeverity.WARNING,
-                check_name="nan_check",
-                message=f"{nan_count} NaN values in vector field",
-                field_name=vf.name,
-            ))
+            issues.append(
+                ValidationIssue(
+                    severity=ValidationSeverity.WARNING,
+                    check_name="nan_check",
+                    message=f"{nan_count} NaN values in vector field",
+                    field_name=vf.name,
+                )
+            )
 
     for tf in record.output_fields.tensor_fields:
         nan_count = int(np.isnan(tf.values).sum())
         if nan_count > 0:
-            issues.append(ValidationIssue(
-                severity=ValidationSeverity.WARNING,
-                check_name="nan_check",
-                message=f"{nan_count} NaN values in tensor field",
-                field_name=tf.name,
-            ))
+            issues.append(
+                ValidationIssue(
+                    severity=ValidationSeverity.WARNING,
+                    check_name="nan_check",
+                    message=f"{nan_count} NaN values in tensor field",
+                    field_name=tf.name,
+                )
+            )
 
     return issues
 
@@ -172,11 +184,13 @@ def _check_coordinate_bounds(record: UnifiedCAERecord) -> list[ValidationIssue]:
 
     # Coordinates should be finite
     if np.any(np.isnan(coords)) or np.any(np.isinf(coords)):
-        issues.append(ValidationIssue(
-            severity=ValidationSeverity.ERROR,
-            check_name="coordinate_bounds",
-            message="Node coordinates contain NaN or Inf",
-        ))
+        issues.append(
+            ValidationIssue(
+                severity=ValidationSeverity.ERROR,
+                check_name="coordinate_bounds",
+                message="Node coordinates contain NaN or Inf",
+            )
+        )
         return issues
 
     # Bounding box in meters — warn if unusually large (> 100m) or tiny (< 1um)
@@ -184,24 +198,28 @@ def _check_coordinate_bounds(record: UnifiedCAERecord) -> list[ValidationIssue]:
     max_dim = float(bbox_size.max())
 
     if max_dim > 100.0:
-        issues.append(ValidationIssue(
-            severity=ValidationSeverity.WARNING,
-            check_name="coordinate_bounds",
-            message=(
-                f"Bounding box max dimension is {max_dim:.1f} m — "
-                f"verify coordinates are in SI (meters)"
-            ),
-        ))
+        issues.append(
+            ValidationIssue(
+                severity=ValidationSeverity.WARNING,
+                check_name="coordinate_bounds",
+                message=(
+                    f"Bounding box max dimension is {max_dim:.1f} m — "
+                    f"verify coordinates are in SI (meters)"
+                ),
+            )
+        )
 
     if max_dim < 1e-6 and max_dim > 0:
-        issues.append(ValidationIssue(
-            severity=ValidationSeverity.WARNING,
-            check_name="coordinate_bounds",
-            message=(
-                f"Bounding box max dimension is {max_dim:.2e} m — "
-                f"verify unit conversion (may still be in mm)"
-            ),
-        ))
+        issues.append(
+            ValidationIssue(
+                severity=ValidationSeverity.WARNING,
+                check_name="coordinate_bounds",
+                message=(
+                    f"Bounding box max dimension is {max_dim:.2e} m — "
+                    f"verify unit conversion (may still be in mm)"
+                ),
+            )
+        )
 
     return issues
 
@@ -221,19 +239,19 @@ def _check_tensor_physics(record: UnifiedCAERecord) -> list[ValidationIssue]:
             if tf.values.ndim == 3 and tf.values.shape[1:] == (3, 3):
                 asymmetry = np.abs(tf.values - tf.values.transpose(0, 2, 1)).max()
                 if asymmetry > 1e-6:
-                    issues.append(ValidationIssue(
-                        severity=ValidationSeverity.WARNING,
-                        check_name="tensor_symmetry",
-                        message=f"Max asymmetry = {asymmetry:.2e} (expected symmetric)",
-                        field_name=tf.name,
-                    ))
+                    issues.append(
+                        ValidationIssue(
+                            severity=ValidationSeverity.WARNING,
+                            check_name="tensor_symmetry",
+                            message=f"Max asymmetry = {asymmetry:.2e} (expected symmetric)",
+                            field_name=tf.name,
+                        )
+                    )
 
     return issues
 
 
-def _validate_orientation_tensor(
-    name: str, values: np.ndarray
-) -> list[ValidationIssue]:
+def _validate_orientation_tensor(name: str, values: np.ndarray) -> list[ValidationIssue]:
     """Validate 2nd-order fiber orientation tensor A2.
 
     Physical requirements:
@@ -247,24 +265,28 @@ def _validate_orientation_tensor(
     # Check symmetry
     asymmetry = np.abs(values - values.transpose(0, 2, 1)).max()
     if asymmetry > 1e-6:
-        issues.append(ValidationIssue(
-            severity=ValidationSeverity.ERROR,
-            check_name="orientation_tensor",
-            message=f"A2 not symmetric: max asymmetry = {asymmetry:.2e}",
-            field_name=name,
-        ))
+        issues.append(
+            ValidationIssue(
+                severity=ValidationSeverity.ERROR,
+                check_name="orientation_tensor",
+                message=f"A2 not symmetric: max asymmetry = {asymmetry:.2e}",
+                field_name=name,
+            )
+        )
 
     # Check trace = 1
     traces = np.trace(values, axis1=1, axis2=2)
     trace_error = np.abs(traces - 1.0)
     max_trace_err = float(trace_error.max())
     if max_trace_err > 1e-3:
-        issues.append(ValidationIssue(
-            severity=ValidationSeverity.ERROR,
-            check_name="orientation_tensor",
-            message=f"A2 trace != 1: max deviation = {max_trace_err:.4f}",
-            field_name=name,
-        ))
+        issues.append(
+            ValidationIssue(
+                severity=ValidationSeverity.ERROR,
+                check_name="orientation_tensor",
+                message=f"A2 trace != 1: max deviation = {max_trace_err:.4f}",
+                field_name=name,
+            )
+        )
 
     # Check eigenvalue bounds [0, 1] on a sample (full check is expensive)
     n_samples = min(1000, values.shape[0])
@@ -275,20 +297,24 @@ def _validate_orientation_tensor(
     max_eig = float(eigenvalues.max())
 
     if min_eig < -1e-4:
-        issues.append(ValidationIssue(
-            severity=ValidationSeverity.ERROR,
-            check_name="orientation_tensor",
-            message=f"A2 has negative eigenvalue: min = {min_eig:.6f}",
-            field_name=name,
-        ))
+        issues.append(
+            ValidationIssue(
+                severity=ValidationSeverity.ERROR,
+                check_name="orientation_tensor",
+                message=f"A2 has negative eigenvalue: min = {min_eig:.6f}",
+                field_name=name,
+            )
+        )
 
     if max_eig > 1.0 + 1e-4:
-        issues.append(ValidationIssue(
-            severity=ValidationSeverity.ERROR,
-            check_name="orientation_tensor",
-            message=f"A2 eigenvalue > 1: max = {max_eig:.6f}",
-            field_name=name,
-        ))
+        issues.append(
+            ValidationIssue(
+                severity=ValidationSeverity.ERROR,
+                check_name="orientation_tensor",
+                message=f"A2 eigenvalue > 1: max = {max_eig:.6f}",
+                field_name=name,
+            )
+        )
 
     return issues
 
@@ -320,20 +346,24 @@ def _check_scalar_bounds(record: UnifiedCAERecord) -> list[ValidationIssue]:
             continue
 
         if lower is not None and float(finite_vals.min()) < lower - 1e-10:
-            issues.append(ValidationIssue(
-                severity=ValidationSeverity.ERROR,
-                check_name="scalar_bounds",
-                message=f"{msg} (min = {float(finite_vals.min()):.4g})",
-                field_name=sf.name,
-            ))
+            issues.append(
+                ValidationIssue(
+                    severity=ValidationSeverity.ERROR,
+                    check_name="scalar_bounds",
+                    message=f"{msg} (min = {float(finite_vals.min()):.4g})",
+                    field_name=sf.name,
+                )
+            )
 
         if upper is not None and float(finite_vals.max()) > upper + 1e-10:
-            issues.append(ValidationIssue(
-                severity=ValidationSeverity.ERROR,
-                check_name="scalar_bounds",
-                message=f"{msg} (max = {float(finite_vals.max()):.4g})",
-                field_name=sf.name,
-            ))
+            issues.append(
+                ValidationIssue(
+                    severity=ValidationSeverity.ERROR,
+                    check_name="scalar_bounds",
+                    message=f"{msg} (max = {float(finite_vals.max()):.4g})",
+                    field_name=sf.name,
+                )
+            )
 
     return issues
 
@@ -350,11 +380,13 @@ def _check_required_tool_fields(record: UnifiedCAERecord) -> list[ValidationIssu
     present = set(record.output_fields.field_names)
     for req_field in mapping.required_fields:
         if req_field not in present:
-            issues.append(ValidationIssue(
-                severity=ValidationSeverity.WARNING,
-                check_name="required_fields",
-                message=f"Required field '{req_field}' for {record.source_tool} not present",
-                field_name=req_field,
-            ))
+            issues.append(
+                ValidationIssue(
+                    severity=ValidationSeverity.WARNING,
+                    check_name="required_fields",
+                    message=f"Required field '{req_field}' for {record.source_tool} not present",
+                    field_name=req_field,
+                )
+            )
 
     return issues

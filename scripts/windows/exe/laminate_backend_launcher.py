@@ -11,7 +11,7 @@ def main() -> int:
     host = os.environ.get("LAMINATE_HOST", "127.0.0.1")
     port = int(os.environ.get("LAMINATE_PORT", "8765"))
     os.environ.setdefault("LAMINATE_REQUIRE_AUTH", "1")
-    os.environ.setdefault("LUVELOX_DISABLE_DEMO_LOGIN", "1")
+    os.environ.setdefault("IMPERIALAX_ENABLE_DEMO_LOGIN", "0")
     uvicorn.run(
         "src.backend.dd_laminate_app:app",
         host=host,

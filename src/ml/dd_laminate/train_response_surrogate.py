@@ -17,7 +17,6 @@ from sklearn.model_selection import GroupKFold
 from .curve_features import DDCurveRecord, load_curve_records
 from .laminate_physics import PHYSICS_FEATURE_COLUMNS, physics_feature_vector
 
-
 BASE_FEATURE_COLUMNS = [
     "theta1",
     "theta2",
@@ -84,7 +83,9 @@ def _load_target(record: DDCurveRecord, grid: np.ndarray) -> ResponseTarget:
     )
 
 
-def load_training_arrays(data_dir: str | Path, seq_len: int) -> tuple[list[DDCurveRecord], np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def load_training_arrays(
+    data_dir: str | Path, seq_len: int
+) -> tuple[list[DDCurveRecord], np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     records = load_curve_records(data_dir)
     grid = np.linspace(0.0, 1.0, seq_len)
     targets = [_load_target(record, grid) for record in records]
@@ -117,7 +118,10 @@ def _fit_models(
         random_state=random_state + 1,
         min_samples_leaf=1,
     )
-    pca = PCA(n_components=min(n_components, y_curve_train.shape[0], y_curve_train.shape[1]), random_state=random_state)
+    pca = PCA(
+        n_components=min(n_components, y_curve_train.shape[0], y_curve_train.shape[1]),
+        random_state=random_state,
+    )
     curve_scores = pca.fit_transform(y_curve_train)
     curve_model = ExtraTreesRegressor(
         n_estimators=700,
@@ -176,7 +180,15 @@ def train_response_surrogate(
         }
         fold_rows.append(fold_metrics)
 
-    for key in ["accuracy", "macro_f1", "pt_mae", "max_disp_mae", "max_force_mae", "curve_norm_rmse", "curve_force_rmse"]:
+    for key in [
+        "accuracy",
+        "macro_f1",
+        "pt_mae",
+        "max_disp_mae",
+        "max_force_mae",
+        "curve_norm_rmse",
+        "curve_force_rmse",
+    ]:
         values = [row[key] for row in fold_rows]
         metrics[f"cv_{key}_mean"] = float(np.mean(values))
         metrics[f"cv_{key}_std"] = float(np.std(values))
@@ -226,7 +238,9 @@ def train_response_surrogate(
         "",
         "This model is a surrogate estimate from theta1/theta2/case only. It is not a replacement for Abaqus.",
     ]
-    (output_path / "response_surrogate_report.md").write_text("\n".join(report) + "\n", encoding="utf-8")
+    (output_path / "response_surrogate_report.md").write_text(
+        "\n".join(report) + "\n", encoding="utf-8"
+    )
     return {"model_path": str(model_path), "metrics": metrics}
 
 

@@ -35,13 +35,14 @@ is used.
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Iterator, Sequence
+from typing import Any
 
 import numpy as np
 import torch
-from torch.utils.data import DataLoader, Dataset, Sampler
+from torch.utils.data import DataLoader, Dataset
 
 from src.ml.models.base import ModelBatch
 
@@ -123,9 +124,7 @@ class SplitConfig:
     def __post_init__(self) -> None:
         total = self.train_fraction + self.val_fraction + self.test_fraction
         if not (0.99 < total < 1.01):
-            raise ValueError(
-                f"train + val + test fractions must sum to 1.0, got {total:.3f}"
-            )
+            raise ValueError(f"train + val + test fractions must sum to 1.0, got {total:.3f}")
         if self.strategy != OODSplitStrategy.RANDOM and self.ood_column is None:
             logger.warning(
                 "OOD split strategy '%s' selected but ood_column is None — "
@@ -258,7 +257,9 @@ class FeatureExtractor:
                 if len(raw) != size:
                     logger.warning(
                         "Feature '%s' expected size %d, got %d — padding with zeros.",
-                        attr_path, size, len(raw),
+                        attr_path,
+                        size,
+                        len(raw),
                     )
                     raw = (raw + [0.0] * size)[:size]
 
@@ -287,7 +288,7 @@ class FeatureExtractor:
 
         for record in records:
             feats, mask = self.extract(record)
-            for i, (v, m) in enumerate(zip(feats.tolist(), mask.tolist())):
+            for i, (v, m) in enumerate(zip(feats.tolist(), mask.tolist(), strict=False)):
                 if m:
                     all_features[i].append(v)
 
@@ -387,9 +388,7 @@ class KyulDataset(Dataset):
                 n_dims = len(grid_dims)
                 grid = torch.from_numpy(coords.copy()).float()
                 # Reshape: (N, 3) → (3, nx, ny[, nz])
-                grid = grid.view(*grid_dims, 3).permute(
-                    n_dims, *range(n_dims)
-                ).contiguous()
+                grid = grid.view(*grid_dims, 3).permute(n_dims, *range(n_dims)).contiguous()
                 grid_input = grid
 
         return ModelBatch(
@@ -419,7 +418,12 @@ def collate_model_batches(items: list[ModelBatch]) -> ModelBatch:
 
     grid_input: torch.Tensor | None = None
     if items[0].grid_input is not None:
-        grid_input = torch.stack([b.grid_input for b in items], dim=0)  # type: ignore[arg-type]
+        grid_tensors: list[torch.Tensor] = []
+        for batch in items:
+            if batch.grid_input is None:
+                raise ValueError("All ModelBatch items must include grid_input when the first does")
+            grid_tensors.append(batch.grid_input)
+        grid_input = torch.stack(grid_tensors, dim=0)
 
     # Collate target dicts — only include fields present in all items
     def _collate_dict(
@@ -434,7 +438,9 @@ def collate_model_batches(items: list[ModelBatch]) -> ModelBatch:
                 # Pad to same length if node counts differ (e.g. different meshes)
                 max_len = max(t.shape[0] for t in tensors)
                 padded = [
-                    torch.nn.functional.pad(t, (0,) * (2 * (t.ndim - 1)) + (0, max_len - t.shape[0]))
+                    torch.nn.functional.pad(
+                        t, (0,) * (2 * (t.ndim - 1)) + (0, max_len - t.shape[0])
+                    )
                     for t in tensors
                 ]
                 result[fname] = torch.stack(padded, dim=0)
@@ -498,8 +504,8 @@ class CAEDataLoader:
             n_val = int(n * cfg.val_fraction)
             return DataSplit(
                 train_indices=indices[:n_train],
-                val_indices=indices[n_train: n_train + n_val],
-                test_indices=indices[n_train + n_val:],
+                val_indices=indices[n_train : n_train + n_val],
+                test_indices=indices[n_train + n_val :],
                 strategy=cfg.strategy,
             )
 
@@ -567,6 +573,7 @@ class CAEDataLoader:
 
         def _make_subset(indices: list[int], shuffle: bool) -> DataLoader:
             from torch.utils.data import Subset
+
             subset = Subset(self.dataset, indices)
             return DataLoader(
                 subset,
@@ -584,6 +591,9 @@ class CAEDataLoader:
 
         logger.info(
             "DataLoaders built | fit=%d val=%d test=%d cp_cal=%d",
-            len(fit_idx), len(split.val_indices), len(split.test_indices), len(cal_idx),
+            len(fit_idx),
+            len(split.val_indices),
+            len(split.test_indices),
+            len(cal_idx),
         )
         return train_dl, val_dl, test_dl, cal_dl

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import hmac
 import hashlib
+import hmac
 import json
 import os
 import time
@@ -14,7 +14,6 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import JSONResponse
-
 
 router = APIRouter(prefix="/slack", tags=["slack"])
 
@@ -69,12 +68,16 @@ def _verify_slack_request(request: Request, raw_body: bytes) -> None:
     timestamp = request.headers.get("x-slack-request-timestamp")
     signature = request.headers.get("x-slack-signature")
     if not timestamp or not signature:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing Slack signature headers.")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing Slack signature headers."
+        )
 
     try:
         request_time = int(timestamp)
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Slack timestamp.") from exc
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Slack timestamp."
+        ) from exc
 
     if abs(time.time() - request_time) > 60 * 5:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Stale Slack request.")
@@ -83,7 +86,9 @@ def _verify_slack_request(request: Request, raw_body: bytes) -> None:
     digest = hmac.new(signing_secret.encode("utf-8"), base_string, hashlib.sha256).hexdigest()
     expected_signature = f"v0={digest}"
     if not hmac.compare_digest(expected_signature, signature):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Slack signature.")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Slack signature."
+        )
 
 
 def _verify_allowed_user(form: dict[str, str]) -> None:
@@ -96,7 +101,9 @@ def _verify_allowed_user(form: dict[str, str]) -> None:
         return
     user_id = form.get("user_id", "")
     if user_id not in allowed:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This Slack user is not allowed.")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="This Slack user is not allowed."
+        )
 
 
 def _slack_response(text: str) -> JSONResponse:
@@ -197,7 +204,9 @@ def _reconstruct_tasks() -> dict[str, dict[str, Any]]:
 
 def _status() -> str:
     tasks = list(_reconstruct_tasks().values())
-    open_tasks = [task for task in tasks if task.get("status") in TASK_STATUSES - {"done", "canceled"}]
+    open_tasks = [
+        task for task in tasks if task.get("status") in TASK_STATUSES - {"done", "canceled"}
+    ]
     recent_messages = _read_jsonl(MESSAGES_FILE)[-3:]
     lines = [
         "*KyulAI status*",

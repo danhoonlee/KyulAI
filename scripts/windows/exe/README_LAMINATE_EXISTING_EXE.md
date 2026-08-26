@@ -16,7 +16,7 @@ greenfield rebuild package.
 The launcher starts the backend with:
 
 - `LAMINATE_REQUIRE_AUTH=1`
-- `LUVELOX_DISABLE_DEMO_LOGIN=1`
+- `IMPERIALAX_ENABLE_DEMO_LOGIN=0`
 
 That means the Laminate prediction API requires a signed-in account with
 `module.laminate` entitlement. The frontend also displays a license login gate
@@ -40,7 +40,7 @@ Before sharing the bundle, create at least one licensed user:
   -Name "Researcher"
 ```
 
-The generated `data\luvelox_auth.sqlite3` file is copied into the portable
+The generated `data\imperialax_auth.sqlite3` file is copied into the portable
 bundle by `Build-LaminateExe.ps1`.
 
 The portable bundle is created at:

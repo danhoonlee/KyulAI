@@ -10,16 +10,15 @@ import shutil
 import ssl
 import subprocess
 import tempfile
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import Callable
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from src.data.rag.sources import DEFAULT_ALLOWED_DOMAINS, RagSource, is_allowed_domain
-
 
 FetchBytes = Callable[[str, int], tuple[bytes, str]]
 
@@ -111,7 +110,9 @@ def collect_source(
     output_path = Path(output_dir)
     fetched_at = datetime.now(timezone.utc).isoformat()
     if not is_allowed_domain(source.hostname, allowed_domains):
-        return _result(source, fetched_at, "blocked_domain", error=f"Domain not allowed: {source.hostname}")
+        return _result(
+            source, fetched_at, "blocked_domain", error=f"Domain not allowed: {source.hostname}"
+        )
 
     if source.ingest_mode == "metadata_only" or not download:
         return _result(source, fetched_at, "metadata_only")
@@ -198,7 +199,9 @@ def write_collection_manifest(path: str | Path, results: list[CollectionResult])
         "result_count": len(results),
         "results": [result.to_dict() for result in results],
     }
-    manifest_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    manifest_path.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
 
 def fetch_url_bytes(url: str, timeout: int) -> tuple[bytes, str]:
@@ -307,7 +310,9 @@ def normalize_text(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def _result(source: RagSource, fetched_at: str, status: str, *, error: str = "") -> CollectionResult:
+def _result(
+    source: RagSource, fetched_at: str, status: str, *, error: str = ""
+) -> CollectionResult:
     return CollectionResult(
         source_id=source.source_id,
         title=source.title,

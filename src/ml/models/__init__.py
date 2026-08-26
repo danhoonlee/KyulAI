@@ -7,8 +7,8 @@ Phase 3 (planned): Fine-tuning + importance weighting for sim-to-real.
 
 from src.ml.models.base import KyulBaseModel, ModelBatch, ModelOutput
 from src.ml.models.configs import CNNConfig, MLPConfig, ModelConfig
-from src.ml.models.surrogates.mlp import MLPSurrogate
 from src.ml.models.surrogates.cnn import CNNSurrogate
+from src.ml.models.surrogates.mlp import MLPSurrogate
 
 MODEL_REGISTRY: dict[str, type[KyulBaseModel]] = {
     "mlp": MLPSurrogate,
@@ -16,17 +16,17 @@ MODEL_REGISTRY: dict[str, type[KyulBaseModel]] = {
 }
 
 __all__ = [
-    # Base contract
-    "KyulBaseModel",
-    "ModelBatch",
-    "ModelOutput",
-    # Configs
-    "MLPConfig",
-    "CNNConfig",
-    "ModelConfig",
-    # Phase 1 surrogates
-    "MLPSurrogate",
-    "CNNSurrogate",
     # Registry
     "MODEL_REGISTRY",
+    "CNNConfig",
+    "CNNSurrogate",
+    # Base contract
+    "KyulBaseModel",
+    # Configs
+    "MLPConfig",
+    # Phase 1 surrogates
+    "MLPSurrogate",
+    "ModelBatch",
+    "ModelConfig",
+    "ModelOutput",
 ]

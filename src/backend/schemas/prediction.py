@@ -50,8 +50,7 @@ class PredictionResponse(BaseModel):
     result_summary: dict[str, Any] | None = Field(
         None,
         description=(
-            "Per-field summary statistics. Full arrays available via "
-            "result_storage_path in MinIO."
+            "Per-field summary statistics. Full arrays available via result_storage_path in MinIO."
         ),
     )
     result_storage_path: str | None

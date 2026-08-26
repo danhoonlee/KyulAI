@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import csv
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 import numpy as np
 import torch
@@ -24,7 +24,9 @@ class DDThetaSample:
     label: int
 
 
-def load_theta_samples(data_dir: str | Path, cases: Iterable[str] = ("Case3", "Case4")) -> list[DDThetaSample]:
+def load_theta_samples(
+    data_dir: str | Path, cases: Iterable[str] = ("Case3", "Case4")
+) -> list[DDThetaSample]:
     data_path = Path(data_dir)
     samples: list[DDThetaSample] = []
     for case in cases:
@@ -51,11 +53,14 @@ class DDThetaDataset(Dataset):
 
     def __getitem__(self, idx: int):
         sample = self.samples[idx]
-        features = np.array([
-            sample.theta1 / 90.0,
-            sample.theta2 / 90.0,
-            1.0 if sample.case == "Case4" else 0.0,
-        ], dtype=np.float32)
+        features = np.array(
+            [
+                sample.theta1 / 90.0,
+                sample.theta2 / 90.0,
+                1.0 if sample.case == "Case4" else 0.0,
+            ],
+            dtype=np.float32,
+        )
         return {
             "x": torch.tensor(features, dtype=torch.float32),
             "label": torch.tensor(sample.label - 1, dtype=torch.long),
@@ -86,9 +91,13 @@ class ThetaBranch(nn.Module):
 class DDThetaGointClassifier(nn.Module):
     """JointMLP-style theta/case classifier with ordinal auxiliary head."""
 
-    def __init__(self, input_dim: int = 3, hidden_dim: int = 32, num_branches: int = 8, dropout: float = 0.12):
+    def __init__(
+        self, input_dim: int = 3, hidden_dim: int = 32, num_branches: int = 8, dropout: float = 0.12
+    ):
         super().__init__()
-        self.branches = nn.ModuleList([ThetaBranch(input_dim, hidden_dim, dropout) for _ in range(num_branches)])
+        self.branches = nn.ModuleList(
+            [ThetaBranch(input_dim, hidden_dim, dropout) for _ in range(num_branches)]
+        )
         joined_dim = hidden_dim * num_branches
         self.shared = nn.Sequential(
             nn.LayerNorm(joined_dim),
@@ -104,10 +113,10 @@ class DDThetaGointClassifier(nn.Module):
 
 
 __all__ = [
-    "DDThetaSample",
     "DDThetaDataset",
     "DDThetaGointClassifier",
-    "load_theta_samples",
+    "DDThetaSample",
     "combined_loss",
+    "load_theta_samples",
     "predict_from_logits",
 ]

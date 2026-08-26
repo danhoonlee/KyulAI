@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.backend.db.session import get_db
 from src.backend.exceptions import InvalidStateError, NotFoundError
-from src.backend.schemas.common import MessageResponse, PaginatedResponse
+from src.backend.schemas.common import PaginatedResponse
 from src.backend.schemas.model import (
     ModelRegister,
     ModelResponse,
@@ -74,7 +74,7 @@ async def get_model(
     try:
         model = await svc.get(model_id)
     except NotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     return ModelResponse.model_validate(model)
 
 
@@ -110,7 +110,9 @@ async def promote_model(
     try:
         model = await svc.promote_to_production(model_id)
     except NotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except InvalidStateError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
     return ModelResponse.model_validate(model)

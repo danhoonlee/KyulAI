@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+from typing import cast
 
 os.environ.setdefault("LOKY_MAX_CPU_COUNT", "8")
 
@@ -13,7 +14,11 @@ import joblib
 import numpy as np
 from sklearn.base import clone
 from sklearn.decomposition import PCA
-from sklearn.ensemble import ExtraTreesRegressor, HistGradientBoostingRegressor, RandomForestRegressor
+from sklearn.ensemble import (
+    ExtraTreesRegressor,
+    HistGradientBoostingRegressor,
+    RandomForestRegressor,
+)
 from sklearn.linear_model import RidgeCV
 from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import GroupKFold, KFold
@@ -24,6 +29,9 @@ from sklearn.preprocessing import StandardScaler
 
 from .data import DEFAULT_DATA_DIR, load_training_arrays
 from .metrics import normalize_curve_shape, sprue_curve_shape_metrics
+
+MetricRow = dict[str, float | int]
+CVSummary = dict[str, object]
 
 
 def candidate_models(random_state: int) -> dict[str, object]:
@@ -135,7 +143,9 @@ def _metric_row(
         "curve_norm_rmse": float(np.sqrt(np.mean((y_curve_pred_shape - y_curve_true) ** 2))),
         "curve_pressure_rmse": float(np.sqrt(np.mean((pred_pressure - true_pressure) ** 2))),
     }
-    row.update(sprue_curve_shape_metrics(y_scalars_true, y_curve_true, y_scalars_pred, y_curve_pred, grid))
+    row.update(
+        sprue_curve_shape_metrics(y_scalars_true, y_curve_true, y_scalars_pred, y_curve_pred, grid)
+    )
     return row
 
 
@@ -150,11 +160,13 @@ def cross_validate(
     cv_mode: str,
     n_components: int,
     random_state: int,
-) -> tuple[str, dict[str, dict]]:
-    results = {}
+) -> tuple[str, dict[str, CVSummary]]:
+    results: dict[str, CVSummary] = {}
     for name, base_model in models.items():
-        fold_rows = []
-        for fold, (train_idx, val_idx) in enumerate(split_iter(cv_mode, splits, random_state, x, groups), start=1):
+        fold_rows: list[MetricRow] = []
+        for fold, (train_idx, val_idx) in enumerate(
+            split_iter(cv_mode, splits, random_state, x, groups), start=1
+        ):
             scalar_model, pca, curve_model = _fit_bundle(
                 base_model,
                 x[train_idx],
@@ -166,9 +178,9 @@ def cross_validate(
             pred_scalars, pred_curve = _predict_bundle(scalar_model, pca, curve_model, x[val_idx])
             row = _metric_row(y_scalars[val_idx], y_curve[val_idx], pred_scalars, pred_curve, grid)
             row["fold"] = fold
-            row["n_val"] = int(len(val_idx))
+            row["n_val"] = len(val_idx)
             fold_rows.append(row)
-        summary = {"cv_mode": cv_mode, "fold_scores": fold_rows}
+        summary: CVSummary = {"cv_mode": cv_mode, "fold_scores": fold_rows}
         for key in [
             "max_time_mae",
             "max_pressure_mae",
@@ -181,16 +193,16 @@ def cross_validate(
             "peak_position_mae_norm_time",
             "rise_slope_mae_norm",
         ]:
-            values = [row[key] for row in fold_rows]
+            values = [float(row[key]) for row in fold_rows]
             summary[f"mean_{key}"] = float(np.mean(values))
             summary[f"std_{key}"] = float(np.std(values))
         results[name] = summary
     best = min(
         results,
         key=lambda name: (
-            results[name]["mean_curve_pressure_rmse"],
-            results[name]["mean_max_pressure_mae"],
-            results[name]["mean_curve_norm_rmse"],
+            cast(float, results[name]["mean_curve_pressure_rmse"]),
+            cast(float, results[name]["mean_max_pressure_mae"]),
+            cast(float, results[name]["mean_curve_norm_rmse"]),
         ),
     )
     return best, results
@@ -263,7 +275,9 @@ def write_report(
             "Treat these metrics as a baseline and retrain after each new geometry batch is added.",
         ]
     )
-    (out / "sprue_pressure_surrogate_report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (out / "sprue_pressure_surrogate_report.md").write_text(
+        "\n".join(lines) + "\n", encoding="utf-8"
+    )
 
 
 def train_surrogate(
@@ -275,7 +289,9 @@ def train_surrogate(
     cv_mode: str = "grouped",
     random_state: int = 42,
 ) -> dict:
-    records, x, y_scalars, y_curve, grid, feature_columns, gate_types = load_training_arrays(data_dir, seq_len)
+    records, x, y_scalars, y_curve, grid, feature_columns, gate_types = load_training_arrays(
+        data_dir, seq_len
+    )
     groups = np.asarray([record.geometry_id for record in records])
     process_ids = {record.process_id for record in records}
     models = candidate_models(random_state)
@@ -347,7 +363,9 @@ def train_surrogate(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Train Simple Injection sprue pressure classical surrogate")
+    parser = argparse.ArgumentParser(
+        description="Train Simple Injection sprue pressure classical surrogate"
+    )
     parser.add_argument("--data-dir", default=str(DEFAULT_DATA_DIR))
     parser.add_argument("--output-dir", default="models/simple_injection_sprue_pressure_v1")
     parser.add_argument("--seq-len", type=int, default=128)

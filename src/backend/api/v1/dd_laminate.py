@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import csv
 import math
-import shutil
 import tempfile
 from collections.abc import Callable
 from functools import lru_cache
@@ -17,8 +16,14 @@ from importlib.util import find_spec
 from pathlib import Path
 from typing import Any, Literal, cast
 
+import numpy as np
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+from src.backend.api.upload_limits import (
+    csv_batch_limit_bytes,
+    read_upload_limited,
+)
 
 router = APIRouter(prefix="/dd-laminate", tags=["dd-laminate"])
 
@@ -32,6 +37,12 @@ ResponseModelKey = Literal[
     "response_surrogate_physics",
     "response_geometry_tree_v1",
     "response_geometry_goint_v1",
+    "response_geometry_tree_canonical_v2",
+    "response_geometry_goint_canonical_v2",
+    "response_geometry_tree_3size_grouped_v1",
+    "response_pt_consistent_tree_3size_grouped_v1",
+    "response_geometry_goint_3size_grouped_v1",
+    "response_pt_consistent_goint_3size_grouped_v1",
     "response_surrogate_physics_v2",
     "response_goint_physics",
     "response_goint_physics_v2",
@@ -40,16 +51,48 @@ ResponseModelKey = Literal[
     "response_distilled_grid_v1",
     "response_distilled_grid_conf_v1",
     "response_hybrid_student_deploy_quick_v1",
+    "response_hybrid_student_canonical_v2",
+    "response_hybrid_student_3size_grouped_v1",
+    "response_pt_consistent_hybrid_3size_grouped_v1",
 ]
 OPTIMAL_RESPONSE_MODEL_KEYS = (
-    "response_geometry_tree_v1",
-    "response_geometry_goint_v1",
-    "response_hybrid_student_deploy_quick_v1",
+    "response_geometry_tree_canonical_v2",
+    "response_geometry_goint_canonical_v2",
+    "response_hybrid_student_canonical_v2",
+)
+THREE_SIZE_PREVIEW_MODEL_KEYS = (
+    "response_pt_consistent_tree_3size_grouped_v1",
+    "response_pt_consistent_goint_3size_grouped_v1",
+    "response_pt_consistent_hybrid_3size_grouped_v1",
 )
 OPTIMAL_U3_FORECAST_MODEL_KEYS = (
-    "u3_forecast_physics_v2",
-    "u3_forecast_goint_physics_v2",
+    "u3_forecast_physics_canonical_v2",
+    "u3_forecast_goint_physics_canonical_v2",
 )
+RESPONSE_DEEP_MODEL_KEYS = {
+    "response_goint",
+    "response_goint_physics",
+    "response_goint_physics_v2",
+    "response_goint_physics_nn_v2",
+    "response_geometry_goint_v1",
+    "response_geometry_goint_canonical_v2",
+    "response_geometry_goint_3size_grouped_v1",
+    "response_pt_consistent_goint_3size_grouped_v1",
+    "response_distilled_v1",
+    "response_distilled_grid_v1",
+    "response_distilled_grid_conf_v1",
+    "response_hybrid_student_deploy_quick_v1",
+    "response_hybrid_student_canonical_v2",
+    "response_hybrid_student_3size_grouped_v1",
+    "response_pt_consistent_hybrid_3size_grouped_v1",
+}
+
+
+def is_deep_response_model(model_key: str) -> bool:
+    """Return whether a response model uses the PyTorch artifact loader."""
+    return model_key in RESPONSE_DEEP_MODEL_KEYS
+
+
 U3ForecastModelKey = Literal[
     "u3_forecast",
     "u3_forecast_goint",
@@ -57,11 +100,23 @@ U3ForecastModelKey = Literal[
     "u3_forecast_physics_v2",
     "u3_forecast_goint_physics",
     "u3_forecast_goint_physics_v2",
+    "u3_forecast_physics_canonical_v2",
+    "u3_forecast_goint_physics_canonical_v2",
 ]
+U3_DEEP_MODEL_KEYS = {
+    "u3_forecast_goint",
+    "u3_forecast_goint_physics",
+    "u3_forecast_goint_physics_v2",
+    "u3_forecast_goint_physics_canonical_v2",
+}
 U3FinderModelKey = Literal["u3_pt_classical", "u3_pt_goint"]
 CaseKey = Literal["Case2", "Case3", "Case4"]
 StackPreviewCaseKey = Literal["Case2", "Case3", "Case4", "Case5", "Custom"]
 U3BucketKey = Literal["2", "3"]
+
+
+class _ApiModel(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
 
 
 class ModelInfo(BaseModel):
@@ -69,7 +124,6 @@ class ModelInfo(BaseModel):
     label: str
     description: str
     input_mode: Literal["theta", "curve", "response", "u3_pt"]
-    path: str
     available: bool
 
 
@@ -91,7 +145,17 @@ class ResponsePredictionRequest(BaseModel):
     theta1: float = Field(..., ge=-90, le=90)
     theta2: float = Field(..., ge=-90, le=90)
     case: CaseKey
-    model: ResponseModelKey = "response_geometry_tree_v1"
+    model: ResponseModelKey = "response_geometry_tree_canonical_v2"
+    panel_a_in: float = Field(6.0, gt=0)
+    panel_b_in: float = Field(4.0, gt=0)
+
+
+class ResponseEnsemblePredictionRequest(BaseModel):
+    theta1: float = Field(..., ge=-90, le=90)
+    theta2: float = Field(..., ge=-90, le=90)
+    case: CaseKey
+    teacher_model: ResponseModelKey = "response_geometry_tree_canonical_v2"
+    student_model: ResponseModelKey = "response_hybrid_student_canonical_v2"
     panel_a_in: float = Field(6.0, gt=0)
     panel_b_in: float = Field(4.0, gt=0)
 
@@ -102,7 +166,7 @@ class U3ForecastPredictionRequest(BaseModel):
     case: CaseKey
     u3_bucket: U3BucketKey | None = None
     test_id: str = "Forecast"
-    model: U3ForecastModelKey = "u3_forecast_physics_v2"
+    model: U3ForecastModelKey = "u3_forecast_physics_canonical_v2"
 
 
 class LocalXAIRequest(BaseModel):
@@ -115,6 +179,7 @@ class LocalXAIRequest(BaseModel):
 
 
 DesignSpaceScope = Literal["response", "u3"]
+DesignSpaceDataset = Literal["canonical", "three_size"]
 
 
 class DesignSpaceRequest(BaseModel):
@@ -122,6 +187,9 @@ class DesignSpaceRequest(BaseModel):
     theta2: float = Field(..., ge=-90, le=90)
     case: CaseKey
     scope: DesignSpaceScope = "response"
+    dataset: DesignSpaceDataset = "canonical"
+    panel_a_in: float = Field(6.0, gt=0)
+    panel_b_in: float = Field(4.0, gt=0)
 
 
 class StackPreviewRequest(BaseModel):
@@ -135,10 +203,12 @@ class StackPreviewRequest(BaseModel):
             "Use numeric angles after expanding ±θ1/±θ2 notation."
         ),
     )
-    formula: str | None = Field(default=None, description="Human-readable laminate formula for traceability.")
+    formula: str | None = Field(
+        default=None, description="Human-readable laminate formula for traceability."
+    )
 
 
-class PredictionResponse(BaseModel):
+class PredictionResponse(_ApiModel):
     predicted_type: int
     confidence: float | None
     probabilities: dict[str, float] | None
@@ -164,7 +234,7 @@ class CurveBatchPredictionRow(BaseModel):
     error: str | None = None
 
 
-class CurveBatchPredictionResponse(BaseModel):
+class CurveBatchPredictionResponse(_ApiModel):
     model_key: str
     model_label: str
     input_mode: Literal["curve_batch"] = "curve_batch"
@@ -213,6 +283,28 @@ class PredictionUncertainty(BaseModel):
     notes: list[str] = []
 
 
+class ResponseModelSnapshot(_ApiModel):
+    model_key: str
+    model_label: str
+    predicted_type: int
+    confidence: float | None
+    predicted_pt: float
+    predicted_max_force: float
+
+
+class TeacherStudentAgreement(BaseModel):
+    teacher: ResponseModelSnapshot
+    student: ResponseModelSnapshot
+    type_agreement: bool
+    pt_delta: float
+    pt_delta_percent: float
+    max_force_delta: float
+    curve_norm_rmse: float | None = None
+    agreement_score: float
+    confidence_label: Literal["high", "medium", "low"]
+    notes: list[str] = []
+
+
 class StackPreviewResponse(BaseModel):
     case: StackPreviewCaseKey
     formula: str | None = None
@@ -235,9 +327,10 @@ class ResponseSurrogateResponse(PredictionResponse):
     metrics: dict[str, float | int | str] = {}
     xai: XAIExplanation | None = None
     uncertainty: PredictionUncertainty | None = None
+    teacher_student: TeacherStudentAgreement | None = None
 
 
-class U3PtPredictionResponse(BaseModel):
+class U3PtPredictionResponse(_ApiModel):
     predicted_type: int | None = None
     confidence: float | None = None
     probabilities: dict[str, float] | None = None
@@ -264,7 +357,7 @@ class DesignSpacePoint(BaseModel):
     pt: float
     type: int | None = None
     distance: float
-    source: Literal["curated_response", "curated_u3"]
+    source: Literal["curated_response", "curated_u3", "three_size_response"]
 
 
 class DesignSpaceCaseSummary(BaseModel):
@@ -356,6 +449,86 @@ CURVE_MODELS: dict[str, dict[str, str]] = {
 }
 
 RESPONSE_MODELS: dict[str, dict[str, str]] = {
+    "response_pt_consistent_tree_3size_grouped_v1": {
+        "label": "3-Size Pt-Consistent Machine Learning (Tree)",
+        "description": (
+            "Grouped-holdout Tree challenger with a learned P1 parameter head. Its two displayed "
+            "fit lines intersect exactly at predicted Pt without rescaling the raw response curve."
+        ),
+        "path": (
+            "models/dd_laminate_response_pt_consistent_tree_3size_grouped_v1/response_surrogate.joblib"
+        ),
+        "requires": "joblib,sklearn,numpy",
+    },
+    "response_geometry_tree_3size_grouped_v1": {
+        "label": "3-Size Machine Learning (Tree)",
+        "description": (
+            "Grouped-holdout Tree forecast trained on 2,154 development curves across "
+            "6x4, 6x8, and 8x8 panels."
+        ),
+        "path": (
+            "models/dd_laminate_response_geometry_tree_3size_grouped_v1/response_surrogate.joblib"
+        ),
+        "requires": "joblib,sklearn,numpy",
+    },
+    "response_geometry_goint_3size_grouped_v1": {
+        "label": "3-Size Deep Learning (GointMLP)",
+        "description": (
+            "Grouped-holdout GointMLP forecast trained on 2,154 development curves across "
+            "6x4, 6x8, and 8x8 panels."
+        ),
+        "path": ("models/dd_laminate_response_geometry_goint_3size_grouped_v1/response_goint.pt"),
+        "requires": "torch,numpy",
+    },
+    "response_pt_consistent_goint_3size_grouped_v1": {
+        "label": "3-Size Pt-Consistent Deep Learning (GointMLP)",
+        "description": (
+            "Grouped-Holdout GointMLP challenger with learned Pt position and P1 slope heads. "
+            "The raw neural response curve is preserved while the displayed P1 lines intersect at Pt."
+        ),
+        "path": (
+            "models/dd_laminate_response_pt_consistent_goint_3size_grouped_v1/response_goint.pt"
+        ),
+        "requires": "torch,numpy",
+    },
+    "response_hybrid_student_3size_grouped_v1": {
+        "label": "3-Size Hybrid (Teacher-Student)",
+        "description": (
+            "Strict grouped-CV Hybrid Student trained from the 3-size Tree teacher, real "
+            "development records, and holdout-excluded synthetic samples."
+        ),
+        "path": ("models/dd_laminate_response_hybrid_student_3size_grouped_v1/response_goint.pt"),
+        "requires": "torch,numpy",
+    },
+    "response_pt_consistent_hybrid_3size_grouped_v1": {
+        "label": "3-Size Pt-Consistent Hybrid (Teacher-Student)",
+        "description": (
+            "Pt-consistent distilled Hybrid trained from real development curves and locked-Holdout-"
+            "excluded synthetic designs, with a raw response curve and exact displayed P1/Pt intersection."
+        ),
+        "path": (
+            "models/dd_laminate_response_pt_consistent_hybrid_3size_grouped_v1/response_goint.pt"
+        ),
+        "requires": "torch,numpy",
+    },
+    "response_geometry_tree_canonical_v2": {
+        "label": "Laminate Forecast - Machine Learning",
+        "description": "Geometry-aware Tree forecast retrained with the canonical Case 3 ply sequence, normalized CLT ABD terms, and panel-size descriptors.",
+        "path": "models/dd_laminate_response_geometry_tree_canonical_v2/response_surrogate.joblib",
+        "requires": "joblib,sklearn,numpy",
+    },
+    "response_geometry_goint_canonical_v2": {
+        "label": "Laminate Forecast - Deep Learning",
+        "description": "Geometry-aware GointMLP forecast retrained with the canonical Case 3 ply sequence, normalized CLT ABD terms, and panel-size descriptors.",
+        "path": "models/dd_laminate_response_geometry_goint_canonical_v2/response_goint.pt",
+        "requires": "torch,numpy",
+    },
+    "response_hybrid_student_canonical_v2": {
+        "label": "Laminate Forecast - Hybrid Student",
+        "description": "Strict-CV-checked hybrid student retrained from the corrected canonical teacher and confidence-weighted synthetic theta/case samples.",
+        "path": "models/dd_laminate_response_hybrid_student_canonical_v2/response_goint.pt",
+        "requires": "torch,numpy",
+    },
     "response_surrogate_physics": {
         "label": "Laminate Forecast - Tree + Physics XAI",
         "description": "PPT-based physics-feature Laminate Forecast using theta/case plus CLT ABD, coupling, and anisotropy descriptors.",
@@ -437,6 +610,18 @@ RESPONSE_MODELS: dict[str, dict[str, str]] = {
 }
 
 U3_PT_MODELS: dict[str, dict[str, str]] = {
+    "u3_forecast_physics_canonical_v2": {
+        "label": "u3 Forecast - Machine Learning",
+        "description": "Machine-learning u3 forecast retrained with the canonical Case 3 ply sequence and compact normalized CLT physics features.",
+        "path": "models/dd_laminate_u3_forecast_physics_canonical_v2/u3_forecast.joblib",
+        "requires": "joblib,sklearn,numpy",
+    },
+    "u3_forecast_goint_physics_canonical_v2": {
+        "label": "u3 Forecast - Deep Learning",
+        "description": "GointMLP u3 forecast retrained with the canonical Case 3 ply sequence and compact normalized CLT physics features.",
+        "path": "models/dd_laminate_u3_forecast_physics_canonical_v2/u3_forecast_goint.pt",
+        "requires": "torch,numpy",
+    },
     "u3_forecast_physics": {
         "label": "u3 Forecast - Tree + Physics XAI",
         "description": "PPT-based physics-feature forecast using theta/case plus CLT ABD, coupling, and anisotropy descriptors.",
@@ -540,11 +725,15 @@ def _result_metrics(value: object) -> dict[str, float | int | str]:
 def _notes(probabilities: dict[str, float] | None, input_mode: str) -> list[str]:
     notes: list[str] = []
     if input_mode == "theta":
-        notes.append("Theta/case prediction is an estimate; curve-based models are preferred once simulation CSV is available.")
+        notes.append(
+            "Theta/case prediction is an estimate; curve-based models are preferred once simulation CSV is available."
+        )
     if probabilities:
         ordered = sorted((float(v), k) for k, v in probabilities.items())
         if len(ordered) >= 2 and ordered[-1][0] - ordered[-2][0] < 0.2:
-            notes.append("Top two class probabilities are close; treat this as an ambiguous candidate.")
+            notes.append(
+                "Top two class probabilities are close; treat this as an ambiguous candidate."
+            )
     return notes
 
 
@@ -576,7 +765,12 @@ def _parse_curve_batch_metadata(content: bytes | None) -> dict[str, dict[str, st
             or ""
         ).strip()
         test_id = (row.get("test_id") or row.get("Test_ID") or "").strip()
-        keys = {filename, Path(filename).name if filename else "", Path(filename).stem if filename else "", test_id}
+        keys = {
+            filename,
+            Path(filename).name if filename else "",
+            Path(filename).stem if filename else "",
+            test_id,
+        }
         for key in keys:
             if key:
                 metadata[key] = row
@@ -631,7 +825,9 @@ def _predict_curve_csv_path(
     )
 
 
-def _model_info(key: str, meta: dict[str, str], input_mode: Literal["theta", "curve", "response", "u3_pt"]) -> ModelInfo:
+def _model_info(
+    key: str, meta: dict[str, str], input_mode: Literal["theta", "curve", "response", "u3_pt"]
+) -> ModelInfo:
     path = _model_path(meta)
     requirements = [item.strip() for item in meta.get("requires", "").split(",") if item.strip()]
     dependencies_available = all(find_spec(item) is not None for item in requirements)
@@ -640,7 +836,6 @@ def _model_info(key: str, meta: dict[str, str], input_mode: Literal["theta", "cu
         label=meta["label"],
         description=meta["description"],
         input_mode=input_mode,
-        path=str(path.relative_to(PROJECT_ROOT)),
         available=path.exists() and dependencies_available,
     )
 
@@ -655,8 +850,7 @@ def _models_response() -> DDLaminateModelsResponse:
             for key in OPTIMAL_RESPONSE_MODEL_KEYS
         ],
         u3_pt_models=[
-            _model_info(key, U3_PT_MODELS[key], "u3_pt")
-            for key in OPTIMAL_U3_FORECAST_MODEL_KEYS
+            _model_info(key, U3_PT_MODELS[key], "u3_pt") for key in OPTIMAL_U3_FORECAST_MODEL_KEYS
         ],
     )
 
@@ -689,7 +883,7 @@ def warm_prediction_models() -> dict[str, str]:
         try:
             meta = _ensure_available(key, RESPONSE_MODELS)
             path = str(_model_path(meta))
-            if key in {"response_goint", "response_goint_physics", "response_goint_physics_v2", "response_goint_physics_nn_v2", "response_distilled_v1", "response_distilled_grid_v1", "response_distilled_grid_conf_v1", "response_hybrid_student_deploy_quick_v1"}:
+            if is_deep_response_model(key):
                 _cached_response_deep_artifacts(path)
             else:
                 _cached_joblib_model(path)
@@ -701,7 +895,7 @@ def warm_prediction_models() -> dict[str, str]:
         try:
             meta = _ensure_available(key, U3_PT_MODELS)
             path = str(_model_path(meta))
-            if key in {"u3_forecast_goint", "u3_forecast_goint_physics", "u3_forecast_goint_physics_v2"}:
+            if key in U3_DEEP_MODEL_KEYS:
                 _cached_u3_deep_artifacts(path)
             else:
                 _cached_joblib_model(path)
@@ -1025,10 +1219,17 @@ FEATURE_EXPLANATIONS: dict[str, tuple[str, str, str]] = {
 }
 
 
-def _feature_category(feature: str) -> Literal["angle", "stiffness", "coupling", "case", "curve", "other"]:
+def _feature_category(
+    feature: str,
+) -> Literal["angle", "stiffness", "coupling", "case", "curve", "other"]:
     if feature.startswith("case") or feature.endswith("_flag"):
         return "case"
-    if feature.startswith("theta") or feature.startswith("abs_theta") or "angle" in feature or "balance" in feature:
+    if (
+        feature.startswith("theta")
+        or feature.startswith("abs_theta")
+        or "angle" in feature
+        or "balance" in feature
+    ):
         return "angle"
     if feature.startswith("a") or feature.startswith("d") or "anisotropy" in feature:
         return "stiffness"
@@ -1067,15 +1268,55 @@ def _xai_feature(
 
 def _xai_config(model_key: str) -> tuple[Path, str, str, str] | None:
     if model_key == "response_surrogate_physics":
-        xai_path = PROJECT_ROOT / "reports/dd_response_xai_physics_v1/response_feature_importance.csv"
+        xai_path = (
+            PROJECT_ROOT / "reports/dd_response_xai_physics_v1/response_feature_importance.csv"
+        )
         feature_set = "theta + CLT physics"
         summary = (
             "This explanation uses the Laminate Forecast Tree + Physics XAI model. It combines θ₁, θ₂, Case, CLT ABD stiffness terms, "
             "membrane-bending coupling, and laminate anisotropy descriptors."
         )
         method = "Tree ensemble feature importance + local finite-difference sensitivity"
+    elif model_key == "response_geometry_tree_canonical_v2":
+        xai_path = (
+            PROJECT_ROOT
+            / "reports/dd_response_xai_geometry_tree_canonical_v2/response_feature_importance.csv"
+        )
+        feature_set = "theta + canonical CLT physics + panel geometry"
+        summary = (
+            "This explanation uses the corrected Laminate Forecast Machine Learning model. It expands Case 3 as "
+            "[[±θ₁]/[±θ₂]/[∓θ₁]/[∓θ₂]]₂ and combines normalized ABD stiffness, coupling, anisotropy, and panel geometry descriptors."
+        )
+        method = "Tree ensemble feature importance + live local feature masking"
+    elif model_key == "response_geometry_goint_canonical_v2":
+        xai_path = (
+            PROJECT_ROOT
+            / "reports/dd_response_xai_geometry_goint_canonical_v2/response_feature_importance.csv"
+        )
+        feature_set = "theta + canonical CLT physics + panel geometry"
+        summary = (
+            "This explanation uses the corrected Laminate Forecast Deep Learning model with the canonical Case 3 ply sequence, "
+            "normalized ABD stiffness, coupling, anisotropy, and panel geometry descriptors."
+        )
+        method = "GointMLP occlusion sensitivity + live local feature masking"
+    elif model_key == "response_hybrid_student_canonical_v2":
+        xai_path = (
+            PROJECT_ROOT
+            / "reports/dd_response_xai_hybrid_student_canonical_v2/response_feature_importance.csv"
+        )
+        feature_set = (
+            "theta + canonical CLT physics + panel geometry + teacher/student distillation"
+        )
+        summary = (
+            "This explanation uses the corrected Hybrid Student trained from real Case 2/3/4 records and a confidence-weighted "
+            "synthetic grid labeled by the canonical Machine Learning teacher."
+        )
+        method = "Hybrid student occlusion sensitivity + live local feature masking"
     elif model_key == "response_geometry_tree_v1":
-        xai_path = PROJECT_ROOT / "reports/dd_response_xai_geometry_tree_v1/response_feature_importance.csv"
+        xai_path = (
+            PROJECT_ROOT
+            / "reports/dd_response_xai_geometry_tree_v1/response_feature_importance.csv"
+        )
         feature_set = "theta + compact CLT physics + panel geometry"
         summary = (
             "This explanation uses the Laminate Forecast Geometry ML model. It combines θ₁, θ₂, Case, normalized ABD stiffness terms, "
@@ -1083,7 +1324,10 @@ def _xai_config(model_key: str) -> tuple[Path, str, str, str] | None:
         )
         method = "Tree ensemble feature importance + live local feature masking"
     elif model_key == "response_geometry_goint_v1":
-        xai_path = PROJECT_ROOT / "reports/dd_response_xai_geometry_goint_v1/response_feature_importance.csv"
+        xai_path = (
+            PROJECT_ROOT
+            / "reports/dd_response_xai_geometry_goint_v1/response_feature_importance.csv"
+        )
         feature_set = "theta + compact CLT physics + panel geometry"
         summary = (
             "This explanation uses the Laminate Forecast Geometry DL model. It combines θ₁, θ₂, Case, normalized ABD stiffness terms, "
@@ -1091,7 +1335,9 @@ def _xai_config(model_key: str) -> tuple[Path, str, str, str] | None:
         )
         method = "GointMLP occlusion sensitivity + live local feature masking"
     elif model_key == "response_surrogate_physics_v2":
-        xai_path = PROJECT_ROOT / "reports/dd_response_xai_physics_abd_v1/response_feature_importance.csv"
+        xai_path = (
+            PROJECT_ROOT / "reports/dd_response_xai_physics_abd_v1/response_feature_importance.csv"
+        )
         feature_set = "theta + compact CLT physics"
         summary = (
             "This explanation uses the Laminate Forecast Machine Learning model. It keeps the strongest θ, Case, CLT stiffness, "
@@ -1099,7 +1345,10 @@ def _xai_config(model_key: str) -> tuple[Path, str, str, str] | None:
         )
         method = "Tree ensemble feature importance + live local feature masking"
     elif model_key == "response_goint_physics":
-        xai_path = PROJECT_ROOT / "reports/dd_response_xai_goint_physics_v1/response_feature_importance.csv"
+        xai_path = (
+            PROJECT_ROOT
+            / "reports/dd_response_xai_goint_physics_v1/response_feature_importance.csv"
+        )
         feature_set = "theta + CLT physics"
         summary = (
             "This explanation uses the Laminate Forecast GointMLP + Physics XAI model. It masks one physics feature at a time and measures how much "
@@ -1107,7 +1356,10 @@ def _xai_config(model_key: str) -> tuple[Path, str, str, str] | None:
         )
         method = "GointMLP occlusion sensitivity + local finite-difference sensitivity"
     elif model_key == "response_goint_physics_nn_v2":
-        xai_path = PROJECT_ROOT / "reports/dd_response_xai_goint_physics_nn_abd_v1/response_feature_importance.csv"
+        xai_path = (
+            PROJECT_ROOT
+            / "reports/dd_response_xai_goint_physics_nn_abd_v1/response_feature_importance.csv"
+        )
         feature_set = "theta + NN-friendly CLT physics"
         summary = (
             "This explanation uses the Laminate Forecast Deep Learning model. It keeps physics descriptors and selected basis terms "
@@ -1115,7 +1367,9 @@ def _xai_config(model_key: str) -> tuple[Path, str, str, str] | None:
         )
         method = "GointMLP occlusion sensitivity + live local feature masking"
     elif model_key == "response_distilled_v1":
-        xai_path = PROJECT_ROOT / "reports/dd_response_xai_distilled_v1/response_feature_importance.csv"
+        xai_path = (
+            PROJECT_ROOT / "reports/dd_response_xai_distilled_v1/response_feature_importance.csv"
+        )
         feature_set = "theta + compact CLT physics"
         summary = (
             "This explanation uses the Laminate Forecast Distilled NN model. It is a compact neural student distilled from the "
@@ -1124,17 +1378,27 @@ def _xai_config(model_key: str) -> tuple[Path, str, str, str] | None:
         )
         method = "Distilled GointMLP occlusion sensitivity + live local feature masking"
     elif model_key == "response_distilled_grid_v1":
-        xai_path = PROJECT_ROOT / "reports/dd_response_xai_distilled_grid_v1/response_feature_importance.csv"
+        xai_path = (
+            PROJECT_ROOT
+            / "reports/dd_response_xai_distilled_grid_v1/response_feature_importance.csv"
+        )
         feature_set = "theta + compact CLT physics + synthetic grid distillation"
         summary = (
             "This explanation uses the Laminate Forecast Distilled NN v2 model. It is a compact neural student trained from "
             "real Case2/Case3/Case4 data plus synthetic theta/case grid pseudo-labels from the active Machine Learning teacher, "
             "using ABD terms normalized as A/h, 2B/h², and 12D/h³."
         )
-        method = "Synthetic-grid distilled GointMLP occlusion sensitivity + live local feature masking"
+        method = (
+            "Synthetic-grid distilled GointMLP occlusion sensitivity + live local feature masking"
+        )
     elif model_key == "response_distilled_grid_conf_v1":
-        xai_path = PROJECT_ROOT / "reports/dd_response_xai_distilled_grid_conf_v1/response_feature_importance.csv"
-        feature_set = "theta + compact CLT physics + confidence-weighted synthetic grid distillation"
+        xai_path = (
+            PROJECT_ROOT
+            / "reports/dd_response_xai_distilled_grid_conf_v1/response_feature_importance.csv"
+        )
+        feature_set = (
+            "theta + compact CLT physics + confidence-weighted synthetic grid distillation"
+        )
         summary = (
             "This explanation uses the Laminate Forecast Distilled NN v3 model. It is a compact neural student trained from "
             "real Case2/Case3/Case4 data plus a confidence-weighted synthetic theta/case grid pseudo-labeled by the active "
@@ -1142,8 +1406,13 @@ def _xai_config(model_key: str) -> tuple[Path, str, str, str] | None:
         )
         method = "Confidence-weighted synthetic-grid distilled GointMLP occlusion sensitivity + live local feature masking"
     elif model_key == "response_hybrid_student_deploy_quick_v1":
-        xai_path = PROJECT_ROOT / "reports/dd_response_xai_hybrid_student_deploy_quick_v1/response_feature_importance.csv"
-        feature_set = "theta + compact CLT physics + confidence-weighted synthetic grid distillation"
+        xai_path = (
+            PROJECT_ROOT
+            / "reports/dd_response_xai_hybrid_student_deploy_quick_v1/response_feature_importance.csv"
+        )
+        feature_set = (
+            "theta + compact CLT physics + confidence-weighted synthetic grid distillation"
+        )
         summary = (
             "This explanation uses the Laminate Forecast Hybrid Student model. It is a strict-CV-checked neural student trained from "
             "real Case2/Case3/Case4 data plus a confidence-weighted synthetic theta/case grid pseudo-labeled by the active "
@@ -1151,11 +1420,32 @@ def _xai_config(model_key: str) -> tuple[Path, str, str, str] | None:
         )
         method = "Hybrid student occlusion sensitivity + live local feature masking"
     elif model_key == "response_goint_physics_v2":
-        xai_path = PROJECT_ROOT / "reports/dd_response_xai_goint_physics_v2/response_feature_importance.csv"
+        xai_path = (
+            PROJECT_ROOT
+            / "reports/dd_response_xai_goint_physics_v2/response_feature_importance.csv"
+        )
         feature_set = "theta + compact CLT physics"
         summary = (
             "This explanation uses the Laminate Forecast Deep Learning model. It masks one physics feature at a time "
             "for the current θ/Case input."
+        )
+        method = "GointMLP occlusion sensitivity + live local feature masking"
+    elif model_key == "u3_forecast_physics_canonical_v2":
+        xai_path = PROJECT_ROOT / "reports/dd_u3_xai_physics_canonical_v2/u3_feature_importance.csv"
+        feature_set = "theta + canonical compact CLT physics"
+        summary = (
+            "This explanation uses the corrected u3 Machine Learning model with the canonical Case 3 ply sequence and "
+            "normalized CLT stiffness, coupling, anisotropy, and stack-shape descriptors."
+        )
+        method = "Tree ensemble feature importance + live local feature masking"
+    elif model_key == "u3_forecast_goint_physics_canonical_v2":
+        xai_path = (
+            PROJECT_ROOT / "reports/dd_u3_xai_goint_physics_canonical_v2/u3_feature_importance.csv"
+        )
+        feature_set = "theta + canonical compact CLT physics"
+        summary = (
+            "This explanation uses the corrected u3 Deep Learning model with the canonical Case 3 ply sequence and "
+            "normalized CLT physics features."
         )
         method = "GointMLP occlusion sensitivity + live local feature masking"
     elif model_key == "u3_forecast_physics":
@@ -1201,9 +1491,7 @@ def _xai_config(model_key: str) -> tuple[Path, str, str, str] | None:
     elif model_key == "u3_forecast":
         xai_path = PROJECT_ROOT / "reports/dd_u3_xai_v1/u3_feature_importance.csv"
         feature_set = "theta + case"
-        summary = (
-            "This explanation uses the original Tree theta/case model. It mainly shows angle periodicity and case effects, not full laminate physics."
-        )
+        summary = "This explanation uses the original Tree theta/case model. It mainly shows angle periodicity and case effects, not full laminate physics."
         method = "Tree ensemble feature importance + local finite-difference sensitivity"
     else:
         return None
@@ -1222,7 +1510,9 @@ def _load_global_xai_rows(model_key: str) -> tuple[list[dict[str, str]], str, st
 
 
 def _normalize_scores(scores: dict[str, float]) -> dict[str, float]:
-    clean = {key: max(float(value), 0.0) for key, value in scores.items() if math.isfinite(float(value))}
+    clean = {
+        key: max(float(value), 0.0) for key, value in scores.items() if math.isfinite(float(value))
+    }
     total = sum(clean.values())
     if total <= 0:
         count = max(len(clean), 1)
@@ -1249,8 +1539,12 @@ def _response_tree_output_vector(bundle: dict, x):
     import numpy as np
 
     classifier = bundle["classifier"]
-    probabilities = classifier.predict_proba(x)[0] if hasattr(classifier, "predict_proba") else np.zeros(3)
-    scalars = np.log1p(np.clip(np.asarray(bundle["scalar_model"].predict(x)[0], dtype=float), 0.0, None))
+    probabilities = (
+        classifier.predict_proba(x)[0] if hasattr(classifier, "predict_proba") else np.zeros(3)
+    )
+    scalars = np.log1p(
+        np.clip(np.asarray(bundle["scalar_model"].predict(x)[0], dtype=float), 0.0, None)
+    )
     curve_scores = np.asarray(bundle["curve_model"].predict(x)[0], dtype=float)
     return np.concatenate([probabilities, scalars, curve_scores])
 
@@ -1277,19 +1571,27 @@ def _response_deep_output_vector(checkpoint: dict, x_raw):
     with torch.no_grad():
         class_logits, _, scalar_norm, curve_norm = model(torch.tensor(x_norm, dtype=torch.float32))
         probabilities = torch.softmax(class_logits, dim=1).cpu().numpy()[0]
-    return np.concatenate([
-        probabilities,
-        scalar_norm.cpu().numpy()[0],
-        curve_norm.cpu().numpy()[0],
-    ])
+    return np.concatenate(
+        [
+            probabilities,
+            scalar_norm.cpu().numpy()[0],
+            curve_norm.cpu().numpy()[0],
+        ]
+    )
 
 
 def _u3_tree_output_vector(bundle: dict, x):
     import numpy as np
 
     type_model = bundle.get("type_model")
-    probabilities = type_model.predict_proba(x)[0] if type_model is not None and hasattr(type_model, "predict_proba") else np.zeros(2)
-    scalars = np.log1p(np.clip(np.asarray(bundle["scalar_model"].predict(x)[0], dtype=float), 0.0, None))
+    probabilities = (
+        type_model.predict_proba(x)[0]
+        if type_model is not None and hasattr(type_model, "predict_proba")
+        else np.zeros(2)
+    )
+    scalars = np.log1p(
+        np.clip(np.asarray(bundle["scalar_model"].predict(x)[0], dtype=float), 0.0, None)
+    )
     curve_scores = np.asarray(bundle["curve_model"].predict(x)[0], dtype=float)
     return np.concatenate([probabilities, scalars, curve_scores])
 
@@ -1325,7 +1627,7 @@ def _cached_torch_checkpoint(path: str):
     return torch.load(path, map_location="cpu", weights_only=False)
 
 
-@lru_cache(maxsize=4)
+@lru_cache(maxsize=8)
 def _cached_response_deep_artifacts(path: str):
     from src.ml.dd_laminate.predict_response_deep_surrogate import build_response_deep_model
 
@@ -1370,25 +1672,43 @@ def _local_xai_analysis(
         if model_key in RESPONSE_MODELS:
             meta = RESPONSE_MODELS[model_key]
             model_path = _model_path(meta)
-            if model_key in {"response_goint", "response_goint_physics", "response_goint_physics_v2", "response_goint_physics_nn_v2", "response_distilled_v1", "response_distilled_grid_v1", "response_distilled_grid_conf_v1", "response_hybrid_student_deploy_quick_v1"}:
+            if is_deep_response_model(model_key):
                 checkpoint, model = _cached_response_deep_artifacts(str(model_path))
                 feature_columns = list(checkpoint.get("feature_columns") or [])
-                feature_builder = str(checkpoint.get("feature_builder") or feature_set_from_columns(feature_columns))
-                x = prediction_feature_matrix(theta1, theta2, case, feature_builder, panel_a_in, panel_b_in)
+                feature_builder = str(
+                    checkpoint.get("feature_builder") or feature_set_from_columns(feature_columns)
+                )
+                x = prediction_feature_matrix(
+                    theta1, theta2, case, feature_builder, panel_a_in, panel_b_in
+                )
                 feature_mean = np.asarray(checkpoint["feature_mean"], dtype=float)
                 feature_std = np.maximum(np.asarray(checkpoint["feature_std"], dtype=float), 1e-9)
 
-                def output_fn(matrix: Any, *, _model: Any = model, _mean: Any = feature_mean, _std: Any = feature_std) -> Any:
+                def output_fn(
+                    matrix: Any,
+                    *,
+                    _model: Any = model,
+                    _mean: Any = feature_mean,
+                    _std: Any = feature_std,
+                ) -> Any:
                     x_norm = (matrix - _mean) / _std
                     with torch.inference_mode():
-                        class_logits, _, scalar_norm, curve_norm = _model(torch.tensor(x_norm, dtype=torch.float32))
+                        class_logits, _, scalar_norm, curve_norm = _model(
+                            torch.tensor(x_norm, dtype=torch.float32)
+                        )
                         probabilities = torch.softmax(class_logits, dim=1).cpu().numpy()[0]
-                    return np.concatenate([probabilities, scalar_norm.cpu().numpy()[0], curve_norm.cpu().numpy()[0]])
+                    return np.concatenate(
+                        [probabilities, scalar_norm.cpu().numpy()[0], curve_norm.cpu().numpy()[0]]
+                    )
             else:
                 bundle = _cached_joblib_model(str(model_path))
                 feature_columns = list(bundle.get("feature_columns") or [])
-                feature_builder = str(bundle.get("feature_builder") or feature_set_from_columns(feature_columns))
-                x = prediction_feature_matrix(theta1, theta2, case, feature_builder, panel_a_in, panel_b_in)
+                feature_builder = str(
+                    bundle.get("feature_builder") or feature_set_from_columns(feature_columns)
+                )
+                x = prediction_feature_matrix(
+                    theta1, theta2, case, feature_builder, panel_a_in, panel_b_in
+                )
 
                 def output_fn(matrix: Any, *, _bundle: Any = bundle) -> Any:
                     return _response_tree_output_vector(_bundle, matrix)
@@ -1400,18 +1720,26 @@ def _local_xai_analysis(
             meta = U3_PT_MODELS[model_key]
             model_path = _model_path(meta)
             record = _record(theta1, theta2, case)
-            if model_key in {"u3_forecast_goint", "u3_forecast_goint_physics", "u3_forecast_goint_physics_v2"}:
+            if model_key in U3_DEEP_MODEL_KEYS:
                 checkpoint, model, _type_bundle = _cached_u3_deep_artifacts(str(model_path))
                 feature_builder = str(checkpoint.get("feature_builder") or "theta")
                 x, names = u3_feature_matrix([record], feature_builder)
                 feature_mean = np.asarray(checkpoint["feature_mean"], dtype=float)
                 feature_std = np.maximum(np.asarray(checkpoint["feature_std"], dtype=float), 1e-9)
 
-                def output_fn(matrix: Any, *, _model: Any = model, _mean: Any = feature_mean, _std: Any = feature_std) -> Any:
+                def output_fn(
+                    matrix: Any,
+                    *,
+                    _model: Any = model,
+                    _mean: Any = feature_mean,
+                    _std: Any = feature_std,
+                ) -> Any:
                     x_norm = (matrix - _mean) / _std
                     with torch.inference_mode():
                         scalar_norm, curve_norm = _model(torch.tensor(x_norm, dtype=torch.float32))
-                    return np.concatenate([scalar_norm.cpu().numpy()[0], curve_norm.cpu().numpy()[0]])
+                    return np.concatenate(
+                        [scalar_norm.cpu().numpy()[0], curve_norm.cpu().numpy()[0]]
+                    )
             else:
                 bundle = _cached_joblib_model(str(model_path))
                 feature_builder = str(bundle.get("feature_builder") or "theta")
@@ -1473,7 +1801,9 @@ def _local_xai_scores(
     panel_a_in: float = 6.0,
     panel_b_in: float = 4.0,
 ) -> dict[str, float]:
-    analysis = _local_xai_analysis(model_key, theta1, theta2, case, candidate_features, panel_a_in, panel_b_in)
+    analysis = _local_xai_analysis(
+        model_key, theta1, theta2, case, candidate_features, panel_a_in, panel_b_in
+    )
     return {feature: float(values.get("score", 0.0)) for feature, values in analysis.items()}
 
 
@@ -1488,20 +1818,76 @@ def _load_local_xai_for_model(
 ) -> XAIExplanation | None:
     loaded = _load_global_xai_rows(model_key)
     if loaded is None:
-        return None
+        if model_key not in THREE_SIZE_PREVIEW_MODEL_KEYS:
+            return None
+        local_analysis = _local_xai_analysis(
+            model_key,
+            theta1,
+            theta2,
+            case,
+            (),
+            panel_a_in,
+            panel_b_in,
+        )
+        if not local_analysis:
+            return None
+        local_scores = _normalize_scores(
+            {
+                feature: float(values.get("score", 0.0))
+                for feature, values in local_analysis.items()
+            }
+        )
+        model_label = RESPONSE_MODELS[model_key]["label"]
+        if "tree" in model_key:
+            method = "Tree ensemble live local feature masking"
+        elif "hybrid" in model_key:
+            method = "Teacher-Student neural live local feature masking"
+        else:
+            method = "GointMLP live local feature masking"
+        top_features = [
+            _xai_feature(
+                feature,
+                importance,
+                local_sensitivity=float(local_analysis[feature].get("sensitivity", 0.0)),
+                local_value=float(local_analysis[feature].get("value", 0.0)),
+                perturbation=(
+                    f"masked to {float(local_analysis[feature].get('masked_value', 0.0)):.4g}"
+                ),
+            )
+            for feature, importance in sorted(
+                local_scores.items(), key=lambda item: item[1], reverse=True
+            )
+        ]
+        return XAIExplanation(
+            title="Why this prediction?",
+            summary=(
+                f"This explanation evaluates {model_label} at the current theta, Case, and panel "
+                "geometry. It masks each canonical CLT, angle, and geometry feature in the actual "
+                "3-size model and measures the response change."
+            ),
+            method=method,
+            feature_set="theta + canonical CLT physics + panel geometry",
+            top_features=top_features,
+            notes=[
+                "Feature importance is local to this exact theta, Case, and panel-size input.",
+                "Each bar measures the relative model-output change after masking one feature.",
+                "The explanation uses the deployed 3-size model directly rather than borrowing an older global XAI report.",
+                "Use the explanation as engineering guidance; promising candidates still need simulation validation.",
+            ],
+        )
     rows, feature_set, summary, method = loaded
-    global_scores = {
-        row["feature"]: float(row.get("combined_importance") or 0.0)
-        for row in rows
-    }
+    global_scores = {row["feature"]: float(row.get("combined_importance") or 0.0) for row in rows}
     local_candidates = tuple(
         feature
-        for feature, _score in sorted(global_scores.items(), key=lambda item: item[1], reverse=True)[:LOCAL_XAI_MASK_LIMIT]
+        for feature, _score in sorted(
+            global_scores.items(), key=lambda item: item[1], reverse=True
+        )[:LOCAL_XAI_MASK_LIMIT]
     )
-    local_analysis = _local_xai_analysis(model_key, theta1, theta2, case, local_candidates, panel_a_in, panel_b_in)
+    local_analysis = _local_xai_analysis(
+        model_key, theta1, theta2, case, local_candidates, panel_a_in, panel_b_in
+    )
     local_scores = {
-        feature: float(values.get("score", 0.0))
-        for feature, values in local_analysis.items()
+        feature: float(values.get("score", 0.0)) for feature, values in local_analysis.items()
     }
     if local_scores:
         combined_scores = {
@@ -1530,21 +1916,26 @@ def _load_local_xai_for_model(
             importance,
             local_sensitivity=(
                 float(local_analysis[feature]["sensitivity"])
-                if feature in local_analysis and isinstance(local_analysis[feature].get("sensitivity"), (int, float))
+                if feature in local_analysis
+                and isinstance(local_analysis[feature].get("sensitivity"), (int, float))
                 else None
             ),
             local_value=(
                 float(local_analysis[feature]["value"])
-                if feature in local_analysis and isinstance(local_analysis[feature].get("value"), (int, float))
+                if feature in local_analysis
+                and isinstance(local_analysis[feature].get("value"), (int, float))
                 else None
             ),
             perturbation=(
                 f"masked to {float(local_analysis[feature]['masked_value']):.4g}"
-                if feature in local_analysis and isinstance(local_analysis[feature].get("masked_value"), (int, float))
+                if feature in local_analysis
+                and isinstance(local_analysis[feature].get("masked_value"), (int, float))
                 else None
             ),
         )
-        for feature, importance in sorted(combined_scores.items(), key=lambda item: item[1], reverse=True)
+        for feature, importance in sorted(
+            combined_scores.items(), key=lambda item: item[1], reverse=True
+        )
     ]
     return XAIExplanation(
         title="Why this prediction?",
@@ -1563,8 +1954,7 @@ def _load_xai_for_model(model_key: str) -> XAIExplanation | None:
     rows: list[dict[str, str]] = []
     rows, feature_set, summary, method = loaded
     top_features = [
-        _xai_feature(row["feature"], float(row.get("combined_importance") or 0.0))
-        for row in rows
+        _xai_feature(row["feature"], float(row.get("combined_importance") or 0.0)) for row in rows
     ]
     notes = [
         "Feature importance is global: it summarizes the trained model, not only this single input.",
@@ -1621,11 +2011,21 @@ def _distance(theta1: float, theta2: float, row: dict[str, Any]) -> float:
     return math.hypot(theta1 - float(row["theta1"]), theta2 - float(row["theta2"]))
 
 
-@lru_cache(maxsize=2)
-def _design_space_rows(scope: DesignSpaceScope) -> list[dict[str, Any]]:
+@lru_cache(maxsize=12)
+def _design_space_rows(
+    scope: DesignSpaceScope,
+    dataset: DesignSpaceDataset = "canonical",
+    panel_a_in: float = 6.0,
+    panel_b_in: float = 4.0,
+) -> list[dict[str, Any]]:
     if scope == "u3":
         manifest_path = PROJECT_ROOT / "data/datasets/DD_u3_pt_v2/manifest.csv"
         source = "curated_u3"
+    elif dataset == "three_size":
+        manifest_path = (
+            PROJECT_ROOT / "data/datasets/DD_cases_2_3_4_geometry_3size_v1/manifest.csv"
+        )
+        source = "three_size_response"
     else:
         manifest_path = PROJECT_ROOT / "data/datasets/DD_cases_2_3_4_curated_v1/label_manifest.csv"
         source = "curated_response"
@@ -1639,6 +2039,16 @@ def _design_space_rows(scope: DesignSpaceScope) -> list[dict[str, Any]]:
             case = raw.get("case")
             if case not in {"Case2", "Case3", "Case4"}:
                 continue
+            row_panel_a = _csv_float(raw, "panel_a_in")
+            row_panel_b = _csv_float(raw, "panel_b_in")
+            if dataset == "three_size" and scope == "response":
+                if row_panel_a is None or row_panel_b is None:
+                    continue
+                if not (
+                    math.isclose(row_panel_a, panel_a_in, abs_tol=1e-6)
+                    and math.isclose(row_panel_b, panel_b_in, abs_tol=1e-6)
+                ):
+                    continue
             theta1 = _csv_float(raw, "theta1")
             theta2 = _csv_float(raw, "theta2")
             pt = _csv_float(raw, "pt", "Pt")
@@ -1658,6 +2068,8 @@ def _design_space_rows(scope: DesignSpaceScope) -> list[dict[str, Any]]:
                     "pt": pt,
                     "type": type_value,
                     "source": source,
+                    "panel_a_in": row_panel_a,
+                    "panel_b_in": row_panel_b,
                 }
             )
     return rows
@@ -1672,7 +2084,9 @@ def _space_point(row: dict[str, Any], theta1: float, theta2: float) -> DesignSpa
         pt=round(float(row["pt"]), 4),
         type=cast(int | None, row.get("type")),
         distance=round(_distance(theta1, theta2, row), 4),
-        source=cast(Literal["curated_response", "curated_u3"], row["source"]),
+        source=cast(
+            Literal["curated_response", "curated_u3", "three_size_response"], row["source"]
+        ),
     )
 
 
@@ -1692,8 +2106,11 @@ def _prediction_uncertainty(
     predicted_pt: float,
     predicted_type: int | None,
     confidence: float | None,
+    dataset: DesignSpaceDataset = "canonical",
+    panel_a_in: float = 6.0,
+    panel_b_in: float = 4.0,
 ) -> PredictionUncertainty | None:
-    rows = _design_space_rows(scope)
+    rows = _design_space_rows(scope, dataset, panel_a_in, panel_b_in)
     if not rows:
         return None
 
@@ -1704,10 +2121,14 @@ def _prediction_uncertainty(
         return None
 
     nearest_distance = _distance(theta1, theta2, nearest_rows[0])
-    mean_nearest_distance = sum(_distance(theta1, theta2, row) for row in nearest_rows[:6]) / max(len(nearest_rows[:6]), 1)
+    mean_nearest_distance = sum(_distance(theta1, theta2, row) for row in nearest_rows[:6]) / max(
+        len(nearest_rows[:6]), 1
+    )
     interpolation_score = max(0.0, min(1.0, 1.0 - mean_nearest_distance / 80.0))
     if interpolation_score >= 0.72:
-        interpolation_label: Literal["interpolation", "near-edge", "extrapolation"] = "interpolation"
+        interpolation_label: Literal["interpolation", "near-edge", "extrapolation"] = (
+            "interpolation"
+        )
     elif interpolation_score >= 0.45:
         interpolation_label = "near-edge"
     else:
@@ -1725,7 +2146,9 @@ def _prediction_uncertainty(
     if predicted_type is not None:
         typed_rows = [row for row in nearest_rows if row.get("type") is not None]
         if typed_rows:
-            type_consistency = sum(int(row["type"]) == predicted_type for row in typed_rows) / len(typed_rows)
+            type_consistency = sum(int(row["type"]) == predicted_type for row in typed_rows) / len(
+                typed_rows
+            )
 
     model_confidence = max(0.0, min(1.0, float(confidence))) if confidence is not None else 0.5
     consistency_score = type_consistency if type_consistency is not None else 0.55
@@ -1743,11 +2166,15 @@ def _prediction_uncertainty(
         "Pt interval is a screening band from nearby Pt scatter, not a formal statistical confidence interval.",
     ]
     if interpolation_label == "extrapolation":
-        notes.append("This theta/case input is far from nearby curated simulations; validate before treating the recommendation as stable.")
+        notes.append(
+            "This theta/case input is far from nearby curated simulations; validate before treating the recommendation as stable."
+        )
     elif interpolation_label == "near-edge":
         notes.append("This theta/case input is close to the edge of the observed design space.")
     else:
-        notes.append("This theta/case input is within a well-covered region of the observed design space.")
+        notes.append(
+            "This theta/case input is within a well-covered region of the observed design space."
+        )
 
     return PredictionUncertainty(
         reliability_score=round(reliability, 4),
@@ -1764,7 +2191,9 @@ def _prediction_uncertainty(
     )
 
 
-def _case_summaries(rows: list[dict[str, Any]], scope: DesignSpaceScope) -> list[DesignSpaceCaseSummary]:
+def _case_summaries(
+    rows: list[dict[str, Any]], scope: DesignSpaceScope
+) -> list[DesignSpaceCaseSummary]:
     global_median = _median([float(row["pt"]) for row in rows])
     summaries: list[DesignSpaceCaseSummary] = []
     for case in ("Case2", "Case3", "Case4"):
@@ -1810,7 +2239,9 @@ def _top_pt_rows(rows: list[dict[str, Any]], fraction: float = 0.25) -> list[dic
     return sorted(rows, key=lambda row: float(row["pt"]), reverse=True)[:count]
 
 
-def _case_insights(rows: list[dict[str, Any]], scope: DesignSpaceScope) -> list[DesignSpaceCaseInsight]:
+def _case_insights(
+    rows: list[dict[str, Any]], scope: DesignSpaceScope
+) -> list[DesignSpaceCaseInsight]:
     insights: list[DesignSpaceCaseInsight] = []
     for case in ("Case2", "Case3", "Case4"):
         case_rows = [row for row in rows if row["case"] == case]
@@ -1917,7 +2348,9 @@ def _recommendations(
     return recommendations
 
 
-def _map_rows(rows: list[dict[str, Any]], theta1: float, theta2: float, case: str) -> list[dict[str, Any]]:
+def _map_rows(
+    rows: list[dict[str, Any]], theta1: float, theta2: float, case: str
+) -> list[dict[str, Any]]:
     same_case = [row for row in rows if row["case"] == case]
     nearest = sorted(rows, key=lambda row: _distance(theta1, theta2, row))[:180]
     top_pt = sorted(rows, key=lambda row: float(row["pt"]), reverse=True)[:180]
@@ -1935,7 +2368,9 @@ def _map_rows(rows: list[dict[str, Any]], theta1: float, theta2: float, case: st
 
 
 def _rounded_physics(values: dict[str, float]) -> dict[str, float]:
-    return {key: round(float(value), 6) for key, value in values.items() if math.isfinite(float(value))}
+    return {
+        key: round(float(value), 6) for key, value in values.items() if math.isfinite(float(value))
+    }
 
 
 def _stack_from_preview_request(payload: StackPreviewRequest) -> tuple[list[float], list[str]]:
@@ -1943,7 +2378,9 @@ def _stack_from_preview_request(payload: StackPreviewRequest) -> tuple[list[floa
     if payload.case in {"Case2", "Case3", "Case4"}:
         from src.ml.dd_laminate.laminate_physics import case_stack
 
-        notes.append("Built-in Case2/3/4 stack expansion follows the feature builder used by the current trained models.")
+        notes.append(
+            "Built-in Case2/3/4 stack expansion follows the feature builder used by the current trained models."
+        )
         return case_stack(payload.case, payload.theta1, payload.theta2), notes
 
     if not payload.ply_sequence:
@@ -1959,14 +2396,29 @@ def _stack_from_preview_request(payload: StackPreviewRequest) -> tuple[list[floa
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Ply sequence is too long for preview; keep it at 96 plies or fewer.",
         )
-    notes.append("Case5/Custom is preview-only until matching simulation data is added and models are retrained.")
-    notes.append("Physics descriptors are computed directly from the expanded ply sequence, not from a learned Case5 category.")
+    notes.append(
+        "Case5/Custom is preview-only until matching simulation data is added and models are retrained."
+    )
+    notes.append(
+        "Physics descriptors are computed directly from the expanded ply sequence, not from a learned Case5 category."
+    )
     return [float(angle) for angle in payload.ply_sequence], notes
 
 
 @router.get("/models", response_model=DDLaminateModelsResponse, summary="List DD laminate models")
 async def list_dd_laminate_models() -> DDLaminateModelsResponse:
     return _models_response()
+
+
+@router.get(
+    "/models/3size-preview",
+    response_model=list[ModelInfo],
+    summary="List three-geometry preview response models",
+)
+async def list_three_size_preview_models() -> list[ModelInfo]:
+    return [
+        _model_info(key, RESPONSE_MODELS[key], "response") for key in THREE_SIZE_PREVIEW_MODEL_KEYS
+    ]
 
 
 @router.post(
@@ -1995,7 +2447,9 @@ async def preview_laminate_stack(payload: StackPreviewRequest) -> StackPreviewRe
         confidence=None,
     )
     if payload.case in {"Case5", "Custom"}:
-        notes.append("Design-space reliability compares only theta location against existing Case2/3/4 simulations.")
+        notes.append(
+            "Design-space reliability compares only theta location against existing Case2/3/4 simulations."
+        )
         if design_space is not None:
             design_space.reliability_score = min(design_space.reliability_score, 0.49)
             design_space.confidence_label = "low"
@@ -2026,7 +2480,12 @@ async def preview_laminate_stack(payload: StackPreviewRequest) -> StackPreviewRe
     summary="Summarize theta/case design-space context for a forecast input",
 )
 async def summarize_design_space(payload: DesignSpaceRequest) -> DesignSpaceResponse:
-    rows = _design_space_rows(payload.scope)
+    rows = _design_space_rows(
+        payload.scope,
+        payload.dataset,
+        payload.panel_a_in,
+        payload.panel_b_in,
+    )
     if not rows:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -2034,7 +2493,15 @@ async def summarize_design_space(payload: DesignSpaceRequest) -> DesignSpaceResp
         )
 
     nearest_rows = sorted(rows, key=lambda row: _distance(payload.theta1, payload.theta2, row))[:8]
-    map_points = [_space_point(row, payload.theta1, payload.theta2) for row in _map_rows(rows, payload.theta1, payload.theta2, payload.case)]
+    map_rows = (
+        rows
+        if payload.scope == "response" and payload.dataset == "three_size"
+        else _map_rows(rows, payload.theta1, payload.theta2, payload.case)
+    )
+    map_points = [
+        _space_point(row, payload.theta1, payload.theta2)
+        for row in map_rows
+    ]
     nearest_points = [_space_point(row, payload.theta1, payload.theta2) for row in nearest_rows]
     summaries = _case_summaries(rows, payload.scope)
     case_insights = _case_insights(rows, payload.scope)
@@ -2045,15 +2512,37 @@ async def summarize_design_space(payload: DesignSpaceRequest) -> DesignSpaceResp
             "Recommendations are simulation-backed observed candidates, not new finite-element simulations.",
             "Use high-Pt candidates as screening leads and validate final choices with simulation.",
         ]
+    elif payload.dataset == "three_size":
+        notes = [
+            (
+                "3-size Laminate Forecast design-space context uses only simulations matching "
+                f"the selected {payload.panel_a_in:g}×{payload.panel_b_in:g} in panel."
+            ),
+            "Risk combines nonlinear Type 2/3 prevalence and below-median Pt prevalence within each Case.",
+            "Recommendations are observed candidates from the matching panel geometry, not new simulations.",
+        ]
     else:
         notes = [
             "Laminate Forecast design-space context is based on the curated Case2/3/4 response dataset.",
             "Risk combines nonlinear Type 2/3 prevalence and below-median Pt prevalence within each Case.",
             "Recommendations favor high observed Pt and Type 1 behavior, then proximity to the current theta input.",
         ]
+    response_inputs: dict[str, float | str] = {
+        "theta1": payload.theta1,
+        "theta2": payload.theta2,
+        "case": payload.case,
+    }
+    if payload.dataset == "three_size" and payload.scope == "response":
+        response_inputs.update(
+            {
+                "panel_a_in": payload.panel_a_in,
+                "panel_b_in": payload.panel_b_in,
+            }
+        )
+
     return DesignSpaceResponse(
         scope=payload.scope,
-        inputs={"theta1": payload.theta1, "theta2": payload.theta2, "case": payload.case},
+        inputs=response_inputs,
         map_points=map_points,
         nearest_points=nearest_points,
         case_summaries=summaries,
@@ -2063,7 +2552,11 @@ async def summarize_design_space(payload: DesignSpaceRequest) -> DesignSpaceResp
     )
 
 
-@router.post("/predict/theta", response_model=PredictionResponse, summary="Predict Type from theta1/theta2/case")
+@router.post(
+    "/predict/theta",
+    response_model=PredictionResponse,
+    summary="Predict Type from theta1/theta2/case",
+)
 async def predict_from_theta(payload: ThetaPredictionRequest) -> PredictionResponse:
     meta = _ensure_available(payload.model, THETA_MODELS)
     path = _model_path(meta)
@@ -2074,13 +2567,17 @@ async def predict_from_theta(payload: ThetaPredictionRequest) -> PredictionRespo
                 predict as predict_theta_deep,
             )
 
-            result = predict_theta_deep(payload.theta1, payload.theta2, path, case=payload.case, device="cpu")
+            result = predict_theta_deep(
+                payload.theta1, payload.theta2, path, case=payload.case, device="cpu"
+            )
         else:
             from src.ml.dd_laminate.predict_theta_classifier import predict_theta_type
 
             result = predict_theta_type(path, payload.theta1, payload.theta2, payload.case)
     except Exception as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
 
     probabilities = _clean_probabilities(result.get("probabilities"))
     return PredictionResponse(
@@ -2100,21 +2597,42 @@ async def predict_from_theta(payload: ThetaPredictionRequest) -> PredictionRespo
     response_model=ResponseSurrogateResponse,
     summary="Estimate Type, Pt, and force-displacement curve from theta/case",
 )
-async def predict_estimated_response(payload: ResponsePredictionRequest) -> ResponseSurrogateResponse:
+async def predict_estimated_response(
+    payload: ResponsePredictionRequest,
+) -> ResponseSurrogateResponse:
+    return _predict_estimated_response(payload)
+
+
+@router.post(
+    "/predict/response/3size-preview",
+    response_model=ResponseSurrogateResponse,
+    summary="Preview raw 3-size response model output without Pt force rescaling",
+)
+async def predict_three_size_preview_response(
+    payload: ResponsePredictionRequest,
+) -> ResponseSurrogateResponse:
+    if payload.model not in THREE_SIZE_PREVIEW_MODEL_KEYS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="The 3-size preview endpoint only accepts preview model keys.",
+        )
+    return _predict_estimated_response(
+        payload,
+        postprocess_curve=False,
+        curve_fit_style="p1_transition_guided",
+    )
+
+
+def _predict_estimated_response(
+    payload: ResponsePredictionRequest,
+    *,
+    postprocess_curve: bool = True,
+    curve_fit_style: Literal["default", "p1_transition_guided"] = "default",
+) -> ResponseSurrogateResponse:
     meta = _ensure_available(payload.model, RESPONSE_MODELS)
     model_path = _model_path(meta)
     try:
-        if payload.model in {
-            "response_goint",
-            "response_goint_physics",
-            "response_goint_physics_v2",
-            "response_goint_physics_nn_v2",
-            "response_geometry_goint_v1",
-            "response_distilled_v1",
-            "response_distilled_grid_v1",
-            "response_distilled_grid_conf_v1",
-            "response_hybrid_student_deploy_quick_v1",
-        }:
+        if is_deep_response_model(payload.model):
             from src.ml.dd_laminate.predict_response_deep_surrogate import (
                 predict_response_deep_from_artifacts,
             )
@@ -2129,6 +2647,7 @@ async def predict_estimated_response(payload: ResponsePredictionRequest) -> Resp
                 device="cpu",
                 panel_a_in=payload.panel_a_in,
                 panel_b_in=payload.panel_b_in,
+                postprocess_curve=postprocess_curve,
             )
         else:
             from src.ml.dd_laminate.predict_response_surrogate import predict_response_from_bundle
@@ -2141,15 +2660,40 @@ async def predict_estimated_response(payload: ResponsePredictionRequest) -> Resp
                 case=payload.case,
                 panel_a_in=payload.panel_a_in,
                 panel_b_in=payload.panel_b_in,
+                postprocess_curve=postprocess_curve,
             )
     except Exception as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
 
     probabilities = _clean_probabilities(result.get("probabilities"))
     confidence = _probability_confidence(probabilities)
     notes = _notes(probabilities, "theta")
     notes[0] = f"{meta['label']} prediction; validate promising candidates with simulation."
     predicted_pt = float(result["predicted_pt"])
+    if curve_fit_style == "p1_transition_guided":
+        from src.ml.dd_laminate.pt_consistent_tree import CURVE_REPRESENTATION
+        from src.ml.dd_laminate.pt_curve_consistency import p1_transition_fit_details
+
+        curve = result.get("curve")
+        existing_fit = result.get("curve_fit")
+        is_pt_consistent_fit = (
+            isinstance(existing_fit, dict)
+            and existing_fit.get("fit_method") == CURVE_REPRESENTATION
+        )
+        if isinstance(curve, list) and not is_pt_consistent_fit:
+            displacement = [
+                float(point["displacement"])
+                for point in curve
+                if isinstance(point, dict)
+            ]
+            force = [float(point["force"]) for point in curve if isinstance(point, dict)]
+            result["curve_fit"] = p1_transition_fit_details(
+                np.asarray(displacement, dtype=float),
+                np.asarray(force, dtype=float),
+                target_force=predicted_pt,
+            )
     return ResponseSurrogateResponse(
         predicted_type=int(result["predicted_type"]),
         confidence=confidence,
@@ -2179,11 +2723,141 @@ async def predict_estimated_response(payload: ResponsePredictionRequest) -> Resp
             predicted_pt=predicted_pt,
             predicted_type=int(result["predicted_type"]),
             confidence=confidence,
+            dataset=(
+                "three_size" if payload.model in THREE_SIZE_PREVIEW_MODEL_KEYS else "canonical"
+            ),
+            panel_a_in=payload.panel_a_in,
+            panel_b_in=payload.panel_b_in,
         ),
     )
 
 
-@router.post("/predict/curve", response_model=PredictionResponse, summary="Predict Type from force-displacement CSV")
+def _response_snapshot(prediction: ResponseSurrogateResponse) -> ResponseModelSnapshot:
+    return ResponseModelSnapshot(
+        model_key=prediction.model_key,
+        model_label=prediction.model_label,
+        predicted_type=prediction.predicted_type,
+        confidence=prediction.confidence,
+        predicted_pt=prediction.predicted_pt,
+        predicted_max_force=prediction.predicted_max_force,
+    )
+
+
+def _curve_norm_rmse_between(
+    teacher_curve: list[ResponseCurvePoint],
+    student_curve: list[ResponseCurvePoint],
+) -> float | None:
+    if not teacher_curve or not student_curve:
+        return None
+    n = min(len(teacher_curve), len(student_curve))
+    if n == 0:
+        return None
+    scale = max(
+        max(abs(point.force) for point in teacher_curve[:n]),
+        max(abs(point.force) for point in student_curve[:n]),
+        1.0,
+    )
+    mse = (
+        sum(
+            ((teacher_curve[index].force - student_curve[index].force) / scale) ** 2
+            for index in range(n)
+        )
+        / n
+    )
+    return math.sqrt(mse)
+
+
+def _teacher_student_agreement(
+    teacher: ResponseSurrogateResponse,
+    student: ResponseSurrogateResponse,
+) -> TeacherStudentAgreement:
+    type_agreement = teacher.predicted_type == student.predicted_type
+    pt_delta = abs(teacher.predicted_pt - student.predicted_pt)
+    pt_delta_percent = pt_delta / max(abs(teacher.predicted_pt), 1.0)
+    max_force_delta = abs(teacher.predicted_max_force - student.predicted_max_force)
+    curve_norm_rmse = _curve_norm_rmse_between(teacher.curve, student.curve)
+
+    pt_score = max(0.0, 1.0 - pt_delta_percent / 0.08)
+    curve_score = 1.0 if curve_norm_rmse is None else max(0.0, 1.0 - curve_norm_rmse / 0.05)
+    type_score = 1.0 if type_agreement else 0.0
+    agreement_score = max(0.0, min(1.0, 0.45 * type_score + 0.35 * pt_score + 0.20 * curve_score))
+    if agreement_score >= 0.78:
+        confidence_label: Literal["high", "medium", "low"] = "high"
+    elif agreement_score >= 0.58:
+        confidence_label = "medium"
+    else:
+        confidence_label = "low"
+
+    notes = [
+        "Teacher is the deployment Tree model; Student is the distilled Hybrid neural model.",
+        "Agreement compares Type, Pt, max force, and response-curve shape for the same theta/case input.",
+    ]
+    if not type_agreement:
+        notes.append(
+            "Tree and Student disagree on Type, so validate this candidate before treating the classification as stable."
+        )
+    elif pt_delta_percent > 0.08:
+        notes.append(
+            "Type agrees, but Pt differs by more than 8%; treat the Pt estimate as a screening value."
+        )
+    else:
+        notes.append(
+            "Tree and Student are locally consistent, which supports using this result as an early screening candidate."
+        )
+
+    return TeacherStudentAgreement(
+        teacher=_response_snapshot(teacher),
+        student=_response_snapshot(student),
+        type_agreement=type_agreement,
+        pt_delta=pt_delta,
+        pt_delta_percent=pt_delta_percent,
+        max_force_delta=max_force_delta,
+        curve_norm_rmse=curve_norm_rmse,
+        agreement_score=agreement_score,
+        confidence_label=confidence_label,
+        notes=notes,
+    )
+
+
+@router.post(
+    "/predict/response-ensemble",
+    response_model=ResponseSurrogateResponse,
+    summary="Estimate response with Tree teacher and Hybrid Student agreement",
+)
+async def predict_estimated_response_ensemble(
+    payload: ResponseEnsemblePredictionRequest,
+) -> ResponseSurrogateResponse:
+    teacher_payload = ResponsePredictionRequest(
+        theta1=payload.theta1,
+        theta2=payload.theta2,
+        case=payload.case,
+        model=payload.teacher_model,
+        panel_a_in=payload.panel_a_in,
+        panel_b_in=payload.panel_b_in,
+    )
+    student_payload = ResponsePredictionRequest(
+        theta1=payload.theta1,
+        theta2=payload.theta2,
+        case=payload.case,
+        model=payload.student_model,
+        panel_a_in=payload.panel_a_in,
+        panel_b_in=payload.panel_b_in,
+    )
+    teacher = _predict_estimated_response(teacher_payload)
+    student = _predict_estimated_response(student_payload)
+    teacher.teacher_student = _teacher_student_agreement(teacher, student)
+    teacher.notes = [
+        *teacher.notes,
+        "Teacher/Student agreement is included as a deployment consistency check, not as a replacement for simulation validation.",
+    ]
+    return teacher
+
+
+@router.post(
+    "/predict/curve",
+    response_model=PredictionResponse,
+    summary="Predict Type from force-displacement CSV",
+)
 async def predict_from_curve(
     file: UploadFile = File(...),
     theta1: float = Form(...),
@@ -2194,15 +2868,20 @@ async def predict_from_curve(
     model: CurveModelKey = Form("curve_classical"),
 ) -> PredictionResponse:
     if not math.isfinite(pt) or pt <= 0:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="pt must be a positive number.")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="pt must be a positive number."
+        )
     if not file.filename or not file.filename.lower().endswith(".csv"):
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Upload a .csv file.")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Upload a .csv file."
+        )
 
     meta = _ensure_available(model, CURVE_MODELS)
     model_path = _model_path(meta)
+    content = await read_upload_limited(file, description=file.filename)
 
     with tempfile.NamedTemporaryFile(suffix=".csv", delete=True) as tmp:
-        shutil.copyfileobj(cast(Any, file.file), tmp)
+        tmp.write(content)
         tmp.flush()
         csv_path = Path(tmp.name)
         try:
@@ -2217,7 +2896,9 @@ async def predict_from_curve(
                 test_id=test_id,
             )
         except Exception as exc:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+            ) from exc
 
     probabilities = _clean_probabilities(result.get("probabilities"))
     features = result.get("features")
@@ -2249,15 +2930,28 @@ async def predict_from_curve_batch(
     model: CurveModelKey = Form("curve_classical"),
 ) -> CurveBatchPredictionResponse:
     if not files:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Upload at least one .csv file.")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Upload at least one .csv file.",
+        )
     if len(files) > 1000:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Upload 1000 files or fewer per batch.")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Upload 1000 files or fewer per batch.",
+        )
 
     meta = _ensure_available(model, CURVE_MODELS)
     model_path = _model_path(meta)
-    metadata = _parse_curve_batch_metadata(await metadata_file.read() if metadata_file else None)
+    metadata_content = (
+        await read_upload_limited(metadata_file, description="Batch metadata CSV")
+        if metadata_file
+        else None
+    )
+    metadata = _parse_curve_batch_metadata(metadata_content)
     default_case = _normalize_curve_case(case)
     results: list[CurveBatchPredictionRow] = []
+    total_upload_bytes = len(metadata_content or b"")
+    batch_limit = csv_batch_limit_bytes()
 
     for upload in files:
         filename = Path(upload.filename or "").name
@@ -2277,16 +2971,27 @@ async def predict_from_curve_batch(
             )
             continue
 
+        content = await read_upload_limited(upload, description=filename)
+        total_upload_bytes += len(content)
+        if total_upload_bytes > batch_limit:
+            limit_mib = batch_limit / (1024 * 1024)
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"CSV batch exceeds the {limit_mib:g} MiB upload limit.",
+            )
+
         row_meta = metadata.get(filename) or metadata.get(Path(filename).stem)
         row_test_id = Path(filename).stem or "Uploaded"
         try:
             row_theta1 = float(_metadata_value(row_meta, "theta1", "Theta1", default=theta1))
             row_theta2 = float(_metadata_value(row_meta, "theta2", "Theta2", default=theta2))
             row_pt = float(_metadata_value(row_meta, "pt", "Pt", "transition_load", default=pt))
-            row_case = _normalize_curve_case(str(_metadata_value(row_meta, "case", "Case", default=default_case)))
+            row_case = _normalize_curve_case(
+                str(_metadata_value(row_meta, "case", "Case", default=default_case))
+            )
             row_test_id = str(_metadata_value(row_meta, "test_id", "Test_ID", default=row_test_id))
             with tempfile.NamedTemporaryFile(suffix=".csv", delete=True) as tmp:
-                shutil.copyfileobj(cast(Any, upload.file), tmp)
+                tmp.write(content)
                 tmp.flush()
                 csv_path = Path(tmp.name)
                 if not math.isfinite(row_pt) or row_pt <= 0:
@@ -2359,13 +3064,16 @@ async def predict_u3_pt(
     model: U3FinderModelKey = Form("u3_pt_goint"),
 ) -> U3PtPredictionResponse:
     if not file.filename or not file.filename.lower().endswith(".csv"):
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Upload a .csv file.")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Upload a .csv file."
+        )
 
     meta = _ensure_available(model, U3_FINDER_MODELS)
     model_path = _model_path(meta)
+    content = await read_upload_limited(file, description=file.filename)
 
     with tempfile.NamedTemporaryFile(suffix=".csv", delete=True) as tmp:
-        shutil.copyfileobj(cast(Any, file.file), tmp)
+        tmp.write(content)
         tmp.flush()
         csv_path = Path(tmp.name)
         try:
@@ -2393,7 +3101,9 @@ async def predict_u3_pt(
                     u3_bucket=u3_bucket,
                 )
         except Exception as exc:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+            ) from exc
 
     return U3PtPredictionResponse(
         predicted_pt=_result_float(result["predicted_pt"]),
@@ -2427,7 +3137,7 @@ async def predict_u3_forecast(payload: U3ForecastPredictionRequest) -> U3PtPredi
     meta = _ensure_available(payload.model, U3_PT_MODELS)
     model_path = _model_path(meta)
     try:
-        if payload.model in {"u3_forecast_goint", "u3_forecast_goint_physics", "u3_forecast_goint_physics_v2"}:
+        if payload.model in U3_DEEP_MODEL_KEYS:
             from src.ml.dd_laminate.predict_u3_forecast import (
                 predict_u3_forecast_deep_from_artifacts,
             )
@@ -2453,7 +3163,9 @@ async def predict_u3_forecast(payload: U3ForecastPredictionRequest) -> U3PtPredi
                 case=payload.case,
             )
     except Exception as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
 
     probabilities = _clean_probabilities(_result_probabilities(result.get("type_probabilities")))
     confidence = _result_optional_float(result.get("type_confidence"))
@@ -2494,7 +3206,11 @@ async def predict_u3_forecast(payload: U3ForecastPredictionRequest) -> U3PtPredi
     )
 
 
-@router.post("/xai/local", response_model=XAIExplanation, summary="Explain local theta/case prediction drivers")
+@router.post(
+    "/xai/local",
+    response_model=XAIExplanation,
+    summary="Explain local theta/case prediction drivers",
+)
 async def explain_local_prediction(payload: LocalXAIRequest) -> XAIExplanation:
     if payload.model in RESPONSE_MODELS:
         _ensure_available(payload.model, RESPONSE_MODELS)
@@ -2522,7 +3238,11 @@ async def explain_local_prediction(payload: LocalXAIRequest) -> XAIExplanation:
     return xai
 
 
-@router.get("/xai/u3/{model_key}", response_model=XAIExplanation, summary="Explain u3 forecast model drivers")
+@router.get(
+    "/xai/u3/{model_key}",
+    response_model=XAIExplanation,
+    summary="Explain u3 forecast model drivers",
+)
 async def explain_u3_forecast_model(model_key: U3ForecastModelKey) -> XAIExplanation:
     xai = _load_xai_for_model(model_key)
     if xai is None:

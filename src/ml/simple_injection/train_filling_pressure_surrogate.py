@@ -6,13 +6,18 @@ import argparse
 import json
 import os
 from pathlib import Path
+from typing import cast
 
 os.environ.setdefault("LOKY_MAX_CPU_COUNT", "8")
 
 import joblib
 import numpy as np
 from sklearn.base import clone
-from sklearn.ensemble import ExtraTreesRegressor, HistGradientBoostingRegressor, RandomForestRegressor
+from sklearn.ensemble import (
+    ExtraTreesRegressor,
+    HistGradientBoostingRegressor,
+    RandomForestRegressor,
+)
 from sklearn.linear_model import RidgeCV
 from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import GroupKFold, KFold
@@ -21,6 +26,9 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 from .data import DEFAULT_DATA_DIR, load_filling_pressure_training_arrays
+
+MetricRow = dict[str, float | int]
+CVSummary = dict[str, object]
 
 
 def candidate_models(random_state: int) -> dict[str, object]:
@@ -91,30 +99,32 @@ def cross_validate(
     splits: int,
     cv_mode: str,
     random_state: int,
-) -> tuple[str, dict[str, dict]]:
-    results = {}
+) -> tuple[str, dict[str, CVSummary]]:
+    results: dict[str, CVSummary] = {}
     for name, base_model in models.items():
-        fold_rows = []
-        for fold, (train_idx, val_idx) in enumerate(split_iter(cv_mode, splits, random_state, x, groups), start=1):
+        fold_rows: list[MetricRow] = []
+        for fold, (train_idx, val_idx) in enumerate(
+            split_iter(cv_mode, splits, random_state, x, groups), start=1
+        ):
             model = clone(base_model)
             model.fit(x[train_idx], y[train_idx])
             pred = model.predict(x[val_idx])
             row = _metric_row(y[val_idx], pred)
             row["fold"] = fold
-            row["n_val"] = int(len(val_idx))
+            row["n_val"] = len(val_idx)
             fold_rows.append(row)
-        summary = {"cv_mode": cv_mode, "fold_scores": fold_rows}
+        summary: CVSummary = {"cv_mode": cv_mode, "fold_scores": fold_rows}
         for key in ["stats_mae_MPa", "volume_ratio_mae_pct", "volume_ratio_rmse_pct"]:
-            values = [row[key] for row in fold_rows]
+            values = [float(row[key]) for row in fold_rows]
             summary[f"mean_{key}"] = float(np.mean(values))
             summary[f"std_{key}"] = float(np.std(values))
         results[name] = summary
     best = min(
         results,
         key=lambda name: (
-            results[name]["mean_volume_ratio_rmse_pct"],
-            results[name]["mean_volume_ratio_mae_pct"],
-            results[name]["mean_stats_mae_MPa"],
+            cast(float, results[name]["mean_volume_ratio_rmse_pct"]),
+            cast(float, results[name]["mean_volume_ratio_mae_pct"]),
+            cast(float, results[name]["mean_stats_mae_MPa"]),
         ),
     )
     return best, results
@@ -154,7 +164,9 @@ def write_report(
         "| Model | Ratio RMSE (%) | Ratio MAE (%) | Stats MAE (MPa) |",
         "|---|---:|---:|---:|",
     ]
-    for name, row in sorted(metrics.items(), key=lambda item: item[1]["mean_volume_ratio_rmse_pct"]):
+    for name, row in sorted(
+        metrics.items(), key=lambda item: item[1]["mean_volume_ratio_rmse_pct"]
+    ):
         lines.append(
             f"| {name} | {row['mean_volume_ratio_rmse_pct']:.4f} ± {row['std_volume_ratio_rmse_pct']:.4f} "
             f"| {row['mean_volume_ratio_mae_pct']:.4f} ± {row['std_volume_ratio_mae_pct']:.4f} "
@@ -169,7 +181,9 @@ def write_report(
             "A true contour surrogate needs mesh-point or image/field exports with spatial coordinates.",
         ]
     )
-    (out / "filling_pressure_surrogate_report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (out / "filling_pressure_surrogate_report.md").write_text(
+        "\n".join(lines) + "\n", encoding="utf-8"
+    )
 
 
 def train_filling_pressure_surrogate(
@@ -180,7 +194,9 @@ def train_filling_pressure_surrogate(
     random_state: int = 42,
     min_samples: int = 20,
 ) -> dict:
-    records, x, y, target_columns, feature_columns, gate_types = load_filling_pressure_training_arrays(data_dir)
+    records, x, y, target_columns, feature_columns, gate_types = (
+        load_filling_pressure_training_arrays(data_dir)
+    )
     if len(records) < min_samples:
         raise ValueError(
             f"Need at least {min_samples} filling pressure CSV samples to train; found {len(records)}. "
@@ -245,7 +261,9 @@ def train_filling_pressure_surrogate(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Train Simple Injection filling pressure histogram surrogate")
+    parser = argparse.ArgumentParser(
+        description="Train Simple Injection filling pressure histogram surrogate"
+    )
     parser.add_argument("--data-dir", default=str(DEFAULT_DATA_DIR))
     parser.add_argument("--output-dir", default="models/simple_injection_filling_pressure_v1")
     parser.add_argument("--splits", type=int, default=3)

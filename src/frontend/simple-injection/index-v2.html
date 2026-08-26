@@ -3,72 +3,117 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>C2ES Injection Forecast v2</title>
-    <link rel="stylesheet" href="./styles-v2.css?v=20260630-injection-xai-more" />
+    <title>ImperialAX Injection Forecast v2</title>
+    <link rel="alternate" hreflang="ko" href="/ko" />
+    <link rel="alternate" hreflang="en" href="/en" />
+    <link rel="stylesheet" href="/styles-v2.css?v=20260816-mobile-polish-1" />
+    <script>
+      (() => {
+        if (!/^\/v2(?:\/(?:ko|en))?\/?$/.test(window.location.pathname)) return;
+        document.querySelector('link[hreflang="ko"]').href = "/v2/ko";
+        document.querySelector('link[hreflang="en"]').href = "/v2/en";
+        document.documentElement.classList.add("injection-rebuild");
+        const stylesheet = document.createElement("link");
+        stylesheet.rel = "stylesheet";
+        stylesheet.href = "/styles-rebuild.css?v=20260816-mobile-polish-2";
+        document.head.appendChild(stylesheet);
+      })();
+    </script>
+    <link rel="stylesheet" href="/imperialax-product-shell.css?v=20260816-mobile-polish-1" />
+    <script defer src="/imperialax-product-shell.js?v=20260814-family-shell-1"></script>
   </head>
-  <body>
+  <body class="product-standard injection-standard">
     <main class="shell">
       <section class="workspace" aria-labelledby="app-title">
         <header class="topbar">
           <div class="brand-lockup">
-            <p class="eyebrow">Moldex3D surrogate AI</p>
-            <h1 id="app-title"><span>C2ES</span> <span>Injection Forecast</span></h1>
+            <a class="product-logo-link" href="https://ai.imperialax.com/index.html" aria-label="ImperialAX module workspace">
+              <img src="/brand/imperialax-logo-black.png?v=20260814-logo-rollout-1" alt="ImperialAX" />
+            </a>
+            <p class="eyebrow">Injection Molding AI</p>
+            <h1 id="app-title"><span>ImperialAX</span> <span>Injection Forecast</span></h1>
             <p class="hero-copy">
               Predict sprue pressure curves and filling pressure distributions from DOE geometry and process settings.
             </p>
           </div>
-          <div class="top-actions">
-            <div class="status-pill" id="api-status">Checking</div>
-            <a class="language-link" href="https://ai.imperialax.com/index.html">Modules</a>
-            <a class="language-link" href="./index-v2.ko.html">한국어</a>
+          <div class="top-actions" aria-label="Quick tools">
+            <div class="top-action-group top-action-group-primary">
+              <a class="language-link header-action header-action-module" href="https://ai.imperialax.com/index.html">Modules</a>
+              <button class="utility-trigger header-action header-action-assistant" type="button" data-dialog-target="assistant-dialog">AI Assistant</button>
+            </div>
+            <div class="top-action-group top-action-group-secondary has-account">
+              <button class="utility-trigger header-action header-action-research" type="button" data-dialog-target="research-dialog">Research purpose</button>
+              <a class="language-link header-action header-action-language" href="/ko">한국어</a>
+              <a class="language-link header-action header-action-account" href="https://ai.imperialax.com/index.html?signout=1">Sign out</a>
+              <div class="status-pill header-action-status" id="api-status">Checking</div>
+            </div>
           </div>
         </header>
 
-        <section class="rag-assistant" aria-labelledby="rag-title">
-          <div class="rag-assistant-copy">
-            <p class="eyebrow">Injection AI Assistant</p>
-            <h2 id="rag-title">Ask the injection knowledge base</h2>
-            <p>
-              Ask about Moldex3D surrogate behavior, pressure curves, filling distributions, and the current XAI result.
-              Answers stay grounded with citations and the active prediction when available.
-            </p>
+        <dialog class="utility-dialog" id="research-dialog" aria-labelledby="research-dialog-title">
+          <header class="utility-dialog-head">
+            <div><p class="eyebrow">Research purpose</p><h2 id="research-dialog-title">Research purpose</h2></div>
+            <button class="dialog-close" type="button" data-dialog-close aria-label="Close research purpose">×</button>
+          </header>
+          <div class="utility-dialog-body">
+            <section class="research-brief" aria-label="Research purpose detail">
+              <div class="research-brief-main">
+                <h2>Why forecast Injection behavior with a surrogate?</h2>
+                <p>A surrogate trained on Moldex3D DOE results screens Sprue Pressure curves and Filling Pressure distributions across geometry and process settings. It narrows the candidates that deserve deeper review before another full simulation cycle.</p>
+              </div>
+              <div class="research-brief-points">
+                <div><strong>Problem</strong><span>Repeating a full analysis for every DOE combination slows design review.</span></div>
+                <div><strong>Target</strong><span>Compare how geometry and process settings change pressure curves and filling distributions.</span></div>
+                <div><strong>Scope</strong><span>Screen within the trained DOE and fixed-gate domain, then inspect the driving Features with XAI.</span></div>
+              </div>
+              <details class="research-brief-details">
+                <summary>How the outputs are used</summary>
+                <p>The Sprue Pressure curve describes inlet pressure over time, while the Filling Pressure distribution compares pressure ratios across filled regions. Review both with XAI when comparing process candidates.</p>
+              </details>
+            </section>
           </div>
-          <form class="rag-form" id="rag-form">
-            <label>
-              Question
-              <textarea
-                name="query"
-                rows="3"
-                data-default-query="Why does melt temperature affect the predicted sprue pressure?"
-                required
-              >Why does melt temperature affect the predicted sprue pressure?</textarea>
-            </label>
-            <div class="rag-actions">
-              <label class="rag-toggle">
-                <input name="use_llm" type="checkbox" checked />
-                <span>Use LLM when API key exists</span>
-              </label>
-              <button class="secondary" type="submit">Ask Injection AI</button>
-            </div>
-          </form>
-          <div class="rag-answer hidden" id="rag-answer" aria-live="polite"></div>
-        </section>
+        </dialog>
+
+        <dialog class="utility-dialog" id="assistant-dialog" aria-labelledby="rag-title">
+          <header class="utility-dialog-head">
+            <div><p class="eyebrow">Injection AI Assistant</p><h2 id="rag-title">Ask the injection knowledge base</h2></div>
+            <button class="dialog-close" type="button" data-dialog-close aria-label="Close AI Assistant">×</button>
+          </header>
+          <div class="utility-dialog-body">
+            <section class="rag-assistant">
+              <div class="rag-assistant-copy"><p>Ask about Moldex3D surrogate behavior, pressure curves, filling distributions, and the current XAI result. Answers stay grounded with citations.</p></div>
+              <form class="rag-form" id="rag-form">
+                <label>Question<textarea name="query" rows="3" data-default-query="Why does melt temperature affect the predicted sprue pressure?" required>Why does melt temperature affect the predicted sprue pressure?</textarea></label>
+                <div class="rag-actions">
+                  <label class="rag-toggle"><input name="use_llm" type="checkbox" checked /><span>Use LLM when API key exists</span></label>
+                  <button class="secondary" type="submit">Ask Injection AI</button>
+                </div>
+              </form>
+              <div class="rag-answer hidden" id="rag-answer" aria-live="polite"></div>
+            </section>
+          </div>
+        </dialog>
 
         <section class="summary-strip" aria-label="Workflow summary">
           <div>
             <span>01</span>
-            <strong>Set DOE</strong>
-            <p>Choose geometry and process cases.</p>
+            <strong>Choose models</strong>
+            <p>Select separate prediction models for the Sprue Pressure curve and Filling Pressure distribution.</p>
           </div>
           <div>
             <span>02</span>
-            <strong>Preview</strong>
-            <p>Check gate, hole, and flow path.</p>
+            <strong>Select process and geometry DOE</strong>
+            <p>Choose process and geometry DOE cases to load trained defaults and the corresponding 3D shape.</p>
           </div>
           <div>
             <span>03</span>
-            <strong>Review</strong>
-            <p>Sprue curve and filling histogram.</p>
+            <strong>Check detailed conditions</strong>
+            <p>Review temperatures, injection and packing settings, plus length, width, thickness, and hole geometry. The trained gate condition remains fixed.</p>
+          </div>
+          <div>
+            <span>04</span>
+            <strong>Review forecast results</strong>
+            <p>Review maximum Sprue Pressure, the time curve, and Filling distribution, then use XAI and Validation for drivers and CAE comparison.</p>
           </div>
         </section>
 
@@ -111,12 +156,12 @@
                 </div>
                 <div class="doe-grid">
                   <label>
-                    Geometry DOE
-                    <select id="geometry-select" name="geometry_id"></select>
-                  </label>
-                  <label>
                     Process DOE
                     <select id="process-select" name="process_id"></select>
+                  </label>
+                  <label>
+                    Geometry DOE
+                    <select id="geometry-select" name="geometry_id"></select>
                   </label>
                 </div>
               </div>
@@ -125,6 +170,8 @@
                 <span id="prevention-state">Ready</span>
                 <strong id="prevention-title">Prevention check passed</strong>
               </section>
+
+              <button class="primary mobile-quick-run" type="submit">Forecast with current DOE</button>
 
               <div class="setup-block process-block">
                 <div class="setup-block-head">
@@ -138,31 +185,31 @@
                   <div class="advanced-fields-title">Process details</div>
                   <div class="process-panel" aria-label="Process details">
                     <label class="process-control">
-                      <span>Melt temp</span>
+                      <span>Melt temperature (°C)</span>
                       <b data-process-readout="melt_temp_C">-</b>
                       <input name="melt_temp_C" type="number" step="0.1" required />
                       <i data-process-bar="melt_temp_C"></i>
                     </label>
                     <label class="process-control">
-                      <span>Mold temp</span>
+                      <span>Mold temperature (°C)</span>
                       <b data-process-readout="mold_temp_C">-</b>
                       <input name="mold_temp_C" type="number" step="0.1" required />
                       <i data-process-bar="mold_temp_C"></i>
                     </label>
                     <label class="process-control">
-                      <span>Packing pressure</span>
+                      <span>Packing pressure (MPa)</span>
                       <b data-process-readout="packing_pressure_MPa">-</b>
                       <input name="packing_pressure_MPa" type="number" step="0.1" required />
                       <i data-process-bar="packing_pressure_MPa"></i>
                     </label>
                     <label class="process-control">
-                      <span>Injection time</span>
+                      <span>Injection time (s)</span>
                       <b data-process-readout="injection_time_s">-</b>
                       <input name="injection_time_s" type="number" step="0.001" required />
                       <i data-process-bar="injection_time_s"></i>
                     </label>
                     <label class="process-control compact">
-                      <span>Packing time</span>
+                      <span>Packing time (s)</span>
                       <b data-process-readout="packing_time_s">-</b>
                       <input name="packing_time_s" type="number" step="0.001" required />
                     </label>
@@ -174,52 +221,49 @@
                 <div class="advanced-fields-title">Geometry details</div>
                 <div class="detail-control-grid">
                   <label class="process-control detail-control">
-                    <span>L</span>
+                    <span>Length L (mm)</span>
                     <b data-geometry-readout="L_mm">-</b>
                     <input name="L_mm" type="number" step="0.001" required />
                     <i data-geometry-bar="L_mm"></i>
                   </label>
                   <label class="process-control detail-control">
-                    <span>W</span>
+                    <span>Width W (mm)</span>
                     <b data-geometry-readout="W_mm">-</b>
                     <input name="W_mm" type="number" step="0.001" required />
                     <i data-geometry-bar="W_mm"></i>
                   </label>
                   <label class="process-control detail-control">
-                    <span>Thickness</span>
+                    <span>Thickness (mm)</span>
                     <b data-geometry-readout="t_mm">-</b>
                     <input name="t_mm" type="number" step="0.001" required />
                     <i data-geometry-bar="t_mm"></i>
                   </label>
                   <label class="process-control detail-control">
-                    <span>Hole D</span>
+                    <span>Hole diameter D (mm)</span>
                     <b data-geometry-readout="D_mm">-</b>
                     <input name="D_mm" type="number" step="0.001" required />
                     <i data-geometry-bar="D_mm"></i>
                   </label>
                   <label class="process-control detail-control">
-                    <span>Hole R</span>
+                    <span>Hole radius R (mm)</span>
                     <b data-geometry-readout="R_mm">-</b>
                     <input name="R_mm" type="number" step="0.001" required />
                     <i data-geometry-bar="R_mm"></i>
                   </label>
-                  <label class="process-control detail-control text-control">
-                    <span>Gate type</span>
-                    <b data-geometry-readout="gate_type">-</b>
-                    <input name="gate_type" type="text" value="edge_gate" required />
-                  </label>
-                  <label class="process-control detail-control">
-                    <span>Gate width</span>
-                    <b data-geometry-readout="gate_size_width_mm">-</b>
-                    <input name="gate_size_width_mm" type="number" step="0.001" required />
-                    <i data-geometry-bar="gate_size_width_mm"></i>
-                  </label>
-                  <label class="process-control detail-control">
-                    <span>Gate height</span>
-                    <b data-geometry-readout="gate_size_height_mm">-</b>
-                    <input name="gate_size_height_mm" type="number" step="0.001" required />
-                    <i data-geometry-bar="gate_size_height_mm"></i>
-                  </label>
+                  <div class="fixed-gate-condition" aria-label="Fixed gate condition">
+                    <div class="fixed-gate-head">
+                      <span>Gate condition</span>
+                      <span class="fixed-gate-badge">Fixed</span>
+                    </div>
+                    <div class="fixed-gate-values">
+                      <div class="fixed-gate-type"><span>Type</span><strong>Edge gate</strong></div>
+                      <div class="fixed-gate-size"><span>Size</span><strong>10 × 1.5 mm</strong></div>
+                    </div>
+                    <small>This condition is included in the training DOE and cannot be changed.</small>
+                    <input name="gate_type" type="hidden" value="edge_gate" />
+                    <input name="gate_size_width_mm" type="hidden" value="10" />
+                    <input name="gate_size_height_mm" type="hidden" value="1.5" />
+                  </div>
                 </div>
               </section>
 
@@ -298,7 +342,12 @@
                   </div>
                   <span id="sprue-model-label">-</span>
                 </div>
-                <canvas id="pressure-canvas" width="760" height="360"></canvas>
+                <div class="result-reading-guide" id="sprue-curve-help">
+                  <strong>How to read it</strong>
+                  <p>The x-axis is time (s), and the y-axis is pressure at the sprue inlet (MPa). The peak is the maximum sprue pressure required by the process; sharp changes can indicate filling or packing transitions and changes in flow resistance.</p>
+                  <span>This is a surrogate prediction. Compare it with Moldex3D or experimental results before making final mold or machine decisions.</span>
+                </div>
+                <canvas id="pressure-canvas" width="760" height="360" aria-describedby="sprue-curve-help"></canvas>
               </section>
 
               <section class="filling-card" aria-label="Filling pressure distribution">
@@ -309,7 +358,12 @@
                   </div>
                   <span id="filling-model-label">-</span>
                 </div>
-                <div class="filling-histogram" id="filling-histogram"></div>
+                <div class="result-reading-guide" id="filling-distribution-help">
+                  <strong>How to read it</strong>
+                  <p>G1 through G10 run from lower to higher pressure ranges. Each bar shows the percentage of part volume within that pressure range.</p>
+                  <span>More volume in higher-numbered groups means a larger portion of the part requires high filling pressure. This chart summarizes the distribution, not spatial location.</span>
+                </div>
+                <div class="filling-histogram" id="filling-histogram" aria-describedby="filling-distribution-help"></div>
               </section>
 
               <section class="xai-card hidden" id="xai-card" aria-label="Prediction driver explanation">
@@ -365,6 +419,15 @@
       </section>
     </main>
 
-    <script src="./app-v2.js?v=20260703-shape-preview-loading"></script>
+    <script src="/locales-rebuild.js?v=20260814-gate-refine-1"></script>
+    <script src="/app-v2.js?v=20260816-mobile-polish-1"></script>
+    <script>
+      (() => {
+        if (!/^\/v2(?:\/(?:ko|en))?\/?$/.test(window.location.pathname)) return;
+        const script = document.createElement("script");
+        script.src = "/app-rebuild.js?v=20260816-mobile-polish-1";
+        document.body.appendChild(script);
+      })();
+    </script>
   </body>
 </html>

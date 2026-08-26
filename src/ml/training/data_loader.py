@@ -38,7 +38,6 @@ from src.data.schemas.record import UnifiedCAERecord
 from src.ml.models.base import ModelBatch
 from src.ml.training.feature_extractor import FeatureExtractor, Normalizer
 
-
 # ── Field configuration ───────────────────────────────────────────────────────
 
 
@@ -134,8 +133,8 @@ class CAEDataset(Dataset):
             features = self.normalizer.transform(features)
 
         item: dict[str, Any] = {
-            "process_features": torch.from_numpy(features),   # (D,)
-            "feature_mask": torch.from_numpy(mask),           # (D,) bool
+            "process_features": torch.from_numpy(features),  # (D,)
+            "feature_mask": torch.from_numpy(mask),  # (D,) bool
             "source_tool": record.metadata.source_tool.value,
             "record_id": str(record.record_id),
         }
@@ -143,9 +142,9 @@ class CAEDataset(Dataset):
         # ── Target scalar fields ──────────────────────────────────────────────
         for spec in self.config.target_fields:
             if spec.field_type == "scalar":
-                field_data = record.output_fields.get_scalar(spec.name)
-                if field_data is not None:
-                    values = field_data.values.astype(np.float32)
+                scalar_field = record.output_fields.get_scalar(spec.name)
+                if scalar_field is not None:
+                    values = scalar_field.values.astype(np.float32)
                     # Flatten time-varying fields to last frame for Phase 1
                     if values.ndim == 2:
                         values = values[-1]  # (N,)
@@ -157,9 +156,9 @@ class CAEDataset(Dataset):
                     item[f"target_scalar_{spec.name}"] = None
 
             elif spec.field_type == "vector":
-                field_data = record.output_fields.get_vector(spec.name)
-                if field_data is not None:
-                    values = field_data.values.astype(np.float32)
+                vector_field = record.output_fields.get_vector(spec.name)
+                if vector_field is not None:
+                    values = vector_field.values.astype(np.float32)
                     if values.ndim == 3:
                         values = values[-1]  # (N, 3) last frame
                     tensor = torch.from_numpy(values)  # (N, 3)
@@ -170,9 +169,9 @@ class CAEDataset(Dataset):
                     item[f"target_vector_{spec.name}"] = None
 
             elif spec.field_type == "tensor":
-                field_data = record.output_fields.get_tensor(spec.name)
-                if field_data is not None:
-                    values = field_data.values.astype(np.float32)
+                tensor_field = record.output_fields.get_tensor(spec.name)
+                if tensor_field is not None:
+                    values = tensor_field.values.astype(np.float32)
                     if values.ndim > 2 and values.shape[0] != record.geometry.num_nodes:
                         values = values[-1]  # last frame if time-varying
                     item[f"target_tensor_{spec.name}"] = torch.from_numpy(values)
@@ -203,8 +202,10 @@ def _pad_or_truncate_1d(t: torch.Tensor, size: int) -> torch.Tensor:
 
 def _pad_or_truncate_2d(t: torch.Tensor, n_rows: int, n_cols: int) -> torch.Tensor:
     """Pad or truncate a 2D (N, C) tensor to (n_rows, n_cols)."""
-    t = t[:n_rows] if t.shape[0] > n_rows else torch.cat(
-        [t, torch.zeros(n_rows - t.shape[0], n_cols, dtype=t.dtype)], dim=0
+    t = (
+        t[:n_rows]
+        if t.shape[0] > n_rows
+        else torch.cat([t, torch.zeros(n_rows - t.shape[0], n_cols, dtype=t.dtype)], dim=0)
     )
     return t
 
@@ -220,7 +221,7 @@ def collate_cae(batch: list[dict[str, Any]]) -> ModelBatch:
     the trainer/evaluator should skip records where targets are missing.
     """
     process_features = torch.stack([item["process_features"] for item in batch])  # (B, D)
-    feature_masks = torch.stack([item["feature_mask"] for item in batch])          # (B, D)
+    feature_masks = torch.stack([item["feature_mask"] for item in batch])  # (B, D)
 
     source_tools = [item["source_tool"] for item in batch]
     record_ids = [item["record_id"] for item in batch]
@@ -239,9 +240,10 @@ def collate_cae(batch: list[dict[str, Any]]) -> ModelBatch:
     if batch:
         for key in batch[0]:
             if key.startswith("target_scalar_"):
-                field_name = key[len("target_scalar_"):]
+                field_name = key[len("target_scalar_") :]
                 tensors = [
-                    item[key] if item[key] is not None
+                    item[key]
+                    if item[key] is not None
                     else torch.zeros_like(batch[0][key])
                     if batch[0][key] is not None
                     else torch.zeros(1)
@@ -250,9 +252,10 @@ def collate_cae(batch: list[dict[str, Any]]) -> ModelBatch:
                 target_scalars[field_name] = torch.stack(tensors)
 
             elif key.startswith("target_vector_"):
-                field_name = key[len("target_vector_"):]
+                field_name = key[len("target_vector_") :]
                 tensors = [
-                    item[key] if item[key] is not None
+                    item[key]
+                    if item[key] is not None
                     else torch.zeros_like(batch[0][key])
                     if batch[0][key] is not None
                     else torch.zeros(1, 3)
@@ -261,9 +264,10 @@ def collate_cae(batch: list[dict[str, Any]]) -> ModelBatch:
                 target_vectors[field_name] = torch.stack(tensors)
 
             elif key.startswith("target_tensor_"):
-                field_name = key[len("target_tensor_"):]
+                field_name = key[len("target_tensor_") :]
                 tensors = [
-                    item[key] if item[key] is not None
+                    item[key]
+                    if item[key] is not None
                     else torch.zeros_like(batch[0][key])
                     if batch[0][key] is not None
                     else torch.zeros(1)
@@ -339,8 +343,8 @@ def create_dataloaders(
     n_train = len(indices) - n_val - n_test
 
     train_idx = indices[:n_train]
-    val_idx = indices[n_train: n_train + n_val]
-    test_idx = indices[n_train + n_val:]
+    val_idx = indices[n_train : n_train + n_val]
+    test_idx = indices[n_train + n_val :]
 
     train_records = [records[i] for i in train_idx]
     val_records = [records[i] for i in val_idx]

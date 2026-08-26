@@ -35,9 +35,12 @@ class DDResponseGointSurrogate(nn.Module):
         hidden_dim: int = 48,
         num_branches: int = 8,
         dropout: float = 0.14,
+        scalar_dim: int = 3,
     ):
         super().__init__()
-        self.branches = nn.ModuleList([ResponseBranch(input_dim, hidden_dim, dropout) for _ in range(num_branches)])
+        self.branches = nn.ModuleList(
+            [ResponseBranch(input_dim, hidden_dim, dropout) for _ in range(num_branches)]
+        )
         joined_dim = hidden_dim * num_branches
         self.shared = nn.Sequential(
             nn.LayerNorm(joined_dim),
@@ -49,7 +52,7 @@ class DDResponseGointSurrogate(nn.Module):
             nn.Linear(joined_dim, hidden_dim * 2),
             nn.LeakyReLU(),
             nn.Dropout(dropout),
-            nn.Linear(hidden_dim * 2, 3),
+            nn.Linear(hidden_dim * 2, scalar_dim),
         )
         self.curve_head = nn.Sequential(
             nn.Linear(joined_dim, hidden_dim * 4),
@@ -59,7 +62,9 @@ class DDResponseGointSurrogate(nn.Module):
             nn.Softplus(),
         )
 
-    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    def forward(
+        self, x: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         joined = torch.cat([branch(x) for branch in self.branches], dim=-1)
         shared = self.shared(joined)
         return (

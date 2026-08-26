@@ -1,5 +1,6 @@
 """ExperimentService — business logic for ML experiment management."""
 
+import builtins
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -30,9 +31,7 @@ class ExperimentService:
         return experiment
 
     async def get(self, experiment_id: UUID) -> Experiment:
-        result = await self._db.execute(
-            select(Experiment).where(Experiment.id == experiment_id)
-        )
+        result = await self._db.execute(select(Experiment).where(Experiment.id == experiment_id))
         experiment = result.scalar_one_or_none()
         if experiment is None:
             raise NotFoundError("Experiment", experiment_id)
@@ -51,14 +50,16 @@ class ExperimentService:
         if status:
             query = query.where(Experiment.status == status)
 
-        count_result = await self._db.execute(
-            select(func.count()).select_from(query.subquery())
-        )
+        count_result = await self._db.execute(select(func.count()).select_from(query.subquery()))
         total = count_result.scalar_one()
 
-        query = query.order_by(Experiment.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+        query = (
+            query.order_by(Experiment.created_at.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
         result = await self._db.execute(query)
-        return result.scalars().all(), total
+        return builtins.list(result.scalars().all()), total
 
     async def update(self, experiment_id: UUID, payload: ExperimentUpdate) -> Experiment:
         experiment = await self.get(experiment_id)
@@ -68,8 +69,8 @@ class ExperimentService:
         await self._db.flush()
         return experiment
 
-    async def queue_training(self, experiment_id: UUID) -> tuple[Experiment, str]:
-        """Mark experiment as queued and return (experiment, celery_task_id).
+    async def queue_training(self, experiment_id: UUID) -> Experiment:
+        """Mark an experiment as queued.
 
         The actual Celery dispatch is done in the route handler after this call.
         """
@@ -88,12 +89,10 @@ class ExperimentService:
         experiment = await self.get(experiment_id)
         return experiment.metrics or {}
 
-    async def compare(self, experiment_ids: list[UUID]) -> list[Experiment]:
+    async def compare(self, experiment_ids: builtins.list[UUID]) -> builtins.list[Experiment]:
         """Fetch multiple experiments for comparison."""
-        result = await self._db.execute(
-            select(Experiment).where(Experiment.id.in_(experiment_ids))
-        )
-        experiments = result.scalars().all()
+        result = await self._db.execute(select(Experiment).where(Experiment.id.in_(experiment_ids)))
+        experiments = builtins.list(result.scalars().all())
         found_ids = {e.id for e in experiments}
         missing = [eid for eid in experiment_ids if eid not in found_ids]
         if missing:

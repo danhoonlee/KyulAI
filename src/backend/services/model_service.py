@@ -5,7 +5,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.backend.exceptions import ConflictError, InvalidStateError, NotFoundError
+from src.backend.exceptions import InvalidStateError, NotFoundError
 from src.backend.models.trained_model import TrainedModel
 from src.backend.schemas.model import ModelRegister
 
@@ -34,9 +34,7 @@ class ModelService:
         return model
 
     async def get(self, model_id: UUID) -> TrainedModel:
-        result = await self._db.execute(
-            select(TrainedModel).where(TrainedModel.id == model_id)
-        )
+        result = await self._db.execute(select(TrainedModel).where(TrainedModel.id == model_id))
         model = result.scalar_one_or_none()
         if model is None:
             raise NotFoundError("TrainedModel", model_id)
@@ -58,14 +56,16 @@ class ModelService:
         if is_production is not None:
             query = query.where(TrainedModel.is_production == is_production)
 
-        count_result = await self._db.execute(
-            select(func.count()).select_from(query.subquery())
-        )
+        count_result = await self._db.execute(select(func.count()).select_from(query.subquery()))
         total = count_result.scalar_one()
 
-        query = query.order_by(TrainedModel.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+        query = (
+            query.order_by(TrainedModel.created_at.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
         result = await self._db.execute(query)
-        return result.scalars().all(), total
+        return list(result.scalars().all()), total
 
     async def update_weights_path(
         self, model_id: UUID, *, storage_path: str, size_bytes: int
@@ -103,8 +103,7 @@ class ModelService:
             )
         # Demote any existing production model of the same architecture.
         await self._db.execute(
-            select(TrainedModel)
-            .where(
+            select(TrainedModel).where(
                 TrainedModel.architecture == model.architecture,
                 TrainedModel.is_production.is_(True),
                 TrainedModel.id != model_id,

@@ -45,7 +45,7 @@ from typing import Any
 import torch
 import torch.nn as nn
 from torch.optim import Optimizer
-from torch.optim.lr_scheduler import LRScheduler
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 
 from src.ml.models.base import KyulBaseModel, ModelBatch
@@ -237,6 +237,7 @@ class BaseTrainer:
         """
         try:
             import mlflow
+
             mlflow_available = True
         except ImportError:
             mlflow_available = False
@@ -298,14 +299,19 @@ class BaseTrainer:
                     best_ckpt = self.checkpoint_dir / "best.pt"
                     self.model.save(best_ckpt)
                     best_ckpt_path = str(best_ckpt)
-                    logger.info("Epoch %4d | train=%.4f val=%.4f ✓ new best", epoch, train_loss, val_loss)
+                    logger.info(
+                        "Epoch %4d | train=%.4f val=%.4f ✓ new best", epoch, train_loss, val_loss
+                    )
                 else:
                     no_improve_epochs += 1
                     if epoch % cfg.log_every_n_epochs == 0:
                         logger.info("Epoch %4d | train=%.4f val=%.4f", epoch, train_loss, val_loss)
 
                 # Early stopping
-                if cfg.early_stopping_patience > 0 and no_improve_epochs >= cfg.early_stopping_patience:
+                if (
+                    cfg.early_stopping_patience > 0
+                    and no_improve_epochs >= cfg.early_stopping_patience
+                ):
                     logger.info(
                         "Early stopping at epoch %d (no improvement for %d epochs).",
                         epoch,
@@ -449,13 +455,12 @@ class BaseTrainer:
             weight_decay=self.config.weight_decay,
         )
 
-    def _build_scheduler(self, optimiser: Optimizer) -> LRScheduler | None:
+    def _build_scheduler(self, optimiser: Optimizer) -> ReduceLROnPlateau | None:
         return torch.optim.lr_scheduler.ReduceLROnPlateau(
             optimiser,
             mode="min",
             patience=max(5, self.config.early_stopping_patience // 4),
             factor=0.5,
-            verbose=False,
         )
 
     @staticmethod

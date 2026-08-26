@@ -1,0 +1,13 @@
+[Unit]
+Description=CafeDeCafe Nangman DCInside Incremental Sync
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/projects/nangman-rag
+Environment=HOME=%h
+Environment=RAG_PROJECT_ROOT=%h/projects/nangman-rag
+ExecStart=%h/projects/nangman-rag/.venv/bin/romance-rag dc-sync --pages 3 --max-posts 100 --delay 0.7
+StandardOutput=append:%h/projects/nangman-rag/logs/dc-sync.out.log
+StandardError=append:%h/projects/nangman-rag/logs/dc-sync.err.log

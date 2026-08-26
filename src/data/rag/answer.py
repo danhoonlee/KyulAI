@@ -2,25 +2,24 @@
 
 from __future__ import annotations
 
+import csv
 import json
 import os
 import re
 import urllib.error
 import urllib.request
-import csv
 from dataclasses import asdict, dataclass
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal
 
+from src.data.rag.indexer import DEFAULT_INDEX_PATH, QueryResult, query_index
 from src.ml.dd_laminate.laminate_physics import (
     COMPACT_PHYSICS_FEATURE_COLUMNS,
     DEFAULT_MATERIAL,
     abd_matrices,
     compact_physics_feature_vector,
 )
-from src.data.rag.indexer import DEFAULT_INDEX_PATH, QueryResult, query_index
-
 
 AnswerProvider = Literal["extractive", "openai"]
 
@@ -295,7 +294,9 @@ def build_extractive_answer(
 ) -> str:
     korean = language == "ko" or (language == "auto" and contains_korean(query))
     feature_explanations = matched_feature_explanations(query, korean=korean)
-    prediction_explanations = current_prediction_explanations(prediction_context, query=query, korean=korean)
+    prediction_explanations = current_prediction_explanations(
+        prediction_context, query=query, korean=korean
+    )
     if korean:
         lines = [
             "로컬 RAG 근거와 현재 예측 컨텍스트를 기준으로 정리하면 다음과 같습니다."
@@ -319,7 +320,9 @@ def build_extractive_answer(
                     takeaways = citation_takeaways(citations, korean=True)
                     lines.extend(takeaways)
                 else:
-                    lines.append("질문과 가장 가까운 DD Laminate/XAI 문서 근거를 찾았지만, 특정 feature 설명은 감지하지 못했습니다.")
+                    lines.append(
+                        "질문과 가장 가까운 DD Laminate/XAI 문서 근거를 찾았지만, 특정 feature 설명은 감지하지 못했습니다."
+                    )
         return "\n\n".join(lines)
 
     lines = [
@@ -344,14 +347,32 @@ def build_extractive_answer(
                 takeaways = citation_takeaways(citations, korean=False)
                 lines.extend(takeaways)
             else:
-                lines.append("I found related DD Laminate/XAI context, but did not detect a specific feature name in the question.")
+                lines.append(
+                    "I found related DD Laminate/XAI context, but did not detect a specific feature name in the question."
+                )
     return "\n\n".join(lines)
 
 
 def should_include_citation_takeaways(query: str, citations: list[RagCitation]) -> bool:
     """Keep legacy fallback terse except for comparison-style knowledge questions."""
-    haystack = " ".join([query, *[citation.title for citation in citations], *[citation.excerpt for citation in citations]]).lower()
-    comparison_terms = ("tac", "case 4", "case4", "case 5", "case5", "case 6", "case6", "비교", "대안")
+    haystack = " ".join(
+        [
+            query,
+            *[citation.title for citation in citations],
+            *[citation.excerpt for citation in citations],
+        ]
+    ).lower()
+    comparison_terms = (
+        "tac",
+        "case 4",
+        "case4",
+        "case 5",
+        "case5",
+        "case 6",
+        "case6",
+        "비교",
+        "대안",
+    )
     return any(term in haystack for term in comparison_terms)
 
 
@@ -399,7 +420,9 @@ def current_prediction_explanations(
     if not isinstance(prediction_context, dict):
         return []
     if is_injection_prediction(prediction_context):
-        return current_injection_prediction_explanations(prediction_context, query=query, korean=korean)
+        return current_injection_prediction_explanations(
+            prediction_context, query=query, korean=korean
+        )
     return []
 
 
@@ -420,7 +443,9 @@ def current_injection_prediction_explanations(
 
     feature_line = injection_feature_summary_line(top_features, query=query, korean=korean)
     pressure_line = injection_pressure_summary_line(prediction_context, korean=korean)
-    input_line = injection_input_summary_line(inputs if isinstance(inputs, dict) else {}, korean=korean)
+    input_line = injection_input_summary_line(
+        inputs if isinstance(inputs, dict) else {}, korean=korean
+    )
 
     if korean:
         lines = [
@@ -433,8 +458,12 @@ def current_injection_prediction_explanations(
         if feature_line:
             lines.append(feature_line)
         else:
-            lines.append("현재 prediction context에는 XAI 상위 feature가 없어서, 정량적인 영향도는 예측 실행 후 확인하는 것이 좋습니다.")
-        lines.append("정리하면, 이 해석은 현재 앱에 표시된 surrogate 예측과 local XAI 기준의 설명입니다. 최종 설계 판단에는 Moldex3D 또는 실험 검증을 함께 보는 것이 안전합니다.")
+            lines.append(
+                "현재 prediction context에는 XAI 상위 feature가 없어서, 정량적인 영향도는 예측 실행 후 확인하는 것이 좋습니다."
+            )
+        lines.append(
+            "정리하면, 이 해석은 현재 앱에 표시된 surrogate 예측과 local XAI 기준의 설명입니다. 최종 설계 판단에는 Moldex3D 또는 실험 검증을 함께 보는 것이 안전합니다."
+        )
         return lines
 
     lines = [
@@ -447,22 +476,48 @@ def current_injection_prediction_explanations(
     if feature_line:
         lines.append(feature_line)
     else:
-        lines.append("The current prediction context does not include top XAI features, so quantitative influence should be checked after running a forecast.")
-    lines.append("Treat this as a local explanation of the app prediction and XAI result. Final process decisions should still be checked with Moldex3D or experiment.")
+        lines.append(
+            "The current prediction context does not include top XAI features, so quantitative influence should be checked after running a forecast."
+        )
+    lines.append(
+        "Treat this as a local explanation of the app prediction and XAI result. Final process decisions should still be checked with Moldex3D or experiment."
+    )
     return lines
 
 
-def injection_feature_summary_line(features: list[dict[str, Any]], *, query: str = "", korean: bool) -> str:
-    if not features:
-        return ""
+def injection_feature_summary_line(
+    features: list[dict[str, Any]], *, query: str = "", korean: bool
+) -> str:
     requested_keys = requested_injection_feature_keys(query)
+    if not features:
+        if not requested_keys:
+            return ""
+        requested = requested_keys[0]
+        if korean:
+            label = INJECTION_FEATURE_LABELS_KO.get(requested, requested)
+            explanation = INJECTION_FEATURE_EXPLANATIONS_KO.get(requested, "")
+            return (
+                f"질문하신 {label}{korean_topic_particle(label)} Injection 공정·형상 feature입니다. {explanation} "
+                "현재는 아직 예측을 실행하지 않아 이 입력에서의 정량 영향도와 순위는 계산되지 않았습니다. "
+                "예측 후 XAI 탭에서 현재 조건 기준의 영향도를 함께 확인할 수 있습니다."
+            )
+        label = requested.replace("_", " ")
+        explanation = INJECTION_FEATURE_EXPLANATIONS_EN.get(requested, "")
+        return (
+            f"The requested feature, {label}, is an Injection process or geometry input. "
+            f"{explanation} No forecast has been run yet, so its quantitative local influence and rank "
+            "are not available. Run a forecast and review the XAI tab for the current-condition result."
+        )
     requested_feature = find_requested_injection_feature(features, requested_keys)
     if requested_keys and requested_feature is None:
         return missing_requested_injection_feature_line(features, requested_keys, korean=korean)
     if requested_feature is not None:
         return requested_injection_feature_line(requested_feature, features, korean=korean)
     top = features[:3]
-    names = [str(feature.get("label") or feature.get("name") or f"feature {index}") for index, feature in enumerate(top, start=1)]
+    names = [
+        str(feature.get("label") or feature.get("name") or f"feature {index}")
+        for index, feature in enumerate(top, start=1)
+    ]
     lead = top[0]
     lead_name = names[0]
     lead_key = canonical_injection_feature_key(lead)
@@ -508,14 +563,31 @@ def injection_feature_summary_line(features: list[dict[str, Any]], *, query: str
 
 
 INJECTION_FEATURE_ALIASES: dict[str, tuple[str, ...]] = {
-    "melt_temp_C": ("수지 온도", "용융 온도", "melt temperature", "melt temp", "melttemp", "resin temperature"),
+    "melt_temp_C": (
+        "수지 온도",
+        "용융 온도",
+        "melt temperature",
+        "melt temp",
+        "melttemp",
+        "resin temperature",
+    ),
     "mold_temp_C": ("금형 온도", "mold temperature", "mold temp", "moldtemp"),
     "injection_time_s": ("사출 시간", "injection time", "injectiontime"),
     "packing_pressure_MPa": ("보압", "보압 압력", "packing pressure", "packingpressure"),
-    "packing_time_s": ("보압 시간", "보압 유지 시간", "packing time", "packingtime", "holding time"),
+    "packing_time_s": (
+        "보압 시간",
+        "보압 유지 시간",
+        "packing time",
+        "packingtime",
+        "holding time",
+    ),
     "process_total_time_s": ("총 공정 시간", "total process time", "process total time"),
     "gate_area_mm2": ("게이트 면적", "gate area"),
-    "flow_length_to_thickness": ("유동 길이 두께비", "flow length thickness", "flow length to thickness"),
+    "flow_length_to_thickness": (
+        "유동 길이 두께비",
+        "flow length thickness",
+        "flow length to thickness",
+    ),
 }
 
 INJECTION_FEATURE_LABELS_KO: dict[str, str] = {
@@ -558,13 +630,19 @@ def requested_injection_feature_keys(query: str) -> list[str]:
         return []
     matches: list[tuple[int, str]] = []
     for key, aliases in INJECTION_FEATURE_ALIASES.items():
-        matched_alias_lengths = [len(normalize_feature_text(alias)) for alias in aliases if normalize_feature_text(alias) in normalized]
+        matched_alias_lengths = [
+            len(normalize_feature_text(alias))
+            for alias in aliases
+            if normalize_feature_text(alias) in normalized
+        ]
         if matched_alias_lengths:
             matches.append((max(matched_alias_lengths), key))
     return [key for _, key in sorted(matches, key=lambda item: item[0], reverse=True)]
 
 
-def find_requested_injection_feature(features: list[dict[str, Any]], requested_keys: list[str]) -> dict[str, Any] | None:
+def find_requested_injection_feature(
+    features: list[dict[str, Any]], requested_keys: list[str]
+) -> dict[str, Any] | None:
     if not requested_keys:
         return None
     for key in requested_keys:
@@ -572,7 +650,9 @@ def find_requested_injection_feature(features: list[dict[str, Any]], requested_k
             feature_name = normalize_feature_text(str(feature.get("name") or ""))
             feature_label = normalize_feature_text(str(feature.get("label") or ""))
             aliases = (key, *INJECTION_FEATURE_ALIASES.get(key, ()))
-            if any(normalize_feature_text(alias) in {feature_name, feature_label} for alias in aliases):
+            if any(
+                normalize_feature_text(alias) in {feature_name, feature_label} for alias in aliases
+            ):
                 return feature
     return None
 
@@ -601,8 +681,14 @@ def requested_injection_feature_line(
             details.append(f"현재값 {current_value}")
         if perturbation:
             details.append(f"변화 조건 {perturbation}")
-        rank_text = f"현재 XAI 상위 feature 중 {rank}번째로 표시되며, " if rank is not None else "현재 XAI에서 "
-        explanation = INJECTION_FEATURE_EXPLANATIONS_KO.get(key) or str(feature.get("explanation") or "")
+        rank_text = (
+            f"현재 XAI 상위 feature 중 {rank}번째로 표시되며, "
+            if rank is not None
+            else "현재 XAI에서 "
+        )
+        explanation = INJECTION_FEATURE_EXPLANATIONS_KO.get(key) or str(
+            feature.get("explanation") or ""
+        )
         return (
             f"질문에서 물어본 {label}{korean_topic_particle(label)} {rank_text}{', '.join(details)}입니다.\n\n"
             f"{explanation} "
@@ -619,7 +705,9 @@ def requested_injection_feature_line(
     if perturbation:
         details.append(f"perturbation {perturbation}")
     rank_text = f"ranked #{rank} among the current XAI features and " if rank is not None else ""
-    explanation = INJECTION_FEATURE_EXPLANATIONS_EN.get(key) or str(feature.get("explanation") or "")
+    explanation = INJECTION_FEATURE_EXPLANATIONS_EN.get(key) or str(
+        feature.get("explanation") or ""
+    )
     return (
         f"The requested feature, {label}, is {rank_text}{', '.join(details)}.\n\n"
         f"{explanation} "
@@ -628,9 +716,15 @@ def requested_injection_feature_line(
     )
 
 
-def missing_requested_injection_feature_line(features: list[dict[str, Any]], requested_keys: list[str], *, korean: bool) -> str:
+def missing_requested_injection_feature_line(
+    features: list[dict[str, Any]], requested_keys: list[str], *, korean: bool
+) -> str:
     requested = requested_keys[0]
-    requested_label = INJECTION_FEATURE_LABELS_KO.get(requested, requested) if korean else requested.replace("_", " ")
+    requested_label = (
+        INJECTION_FEATURE_LABELS_KO.get(requested, requested)
+        if korean
+        else requested.replace("_", " ")
+    )
     top_names = [str(feature.get("label") or feature.get("name") or "") for feature in features[:3]]
     if korean:
         return (
@@ -657,7 +751,11 @@ def canonical_injection_feature_key(feature: dict[str, Any]) -> str:
 def injection_feature_mechanism_for_name(name: Any) -> str:
     feature = {"name": str(name), "label": str(name)}
     key = canonical_injection_feature_key(feature)
-    return INJECTION_FEATURE_EXPLANATIONS_EN.get(key) or INJECTION_FEATURE_EXPLANATIONS_KO.get(key) or ""
+    return (
+        INJECTION_FEATURE_EXPLANATIONS_EN.get(key)
+        or INJECTION_FEATURE_EXPLANATIONS_KO.get(key)
+        or ""
+    )
 
 
 def korean_topic_particle(label: str) -> str:
@@ -682,16 +780,32 @@ def injection_pressure_summary_line(prediction_context: dict[str, Any], *, korea
     filling_max = prediction_context.get("predicted_filling_max_MPa")
     parts = []
     if max_pressure not in (None, ""):
-        parts.append(f"Sprue Pressure 최대값 {max_pressure} MPa" if korean else f"maximum sprue pressure {max_pressure} MPa")
+        parts.append(
+            f"Sprue Pressure 최대값 {max_pressure} MPa"
+            if korean
+            else f"maximum sprue pressure {max_pressure} MPa"
+        )
     if max_time not in (None, ""):
         parts.append(f"발생 시간 {max_time} s" if korean else f"time {max_time} s")
     if filling_max not in (None, ""):
-        parts.append(f"Filling Pressure 최대값 {filling_max} MPa" if korean else f"maximum filling pressure {filling_max} MPa")
+        parts.append(
+            f"Filling Pressure 최대값 {filling_max} MPa"
+            if korean
+            else f"maximum filling pressure {filling_max} MPa"
+        )
     if not parts:
         return ""
     if korean:
-        return "현재 출력 기준으로는 " + ", ".join(parts) + "가 함께 제공되어 공정 조건 변화가 압력 응답에 어떻게 연결되는지 볼 수 있습니다."
-    return "The current output provides " + ", ".join(parts) + ", so the process-condition effect can be interpreted against the pressure response."
+        return (
+            "현재 출력 기준으로는 "
+            + ", ".join(parts)
+            + "가 함께 제공되어 공정 조건 변화가 압력 응답에 어떻게 연결되는지 볼 수 있습니다."
+        )
+    return (
+        "The current output provides "
+        + ", ".join(parts)
+        + ", so the process-condition effect can be interpreted against the pressure response."
+    )
 
 
 def injection_input_summary_line(inputs: dict[str, Any], *, korean: bool) -> str:
@@ -813,7 +927,11 @@ def compact_prediction_context(prediction_context: dict[str, Any] | None) -> str
                 current_value = feature.get("local_value")
                 perturbation = feature.get("perturbation")
                 explanation = feature.get("explanation")
-                mechanism = injection_feature_mechanism_for_name(name) if str(mode or "").lower().startswith("injection") else ""
+                mechanism = (
+                    injection_feature_mechanism_for_name(name)
+                    if str(mode or "").lower().startswith("injection")
+                    else ""
+                )
                 parts = [str(name)]
                 if importance is not None:
                     parts.append(f"importance={importance}")
@@ -856,8 +974,7 @@ def response_target_distribution() -> dict[str, Any]:
         case_rows = [row for row in rows if row["case"] == case]
         pts = sorted(float(row["pt"]) for row in case_rows)
         type_counts = {
-            type_id: sum(1 for row in case_rows if row["type"] == type_id)
-            for type_id in (1, 2, 3)
+            type_id: sum(1 for row in case_rows if row["type"] == type_id) for type_id in (1, 2, 3)
         }
         cases[case] = {
             "count": len(case_rows),
@@ -1012,7 +1129,9 @@ def matched_feature_explanations(query: str, *, korean: bool) -> list[str]:
             if korean:
                 matches.append(f"- {label}은 {ko_summary} {ko_importance}")
             else:
-                matches.append(f"- {label}: {english_feature_summary(key, ko_summary, ko_importance)}")
+                matches.append(
+                    f"- {label}: {english_feature_summary(key, ko_summary, ko_importance)}"
+                )
     return matches
 
 
@@ -1090,10 +1209,10 @@ def call_openai_responses(
     )
     prediction_summary = compact_prediction_context(prediction_context)
     prediction_instruction = (
-            "If Current prediction context is provided, use it as the active result currently shown in the app. "
-            "You may describe quantitative contribution only from the supplied predicted values and XAI fields such as importance and local_sensitivity. "
-            "If Type definitions or target distributions are present in Current prediction context, use them directly and do not say they are missing. "
-            "Clearly distinguish this current-model explanation from general laminate, injection molding, or CAE theory. "
+        "If Current prediction context is provided, use it as the active result currently shown in the app. "
+        "You may describe quantitative contribution only from the supplied predicted values and XAI fields such as importance and local_sensitivity. "
+        "If Type definitions or target distributions are present in Current prediction context, use them directly and do not say they are missing. "
+        "Clearly distinguish this current-model explanation from general laminate, injection molding, or CAE theory. "
         "If no Current prediction context is provided, say that quantitative contribution needs a prediction result and XAI context."
     )
     prediction_block = (
@@ -1178,12 +1297,16 @@ def clean_answer_text(text: str) -> str:
     return cleaned.strip()
 
 
-def format_answer_for_display(text: str, *, prediction_context: dict[str, Any] | None = None) -> str:
+def format_answer_for_display(
+    text: str, *, prediction_context: dict[str, Any] | None = None
+) -> str:
     """Keep assistant answers readable in compact web and native cards."""
     cleaned = clean_answer_text(text)
     if not is_injection_prediction(prediction_context):
         return cleaned
-    paragraphs = [paragraph.strip() for paragraph in re.split(r"\n{2,}", cleaned) if paragraph.strip()]
+    paragraphs = [
+        paragraph.strip() for paragraph in re.split(r"\n{2,}", cleaned) if paragraph.strip()
+    ]
     if len(paragraphs) >= 2:
         return "\n\n".join(paragraphs)
 
@@ -1203,10 +1326,16 @@ def format_answer_for_display(text: str, *, prediction_context: dict[str, Any] |
 
 def extract_response_text(response_body: dict[str, object]) -> str:
     parts: list[str] = []
-    for item in response_body.get("output", []):
+    output = response_body.get("output", [])
+    if not isinstance(output, list):
+        output = []
+    for item in output:
         if not isinstance(item, dict):
             continue
-        for content in item.get("content", []):
+        content_items = item.get("content", [])
+        if not isinstance(content_items, list):
+            continue
+        for content in content_items:
             if not isinstance(content, dict):
                 continue
             text = content.get("text")

@@ -4,108 +4,103 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ImperialAX Laminate Forecast</title>
-    <link rel="stylesheet" href="./styles-v2.css?v=20260720-curve-readable-v2" />
+    <link rel="alternate" hreflang="ko" href="/ko" />
+    <link rel="alternate" hreflang="en" href="/en" />
+    <link rel="stylesheet" href="/styles-v2.css?v=20260819-viewer-fiber-4" />
+    <link rel="stylesheet" href="/imperialax-product-shell.css?v=20260816-mobile-polish-1" />
+    <script defer src="/imperialax-product-shell.js?v=20260814-family-shell-1"></script>
   </head>
-  <body>
+  <body class="product-standard laminate-standard">
     <main class="shell shell-v2">
       <section class="workspace" aria-labelledby="app-title">
         <header class="topbar">
           <div class="brand-lockup">
+            <a class="product-logo-link" href="https://ai.imperialax.com/index.html" aria-label="ImperialAX module workspace">
+              <img src="/assets/imperialax-logo-black.png?v=20260814-logo-rollout-1" alt="ImperialAX" />
+            </a>
             <p class="eyebrow">Composite Laminate AI</p>
             <h1 id="app-title"><span>ImperialAX</span> <span>Laminate Forecast</span></h1>
             <p class="hero-copy">
               Forecast laminate Type, Pt, and response curve from case and theta inputs.
             </p>
           </div>
-          <div class="top-actions">
-            <div class="status-pill" id="api-status">Checking</div>
-            <a class="language-link" href="https://ai.imperialax.com/index.html">Modules</a>
-            <a class="language-link" href="./index-v2.ko.html">한국어</a>
+          <div class="top-actions" aria-label="Quick tools">
+            <div class="top-action-group top-action-group-primary">
+              <a class="language-link header-action header-action-module" href="https://ai.imperialax.com/index.html">Modules</a>
+              <button class="utility-trigger header-action header-action-assistant" type="button" data-dialog-target="assistant-dialog">AI Assistant</button>
+            </div>
+            <div class="top-action-group top-action-group-secondary">
+              <button class="utility-trigger header-action header-action-research" type="button" data-dialog-target="research-dialog">Research purpose</button>
+              <a class="language-link header-action header-action-language" href="/ko">한국어</a>
+              <div class="status-pill header-action-status" id="api-status">Checking</div>
+            </div>
           </div>
         </header>
 
-        <section class="research-brief" aria-label="Research purpose">
-          <div class="research-brief-main">
-            <p class="eyebrow">Research purpose</p>
-            <h2>Why Double-Double laminate forecasting?</h2>
-            <p>
-              Double-Double laminates are being explored as lightweight, angle-driven
-              alternatives to quasi-isotropic layups for impact and post-impact
-              compression performance. This tool turns the simulation study into a
-              fast screening interface: choose a Case and θ pair, then estimate Type,
-              transition load Pt, response curve, and u3 behavior before committing to
-              deeper analysis.
-            </p>
+        <dialog class="utility-dialog" id="research-dialog" aria-labelledby="research-dialog-title">
+          <header class="utility-dialog-head">
+            <div><p class="eyebrow">Research purpose</p><h2 id="research-dialog-title">Research purpose</h2></div>
+            <button class="dialog-close" type="button" data-dialog-close aria-label="Close research purpose">×</button>
+          </header>
+          <div class="utility-dialog-body">
+            <section class="research-brief" aria-label="Research purpose detail">
+              <div class="research-brief-main">
+                <h2>Why Double-Double laminate forecasting?</h2>
+                <p>Double-Double laminates are being explored as lightweight, angle-driven alternatives to quasi-isotropic layups for impact and post-impact compression performance. Choose a Case and θ pair to estimate Type, transition load Pt, response curve, and u3 behavior before committing to deeper analysis.</p>
+              </div>
+              <div class="research-brief-points">
+                <div><strong>Problem</strong><span>Conventional 0/±45/90 stacks can add weight and limit design freedom.</span></div>
+                <div><strong>Target</strong><span>Find the knee/transition point where force and u3 curves reveal stability loss.</span></div>
+                <div><strong>Signal</strong><span>Current leading DD candidates show Pt and u3 improvement signals against quasi-isotropic baselines.</span></div>
+              </div>
+              <details class="research-brief-details">
+                <summary>How Type and u3 are used</summary>
+                <p>Type 1 has a clear bilinear knee. Type 2 and Type 3 become more curved after the knee, so u3 displacement behavior supports transition-load estimation.</p>
+              </details>
+            </section>
           </div>
-          <div class="research-brief-points">
-            <div>
-              <strong>Problem</strong>
-              <span>Conventional 0/±45/90 stacks can add weight and limit design freedom.</span>
-            </div>
-            <div>
-              <strong>Target</strong>
-              <span>Find the knee/transition point where force and u3 curves reveal stability loss.</span>
-            </div>
-            <div>
-              <strong>Signal</strong>
-              <span>Current best DD candidates improved Pt by 28.93% and u3 metric by 31.31% vs. quasi-isotropic baselines.</span>
-            </div>
-          </div>
-          <details class="research-brief-details">
-            <summary>How Type and u3 are used</summary>
-            <p>
-              Type 1 has a clear bilinear knee from force-displacement fits. Type 2 and
-              Type 3 become more curved after the knee, so u3 displacement behavior is
-              used to support transition-load estimation.
-            </p>
-          </details>
-        </section>
+        </dialog>
 
-        <section class="rag-assistant" aria-labelledby="rag-title">
-          <div class="rag-assistant-copy">
-            <p class="eyebrow">Composite AI Assistant</p>
-            <h2 id="rag-title">Ask the laminate knowledge base</h2>
-            <p>
-              Search the internal DD reports, PPT/PDF notes, XAI documents, and curated online
-              composite references. Answers stay grounded with citations.
-            </p>
+        <dialog class="utility-dialog" id="assistant-dialog" aria-labelledby="rag-title">
+          <header class="utility-dialog-head">
+            <div><p class="eyebrow">Composite AI Assistant</p><h2 id="rag-title">Ask the laminate knowledge base</h2></div>
+            <button class="dialog-close" type="button" data-dialog-close aria-label="Close AI Assistant">×</button>
+          </header>
+          <div class="utility-dialog-body">
+            <section class="rag-assistant">
+              <div class="rag-assistant-copy"><p>Search internal DD reports, PPT/PDF notes, XAI documents, and curated composite references. Answers stay grounded with citations.</p></div>
+              <form class="rag-form" id="rag-form">
+                <label>Question<textarea name="query" rows="3" data-default-query="Why does A12 membrane coupling matter in the Physics XAI model?" required>Why does A12 membrane coupling matter in the Physics XAI model?</textarea></label>
+                <div class="rag-actions">
+                  <label class="rag-toggle"><input name="use_llm" type="checkbox" checked /><span>Use LLM when API key exists</span></label>
+                  <button class="secondary" type="submit">Ask Composite AI</button>
+                </div>
+              </form>
+              <div class="rag-answer hidden" id="rag-answer" aria-live="polite"></div>
+            </section>
           </div>
-          <form class="rag-form" id="rag-form">
-            <label>
-              Question
-              <textarea
-                name="query"
-                rows="3"
-                data-default-query="Why does A12 membrane coupling matter in the Physics XAI model?"
-                required
-              >Why does A12 membrane coupling matter in the Physics XAI model?</textarea>
-            </label>
-            <div class="rag-actions">
-              <label class="rag-toggle">
-                <input name="use_llm" type="checkbox" checked />
-                <span>Use LLM when API key exists</span>
-              </label>
-              <button class="secondary" type="submit">Ask Composite AI</button>
-            </div>
-          </form>
-          <div class="rag-answer hidden" id="rag-answer" aria-live="polite"></div>
-        </section>
+        </dialog>
 
         <section class="summary-strip" aria-label="Workflow summary">
           <div>
             <span>01</span>
-            <strong>Set case</strong>
-            <p>Choose the laminate stack family.</p>
+            <strong>Choose models</strong>
+            <p>Select the Machine Learning, Deep Learning, or Hybrid model that fits the forecast purpose.</p>
           </div>
           <div>
             <span>02</span>
-            <strong>Pick model</strong>
-            <p>Use the stable ML default or DL comparison.</p>
+            <strong>Set case and angles</strong>
+            <p>Set Case 2, 3, or 4 and the θ1·θ2 angles to define the 16-ply sequence and orientations.</p>
           </div>
           <div>
             <span>03</span>
-            <strong>Review</strong>
-            <p>Pt, curve, XAI.</p>
+            <strong>Check panel and stack</strong>
+            <p>Enter panel length a and width b, then confirm panel shape and ply directions in the 3D preview.</p>
+          </div>
+          <div>
+            <span>04</span>
+            <strong>Review forecast results</strong>
+            <p>Review Type, confidence, Pt, and the response curve, then use XAI and Design Space to check evidence and applicability.</p>
           </div>
         </section>
 
@@ -133,11 +128,11 @@
               <div class="two-col">
                 <label>
                   Theta 1
-                  <input name="theta1" type="number" min="-90" max="90" step="1" value="-29" required />
+                  <input name="theta1" type="text" inputmode="text" pattern="[+-]?(?:90|[0-8]?[0-9])" value="-29" required />
                 </label>
                 <label>
                   Theta 2
-                  <input name="theta2" type="number" min="-90" max="90" step="1" value="74" required />
+                  <input name="theta2" type="text" inputmode="text" pattern="[+-]?(?:90|[0-8]?[0-9])" value="74" required />
                 </label>
               </div>
 
@@ -165,6 +160,7 @@
               <label class="file-box">
                 Force-displacement CSV
                 <input id="curve-file" name="file" type="file" accept=".csv,text/csv" multiple required />
+                <span id="curve-file-summary" class="file-selection-summary">No CSV files selected.</span>
               </label>
 
               <label class="file-box">
@@ -174,7 +170,8 @@
               <p class="form-hint">
                 Batch metadata format: filename, test_id, theta1, theta2, pt, case.
                 The filename must match the selected CSV file, such as force_disp_Test_001.csv.
-                Without metadata, the inputs above are reused for every selected CSV.
+                Without metadata, the inputs above are reused for every selected CSV. Up to 1,000
+                CSV files can be selected and large selections are sent in automatic chunks.
               </p>
 
               <div class="case-guide" aria-label="Case formulas">
@@ -211,7 +208,7 @@
                     <strong data-theta-readout="theta1">+30°</strong>
                   </span>
                   <span class="angle-number-wrap">
-                    <input name="theta1" type="number" min="-90" max="90" step="1" value="30" required />
+                    <input name="theta1" type="text" inputmode="text" pattern="[+-]?(?:90|[0-8]?[0-9])" value="30" required />
                     <span>deg</span>
                   </span>
                   <input type="range" min="-90" max="90" step="1" value="30" data-theta-range="theta1" aria-label="Theta 1 slider" />
@@ -222,7 +219,7 @@
                     <strong data-theta-readout="theta2">-30°</strong>
                   </span>
                   <span class="angle-number-wrap">
-                    <input name="theta2" type="number" min="-90" max="90" step="1" value="-30" required />
+                    <input name="theta2" type="text" inputmode="text" pattern="[+-]?(?:90|[0-8]?[0-9])" value="-30" required />
                     <span>deg</span>
                   </span>
                   <input type="range" min="-90" max="90" step="1" value="-30" data-theta-range="theta2" aria-label="Theta 2 slider" />
@@ -270,7 +267,7 @@
                     <strong data-theta-readout="theta1">+30°</strong>
                   </span>
                   <span class="angle-number-wrap">
-                    <input name="theta1" type="number" min="-90" max="90" step="1" value="30" required />
+                    <input name="theta1" type="text" inputmode="text" pattern="[+-]?(?:90|[0-8]?[0-9])" value="30" required />
                     <span>deg</span>
                   </span>
                   <input type="range" min="-90" max="90" step="1" value="30" data-theta-range="theta1" aria-label="Theta 1 slider" />
@@ -281,7 +278,7 @@
                     <strong data-theta-readout="theta2">-30°</strong>
                   </span>
                   <span class="angle-number-wrap">
-                    <input name="theta2" type="number" min="-90" max="90" step="1" value="-30" required />
+                    <input name="theta2" type="text" inputmode="text" pattern="[+-]?(?:90|[0-8]?[0-9])" value="-30" required />
                     <span>deg</span>
                   </span>
                   <input type="range" min="-90" max="90" step="1" value="-30" data-theta-range="theta2" aria-label="Theta 2 slider" />
@@ -331,7 +328,7 @@
                     <strong data-theta-readout="theta1">+30°</strong>
                   </span>
                   <span class="angle-number-wrap">
-                    <input name="theta1" type="number" min="-90" max="90" step="1" value="30" required />
+                    <input name="theta1" type="text" inputmode="text" pattern="[+-]?(?:90|[0-8]?[0-9])" value="30" required />
                     <span>deg</span>
                   </span>
                   <input type="range" min="-90" max="90" step="1" value="30" data-theta-range="theta1" aria-label="Theta 1 slider" />
@@ -342,7 +339,7 @@
                     <strong data-theta-readout="theta2">-60°</strong>
                   </span>
                   <span class="angle-number-wrap">
-                    <input name="theta2" type="number" min="-90" max="90" step="1" value="-60" required />
+                    <input name="theta2" type="text" inputmode="text" pattern="[+-]?(?:90|[0-8]?[0-9])" value="-60" required />
                     <span>deg</span>
                   </span>
                   <input type="range" min="-90" max="90" step="1" value="-60" data-theta-range="theta2" aria-label="Theta 2 slider" />
@@ -481,6 +478,18 @@
                 <ul class="uncertainty-notes" id="uncertainty-notes"></ul>
               </section>
 
+              <section class="teacher-student-panel hidden" id="teacher-student-panel" aria-label="Teacher and student model agreement">
+                <div class="uncertainty-head">
+                  <div>
+                    <p class="eyebrow">Agreement</p>
+                    <h3 id="teacher-student-title">Tree vs Student</h3>
+                  </div>
+                  <strong id="teacher-student-label">-</strong>
+                </div>
+                <div class="teacher-student-grid" id="teacher-student-grid"></div>
+                <ul class="uncertainty-notes" id="teacher-student-notes"></ul>
+              </section>
+
               <dl class="meta">
                 <div>
                   <dt>Model</dt>
@@ -528,7 +537,8 @@
                 <div class="curve-legend" aria-label="Response curve legend">
                   <span><i class="legend-swatch curve"></i>Predicted curve</span>
                   <span><i class="legend-swatch guide"></i>Linear fits</span>
-                  <span><i class="legend-swatch kink"></i>Predicted Pt</span>
+                  <span><i class="legend-swatch kink"></i>Fit intersection</span>
+                  <span><i class="legend-swatch pt"></i>Predicted Pt</span>
                 </div>
               </section>
 
@@ -618,7 +628,10 @@
       </section>
     </main>
 
-    <script src="./auth-gate.js?v=20260715-license-gate"></script>
-    <script src="./app-v2.js?v=20260720-curve-readable-v2"></script>
+    <script type="importmap">
+      {"imports":{"three":"/laminate-viewer/vendor/three.module.r160.js"}}
+    </script>
+    <script src="/auth-gate.js?v=20260814-header-utilities-1"></script>
+    <script src="/app-v2.js?v=20260819-viewer-fiber-4"></script>
   </body>
 </html>

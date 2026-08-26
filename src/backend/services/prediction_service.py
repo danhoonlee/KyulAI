@@ -5,7 +5,7 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.backend.exceptions import InvalidStateError, NotFoundError
+from src.backend.exceptions import NotFoundError
 from src.backend.models.prediction import Prediction
 from src.backend.schemas.prediction import PredictionRequest
 
@@ -27,9 +27,7 @@ class PredictionService:
         return prediction
 
     async def get(self, prediction_id: UUID) -> Prediction:
-        result = await self._db.execute(
-            select(Prediction).where(Prediction.id == prediction_id)
-        )
+        result = await self._db.execute(select(Prediction).where(Prediction.id == prediction_id))
         prediction = result.scalar_one_or_none()
         if prediction is None:
             raise NotFoundError("Prediction", prediction_id)
@@ -48,14 +46,16 @@ class PredictionService:
         if status:
             query = query.where(Prediction.status == status)
 
-        count_result = await self._db.execute(
-            select(func.count()).select_from(query.subquery())
-        )
+        count_result = await self._db.execute(select(func.count()).select_from(query.subquery()))
         total = count_result.scalar_one()
 
-        query = query.order_by(Prediction.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+        query = (
+            query.order_by(Prediction.created_at.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
         result = await self._db.execute(query)
-        return result.scalars().all(), total
+        return list(result.scalars().all()), total
 
     async def update_status(
         self,

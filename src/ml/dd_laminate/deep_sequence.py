@@ -9,10 +9,9 @@ sparsemax.
 from __future__ import annotations
 
 import csv
-import math
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 import numpy as np
 import torch
@@ -60,7 +59,9 @@ def _curve_csv_path(case_dir: Path, test_id: str) -> Path:
     return candidates[0]
 
 
-def load_sequence_samples(data_dir: str | Path, cases: Iterable[str] = ("Case3", "Case4")) -> list[DDSequenceSample]:
+def load_sequence_samples(
+    data_dir: str | Path, cases: Iterable[str] = ("Case3", "Case4")
+) -> list[DDSequenceSample]:
     data_path = Path(data_dir)
     samples: list[DDSequenceSample] = []
     for case in cases:
@@ -169,7 +170,9 @@ class DDSequenceDataset(Dataset):
 class JointMLPHead(nn.Module):
     """Small multi-branch MLP head inspired by the old JointMLP module."""
 
-    def __init__(self, input_dim: int, branch_dim: int = 32, num_branches: int = 4, dropout: float = 0.15):
+    def __init__(
+        self, input_dim: int, branch_dim: int = 32, num_branches: int = 4, dropout: float = 0.15
+    ):
         super().__init__()
         self.branches = nn.ModuleList(
             [

@@ -91,7 +91,11 @@ def _bn(spatial_dims: int, ch: int, norm: NormLayer) -> nn.Module:
     if norm == NormLayer.BATCH_NORM:
         return nn.BatchNorm2d(ch) if spatial_dims == 2 else nn.BatchNorm3d(ch)
     if norm == NormLayer.INSTANCE_NORM:
-        return nn.InstanceNorm2d(ch, affine=True) if spatial_dims == 2 else nn.InstanceNorm3d(ch, affine=True)
+        return (
+            nn.InstanceNorm2d(ch, affine=True)
+            if spatial_dims == 2
+            else nn.InstanceNorm3d(ch, affine=True)
+        )
     # LayerNorm and NONE — use Identity (spatial LayerNorm is unusual for CNNs)
     return nn.Identity()
 
@@ -153,9 +157,7 @@ class _FiLMConditioner(nn.Module):
             nn.Linear(hidden_dim, 2 * n_channels),
         )
 
-    def forward(
-        self, feature_map: torch.Tensor, process_features: torch.Tensor
-    ) -> torch.Tensor:
+    def forward(self, feature_map: torch.Tensor, process_features: torch.Tensor) -> torch.Tensor:
         """Apply FiLM conditioning.
 
         Parameters
@@ -227,7 +229,7 @@ class CNNSurrogate(KyulBaseModel):
         n_levels = len(channels)
 
         # Encoder
-        enc_in = [cfg.in_channels] + channels[:-1]
+        enc_in = [cfg.in_channels, *channels[:-1]]
         self.encoders = nn.ModuleList(
             [
                 _ConvBlock(enc_in[i], channels[i], sd, cfg.activation, cfg.norm, cfg.kernel_size)
@@ -259,9 +261,7 @@ class CNNSurrogate(KyulBaseModel):
             skip_ch = dec_channels[i + 1] if cfg.use_skip_connections else 0
             self.upsamples.append(_conv_transpose(sd, in_ch, out_ch))
             self.decoders.append(
-                _ConvBlock(
-                    out_ch + skip_ch, out_ch, sd, cfg.activation, cfg.norm, cfg.kernel_size
-                )
+                _ConvBlock(out_ch + skip_ch, out_ch, sd, cfg.activation, cfg.norm, cfg.kernel_size)
             )
 
         # Per-field output heads (1×1 conv)
@@ -325,13 +325,18 @@ class CNNSurrogate(KyulBaseModel):
 
         # Decoder pass
         skip_connections = skip_connections[::-1]  # reverse to match decoder levels
-        for i, (upsample, dec) in enumerate(zip(self.upsamples, self.decoders)):
+        for i, (upsample, dec) in enumerate(zip(self.upsamples, self.decoders, strict=False)):
             x = upsample(x)
             if self.config.use_skip_connections and i < len(skip_connections):
                 skip = skip_connections[i]
                 # Handle potential size mismatch from odd-sized spatial dims
                 if x.shape != skip.shape:
-                    x = F.interpolate(x, size=skip.shape[2:], mode="bilinear" if self.config.spatial_dims == 2 else "trilinear", align_corners=False)
+                    x = F.interpolate(
+                        x,
+                        size=skip.shape[2:],
+                        mode="bilinear" if self.config.spatial_dims == 2 else "trilinear",
+                        align_corners=False,
+                    )
                 x = torch.cat([x, skip], dim=1)
             x = dec(x)
 

@@ -116,9 +116,7 @@ class BaseParser(ABC):
         """
         mapping = self._mapping.get_mapping_for_tool_field(tool_field_name)
         if mapping is None:
-            self._logger.warning(
-                "No mapping for tool field '%s' — skipping", tool_field_name
-            )
+            self._logger.warning("No mapping for tool field '%s' — skipping", tool_field_name)
             return None
 
         converted = values * mapping.unit_conversion_factor + mapping.unit_conversion_offset

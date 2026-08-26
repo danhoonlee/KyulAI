@@ -8,13 +8,13 @@ Phase 3 (planned): Fine-tuning + importance weighting (RULSIF/BW) sim-to-real
     for materials OOD prediction.  Use fine-tuning + importance weighting.
 """
 
-from src.ml.training.data_loader import (
-    CAEDataset,
-    DataLoaderConfig,
-    DatasetConfig,
-    TargetFieldSpec,
-    collate_cae,
-    create_dataloaders,
+from src.ml.training.data import (
+    KyulAIDataset,
+    KyulAISample,
+    SimulationDataset,
+)
+from src.ml.training.data import (
+    create_dataloaders as create_sample_dataloaders,
 )
 from src.ml.training.data_interface import (
     CAEDataLoader,
@@ -22,6 +22,14 @@ from src.ml.training.data_interface import (
     KyulDataset,
     OODSplitStrategy,
     SplitConfig,
+)
+from src.ml.training.data_loader import (
+    CAEDataset,
+    DataLoaderConfig,
+    DatasetConfig,
+    TargetFieldSpec,
+    collate_cae,
+    create_dataloaders,
 )
 from src.ml.training.feature_extractor import (
     FEATURE_DIM,
@@ -32,41 +40,35 @@ from src.ml.training.feature_extractor import (
     Normalizer,
 )
 from src.ml.training.trainer import BaseTrainer, TrainingConfig, TrainingResult
-from src.ml.training.data import (
-    KyulAISample,
-    KyulAIDataset,
-    SimulationDataset,
-    create_dataloaders,
-)
 
 __all__ = [
-    # KyulAISample-based interface (canonical data model)
-    "KyulAISample",
-    "KyulAIDataset",
-    "SimulationDataset",
-    "create_dataloaders",
-    # Feature extraction (concrete FEATURE_REGISTRY-based implementation)
-    "FeatureSpec",
-    "FeatureExtractor",
-    "Normalizer",
-    "FEATURE_REGISTRY",
     "FEATURE_DIM",
     "FEATURE_NAMES",
-    # Dataset + DataLoader (simple fixed-schema path)
-    "TargetFieldSpec",
-    "DatasetConfig",
-    "DataLoaderConfig",
+    "FEATURE_REGISTRY",
+    "BaseTrainer",
+    "CAEDataLoader",
     "CAEDataset",
-    "collate_cae",
-    "create_dataloaders",
+    "DataLoaderConfig",
+    "DataSplit",
+    "DatasetConfig",
+    "FeatureExtractor",
+    # Feature extraction (concrete FEATURE_REGISTRY-based implementation)
+    "FeatureSpec",
+    "KyulAIDataset",
+    # KyulAISample-based interface (canonical data model)
+    "KyulAISample",
+    "KyulDataset",
+    "Normalizer",
     # Data interface (flexible path-based, OOD splits)
     "OODSplitStrategy",
+    "SimulationDataset",
     "SplitConfig",
-    "DataSplit",
-    "KyulDataset",
-    "CAEDataLoader",
+    # Dataset + DataLoader (simple fixed-schema path)
+    "TargetFieldSpec",
     # Training
     "TrainingConfig",
     "TrainingResult",
-    "BaseTrainer",
+    "collate_cae",
+    "create_dataloaders",
+    "create_sample_dataloaders",
 ]

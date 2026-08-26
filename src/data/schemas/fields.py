@@ -9,7 +9,7 @@ happens in the parser/normalization layer, never in the schema.
 
 from __future__ import annotations
 
-from typing import Annotated, Any, Sequence
+from typing import Annotated, Any
 
 import numpy as np
 from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
@@ -49,15 +49,10 @@ class _NumpyArrayType:
             arr = arr.astype(self.dtype, copy=False)
 
         if self.ndim is not None and arr.ndim != self.ndim:
-            raise ValueError(
-                f"Expected {self.ndim}D array, got {arr.ndim}D with shape {arr.shape}"
-            )
+            raise ValueError(f"Expected {self.ndim}D array, got {arr.ndim}D with shape {arr.shape}")
 
         if self.last_dim is not None and arr.shape[-1] != self.last_dim:
-            raise ValueError(
-                f"Expected last dimension = {self.last_dim}, "
-                f"got shape {arr.shape}"
-            )
+            raise ValueError(f"Expected last dimension = {self.last_dim}, got shape {arr.shape}")
 
         return arr
 

@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ImperialAX 계정 만들기</title>
+    <link rel="alternate" hreflang="en" href="https://ai.imperialax.com/signup-v2.html" />
+    <link rel="stylesheet" href="./login-v2.css?v=20260814-logo-rollout-1" />
+  </head>
+  <body>
+    <main class="login-shell">
+      <header class="login-topbar" aria-label="회원가입 내비게이션">
+        <a class="brand-mark" href="https://ai.imperialax.com/login-v2.ko.html" aria-label="로그인으로 돌아가기">
+          <img class="brand-logo" src="/brand/imperialax-logo-black.png?v=20260814-logo-rollout-1" alt="ImperialAX" />
+        </a>
+        <div class="topbar-actions">
+          <a class="language-link" href="https://ai.imperialax.com/signup-v2.html" hreflang="en">English</a>
+          <a class="language-link" href="https://ai.imperialax.com/login-v2.ko.html">로그인</a>
+        </div>
+      </header>
+
+      <section class="access-layout" aria-labelledby="signup-title">
+        <div class="workspace-panel">
+          <div class="workspace-copy">
+            <p class="eyebrow">계정 생성</p>
+            <h1 id="signup-title">
+              <span>ImperialAX</span>
+              <span>계정 만들기</span>
+            </h1>
+            <p>
+              한 번 계정을 만들면 같은 워크스페이스에서 Laminate와 Injection
+              모듈을 바로 사용할 수 있습니다.
+            </p>
+          </div>
+
+          <div class="command-board" aria-label="계정 설정 미리보기">
+            <div class="command-head">
+              <span>기본 접근 권한</span>
+              <strong>2개 모듈</strong>
+            </div>
+            <div class="signal-grid">
+              <div><span class="signal-dot"></span>Laminate</div>
+              <div><span class="signal-dot"></span>Injection</div>
+              <div><span class="signal-dot"></span>계정 DB</div>
+            </div>
+            <svg class="forecast-preview" viewBox="0 0 680 260" role="img" aria-label="계정 모듈 미리보기">
+              <defs>
+                <linearGradient id="signupGlow" x1="0" x2="1" y1="0" y2="0">
+                  <stop offset="0%" stop-color="#111318" />
+                  <stop offset="55%" stop-color="#2167ff" />
+                  <stop offset="100%" stop-color="#00a878" />
+                </linearGradient>
+              </defs>
+              <path class="grid-line" d="M44 58H636M44 128H636M44 198H636" />
+              <path class="grid-line vertical" d="M138 34V220M274 34V220M410 34V220M546 34V220" />
+              <path
+                class="curve-line"
+                d="M50 190 C138 174 188 95 260 110 C330 126 370 186 454 154 C526 126 575 82 634 70"
+                style="stroke: url('#signupGlow')"
+              />
+              <circle class="pt-marker" cx="260" cy="110" r="9" />
+              <circle class="pt-ring" cx="260" cy="110" r="21" />
+            </svg>
+          </div>
+        </div>
+
+        <form class="login-panel signup-panel" id="signup-v2-form" novalidate>
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">새 계정</p>
+              <h2>계정 만들기</h2>
+            </div>
+          </div>
+
+          <label class="field">
+            <span>이름</span>
+            <input id="signup-name" type="text" autocomplete="name" placeholder="이름" />
+          </label>
+          <label class="field">
+            <span>회사</span>
+            <input id="signup-company" type="text" autocomplete="organization" placeholder="회사 또는 연구실" />
+          </label>
+          <label class="field">
+            <span>지역</span>
+            <input id="signup-location" type="text" autocomplete="address-level2" placeholder="도시, 국가" />
+          </label>
+          <label class="field">
+            <span>휴대폰</span>
+            <input id="signup-mobile" type="tel" autocomplete="tel" placeholder="+82 ..." />
+          </label>
+          <label class="field">
+            <span>이메일</span>
+            <input id="signup-email" type="email" autocomplete="email" placeholder="you@company.com" />
+          </label>
+          <p class="field-note">이 이메일이 로그인 ID로 사용됩니다.</p>
+          <label class="field">
+            <span>비밀번호</span>
+            <input id="signup-password" type="password" autocomplete="new-password" placeholder="8자 이상" />
+          </label>
+
+          <p class="form-message" id="signup-message" role="status"></p>
+
+          <div class="button-row">
+            <button class="primary-button" type="submit">
+              <span class="button-icon" aria-hidden="true">-></span>
+              계정 만들기
+            </button>
+            <a class="secondary-button account-link" href="https://ai.imperialax.com/login-v2.ko.html">로그인으로 돌아가기</a>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <script src="./signup-v2.js?v=20260619-forgot1" type="module"></script>
+  </body>
+</html>

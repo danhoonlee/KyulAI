@@ -15,7 +15,7 @@ from pathlib import Path
 DEFAULT_INCLUDE_DIRS = [
     "src/backend",
     "src/frontend/dd-laminate",
-    "src/frontend/luvelox",
+    "src/frontend/imperialax",
     "src/frontend/simple-injection",
     "src/ml/dd_laminate",
     "src/ml/simple_injection",

@@ -98,7 +98,9 @@ def run_epoch(model, loader, optimizer, grid, device, train: bool, args):
         pred_shape = pred_curve / torch.clamp(torch.amax(pred_curve, dim=1, keepdim=True), min=1e-6)
         scalar_loss = F.smooth_l1_loss(pred_scalars, scalars)
         curve_loss = F.smooth_l1_loss(pred_shape, curve)
-        peak_loss = F.smooth_l1_loss(torch.amax(pred_curve, dim=1), torch.ones_like(pred_curve[:, 0]))
+        peak_loss = F.smooth_l1_loss(
+            torch.amax(pred_curve, dim=1), torch.ones_like(pred_curve[:, 0])
+        )
         smooth_loss = F.smooth_l1_loss(pred_curve[:, 1:], pred_curve[:, :-1])
         physics_loss = sprue_physics_loss(pred_curve, curve, grid, args)
         loss = (
@@ -127,7 +129,9 @@ def run_epoch(model, loader, optimizer, grid, device, train: bool, args):
     }
 
 
-def metric_row(eval_out, scalar_mean: np.ndarray, scalar_std: np.ndarray, grid: np.ndarray) -> dict[str, float]:
+def metric_row(
+    eval_out, scalar_mean: np.ndarray, scalar_std: np.ndarray, grid: np.ndarray
+) -> dict[str, float]:
     pred_scalars = np.maximum(
         denormalize_scalars(eval_out["scalar_pred_norm"], scalar_mean, scalar_std),
         1e-9,
@@ -151,11 +155,17 @@ def metric_row(eval_out, scalar_mean: np.ndarray, scalar_std: np.ndarray, grid: 
 
 
 def train_one_fold(dataset, train_idx, val_idx, args, device, grid, scalar_mean, scalar_std):
-    train_loader = DataLoader(Subset(dataset, train_idx.tolist()), batch_size=args.batch_size, shuffle=True)
-    val_loader = DataLoader(Subset(dataset, val_idx.tolist()), batch_size=args.batch_size, shuffle=False)
+    train_loader = DataLoader(
+        Subset(dataset, train_idx.tolist()), batch_size=args.batch_size, shuffle=True
+    )
+    val_loader = DataLoader(
+        Subset(dataset, val_idx.tolist()), batch_size=args.batch_size, shuffle=False
+    )
     model = make_model(args, dataset.x.shape[1], device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.55, patience=12)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode="min", factor=0.55, patience=12
+    )
     best_state = None
     best_loss = float("inf")
     best_epoch = 0
@@ -168,7 +178,9 @@ def train_one_fold(dataset, train_idx, val_idx, args, device, grid, scalar_mean,
         if val_loss < best_loss:
             best_loss = val_loss
             best_epoch = epoch
-            best_state = {key: value.detach().cpu().clone() for key, value in model.state_dict().items()}
+            best_state = {
+                key: value.detach().cpu().clone() for key, value in model.state_dict().items()
+            }
             stale = 0
         else:
             stale += 1
@@ -219,7 +231,9 @@ def write_report(output_dir: Path, args, metrics: dict) -> None:
         "",
         "This model is intended for shape-aware curve behavior on user-edited DOE combinations.",
     ]
-    (output_dir / "sprue_pressure_deeponet_report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (output_dir / "sprue_pressure_deeponet_report.md").write_text(
+        "\n".join(lines) + "\n", encoding="utf-8"
+    )
 
 
 def train_deeponet_surrogate(data_dir: str | Path, output_dir: str | Path, args) -> dict:
@@ -240,7 +254,9 @@ def train_deeponet_surrogate(data_dir: str | Path, output_dir: str | Path, args)
         start=1,
     ):
         print(f"Starting fold {fold}/{args.splits}...")
-        row = train_one_fold(dataset, train_idx, val_idx, args, args.device_torch, grid, scalar_mean, scalar_std)
+        row = train_one_fold(
+            dataset, train_idx, val_idx, args, args.device_torch, grid, scalar_mean, scalar_std
+        )
         row["fold"] = fold
         fold_rows.append(row)
         print(
@@ -311,7 +327,9 @@ def train_deeponet_surrogate(data_dir: str | Path, output_dir: str | Path, args)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Train Simple Injection DeepONet sprue pressure surrogate")
+    parser = argparse.ArgumentParser(
+        description="Train Simple Injection DeepONet sprue pressure surrogate"
+    )
     parser.add_argument("--data-dir", default=str(DEFAULT_DATA_DIR))
     parser.add_argument("--output-dir", default="models/simple_injection_sprue_deeponet_v1")
     parser.add_argument("--seq-len", type=int, default=128)

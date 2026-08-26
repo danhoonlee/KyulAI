@@ -20,7 +20,6 @@ class RagSearchResult(BaseModel):
     text: str
     source_kind: str
     source_id: str
-    source_path: str = ""
     url: str = ""
     topic: str
     tags: list[str] = Field(default_factory=list)
@@ -30,13 +29,12 @@ class RagSearchResult(BaseModel):
 
 class RagSearchResponse(BaseModel):
     query: str
-    index_path: str
     result_count: int
     results: list[RagSearchResult]
 
 
 class RagAnswerRequest(BaseModel):
-    query: str = Field(..., min_length=2)
+    query: str = Field(..., min_length=2, max_length=2_000)
     top_k: int = Field(5, ge=1, le=10)
     use_llm: bool = True
     language: str = Field("auto", pattern="^(auto|ko|en)$")
@@ -68,20 +66,21 @@ class RagAnswerResponse(BaseModel):
 
 @router.get("/search", response_model=RagSearchResponse, summary="Search the Composite RAG index")
 async def search_rag(
-    q: str = Query(..., min_length=2, description="Composite-domain search query"),
+    q: str = Query(
+        ..., min_length=2, max_length=2_000, description="Composite-domain search query"
+    ),
     top_k: int = Query(5, ge=1, le=20),
 ) -> RagSearchResponse:
     index_path = Path(DEFAULT_INDEX_PATH)
     if not index_path.exists():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"RAG index not found. Build it with: python scripts/rag_build_knowledge_index.py",
+            detail="The assistant knowledge index is temporarily unavailable.",
         )
 
     results = query_index(index_path, q, top_k=top_k)
     return RagSearchResponse(
         query=q,
-        index_path=str(index_path),
         result_count=len(results),
         results=[
             RagSearchResult(
@@ -90,7 +89,6 @@ async def search_rag(
                 text=result.chunk.text,
                 source_kind=result.chunk.source_kind,
                 source_id=result.chunk.source_id,
-                source_path=result.chunk.source_path,
                 url=result.chunk.url,
                 topic=result.chunk.topic,
                 tags=result.chunk.tags,
@@ -102,13 +100,15 @@ async def search_rag(
     )
 
 
-@router.post("/answer", response_model=RagAnswerResponse, summary="Answer with Composite RAG context")
+@router.post(
+    "/answer", response_model=RagAnswerResponse, summary="Answer with Composite RAG context"
+)
 async def answer_rag(payload: RagAnswerRequest) -> RagAnswerResponse:
     index_path = Path(DEFAULT_INDEX_PATH)
     if not index_path.exists():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"RAG index not found. Build it with: python scripts/rag_build_knowledge_index.py",
+            detail="The assistant knowledge index is temporarily unavailable.",
         )
 
     try:
@@ -120,7 +120,7 @@ async def answer_rag(payload: RagAnswerRequest) -> RagAnswerResponse:
             language=payload.language,
             prediction_context=payload.prediction_context,
         )
-    except Exception as exc:
+    except Exception:
         fallback = build_extractive_answer(
             payload.query,
             [],
@@ -135,14 +135,21 @@ async def answer_rag(payload: RagAnswerRequest) -> RagAnswerResponse:
             citations=[],
             retrieval_count=0,
             used_llm=False,
-            error=f"RAG answer failed; used local fallback. {type(exc).__name__}: {exc}",
+            error="RAG answer temporarily unavailable; used the local fallback.",
         )
+    citations = []
+    for citation in answer.citations:
+        item = citation.to_dict()
+        source = str(item.get("source") or "")
+        if source and not source.startswith(("https://", "http://")):
+            item["source"] = str(item.get("source_id") or item.get("title") or "")
+        citations.append(RagCitationResponse(**item))
     return RagAnswerResponse(
         query=answer.query,
         answer=clean_answer_text(answer.answer),
         provider=answer.provider,
         model=answer.model,
-        citations=[RagCitationResponse(**citation.to_dict()) for citation in answer.citations],
+        citations=citations,
         retrieval_count=answer.retrieval_count,
         used_llm=answer.used_llm,
         error=answer.error,

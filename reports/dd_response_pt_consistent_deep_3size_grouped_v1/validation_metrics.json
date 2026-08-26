@@ -1,0 +1,89 @@
+{
+  "dataset": "data/datasets/DD_cases_2_3_4_geometry_3size_v1",
+  "split_manifest": "data/datasets/DD_cases_2_3_4_geometry_grouped_v1/split_manifest.csv",
+  "split": {
+    "development_rows": 2154,
+    "holdout_rows": 546
+  },
+  "device": "cuda",
+  "target_audit": {
+    "guided_source_gap_median": 1.77351466845721e-11,
+    "guided_source_gap_p95": 1.9560502551030333e-09,
+    "independent_source_gap_median": 2417.9275018617964,
+    "independent_source_gap_p95": 13218.839747515598
+  },
+  "metrics": {
+    "baseline_goint": {
+      "name": "Existing 3-Size GointMLP",
+      "accuracy": 0.9047619047619048,
+      "macro_f1": 0.9021248857993548,
+      "pt_mae": 532.8433503441648,
+      "max_displacement_mae": 0.00016567104944644143,
+      "max_force_mae": 1011.5387831365765,
+      "curve_norm_rmse": 0.015486294967851155,
+      "curve_force_rmse": 1017.8995543304551
+    },
+    "baseline_hybrid": {
+      "name": "Existing 3-Size Hybrid",
+      "accuracy": 0.9340659340659341,
+      "macro_f1": 0.9303004936513771,
+      "pt_mae": 305.63871488208986,
+      "max_displacement_mae": 0.0004164750166489581,
+      "max_force_mae": 389.4528158031023,
+      "curve_norm_rmse": 0.006492934311035561,
+      "curve_force_rmse": 438.5001825354695
+    },
+    "pt_consistent_goint": {
+      "name": "Pt-Consistent GointMLP v1",
+      "accuracy": 0.9139194139194139,
+      "macro_f1": 0.9108162248821104,
+      "pt_mae": 525.3703057288548,
+      "max_displacement_mae": 0.00014250761552829164,
+      "max_force_mae": 867.3958160801772,
+      "curve_norm_rmse": 0.012363049931595293,
+      "curve_force_rmse": 908.2938185877628,
+      "pt_displacement_norm_mae": 0.01645397317482326,
+      "first_slope_norm_mae": 0.1370163236126535,
+      "second_slope_norm_mae": 0.05265915706912611,
+      "displayed_p1_direct_pt_gap": 0.0
+    },
+    "pt_consistent_hybrid": {
+      "name": "Pt-Consistent Hybrid v1",
+      "accuracy": 0.9322344322344323,
+      "macro_f1": 0.928399550843498,
+      "pt_mae": 286.66398783234774,
+      "max_displacement_mae": 0.00042543669963110556,
+      "max_force_mae": 362.37671315334376,
+      "curve_norm_rmse": 0.005708151164553903,
+      "curve_force_rmse": 425.62083819035655,
+      "pt_displacement_norm_mae": 0.00903988799093535,
+      "first_slope_norm_mae": 0.08472985247152262,
+      "second_slope_norm_mae": 0.03327486768596214,
+      "displayed_p1_direct_pt_gap": 0.0
+    }
+  },
+  "training": {
+    "goint": {
+      "mode": "goint",
+      "epochs": 60,
+      "learning_rate": 0.0002,
+      "warm_start_model": "models/dd_laminate_response_geometry_goint_3size_grouped_v1/response_goint.pt",
+      "synthetic_rows": 0,
+      "loss_first": 0.16624623264498253,
+      "loss_final": 0.03406034865197808
+    },
+    "hybrid": {
+      "mode": "hybrid",
+      "epochs": 35,
+      "learning_rate": 0.00015,
+      "warm_start_model": "models/dd_laminate_response_hybrid_student_3size_grouped_v1/response_goint.pt",
+      "synthetic_rows": 45300,
+      "loss_first": 0.09837585705242594,
+      "loss_final": 0.0530794747332652
+    }
+  },
+  "artifacts": {
+    "goint": "models/dd_laminate_response_pt_consistent_goint_3size_grouped_v1/response_goint.pt",
+    "hybrid": "models/dd_laminate_response_pt_consistent_hybrid_3size_grouped_v1/response_goint.pt"
+  }
+}

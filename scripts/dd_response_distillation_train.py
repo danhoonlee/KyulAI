@@ -8,6 +8,7 @@ import random
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import joblib
 import numpy as np
@@ -22,12 +23,18 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.dd_response_physics_xai_train import _fit_tree, make_response_targets
-from src.ml.dd_laminate.response_deep import DDResponseGointSurrogate, ordinal_targets, predict_from_logits
-from src.ml.dd_laminate.response_feature_sets import ResponseFeatureRecord, response_feature_matrix
-from src.ml.dd_laminate.train_cases_2_3_4_classical import CASES
-from src.ml.dd_laminate.train_cases_2_3_4_classical import load_records
+from src.ml.dd_laminate.response_deep import (
+    DDResponseGointSurrogate,
+    ordinal_targets,
+    predict_from_logits,
+)
+from src.ml.dd_laminate.response_feature_sets import (
+    SUPPORTED_RESPONSE_FEATURE_SETS,
+    ResponseFeatureRecord,
+    response_feature_matrix,
+)
+from src.ml.dd_laminate.train_cases_2_3_4_classical import CASES, load_records
 from src.ml.dd_laminate.train_cases_2_3_4_goint import normalize
-
 
 METRIC_KEYS = (
     "accuracy",
@@ -783,7 +790,7 @@ def main() -> None:
     parser.add_argument(
         "--feature-set",
         default="theta_physics_v2",
-        choices=["theta", "theta_physics", "theta_physics_v2", "theta_physics_nn_v2", "theta_physics_geometry_v1"],
+        choices=SUPPORTED_RESPONSE_FEATURE_SETS,
     )
     parser.add_argument("--splits", type=int, default=5)
     parser.add_argument("--epochs", type=int, default=220)

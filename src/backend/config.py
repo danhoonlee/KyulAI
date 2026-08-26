@@ -37,9 +37,7 @@ class Settings(BaseSettings):
 
     # ── API ───────────────────────────────────────────────────────────────────
     api_prefix: str = "/api/v1"
-    cors_origins: list[str] = Field(
-        default=["http://localhost:3000", "http://localhost:8080"]
-    )
+    cors_origins: list[str] = Field(default=["http://localhost:3000", "http://localhost:8080"])
 
     # ── Database (PostgreSQL via asyncpg) ─────────────────────────────────────
     database_url: str = "postgresql+asyncpg://kyulai:kyulai@localhost:5432/kyulai_dev"

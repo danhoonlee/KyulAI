@@ -66,35 +66,32 @@ class UnifiedCAERecord(BaseModel):
         n_nodes = self.geometry.num_nodes
         n_elems = self.geometry.num_elements
 
-        for field in self.output_fields.scalar_fields:
-            n = field.values.shape[-1]
-            if field.location == "node" and n != n_nodes:
+        for scalar_field in self.output_fields.scalar_fields:
+            n = scalar_field.values.shape[-1]
+            if scalar_field.location == "node" and n != n_nodes:
                 raise ValueError(
-                    f"Scalar field '{field.name}' has {n} values but "
-                    f"geometry has {n_nodes} nodes"
+                    f"Scalar field '{scalar_field.name}' has {n} values but geometry has {n_nodes} nodes"
                 )
-            if field.location == "element" and n_elems is not None and n != n_elems:
+            if scalar_field.location == "element" and n_elems is not None and n != n_elems:
                 raise ValueError(
-                    f"Scalar field '{field.name}' has {n} values but "
+                    f"Scalar field '{scalar_field.name}' has {n} values but "
                     f"geometry has {n_elems} elements"
                 )
 
-        for field in self.output_fields.vector_fields:
+        for vector_field in self.output_fields.vector_fields:
             # Shape is (N, 3) or (T, N, 3)
-            n = field.values.shape[-2]
-            if field.location == "node" and n != n_nodes:
+            n = vector_field.values.shape[-2]
+            if vector_field.location == "node" and n != n_nodes:
                 raise ValueError(
-                    f"Vector field '{field.name}' has {n} points but "
-                    f"geometry has {n_nodes} nodes"
+                    f"Vector field '{vector_field.name}' has {n} points but geometry has {n_nodes} nodes"
                 )
 
-        for field in self.output_fields.tensor_fields:
+        for tensor_field in self.output_fields.tensor_fields:
             # Shape varies: (N, 3, 3), (N, 6), (N, 6, 6)
-            n = field.values.shape[0]
-            if field.location == "node" and n != n_nodes:
+            n = tensor_field.values.shape[0]
+            if tensor_field.location == "node" and n != n_nodes:
                 raise ValueError(
-                    f"Tensor field '{field.name}' has {n} points but "
-                    f"geometry has {n_nodes} nodes"
+                    f"Tensor field '{tensor_field.name}' has {n} points but geometry has {n_nodes} nodes"
                 )
 
         return self

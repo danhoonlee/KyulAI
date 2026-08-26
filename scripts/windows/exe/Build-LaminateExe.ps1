@@ -43,6 +43,7 @@ if (-not $SkipBuild) {
         --name laminate_backend `
         --onefile `
         --paths "$Root" `
+        --add-data "$Root\src\ml\dd_laminate\case_definitions.json;src\ml\dd_laminate" `
         --distpath "$BuildPath\backend" `
         --workpath "$BuildPath\pyinstaller-backend" `
         "$ScriptDir\laminate_backend_launcher.py"
@@ -88,11 +89,11 @@ Default local URL:
 
 Security mode:
   - LAMINATE_REQUIRE_AUTH=1
-  - LUVELOX_DISABLE_DEMO_LOGIN=1
+  - IMPERIALAX_ENABLE_DEMO_LOGIN=0
   - Users must sign in with module.laminate entitlement.
 
 Account storage:
-  The local SQLite auth database is created under runtime/auth unless LUVELOX_AUTH_DB is set.
+  The local SQLite auth database is created under runtime/auth unless IMPERIALAX_AUTH_DB is set.
   Create/recover users with the bundled admin/API workflow before sharing externally.
 "@ | Set-Content -Path "$OutputPath\README.txt" -Encoding UTF8
 

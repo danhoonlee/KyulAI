@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 def _get_db_session():
     """Create a one-shot async DB session for use inside a Celery task."""
     from src.backend.db.session import AsyncSessionLocal
+
     return AsyncSessionLocal()
 
 
@@ -43,9 +44,11 @@ def parse_dataset(self: Task, dataset_id: str) -> dict:
       5. Store parsed record (HDF5) back in MinIO
       6. Update DB: parse_status = 'ready', record_id, num_nodes, available_fields
     """
+
     async def _run():
         async with _get_db_session() as db:
             from src.backend.services.dataset_service import DatasetService
+
             svc = DatasetService(db)
 
             await svc.update_parse_status(
@@ -69,7 +72,7 @@ def parse_dataset(self: Task, dataset_id: str) -> dict:
                     status="failed",
                     error=str(exc),
                 )
-                raise self.retry(exc=exc, countdown=30)
+                raise self.retry(exc=exc, countdown=30) from exc
 
     asyncio.run(_run())
     return {"dataset_id": dataset_id, "status": "ready"}
@@ -97,6 +100,7 @@ def train_model(self: Task, experiment_id: str) -> dict:
     async def _run():
         async with _get_db_session() as db:
             from src.backend.services.experiment_service import ExperimentService
+
             svc = ExperimentService(db)
 
             experiment = await svc.get(UUID(experiment_id))
@@ -120,7 +124,7 @@ def train_model(self: Task, experiment_id: str) -> dict:
                 experiment.error_message = str(exc)
                 experiment.completed_at = datetime.now(timezone.utc)
                 await db.flush()
-                raise self.retry(exc=exc, countdown=60)
+                raise self.retry(exc=exc, countdown=60) from exc
 
     asyncio.run(_run())
     return {"experiment_id": experiment_id, "status": "completed"}
@@ -141,9 +145,11 @@ def run_prediction(self: Task, prediction_id: str) -> dict:
       5. Store output HDF5 in MinIO
       6. Update DB: status = 'completed', result_summary, result_storage_path
     """
+
     async def _run():
         async with _get_db_session() as db:
             from src.backend.services.prediction_service import PredictionService
+
             svc = PredictionService(db)
 
             await svc.update_status(
@@ -166,7 +172,7 @@ def run_prediction(self: Task, prediction_id: str) -> dict:
                     status="failed",
                     error_message=str(exc),
                 )
-                raise self.retry(exc=exc, countdown=10)
+                raise self.retry(exc=exc, countdown=10) from exc
 
     asyncio.run(_run())
     return {"prediction_id": prediction_id, "status": "completed"}

@@ -282,6 +282,19 @@
       font-weight: 700;
     }
 
+    .duplicate-note {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      color: var(--danger);
+      background: rgba(162, 65, 53, .08);
+      border: 1px solid rgba(162, 65, 53, .18);
+      font-size: 11px;
+      font-weight: 900;
+      line-height: 1.2;
+    }
+
     .mark {
       font-size: 26px;
       font-weight: 900;
@@ -413,6 +426,7 @@
     const state = {
       token: localStorage.getItem(STORAGE_KEY) || '',
       items: [],
+      duplicatePhones: {},
       view: 'summary',
       filter: 'all',
       search: ''
@@ -491,6 +505,43 @@
     function excelText(data, key) {
       const text = value(data, key);
       return text === '-' ? '' : `="${text}"`;
+    }
+
+    function normalizePhone(phone) {
+      return String(phone || '').replace(/\D/g, '');
+    }
+
+    function buildDuplicatePhones(items) {
+      const groups = {};
+      for (const item of items) {
+        const phone = normalizePhone(value(item.data || {}, 'phone'));
+        if (phone.length < 7) continue;
+        if (!groups[phone]) groups[phone] = [];
+        groups[phone].push(item);
+      }
+      return Object.fromEntries(
+        Object.entries(groups).filter(([, group]) => group.length > 1)
+      );
+    }
+
+    function itemOrder(item) {
+      const line = Number(item._line || 0);
+      if (line) return line;
+      const date = new Date(item.submittedAt || 0).getTime();
+      return Number.isNaN(date) ? 0 : date;
+    }
+
+    function duplicateLabel(item) {
+      const phone = normalizePhone(value(item.data || {}, 'phone'));
+      const group = state.duplicatePhones[phone];
+      if (!group || group.length < 2) return '';
+      const ordered = [...group].sort((a, b) => itemOrder(a) - itemOrder(b));
+      const first = ordered[0];
+      const index = ordered.findIndex(entry => entry === item);
+      if (item === first) return `중복 등록 ${group.length}건`;
+      const firstData = first.data || {};
+      const firstName = value(firstData, 'name');
+      return `기존 등록: ${firstName} · ${formatDate(first.submittedAt)}`;
     }
 
     function summaryTotals() {
@@ -596,6 +647,7 @@
         : item.type === 'bus'
           ? [value(data, 'boardingPlace'), value(data, 'memo')].filter(text => text !== '-').join(' / ') || '-'
           : value(data, 'message');
+      const duplicate = duplicateLabel(item);
 
       return `
         <tr>
@@ -605,6 +657,7 @@
               <span>${escapeHtml(value(data, 'name'))}</span>
             </div>
             <div class="time">${escapeHtml(formatDate(item.submittedAt))}</div>
+            ${duplicate ? `<div class="duplicate-note">${escapeHtml(duplicate)}</div>` : ''}
           </td>
           <td>${attend}</td>
           <td>${guests}</td>
@@ -639,6 +692,7 @@
         throw new Error(payload.error || '관리자 비밀번호를 확인해 주세요.');
       }
       state.items = payload.items || [];
+      state.duplicatePhones = buildDuplicatePhones(state.items);
       render();
     }
 
@@ -670,7 +724,7 @@
     }
 
     function downloadCsv() {
-      const rows = [['type', 'submittedAt', 'name', 'phone', 'side', 'attendance', 'guests', 'meal', 'route', 'count', 'boardingPlace', 'memo', 'message']];
+      const rows = [['type', 'submittedAt', 'name', 'phone', 'duplicate', 'side', 'attendance', 'guests', 'meal', 'route', 'count', 'boardingPlace', 'memo', 'message']];
       for (const item of state.items) {
         const data = item.data || {};
         rows.push([
@@ -678,6 +732,7 @@
           item.submittedAt || '',
           value(data, 'name'),
           excelText(data, 'phone'),
+          duplicateLabel(item),
           value(data, 'side'),
           value(data, 'attendance'),
           value(data, 'guests'),
