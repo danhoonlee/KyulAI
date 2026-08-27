@@ -15781,3 +15781,62 @@ Follow-up in same debugging pass:
 - Still open: the remaining 32 failures are a pre-existing mismatch, not merge fallout. They drive
   `/api/v1/modules/auth/demo-login` with `demo@imperialax.com` and an empty password — the demo
   backdoor the serving code removed. The tests need rewriting against the real signup/login flow.
+
+## 2026-08-27 - Backend Tests Realigned With The Hardened Auth
+
+- The suite carried 32 failures. None came from broken code: every one was a test trailing behind a
+  deliberate change.
+- **Rate limiting leaked between tests.** `RATE_LIMITER` is a module-level singleton, so a full run
+  exhausted it and later tests answered 429 while passing in isolation. An autouse fixture in
+  `tests/conftest.py` now resets it around each test. That alone fixed 5.
+- **Prediction routes moved behind `enforce_module_api_security`.** Files that pin a contract rather
+  than access control — `test_rag_api.py`, `test_simple_injection_model_labels.py`,
+  `test_dd_laminate_ios_contract.py` — now opt into the project's own
+  `IMPERIALAX_DISABLE_AUTH_FOR_LOCAL_DEV` bypass, with a fixture docstring saying why and pointing
+  at the module that does cover entitlement enforcement.
+- Behaviour that has since been tightened, with the assertions updated to follow it:
+  - an anonymous `/api/v1/modules/me` sees every module `locked`, not laminate and injection
+    `granted`;
+  - signing up grants no entitlements, so an admin has to hand modules out;
+  - an address in `IMPERIALAX_ADMIN_EMAILS` gets `module.admin` and nothing else;
+  - `dannylee@imperialax.com` left `DEMO_LOGIN_EMAILS` — `DEMO_ENTITLEMENTS` is now just
+    `demo@imperialax.com` — so the admin tests sign that account up through the normal flow via a
+    new `_admin_session()` helper;
+  - `/auth/forgot-password` refuses every caller with 403 until verified email delivery exists. The
+    two tests that drove the old name-plus-email reset became one that checks both the right and the
+    wrong name are refused **and** that the stored password survives the attempt;
+  - the three optimization tests earn a real session and grant it `module.optimization` through the
+    admin endpoint, because the `X-ImperialAX-Entitlements` dev override never reaches the
+    middleware — only a bearer token or session cookie does.
+- Drifted expectations corrected against what the app actually serves: the laminate roots serve the
+  Korean v2 UI, sign-in moved from `login-v2.html` into the workspace bundle, script paths went
+  absolute (`./app-v2.js` → `/app-v2.js`), `/preview/3size` folded into the main UI and marks itself
+  noindex with an `X-Robots-Tag` response header instead of a meta tag, and the three-size registry
+  is now the pt-consistent trio. `tests/fixtures/dd_laminate/predict_response_case2.json` was still
+  the 2026-07-21 recording naming `response_surrogate_physics_v2`, and is regenerated against
+  `response_geometry_tree_canonical_v2` with the panel dimensions the request now carries.
+- Result: 184 pass, 1 fails. Services stayed HTTP 200 throughout. Commit `e9319e1`.
+
+### The remaining failure is a real finding, left failing on purpose
+
+`test_client_bundles_do_not_embed_legacy_session_tokens` scans the shipped clients for the retired
+demo credentials. The web bundles are clean, but
+`ios/ImperialAXMVP/Sources/ImperialAXApp/ImperialAXModels.swift` still declares them:
+
+```swift
+public static let demo   = ImperialAXAuthSession(accessToken: "demo-token",   ...)
+public static let danlee = ImperialAXAuthSession(accessToken: "danlee-token", ...,
+    entitlements: ["module.laminate", "module.injection", "module.optimization", "module.admin"])
+```
+
+`ContentView.swift:110-112` wires both to buttons. The server already refuses these —
+`session_from_token()` returns `None` for anything in `LEGACY_DEMO_TOKENS` — so they are dead
+credentials rather than a live bypass, and the practical effect is an iOS build that believes it is
+signed in while every API call fails. They remain checked into a **public** repository, and the
+`danlee` one advertises an admin entitlement set.
+
+Removing them means editing `ImperialAXModels.swift`, `ContentView.swift` and
+`ImperialAXAppTests.swift`, which changes what the iOS app offers on its entry screen. No Swift
+toolchain exists on this host, so the change cannot be compiled or tested here. Left for a decision
+rather than silently weakened — muting this particular assertion would remove the only check that
+catches credentials shipped to clients.
