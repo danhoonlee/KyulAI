@@ -87,6 +87,9 @@ struct ResultDetailView: View {
                 if let uncertainty = result.uncertainty {
                     PredictionUncertaintyCard(uncertainty: uncertainty)
                 }
+                if let agreement = result.teacherStudent {
+                    TeacherStudentAgreementCard(agreement: agreement)
+                }
                 curveCard
                 interpretationCard
                 probabilityCard
@@ -122,7 +125,7 @@ struct ResultDetailView: View {
             }
             #if os(iOS)
             ShareImageButton(
-                fileName: "c2es-laminate-forecast",
+                fileName: "imperialax-laminate-forecast",
                 report: LaminateShareImageReportView(result: result)
             ) {
                 Image(systemName: "photo")
@@ -1578,6 +1581,124 @@ struct PredictionUncertaintyCard: View {
     }
 }
 
+public struct TeacherStudentAgreementCard: View {
+    public let agreement: TeacherStudentAgreement
+
+    public init(agreement: TeacherStudentAgreement) {
+        self.agreement = agreement
+    }
+
+    private func localText(en: String, ko: String) -> String {
+        let languageCode = UserDefaults.standard.string(forKey: "kyulai.ddLaminate.languageCode")
+            ?? (Locale.current.language.languageCode?.identifier == "ko" ? "ko" : "en")
+        return languageCode == "ko" ? ko : en
+    }
+
+    private var badgeText: String {
+        switch agreement.confidenceLabel {
+        case "high": return localText(en: "High agreement", ko: "높은 일치")
+        case "medium": return localText(en: "Medium agreement", ko: "중간 일치")
+        default: return localText(en: "Low agreement", ko: "낮은 일치")
+        }
+    }
+
+    private var badgeColor: Color {
+        switch agreement.confidenceLabel {
+        case "high": return ResultDetailTheme.success
+        case "medium": return ResultDetailTheme.warning
+        default: return ResultDetailTheme.danger
+        }
+    }
+
+    private var typeText: String {
+        if agreement.typeAgreement {
+            return "\(localText(en: "Match", ko: "일치")) · Type \(agreement.teacher.predictedType)"
+        }
+        return "\(localText(en: "Mismatch", ko: "불일치")) · T\(agreement.teacher.predictedType) / S\(agreement.student.predictedType)"
+    }
+
+    public var body: some View {
+        ResultDetailCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(localText(en: "Agreement", ko: "모델 일치도"))
+                            .font(.caption.weight(.black))
+                            .foregroundStyle(ResultDetailTheme.primary)
+                            .textCase(.uppercase)
+                        Text(localText(en: "Tree vs Student agreement", ko: "Tree vs Student 일치도"))
+                            .font(.headline.weight(.black))
+                            .foregroundStyle(ResultDetailTheme.ink)
+                    }
+                    Spacer()
+                    Text(badgeText)
+                        .font(.caption.weight(.black))
+                        .foregroundStyle(badgeColor)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 7)
+                        .background(badgeColor.opacity(0.14), in: Capsule())
+                }
+
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                    agreementMetric(localText(en: "Agreement", ko: "종합 일치도"), Optional(agreement.agreementScore).percentText)
+                    agreementMetric(localText(en: "Type comparison", ko: "Type 비교"), typeText)
+                    agreementMetric(localText(en: "Pt delta", ko: "Pt 차이"), "\(agreement.ptDelta.metricText(digits: 0)) (\(Optional(agreement.ptDeltaPercent).percentText))")
+                    agreementMetric(localText(en: "Curve delta", ko: "곡선 차이"), agreement.curveNormRmse.map { "\(($0 * 100).metricText(digits: 2))%" } ?? "-")
+                }
+
+                Text("\(localText(en: "Student", ko: "Student")): Type \(agreement.student.predictedType), Pt \(agreement.student.predictedPt.metricText(digits: 0))")
+                    .font(.caption.weight(.black))
+                    .foregroundStyle(ResultDetailTheme.ink)
+
+                ForEach(agreement.notes.prefix(2), id: \.self) { note in
+                    Text(localizedNote(note))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(ResultDetailTheme.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+
+    private func agreementMetric(_ title: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(title)
+                .font(.caption.weight(.black))
+                .foregroundStyle(ResultDetailTheme.muted)
+            Text(value)
+                .font(.subheadline.monospacedDigit().weight(.black))
+                .foregroundStyle(ResultDetailTheme.ink)
+                .lineLimit(2)
+                .minimumScaleFactor(0.72)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(11)
+        .background(ResultDetailTheme.field, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(ResultDetailTheme.line, lineWidth: 1)
+        )
+    }
+
+    private func localizedNote(_ note: String) -> String {
+        let map = [
+            "Teacher is the deployment Tree model; Student is the distilled Hybrid neural model.":
+                localText(en: note, ko: "Teacher는 배포 기본 Tree 모델이고, Student는 distillation 기반 Hybrid 신경망 모델입니다."),
+            "Agreement compares Type, Pt, max force, and response-curve shape for the same theta/case input.":
+                localText(en: note, ko: "같은 θ/Case 입력에 대해 Type, Pt, 최대 하중, 응답 곡선 형태가 얼마나 일치하는지 비교합니다."),
+            "Tree and Student disagree on Type, so validate this candidate before treating the classification as stable.":
+                localText(en: note, ko: "Tree와 Student의 Type 예측이 달라서, 안정적인 분류로 보기 전에 추가 검증이 필요합니다."),
+            "Type agrees, but Pt differs by more than 8%; treat the Pt estimate as a screening value.":
+                localText(en: note, ko: "Type은 일치하지만 Pt 차이가 8%를 넘어, Pt 값은 screening 용도로 해석하는 것이 좋습니다."),
+            "Tree and Student are locally consistent, which supports using this result as an early screening candidate.":
+                localText(en: note, ko: "Tree와 Student가 일관된 결과를 보여, 초기 screening 후보로 활용하기에 비교적 안정적입니다."),
+            "Teacher/Student agreement is included as a deployment consistency check, not as a replacement for simulation validation.":
+                localText(en: note, ko: "Teacher/Student 일치도는 배포용 일관성 체크이며, 최종 해석 검증을 대체하지는 않습니다."),
+        ]
+        return map[note] ?? note
+    }
+}
+
 struct XAIExplanationCard: View {
     let xai: XAIExplanation
     @State private var isShowingAllFeatures = false
@@ -1969,7 +2090,7 @@ extension ResponsePredictionResult {
 
     var shareSummaryText: String {
         let modelLines = [
-            "C2ES Laminate Forecast",
+            "ImperialAX Laminate Forecast",
             "",
             "MODEL",
             "• Model: \(displayModelLabel)",

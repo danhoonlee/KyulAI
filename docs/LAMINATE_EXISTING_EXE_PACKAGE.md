@@ -9,7 +9,7 @@ rebuilding the app from scratch.
 - Backend app: `src/backend/dd_laminate_app.py`
 - Laminate API router: `src/backend/api/v1/dd_laminate.py`
 - Module/auth API router: `src/backend/api/v1/modules.py`
-- Auth store: `src/backend/services/luvelox_auth_store.py`
+- Auth store: `src/backend/services/imperialax_auth_store.py`
 - Frontend UI: `src/frontend/dd-laminate/index-v2.html`
 - Korean UI: `src/frontend/dd-laminate/index-v2.ko.html`
 - Main frontend logic: `src/frontend/dd-laminate/app-v2.js`
@@ -17,7 +17,7 @@ rebuilding the app from scratch.
 
 ## License/login behavior
 
-The Laminate page now has a license login gate. It uses the existing Luvelox
+The Laminate page now has a license login gate. It uses the existing ImperialAX
 auth API:
 
 - Login endpoint: `/api/v1/modules/auth/login`
@@ -27,7 +27,7 @@ auth API:
 The frontend stores the session in:
 
 ```text
-localStorage["luvelox.auth.session.v1"]
+localStorage["imperialax.auth.session.v1"]
 ```
 
 The frontend also attaches the bearer token to Laminate API requests.
@@ -36,7 +36,7 @@ For real packaged EXE builds, the backend should be started with:
 
 ```text
 LAMINATE_REQUIRE_AUTH=1
-LUVELOX_DISABLE_DEMO_LOGIN=1
+IMPERIALAX_DISABLE_DEMO_LOGIN=1
 ```
 
 When `LAMINATE_REQUIRE_AUTH=1`, `/api/v1/dd-laminate/*` requires a valid bearer
@@ -57,7 +57,7 @@ Set-ExecutionPolicy -Scope Process Bypass
 This creates or updates the local SQLite auth database at:
 
 ```text
-data\luvelox_auth.sqlite3
+data\imperialax_auth.sqlite3
 ```
 
 The EXE bundle copies this database with the app, so the issued ID/password can
@@ -95,7 +95,7 @@ LaminateForecast-existing-win-x64-portable\
   src\
     backend\
     frontend\dd-laminate\
-    frontend\luvelox\
+    frontend\imperialax\
   data\
   models\
   README.txt
@@ -107,7 +107,7 @@ This is local account/entitlement gating, suitable for controlled demos and
 limited internal distribution. For stronger commercial licensing, add one of
 these later:
 
-- server-side license activation against a C2ES license API
+- server-side license activation against an ImperialAX license API
 - signed offline license files bound to machine ID
 - time-limited trial license and periodic revalidation
 - installer-level code signing and tamper checks

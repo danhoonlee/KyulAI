@@ -665,7 +665,7 @@ struct ContentView: View {
 
                     #if os(iOS)
                     ShareImageButton(
-                        fileName: "c2es-injection-forecast",
+                        fileName: "imperialax-injection-forecast",
                         report: InjectionShareImageReportView(result: result)
                     ) {
                         Label(L10n.t("share.image"), systemImage: "photo")

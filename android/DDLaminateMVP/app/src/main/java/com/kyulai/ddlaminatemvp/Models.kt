@@ -59,7 +59,7 @@ object Defaults {
     const val RESPONSE_DEEP_MODEL_KEY = "response_goint_physics_nn_v2"
     const val RESPONSE_DISTILLED_MODEL_KEY = "response_distilled_grid_conf_v1"
     val RESPONSE_MODEL_KEYS = listOf(RESPONSE_MODEL_KEY, RESPONSE_DEEP_MODEL_KEY, RESPONSE_DISTILLED_MODEL_KEY)
-    const val DEFAULT_BASE_URL = "https://laminate.luvelox.com"
+    const val DEFAULT_BASE_URL = "https://laminate.imperialax.com"
 }
 
 fun String.cleanModelLabel(): String {

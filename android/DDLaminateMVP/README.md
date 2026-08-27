@@ -1,4 +1,4 @@
-# C2ES Laminate Android MVP
+# ImperialAX Laminate Android MVP
 
 Native Android MVP for the same Laminate REST contract used by the iPhone app.
 
@@ -19,7 +19,7 @@ Run from Android Studio:
 
 Default API URL:
 
-- `https://laminate.luvelox.com`
+- `https://laminate.imperialax.com`
 
 Development base URLs:
 

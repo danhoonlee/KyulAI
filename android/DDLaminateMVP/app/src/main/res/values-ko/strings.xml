@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_title">C2ES 적층 예측</string>
+    <string name="app_title">ImperialAX 적층 예측</string>
     <string name="app_subtitle">Case와 theta 입력으로 적층 Type, Pt, 응답 곡선을 예측합니다.</string>
     <string name="api_status_checking">API 상태: 확인 중</string>
     <string name="host_checked_auto">호스트는 자동으로 확인됩니다.</string>

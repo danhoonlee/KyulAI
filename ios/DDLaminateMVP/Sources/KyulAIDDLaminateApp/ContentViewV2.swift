@@ -97,7 +97,7 @@ struct ContentViewV2: View {
     }
 
     private var appHeadlineTitle: String {
-        localText(en: "C2ES Laminate Forecast", ko: "C2ES 적층 예측")
+        localText(en: "ImperialAX Laminate Forecast", ko: "ImperialAX 적층 예측")
     }
 
     private func localModelLabel(_ label: String) -> String {
@@ -823,6 +823,9 @@ struct ContentViewV2: View {
                 (localText(en: "Max force", ko: "최대 하중"), result.predictedMaxForce.metricText(digits: 2)),
                 (localText(en: "Points", ko: "포인트"), "\(result.curve.count)"),
             ])
+            if let agreement = result.teacherStudent {
+                TeacherStudentAgreementCard(agreement: agreement)
+            }
             CurveChartView(points: result.curve, predictedPt: result.predictedPt, curveFit: result.curveFit)
                 .frame(height: 300)
             probabilityRows(result.sortedProbabilities, selectedType: result.predictedType)

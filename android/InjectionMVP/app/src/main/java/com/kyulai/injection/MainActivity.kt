@@ -455,7 +455,7 @@ class MainActivity : Activity() {
 
         return (
             listOfNotNull(
-                "C2ES Injection Forecast",
+                "ImperialAX Injection Forecast",
                 "",
                 "MODEL",
                 "• Sprue: ${result.displayModelLabel}",
@@ -482,7 +482,7 @@ class MainActivity : Activity() {
     private fun shareResultImage(result: SpruePressureResult) {
         val reportView = buildInjectionShareReport(result)
         val bitmap = renderReportBitmap(reportView)
-        val uri = saveBitmapToPictures(bitmap, "C2ES_Injection_Forecast_${System.currentTimeMillis()}.png") ?: return
+        val uri = saveBitmapToPictures(bitmap, "ImperialAX_Injection_Forecast_${System.currentTimeMillis()}.png") ?: return
         shareImage(uri)
     }
 
@@ -491,7 +491,7 @@ class MainActivity : Activity() {
         return vertical(spacing = 12).apply {
             setPadding(dp(22), dp(22), dp(22), dp(22))
             setBackgroundColor(Color.WHITE)
-            addView(title("C2ES Injection Forecast", 26))
+            addView(title("ImperialAX Injection Forecast", 26))
             addView(title("${result.predictedMaxPressureMPa.numberText(2)} MPa", 32).apply {
                 setTextColor(Ui.primary)
             })
@@ -573,7 +573,7 @@ class MainActivity : Activity() {
             put(MediaStore.Images.Media.DISPLAY_NAME, displayName)
             put(MediaStore.Images.Media.MIME_TYPE, "image/png")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/C2ES")
+                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/ImperialAX")
                 put(MediaStore.Images.Media.IS_PENDING, 1)
             }
         }

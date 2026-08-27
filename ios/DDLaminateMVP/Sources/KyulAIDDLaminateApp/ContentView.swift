@@ -772,6 +772,10 @@ struct ContentView: View {
 
                 InterpretationSummaryView(result: result, maxLines: 2)
 
+                if let agreement = result.teacherStudent {
+                    TeacherStudentAgreementCard(agreement: agreement)
+                }
+
                 CurveChartView(points: result.curve, predictedPt: result.predictedPt, curveFit: result.curveFit)
                     .frame(height: 270)
 
@@ -792,7 +796,7 @@ struct ContentView: View {
 
                     #if os(iOS)
                     ShareImageButton(
-                        fileName: "c2es-laminate-forecast",
+                        fileName: "imperialax-laminate-forecast",
                         report: LaminateShareImageReportView(result: result)
                     ) {
                         Label(L10n.t("share.image"), systemImage: "photo")
@@ -1052,7 +1056,7 @@ struct ContentView: View {
     }
 
     private var appHeadlineTitle: String {
-        localText(en: "C2ES Laminate Forecast", ko: "C2ES 적층 예측")
+        localText(en: "ImperialAX Laminate Forecast", ko: "ImperialAX 적층 예측")
     }
 
     private func friendlyConnectionMessage(_ message: String?) -> String {

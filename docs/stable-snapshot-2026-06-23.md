@@ -1,7 +1,7 @@
 # Stable Snapshot - 2026-06-23
 
 This snapshot preserves the currently working DD Laminate, Simple Injection,
-Luvelox/C2ES app shell, and Windows serving handoff state.
+ImperialAX/ImperialAX app shell, and Windows serving handoff state.
 
 ## Included
 
@@ -10,7 +10,7 @@ Luvelox/C2ES app shell, and Windows serving handoff state.
   consistency helpers, and v2 frontend files.
 - Simple Injection web/API changes, including `/ready`, current sprue/filling
   model availability checks, and v2 frontend files.
-- Luvelox/C2ES unified app shell, login/admin/optimization frontend files, and
+- ImperialAX/ImperialAX unified app shell, login/admin/optimization frontend files, and
   Android/iOS app changes needed for the current app handoff.
 - Windows serving scripts:
   - `scripts/windows/Setup-WindowsServing.ps1`

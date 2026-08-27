@@ -1,6 +1,6 @@
 # Codex Prompt: Model Upgrade Without Curve CSV Classifier Work
 
-You are working on the KyulAI / C2ES / Luvelox composite CAE-AI project.
+You are working on the KyulAI / ImperialAX / ImperialAX composite CAE-AI project.
 
 Repo:
 - https://github.com/danhoonlee/KyulAI

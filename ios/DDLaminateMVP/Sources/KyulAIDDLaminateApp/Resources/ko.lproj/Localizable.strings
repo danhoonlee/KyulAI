@@ -30,7 +30,7 @@
 "compare.interpretation.confidence.higher" = "두 번째 결과의 모델 신뢰도가 더 높습니다.";
 "compare.interpretation.confidence.lower" = "두 번째 결과의 모델 신뢰도가 더 낮으므로 조금 더 조심해서 비교하는 것이 좋습니다.";
 "compare.interpretation.confidence.similar" = "두 결과의 모델 신뢰도는 비슷한 수준입니다.";
-"app.title" = "C2ES 적층 예측";
+"app.title" = "ImperialAX 적층 예측";
 "app.subtitle" = "Case와 theta 입력으로 적층 Type, Pt, 응답 곡선을 예측합니다.";
 "auto" = "자동";
 "forecast.inputs" = "예측 입력";
@@ -84,7 +84,7 @@
 "language.toggle" = "언어 전환";
 "api.base.url" = "API base URL";
 "api.connected" = "연결됨";
-"external.url.hint" = "로컬 네트워크 밖의 폰에서는 https://laminate.luvelox.com 을 사용하세요.";
+"external.url.hint" = "로컬 네트워크 밖의 폰에서는 https://laminate.imperialax.com 을 사용하세요.";
 "api.not.checked" = "API 미확인";
 "checking.api" = "API 확인 중";
 "model.unavailable" = "모델 사용 불가";

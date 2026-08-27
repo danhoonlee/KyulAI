@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_title">C2ES Injection Forecast</string>
+    <string name="app_title">ImperialAX Injection Forecast</string>
     <string name="app_subtitle">Predict sprue pressure and filling pressure summary from Moldex3D DOE inputs.</string>
     <string name="api_status_checking">API status: checking</string>
     <string name="host_checked_auto">Host is checked automatically.</string>

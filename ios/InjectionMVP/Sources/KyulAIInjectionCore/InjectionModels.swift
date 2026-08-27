@@ -432,5 +432,5 @@ public enum JSONValue: Codable, Equatable, Hashable, Sendable {
 public enum InjectionDefaults {
     public static let sprueModelKey = "sprue_classical"
     public static let fillingModelKey = "filling_classical"
-    public static let fallbackBaseURL = "https://injection.luvelox.com"
+    public static let fallbackBaseURL = "https://injection.imperialax.com"
 }

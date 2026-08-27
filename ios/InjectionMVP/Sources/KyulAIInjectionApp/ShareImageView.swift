@@ -69,7 +69,7 @@ struct InjectionShareImageReportView: View {
         VStack(alignment: .leading, spacing: 22) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("C2ES Injection Forecast")
+                    Text("ImperialAX Injection Forecast")
                         .font(.system(size: 34, weight: .black, design: .rounded))
                         .foregroundStyle(AppTheme.ink)
                     Text("Generated result summary")

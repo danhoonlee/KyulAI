@@ -5,7 +5,7 @@
 "prediction.error" = "Prediction error";
 "recent.inputs" = "Recent";
 "recent.clear" = "Clear recent";
-"app.title" = "C2ES Injection Forecast";
+"app.title" = "ImperialAX Injection Forecast";
 "app.subtitle" = "Predict sprue pressure, peak timing, and filling pressure summary from Moldex3D DOE inputs.";
 "sprue.prefix" = "Sprue";
 "filling.prefix" = "Filling";
@@ -29,7 +29,7 @@
 "share.image" = "Image";
 "base.url" = "Base URL";
 "api.base.url" = "API base URL";
-"external.url.hint" = "Use https://injection.luvelox.com for phones outside your local network.";
+"external.url.hint" = "Use https://injection.imperialax.com for phones outside your local network.";
 "api.not.checked" = "API not checked";
 "checking.api" = "Checking API";
 "model.unavailable" = "Model unavailable";

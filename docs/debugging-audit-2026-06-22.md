@@ -2,7 +2,7 @@
 
 ## Scope
 
-Broad pass over the current DD Laminate, u3 Forecast, Luvelox, Simple Injection,
+Broad pass over the current DD Laminate, u3 Forecast, ImperialAX, Simple Injection,
 iOS, Android, and serving surfaces without reverting existing worktree changes.
 
 ## Fixes Applied
@@ -16,9 +16,9 @@ iOS, Android, and serving surfaces without reverting existing worktree changes.
   - `Makefile`
 - Replaced deprecated DD standalone FastAPI startup event with lifespan startup:
   - `src/backend/dd_laminate_app.py`
-- Hardened DD/Luvelox standalone host parsing against missing `Host` headers:
+- Hardened DD/ImperialAX standalone host parsing against missing `Host` headers:
   - `src/backend/dd_laminate_app.py`
-  - `src/backend/luvelox_app.py`
+  - `src/backend/imperialax_app.py`
 - Tightened type boundaries in current operational API/model paths:
   - DD Laminate/u3 API response assembly
   - u3 forecast model bundle/checkpoint loading
@@ -31,8 +31,8 @@ iOS, Android, and serving surfaces without reverting existing worktree changes.
   - strict physics feature-name/value alignment
   - removed unused physics and Pt-consistency variables
 - Protected local-only/generated files from accidental commits:
-  - `data/luvelox_auth.sqlite3`
-  - `data/luvelox_auth.sqlite3-*`
+  - `data/imperialax_auth.sqlite3`
+  - `data/imperialax_auth.sqlite3-*`
   - Office lock files matching `~$*`
 
 ## Verification
@@ -46,30 +46,30 @@ iOS, Android, and serving surfaces without reverting existing worktree changes.
 - Targeted lint on changed Python files:
   - `ruff check src/backend/api/v1/dd_laminate.py src/backend/api/v1/simple_injection.py src/backend/api/v1/optimization.py src/ml/dd_laminate/predict_curve_classifier.py src/ml/dd_laminate/train_cases_2_3_4_classical.py src/ml/dd_laminate/train_u3_forecast_models.py src/ml/dd_laminate/train_u3_pt_models.py src/ml/simple_injection/data.py`
   - Result: passed
-- Targeted type check on operational DD/Luvelox/Simple Injection serving chain:
-  - `mypy --explicit-package-bases` over DD app, Luvelox app, DD API,
+- Targeted type check on operational DD/ImperialAX/Simple Injection serving chain:
+  - `mypy --explicit-package-bases` over DD app, ImperialAX app, DD API,
     Simple Injection API, optimization API, DD/u3 model helpers, and Simple
     Injection data loader
   - Result: passed
 - Frontend JavaScript syntax:
-  - DD, Luvelox, and Simple Injection app files
+  - DD, ImperialAX, and Simple Injection app files
   - Result: passed
 - Backend/API smoke:
   - DD `/health`
   - Laminate Forecast response prediction
   - u3 Forecast ML prediction
   - u3 Forecast DL prediction
-  - Luvelox `/health`
-  - Luvelox modules endpoint
+  - ImperialAX `/health`
+  - ImperialAX modules endpoint
   - Result: all HTTP 200
 - iOS SwiftPM:
   - `ios/DDLaminateMVP`: 11 tests passed
-  - `ios/LuveloxMVP`: 4 tests passed
+  - `ios/ImperialAXMVP`: 4 tests passed
 - Android Gradle:
   - Initial build failed because macOS Java discovery could not find JDK 17.
   - Builds passed with:
     - `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home`
-  - `android/LuveloxMVP`: passed
+  - `android/ImperialAXMVP`: passed
   - `android/DDLaminateMVP`: passed
   - `android/InjectionMVP`: passed
 
@@ -80,7 +80,7 @@ iOS, Android, and serving surfaces without reverting existing worktree changes.
   - major buckets: core `data/schemas/tool_mappings/*` missing `FieldMapping`
     defaults, older Pydantic default-factory typing, generic training/evaluation
     tensor/list typing, and old experiment/dataset service annotations.
-  - The current DD/Luvelox/Simple Injection serving chain checked in this audit
+  - The current DD/ImperialAX/Simple Injection serving chain checked in this audit
     passes targeted mypy.
 - `pip check` still reports an environment dependency conflict:
   - `nlopt 2.10.0` requires `numpy>=2,<3`

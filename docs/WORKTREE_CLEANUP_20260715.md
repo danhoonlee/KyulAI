@@ -51,7 +51,7 @@ feature is intentionally rolled back.
   - `reports/dd_u3_xai_goint_physics_abd_v1/`
   - `src/ml/dd_laminate/laminate_physics.py`
 - Product page / marketing assets
-  - `docs/C2ES_Laminate_Product_Page_*`
+  - `docs/ImperialAX_Laminate_Product_Page_*`
   - `docs/product-assets/`
 - ImperialAX branding assets
   - `icons/imperialAX/`
@@ -87,7 +87,7 @@ that they should be committed or bundled intentionally.
 5. Web/app UI parity changes
    - Laminate and Injection frontend/app UI files
 6. Product page / branding assets
-   - C2ES product HTML/source/assets
+   - ImperialAX product HTML/source/assets
    - ImperialAX icons/reference assets
 7. Cloudflare/server config updates
    - infrastructure files
@@ -136,7 +136,7 @@ that they should be committed or bundled intentionally.
   - `/xai/local` returned 200 for all three Laminate Forecast models.
 - PASS: iOS Swift package tests in `ios/DDLaminateMVP`:
   `11 tests, 0 failures`.
-- BLOCKED: Android `gradle -p android/LuveloxMVP :app:assembleDebug`
+- BLOCKED: Android `gradle -p android/ImperialAXMVP :app:assembleDebug`
   did not reach Kotlin/Java compilation because this Mac has no Java 17
   toolchain configured:
   `Cannot find a Java installation ... matching languageVersion=17`.

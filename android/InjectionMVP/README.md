@@ -1,10 +1,10 @@
-# C2ES Injection Android MVP
+# ImperialAX Injection Android MVP
 
 Native Android MVP for the same Simple Injection REST contract used by the iPhone app.
 
 Default API base URL:
 
-- `https://injection.luvelox.com`
+- `https://injection.imperialax.com`
 
 Endpoints used by the app:
 
