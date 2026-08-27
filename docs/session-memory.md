@@ -15624,3 +15624,123 @@ Follow-up in same debugging pass:
   and the public
   Test 274 input produced predicted Pt and displayed P1 Pt of `18,587.12 kips` with gap `0.0` and
   force scale correction `1.000`.
+
+## 2026-08-26 - Serving Host Working Tree Recovered Into Git
+
+- Found that `~/projects/KyulAI` on the WSL serving host had not committed since the clone on
+  2026-07-21, while its working tree carried real edits dated 2026-07-22 through 2026-08-19: 169
+  modified files and 108 untracked paths. Because uvicorn loads this tree directly, the code
+  serving imperialax.com existed only on this disk — not on GitHub and not on the Mac used to SSH
+  in.
+- Root cause was structural, not neglect: the host had no GitHub push credentials at all — no
+  credential helper, no `~/.git-credentials`, no PAT, and no outgoing SSH key. Pushing was
+  impossible, so nothing was ever committed.
+- Took a verified snapshot first: `~/.local-backups/KyulAI-worktree-20260826.tar.gz` (1.5G, 22,965
+  entries) and `KyulAI-models-20260826.tar.gz` (4.6G), both gzip-tested.
+- Extended `.gitignore` before staging, since the repository is **public**: the live account
+  database `data/imperialax_auth.sqlite3`, `runs/` (24G), `.remote-backups/`, `.codex-backups/`,
+  `.deploy-staging/`, `.omx/`, the migration scratch dirs, and `data/New_Data/`, `data/New_data/`.
+- Committed the state to a new branch `wsl-live-20260826` rather than onto
+  `codex/dd-laminate-ui-api`, which had diverged by six commits on 2026-07-22 and overlaps these
+  edits in `dd_laminate_app.py`, `simple_injection_app.py` and `src/frontend/dd-laminate/*`.
+  Merging those is still open work; the backup branch avoids touching the running tree.
+- Commit `b256099`: 325 files changed, 44,977 insertions, 4,129 deletions. Excluded 4.5G of new
+  model artifacts, which stay local-only.
+- Generated `~/.ssh/id_ed25519` (no passphrase, for unattended pushes), registered it on GitHub,
+  and switched the remote to SSH. Set the git identity to
+  `Dan Lee <32529613+danhoonlee@users.noreply.github.com>` globally and removed the stale
+  repo-local override `danlee@example.local`.
+- Recorded the serving facts in `CLAUDE.md` (commit `7358b28`) so the branch the live service runs
+  from is discoverable from inside the repository.
+- Verification: push succeeded, `git ls-remote` confirmed `b2560992c05a…`, secret scan and the
+  repository's own `scripts/check_secrets.py` were clean, and ai/laminate/injection all returned
+  HTTP 200 throughout.
+
+## 2026-08-26 - Stale Campaign Worktrees Verified And Removed
+
+- `KyulAI_dl_v2`, `KyulAI_dl_v3` and `KyulAI_uq` turned out to be git worktrees of
+  `~/projects/KyulAI` sitting on detached HEADs from 2026-08-11, each with an uncommitted
+  `holdout_usage_ledger.json` entry marked `"git_commit": "pending-result-commit"`.
+- That looked like an open leakage trail but was not.
+  `origin/codex/dd-aicomp2026-untouched-campaign-v1` already carries all three entries with real
+  commit hashes and zero pending entries, and every `selection_freeze.json` sha256 matches the
+  committed artifact exactly (`a1f1862e…`, `ada1fefa…`, `52fef4a5…`).
+- The committed results are also **newer**: `report.md` renames `Curve RMSE` to
+  `Mean row Curve RMSE` and the values move with it — geometry-case-v1 goint development_oof reads
+  `1324.56` in the worktree and `1127.53` as committed — and `model_comparison.md` exists only on
+  the branch. Worktree numbers must not be quoted.
+- The one genuinely uncommitted artifact, `20260811-uq-deep-force-head-v3a`, is a **rejected**
+  gate result (`"passed": false`, failing the pt-MAE and accuracy regression checks), which is why
+  v3b was run and committed. Both record `"fixed_benchmark_used": false`, so neither touched the
+  holdout. It was not committed onto the frozen campaign branch, whose purpose is to stay
+  untouched.
+- Everything else was duplication: `.venv` symlinks, 286M copies of `data/New_data`, and
+  `KyulAI_training_3size/models` byte-identical to `~/projects/KyulAI/models`.
+- Preserved diffs, run artifacts and a written verification trail in
+  `~/.local-backups/worktree-patches-20260826/` (14M, with README), then removed the three
+  worktrees and the `KyulAI_training_3size` copy. Disk fell from 85G to 69G.
+- Verification: symlink targets intact (`.venv` 7.1G, `data/New_data` 321M, `models` 7.1G), venv
+  imports torch/fastapi, laminate tests `16 passed`, services HTTP 200.
+
+## 2026-08-26 - OpenRadioss Laminate Toolchain Brought Onto The Serving Branch
+
+- The Abaqus-to-OpenRadioss converter, its batch/extraction scripts and its tests lived only on the
+  research branch; `git ls-files | grep radioss` on the serving branch returned nothing. Imported
+  13 files plus the `data/inp/Test_001 (1).inp` fixture they exercise, from
+  `origin/codex/dd-aicomp2026-untouched-campaign-v1`. All were new — no conflicts.
+- The documented run command omitted `PYTHONPATH=.`, which fails with `ModuleNotFoundError` because
+  `src` is not installed into the serving venv. `docs/OPENRADIOSS_LAMINATE_CONVERSION.md` now shows
+  the command that works.
+- Recorded the solver build patch under `infrastructure/openradioss/` instead of vendoring the
+  solver source. `0001-define-my_real-when-python-disabled.patch` hoists the `my_real` typedef out
+  of the `#ifndef PYTHON_DISABLED` block in `common_source/modules/cpp_python_funct.cpp`; without
+  it a `-no-python` build fails to compile.
+- Commit `e6de926`.
+- Verification: `16 passed`, and `Test_001 (1).inp` converted to a Starter deck, an Engine deck and
+  a JSON manifest (6,561 nodes).
+
+## 2026-08-27 - OpenRadioss Starter Built On The Serving Host
+
+- Only the engine binary existed, so a converted deck could not actually be run — the starter is
+  what turns a Starter deck into the restart file the engine consumes.
+- The toolchain is not the system compilers. Following `ldd` on the existing engine binary led to a
+  conda environment at `~/.local/opt/openmpi-conda` (gfortran/gcc 15.3.0, cmake 3.29.6, Open MPI
+  5.0.10); system `g++` 15.2.0 supplies C++ and its ABI matches the conda `libstdc++`.
+- Compilation reached 100% but the link failed on seven undefined symbols. The `#else` branch of
+  `cpp_python_funct.cpp` stubs the Python entry points for `-no-python` builds but omits
+  `cpp_python_create_context`, `cpp_python_free_context`, `cpp_python_sync`,
+  `cpp_python_update_active_node`, `cpp_python_update_active_node_ids`,
+  `cpp_python_add_ints_to_dict` and `cpp_python_add_doubles_to_dict`, all of which
+  `python_mod.F90` binds to. Added no-op stubs matching the enabled signatures as
+  `0002-stub-missing-python-disabled-entry-points.patch`. This is the same class of upstream defect
+  as patch 0001.
+- A second failure was environmental, not a defect, so it is written into the build recipe rather
+  than patched: the bundled `extlib/hm_reader/linux64/libapr-1.so` needs `libuuid.so.1` and
+  `libcrypt.so.1`, the conda linker does not search `/usr/lib/x86_64-linux-gnu`, and the arch file
+  overwrites `CMAKE_EXE_LINKER_FLAGS` so `LDFLAGS` cannot supply it. It must come from
+  `LD_LIBRARY_PATH`. At run time that path plus `extlib/hm_reader/linux64` and
+  `RAD_CFG_PATH=$OR/hm_cfg_files` are required, or the starter aborts on
+  `libhm_reader_linux64.so: cannot open shared object file`.
+- Build and run procedure recorded in `infrastructure/openradioss/README.md`. Commit `25586fd`.
+- Verification: both patches apply independently and, applied in order, reproduce the built tree
+  byte-for-byte. `exec/starter_linux64_gf` (20M) reached `NORMAL TERMINATION` with 0 errors and 0
+  warnings in 14.2 s and wrote `Test_001_0000_0001.rst`; the engine then ran from that restart to
+  `NORMAL TERMINATION`, 26,351 cycles in 9 min 9 s, energy error `-0.0%`, no added mass.
+
+## 2026-08-27 - OpenRadioss Output Converters Built
+
+- The solver writes animation (`<root>A###`) and time-history (`<root>T01`) files in its own binary
+  formats, so a deck could be solved but not turned into training data. Upstream moved
+  `anim_to_vtk` and `th_to_csv` out of the solver repository, leaving only README stubs under
+  `tools/`.
+- Cloned https://github.com/OpenRadioss/Tools to `~/projects/OpenRadioss-Tools` (5.2M). Each
+  converter is a single translation unit needing only the system compilers; `linux64/build.bash`
+  builds it into the Tools repo's own `exec/`, from where both were copied into
+  `~/projects/OpenRadioss-mumps-src/exec/`.
+- `scripts/extract_radioss_fint.py --converter` expects the **`anim_to_vtk` binary**, not the
+  conversion manifest — passing the manifest fails with `PermissionError`. Documented in
+  `infrastructure/openradioss/README.md`. Commit `bfa9668`.
+- Verification: `anim_to_vtk` produced valid VTK for 6,561 nodes with TIME/CYCLE fields; the
+  extractor turned the 101 animation files into a 101-step force history rising from `0` at `t=0`
+  to `Fz 3,389.58` at `t=5.0e-3`; `th_to_csv` wrote `Test_001T01.csv` (267K) with the global
+  energies and per-node reactions and displacements.
