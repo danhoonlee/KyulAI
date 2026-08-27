@@ -15744,3 +15744,40 @@ Follow-up in same debugging pass:
   extractor turned the 101 animation files into a 101-step force history rising from `0` at `t=0`
   to `Fz 3,389.58` at `t=5.0e-3`; `th_to_csv` wrote `Test_001T01.csv` (267K) with the global
   energies and per-node reactions and displacements.
+
+## 2026-08-27 - Serving Branch Merged With The 2026-07-22 Branding Rename
+
+- `wsl-live-20260826` forked before `origin/codex/dd-laminate-ui-api` renamed Luvelox and C2ES to
+  ImperialAX, and the two had been diverging by six commits since. The serving host had meanwhile
+  performed the same rename by copying rather than renaming, so both the old and the new paths were
+  tracked at once.
+- Resolved in a scratch worktree at `~/projects/_merge-work`, never in the tree uvicorn serves
+  from. Tagged `pre-merge-20260827` at `fb90dea` first.
+- 37 conflicts: 22 add/add (both sides had independently created `src/frontend/imperialax/*`,
+  `imperialax_app.py`, `imperialax_auth_store.py`) and 15 both-modified.
+- Every conflict resolved to the serving side. It is the later work — `_teacher_student_agreement`,
+  `agreement_score`, `confidence_label` and `ensemble` already appear in the live
+  `api/v1/dd_laminate.py`, so origin's ensemble-confidence, model-agreement and holdout-gate commits
+  are already absorbed. `docs/session-memory.md` on the serving side is a strict superset of
+  origin's (425 sections against 386, none missing).
+- Two conflicts would have **reintroduced credentials into a public repository** had origin won:
+  `login-v2.js` still carries a hardcoded `LOCAL_SESSIONS` map with `demo-token` and `danlee-token`,
+  and `admin.js` persists the admin token to `localStorage` and accepts it from the URL query
+  (`?session_token=`/`?admin_token=`). The serving side had deliberately removed both.
+- What the merge does contribute is the rename: it drops the 105 stale Luvelox/C2ES duplicates the
+  serving branch still carried — `src/frontend/luvelox/`, `src/backend/luvelox_app.py`,
+  `luvelox_auth_store.py`, `test_luvelox_modules.py`, `android/LuveloxMVP`, `ios/LuveloxMVP*`, the
+  C2ES docs and product assets — and brings in their 130 ImperialAX counterparts.
+- Confirmed before applying that nothing running mounts a deleted path: only `luvelox_app.py`
+  referenced `src/frontend/luvelox`, and no systemd unit launches that module. The eight runtime
+  files are byte-identical to the pre-merge live versions.
+- Applied to the live branch as a fast-forward, so the working tree only saw the deletions and
+  renames. Commit `42a403e`; the branch is now 7 ahead of `origin/codex/dd-laminate-ui-api` and
+  0 behind.
+- Verification: 54 test failures before the merge, 32 after, and no test fails that did not already
+  fail — the 22 that went away are the deleted old-brand duplicate suite. Services stayed HTTP 200
+  throughout, and stayed 200 after `systemctl --user restart` of the laminate and injection units,
+  with no warnings in the journal.
+- Still open: the remaining 32 failures are a pre-existing mismatch, not merge fallout. They drive
+  `/api/v1/modules/auth/demo-login` with `demo@imperialax.com` and an empty password — the demo
+  backdoor the serving code removed. The tests need rewriting against the real signup/login flow.
