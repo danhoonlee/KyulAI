@@ -15840,3 +15840,34 @@ Removing them means editing `ImperialAXModels.swift`, `ContentView.swift` and
 toolchain exists on this host, so the change cannot be compiled or tested here. Left for a decision
 rather than silently weakened — muting this particular assertion would remove the only check that
 catches credentials shipped to clients.
+
+## 2026-08-27 - Retired Demo Credentials Removed From The Mobile Clients
+
+- Follow-up to the one test left failing on purpose in the previous entry.
+  `test_client_bundles_do_not_embed_legacy_session_tokens` was right: both mobile clients still
+  carried sessions built from tokens compiled into the binary.
+- The pattern was the same on each side — a real sign-in is attempted, and **on failure** the app
+  substitutes a local session:
+  - iOS `ContentView.swift` `signIn()` fell back to `ImperialAXAuthSession.danlee` for
+    `danlee@imperialax.com` and `.demo` for anything else, so typing that address with any password
+    produced an admin-looking session;
+  - Android `MainActivity.kt` `demoLogin()` ended its chain with
+    `?: localSession("demo@imperialax.com")`.
+- The server had already retired the tokens: `session_from_token()` returns `None` for anything in
+  `LEGACY_DEMO_TOKENS`, so these were dead credentials rather than a live bypass. The practical
+  effect was an app that believed it was signed in while every request failed. What made them worth
+  removing anyway is that they sat in a **public** repository, and the `danlee` entry advertised
+  `["module.laminate", "module.injection", "module.optimization", "module.admin"]`.
+- iOS: deleted the two static constants, and a failed sign-in now sets `loginError` instead of
+  fabricating a session. `ImperialAXAppTests.swift` stored `.demo` in two places; it now decodes a
+  session through a `makeStoredSession()` helper, because `ImperialAXAuthSession` has no public
+  initializer — the constants were the only way tests could build one.
+- Android: removed `localSession()` outright. Its single call site always passed
+  `demo@imperialax.com`, so the `danlee@imperialax.com` branch was already unreachable. A failed
+  sign-in now reaches the existing `"Demo account is not available."` path.
+- Verification: the security test passes and the backend suite is **185 green with no exclusions**,
+  the first clean run in this sequence. Services stayed HTTP 200. Commit `bba5ae4`.
+- **Neither app was compiled.** This host has no Swift or Android toolchain, so the change was
+  checked statically only: brace balance per file, no remaining references to the deleted symbols
+  anywhere in the repo, and no other call sites. Both apps need a build on a machine that has the
+  toolchains before any release.
