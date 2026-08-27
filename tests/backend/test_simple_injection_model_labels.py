@@ -1,8 +1,22 @@
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
 
 from src.backend.simple_injection_app import app
+
+
+@pytest.fixture(autouse=True)
+def bypass_module_auth(monkeypatch) -> None:
+    """These tests cover the model label contract, not access control.
+
+    The router sits behind enforce_module_api_security, so without the
+    project's local-dev bypass every request here answers 401 before reaching
+    the code under test. Entitlement enforcement itself is covered by
+    tests/backend/test_imperialax_modules.py.
+    """
+    monkeypatch.delenv("IMPERIALAX_ENV", raising=False)
+    monkeypatch.setenv("IMPERIALAX_DISABLE_AUTH_FOR_LOCAL_DEV", "1")
 
 
 def test_simple_injection_model_labels_use_actual_model_names() -> None:

@@ -1,9 +1,23 @@
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
 
 from src.backend.api.v1 import rag as rag_api
 from src.backend.dd_laminate_app import app
+
+
+@pytest.fixture(autouse=True)
+def bypass_module_auth(monkeypatch) -> None:
+    """These tests cover RAG search and answer behaviour, not access control.
+
+    Both routers sit behind enforce_module_api_security, so without the
+    project's local-dev bypass every request here answers 401 before reaching
+    the code under test. Entitlement enforcement itself is covered by
+    tests/backend/test_imperialax_modules.py.
+    """
+    monkeypatch.delenv("IMPERIALAX_ENV", raising=False)
+    monkeypatch.setenv("IMPERIALAX_DISABLE_AUTH_FOR_LOCAL_DEV", "1")
 
 
 def test_rag_search_endpoint_returns_ranked_results() -> None:
@@ -87,5 +101,6 @@ def test_rag_answer_endpoint_falls_back_when_answer_generation_fails(monkeypatch
     assert payload["provider"] == "extractive"
     assert payload["model"] == "local-error-fallback"
     assert payload["used_llm"] is False
-    assert "synthetic rag failure" in payload["error"]
+    assert payload["error"] == "RAG answer temporarily unavailable; used the local fallback."
+    assert "synthetic rag failure" not in payload["error"]
     assert "수지 온도" in payload["answer"]

@@ -9,6 +9,21 @@ import pytest
 import torch
 
 
+@pytest.fixture(autouse=True)
+def reset_rate_limiter():
+    """Give every test its own rate-limit budget.
+
+    The limiter is a module-level singleton, so without this a full run leaks
+    counts between tests and later ones start failing with 429 even though they
+    pass in isolation.
+    """
+    from src.backend.security.request_limits import RATE_LIMITER
+
+    RATE_LIMITER.reset()
+    yield
+    RATE_LIMITER.reset()
+
+
 @pytest.fixture(autouse=False)
 def set_random_seeds():
     """Set deterministic seeds for reproducible test results."""

@@ -27,6 +27,19 @@ REQUIRED_RESPONSE_FIELDS = {
 }
 
 
+@pytest.fixture(autouse=True)
+def bypass_module_auth(monkeypatch) -> None:
+    """This module pins the iOS request/response contract, not access control.
+
+    The laminate prediction routes sit behind enforce_module_api_security, so
+    without the project's local-dev bypass the contract assertions never see a
+    payload. Entitlement enforcement is covered by
+    tests/backend/test_imperialax_modules.py.
+    """
+    monkeypatch.delenv("IMPERIALAX_ENV", raising=False)
+    monkeypatch.setenv("IMPERIALAX_DISABLE_AUTH_FOR_LOCAL_DEV", "1")
+
+
 @pytest.fixture()
 def client() -> TestClient:
     return TestClient(app)
@@ -123,10 +136,9 @@ def test_three_size_preview_models_and_page_are_isolated_from_mobile_registry(
     assert preview_models.status_code == 200
     models = preview_models.json()
     assert [model["key"] for model in models] == [
-        "response_geometry_tree_3size_grouped_v1",
         "response_pt_consistent_tree_3size_grouped_v1",
-        "response_geometry_goint_3size_grouped_v1",
-        "response_hybrid_student_3size_grouped_v1",
+        "response_pt_consistent_goint_3size_grouped_v1",
+        "response_pt_consistent_hybrid_3size_grouped_v1",
     ]
     assert all(model["input_mode"] == "response" for model in models)
     assert all(model["available"] for model in models)
@@ -138,13 +150,20 @@ def test_three_size_preview_models_and_page_are_isolated_from_mobile_registry(
         "response_hybrid_student_canonical_v2",
     ]
 
+    # The three-size capability folded into the main forecast UI, so this route
+    # now serves that page and keeps it out of search results with a response
+    # header rather than a meta tag.
     preview_page = client.get("/preview/3size")
     assert preview_page.status_code == 200
-    assert "3-Size Laminate Forecast" in preview_page.text
-    assert "/app-3size-preview.js" in preview_page.text
-    assert 'name="robots" content="noindex, nofollow"' in preview_page.text
+    assert preview_page.headers["x-robots-tag"] == "noindex, nofollow"
+    assert 'src="/app-v2.js' in preview_page.text
     assert 'name="panel_a_in"' in preview_page.text
     assert 'name="panel_b_in"' in preview_page.text
+
+    korean_preview = client.get("/preview/3size", params={"lang": "ko"})
+    assert korean_preview.status_code == 200
+    assert 'lang="ko"' in korean_preview.text
+    assert korean_preview.headers["x-robots-tag"] == "noindex, nofollow"
 
     rejected = client.post(
         "/api/v1/dd-laminate/predict/response/3size-preview",
@@ -216,9 +235,13 @@ def test_public_root_serves_v2_ui_for_imperialax(client: TestClient) -> None:
     response = client.get("/", headers={"host": "laminate.imperialax.com"})
 
     assert response.status_code == 200
-    assert "Composite Laminate AI" in response.text
-    assert "./app-v2.js" in response.text
-    assert 'href="https://ai.imperialax.com/index.html">Modules</a>' in response.text
+    assert 'lang="ko"' in response.text
+    assert "ImperialAX 적층 예측" in response.text
+    assert 'src="/app-v2.js' in response.text
+    # The standalone Modules back-link moved into the shared product shell,
+    # which also loads the header auth utilities.
+    assert 'src="/imperialax-product-shell.js' in response.text
+    assert 'src="/auth-gate.js' in response.text
 
 
 def test_laminate_pages_link_back_to_imperialax_user_page(client: TestClient) -> None:
@@ -243,8 +266,9 @@ def test_ai_imperialax_root_serves_imperialax_login_entry_from_public_app(
     response = client.get("/", headers={"host": "ai.imperialax.com"})
 
     assert response.status_code == 200
-    assert "ImperialAX Account Access" in response.text
-    assert "./login-v2.js" in response.text
+    assert "ImperialAX Forecast Workspace" in response.text
+    assert "Sign in" in response.text
+    assert 'src="./app.js' in response.text
 
 
 def test_ai_imperialax_workspace_static_files_are_host_routed(client: TestClient) -> None:
@@ -318,8 +342,9 @@ def test_local_root_serves_forecast_entry_default(client: TestClient) -> None:
     response = client.get("/")
 
     assert response.status_code == 200
-    assert "Open Laminate Forecast" in response.text
-    assert "./index-v2.html" in response.text
+    assert 'lang="ko"' in response.text
+    assert "ImperialAX 적층 예측" in response.text
+    assert 'src="/app-v2.js' in response.text
 
 
 def test_v2_korean_page_serves_translated_current_ui(client: TestClient) -> None:
@@ -330,7 +355,7 @@ def test_v2_korean_page_serves_translated_current_ui(client: TestClient) -> None
     assert "복합재 적층 AI" in response.text
     assert "ImperialAX 적층 예측" in response.text
     assert "응답 예측" in response.text
-    assert "./app-v2.js" in response.text
+    assert 'src="/app-v2.js' in response.text
 
 
 def test_predict_response_matches_ios_contract_shape(client: TestClient, ios_fixture: dict) -> None:

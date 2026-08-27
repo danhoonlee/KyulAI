@@ -6,32 +6,35 @@
     "theta1": 30,
     "theta2": -30,
     "case": "Case2",
-    "model": "response_surrogate_physics_v2"
+    "model": "response_geometry_tree_canonical_v2",
+    "panel_a_in": 6.0,
+    "panel_b_in": 4.0
   },
   "response": {
     "predicted_type": 2,
-    "confidence": 0.51125,
+    "confidence": 0.844706,
     "probabilities": {
-      "type1": 0.0425,
-      "type2": 0.51125,
-      "type3": 0.44625
+      "type1": 0.098824,
+      "type2": 0.844706,
+      "type3": 0.056471
     },
-    "model_key": "response_surrogate_physics_v2",
+    "model_key": "response_geometry_tree_canonical_v2",
     "model_label": "Laminate Forecast - Machine Learning",
     "input_mode": "response",
     "inputs": {
       "theta1": 30.0,
       "theta2": -30.0,
-      "case": "Case2"
+      "case": "Case2",
+      "panel_a_in": 6.0,
+      "panel_b_in": 4.0
     },
     "notes": [
-      "Laminate Forecast - Machine Learning prediction; validate promising candidates with simulation.",
-      "Top two class probabilities are close; treat this as an ambiguous candidate."
+      "Laminate Forecast - Machine Learning prediction; validate promising candidates with simulation."
     ],
     "features": null,
-    "predicted_pt": 17546.729741418498,
+    "predicted_pt": 17433.050439333558,
     "predicted_max_displacement": 0.15000000596046448,
-    "predicted_max_force": 30006.734791212082,
+    "predicted_max_force": 43854.44595412236,
     "curve": [
       {
         "displacement": 0.0,
@@ -39,528 +42,591 @@
       },
       {
         "displacement": 0.0011811024091375156,
-        "force": 619.8104328227282
+        "force": 880.7533364925449
       },
       {
         "displacement": 0.002362204818275031,
-        "force": 1239.186023454286
+        "force": 1761.8470862398253
       },
       {
         "displacement": 0.0035433072274125466,
-        "force": 1842.7956241292798
+        "force": 2672.2058010069654
       },
       {
         "displacement": 0.004724409636550062,
-        "force": 2446.1670164647053
+        "force": 3549.494944504893
       },
       {
         "displacement": 0.005905512045687578,
-        "force": 3079.002683722465
+        "force": 4412.989085390016
       },
       {
         "displacement": 0.007086614454825093,
-        "force": 3699.583624601569
+        "force": 5309.326435052872
       },
       {
         "displacement": 0.00826771686396261,
-        "force": 4298.877726134858
+        "force": 6219.401615081838
       },
       {
         "displacement": 0.009448819273100125,
-        "force": 4903.241185022173
+        "force": 7110.956256380068
       },
       {
         "displacement": 0.01062992168223764,
-        "force": 5518.09839844901
+        "force": 7980.731680135605
       },
       {
         "displacement": 0.011811024091375156,
-        "force": 6135.16160012958
+        "force": 8847.113998639454
       },
       {
         "displacement": 0.012992126500512671,
-        "force": 6741.755745194943
+        "force": 9720.912243462564
       },
       {
         "displacement": 0.014173228909650186,
-        "force": 7325.763305926558
+        "force": 10602.414684825924
       },
       {
         "displacement": 0.015354331318787702,
-        "force": 7881.862877304049
+        "force": 11486.452680891392
       },
       {
         "displacement": 0.01653543372792522,
-        "force": 8403.576636164427
+        "force": 12355.678199965012
       },
       {
         "displacement": 0.017716536137062734,
-        "force": 8890.190877360763
+        "force": 13194.556926960737
       },
       {
         "displacement": 0.01889763854620025,
-        "force": 9346.88329337282
+        "force": 13990.536843508104
       },
       {
         "displacement": 0.02007874095533776,
-        "force": 9779.404469014895
+        "force": 14735.895697699954
       },
       {
         "displacement": 0.02125984336447528,
-        "force": 10191.796725835095
+        "force": 15429.082798539917
       },
       {
         "displacement": 0.0224409457736128,
-        "force": 10586.801254439972
+        "force": 16071.56582210504
       },
       {
         "displacement": 0.02362204818275031,
-        "force": 10966.213071208687
+        "force": 16662.920506788465
       },
       {
         "displacement": 0.024803150591887823,
-        "force": 11331.1393194085
+        "force": 17196.20733627763
       },
       {
         "displacement": 0.025984253001025342,
-        "force": 11682.263958407564
+        "force": 17678.94923869493
       },
       {
         "displacement": 0.02716535541016286,
-        "force": 12019.954495450678
+        "force": 18121.723304801937
       },
       {
         "displacement": 0.028346457819300373,
-        "force": 12344.3440367168
+        "force": 18530.93124571723
       },
       {
         "displacement": 0.029527560228437888,
-        "force": 12655.54781924739
+        "force": 18914.010494184084
       },
       {
         "displacement": 0.030708662637575403,
-        "force": 12953.978362344855
+        "force": 19287.590795832974
       },
       {
         "displacement": 0.03188976504671292,
-        "force": 13240.419174531347
+        "force": 19645.331307562206
       },
       {
         "displacement": 0.03307086745585044,
-        "force": 13515.962756799954
+        "force": 19990.056277159263
       },
       {
         "displacement": 0.03425196986498795,
-        "force": 13781.795494169612
+        "force": 20328.21137199864
       },
       {
         "displacement": 0.03543307227412547,
-        "force": 14039.023280826457
+        "force": 20666.850390874213
       },
       {
         "displacement": 0.03661417468326299,
-        "force": 14288.59937918382
+        "force": 21008.5449547832
       },
       {
         "displacement": 0.0377952770924005,
-        "force": 14531.334608511375
+        "force": 21352.187269463244
       },
       {
         "displacement": 0.03897637950153801,
-        "force": 14767.935868609049
+        "force": 21691.829905037885
       },
       {
         "displacement": 0.04015748191067552,
-        "force": 14999.065021109533
+        "force": 22026.71062568002
       },
       {
         "displacement": 0.04133858431981305,
-        "force": 15225.32236833242
+        "force": 22354.955853428164
       },
       {
         "displacement": 0.04251968672895056,
-        "force": 15447.269673599661
+        "force": 22674.889625485685
       },
       {
         "displacement": 0.04370078913808807,
-        "force": 15665.435608520816
+        "force": 22984.46560361909
       },
       {
         "displacement": 0.0448818915472256,
-        "force": 15880.410161877171
+        "force": 23288.146900274915
       },
       {
         "displacement": 0.04606299395636311,
-        "force": 16093.192607263136
+        "force": 23587.85934552173
       },
       {
         "displacement": 0.04724409636550062,
-        "force": 16305.650357375767
+        "force": 23886.22583561159
       },
       {
         "displacement": 0.048425198774638134,
-        "force": 16518.96203032469
+        "force": 24184.82849011462
       },
       {
         "displacement": 0.049606301183775646,
-        "force": 16731.39887883651
+        "force": 24483.672247658647
       },
       {
         "displacement": 0.05078740359291317,
-        "force": 16938.75546055872
+        "force": 24784.521275594634
       },
       {
         "displacement": 0.051968506002050684,
-        "force": 17144.297869215334
+        "force": 25082.599999581933
       },
       {
         "displacement": 0.053149608411188196,
-        "force": 17347.31804188557
+        "force": 25377.915515716948
       },
       {
         "displacement": 0.05433071082032572,
-        "force": 17547.573889707433
+        "force": 25670.152605757343
       },
       {
         "displacement": 0.05551181322946323,
-        "force": 17744.944521719706
+        "force": 25958.737816221932
       },
       {
         "displacement": 0.056692915638600745,
-        "force": 17937.793988923637
+        "force": 26242.079094547855
       },
       {
         "displacement": 0.05787401804773826,
-        "force": 18129.196875509493
+        "force": 26521.411108796638
       },
       {
         "displacement": 0.059055120456875776,
-        "force": 18319.64083452626
+        "force": 26796.53440141895
       },
       {
         "displacement": 0.060236222866013295,
-        "force": 18508.86654535961
+        "force": 27068.68314114839
       },
       {
         "displacement": 0.06141732527515081,
-        "force": 18697.13643783374
+        "force": 27338.799079396824
       },
       {
         "displacement": 0.06259842768428832,
-        "force": 18885.501934475396
+        "force": 27608.34591175728
       },
       {
         "displacement": 0.06377953009342584,
-        "force": 19074.563348513642
+        "force": 27878.346310829747
       },
       {
         "displacement": 0.06496063250256336,
-        "force": 19262.562435621716
+        "force": 28147.91156004769
       },
       {
         "displacement": 0.06614173491170088,
-        "force": 19448.097464957224
+        "force": 28416.44222202068
       },
       {
         "displacement": 0.06732283732083838,
-        "force": 19630.72550075287
+        "force": 28683.59686180481
       },
       {
         "displacement": 0.0685039397299759,
-        "force": 19810.925334608484
+        "force": 28949.013809311018
       },
       {
         "displacement": 0.06968504213911342,
-        "force": 19988.96570245622
+        "force": 29212.34249747858
       },
       {
         "displacement": 0.07086614454825094,
-        "force": 20165.195928382782
+        "force": 29473.281864259832
       },
       {
         "displacement": 0.07204724695738844,
-        "force": 20340.079208258892
+        "force": 29731.587120372653
       },
       {
         "displacement": 0.07322834936652597,
-        "force": 20514.09057091116
+        "force": 29987.026175216095
       },
       {
         "displacement": 0.07440945177566348,
-        "force": 20687.270799678885
+        "force": 30239.378728778043
       },
       {
         "displacement": 0.075590554184801,
-        "force": 20859.2833122942
+        "force": 30488.5114258369
       },
       {
         "displacement": 0.0767716565939385,
-        "force": 21030.715621549713
+        "force": 30736.227408801835
       },
       {
         "displacement": 0.07795275900307602,
-        "force": 21201.599702570405
+        "force": 30982.92723296273
       },
       {
         "displacement": 0.07913386141221354,
-        "force": 21371.825227292655
+        "force": 31228.633192282323
       },
       {
         "displacement": 0.08031496382135105,
-        "force": 21541.26329575504
+        "force": 31473.35935379398
       },
       {
         "displacement": 0.08149606623048858,
-        "force": 21709.782075719642
+        "force": 31717.124223317544
       },
       {
         "displacement": 0.0826771686396261,
-        "force": 21877.276578331996
+        "force": 31959.957643148176
       },
       {
         "displacement": 0.0838582710487636,
-        "force": 22043.678532971055
+        "force": 32201.87535393117
       },
       {
         "displacement": 0.08503937345790112,
-        "force": 22208.93157396879
+        "force": 32442.84615914028
       },
       {
         "displacement": 0.08622047586703864,
-        "force": 22372.880851105765
+        "force": 32682.841256742708
       },
       {
         "displacement": 0.08740157827617615,
-        "force": 22535.086945972467
+        "force": 32921.89672117712
       },
       {
         "displacement": 0.08858268068531366,
-        "force": 22695.68588312199
+        "force": 33159.80046326671
       },
       {
         "displacement": 0.0897637830944512,
-        "force": 22855.27580807375
+        "force": 33396.21900092734
       },
       {
         "displacement": 0.0909448855035887,
-        "force": 23013.964520548143
+        "force": 33630.957525291225
       },
       {
         "displacement": 0.09212598791272622,
-        "force": 23171.730746672325
+        "force": 33863.81592438143
       },
       {
         "displacement": 0.09330709032186373,
-        "force": 23328.564814201352
+        "force": 34094.58665152387
       },
       {
         "displacement": 0.09448819273100124,
-        "force": 23484.544731724363
+        "force": 34323.2301682856
       },
       {
         "displacement": 0.09566929514013876,
-        "force": 23639.8347383568
+        "force": 34550.03625536272
       },
       {
         "displacement": 0.09685039754927627,
-        "force": 23794.532428754843
+        "force": 34775.25520336615
       },
       {
         "displacement": 0.09803149995841379,
-        "force": 23948.64332794277
+        "force": 34999.00216743718
       },
       {
         "displacement": 0.09921260236755129,
-        "force": 24102.132783278772
+        "force": 35221.379298698404
       },
       {
         "displacement": 0.10039370477668882,
-        "force": 24254.95006450687
+        "force": 35442.51205353817
       },
       {
         "displacement": 0.10157480718582634,
-        "force": 24407.033373970302
+        "force": 35662.54300096411
       },
       {
         "displacement": 0.10275590959496385,
-        "force": 24558.320406187275
+        "force": 35881.614682011445
       },
       {
         "displacement": 0.10393701200410137,
-        "force": 24708.76428929086
+        "force": 36099.861231945906
       },
       {
         "displacement": 0.10511811441323889,
-        "force": 24858.320349473765
+        "force": 36317.41872686529
       },
       {
         "displacement": 0.10629921682237639,
-        "force": 25006.960888140555
+        "force": 36534.39284725535
       },
       {
         "displacement": 0.10748031923151391,
-        "force": 25154.736641597025
+        "force": 36750.72832762108
       },
       {
         "displacement": 0.10866142164065144,
-        "force": 25301.727838937844
+        "force": 36966.334792794485
       },
       {
         "displacement": 0.10984252404978895,
-        "force": 25448.000595837148
+        "force": 37181.198850863504
       },
       {
         "displacement": 0.11102362645892647,
-        "force": 25593.607702442623
+        "force": 37395.32314773098
       },
       {
         "displacement": 0.11220472886806399,
-        "force": 25738.554207772057
+        "force": 37608.606426945116
       },
       {
         "displacement": 0.11338583127720149,
-        "force": 25882.783721648266
+        "force": 37820.830534089226
       },
       {
         "displacement": 0.11456693368633901,
-        "force": 26026.096394122367
+        "force": 38031.61731117475
       },
       {
         "displacement": 0.11574803609547651,
-        "force": 26167.263526873954
+        "force": 38239.34313135008
       },
       {
         "displacement": 0.11692913850461403,
-        "force": 26307.678806117274
+        "force": 38445.71969530292
       },
       {
         "displacement": 0.11811024091375155,
-        "force": 26447.734932987816
+        "force": 38651.30173452338
       },
       {
         "displacement": 0.11929134332288907,
-        "force": 26587.255026158782
+        "force": 38855.91407060636
       },
       {
         "displacement": 0.12047244573202659,
-        "force": 26726.210426045935
+        "force": 39059.55525046407
       },
       {
         "displacement": 0.12165354814116411,
-        "force": 26864.5930399076
+        "force": 39262.2352103782
       },
       {
         "displacement": 0.12283465055030161,
-        "force": 27002.40259478979
+        "force": 39463.96385515559
       },
       {
         "displacement": 0.12401575295943913,
-        "force": 27139.64128578944
+        "force": 39664.74777190038
       },
       {
         "displacement": 0.12519685536857664,
-        "force": 27276.309418607383
+        "force": 39864.59027770558
       },
       {
         "displacement": 0.12637795777771416,
-        "force": 27412.408584775436
+        "force": 40063.49441605385
       },
       {
         "displacement": 0.12755906018685167,
-        "force": 27547.943713506324
+        "force": 40261.468248985366
       },
       {
         "displacement": 0.1287401625959892,
-        "force": 27682.91191501078
+        "force": 40458.51066859949
       },
       {
         "displacement": 0.1299212650051267,
-        "force": 27817.317780130088
+        "force": 40654.63305471113
       },
       {
         "displacement": 0.13110236741426423,
-        "force": 27951.15961562779
+        "force": 40849.840570313696
       },
       {
         "displacement": 0.13228346982340175,
-        "force": 28084.436917032675
+        "force": 41044.143802846454
       },
       {
         "displacement": 0.13346457223253927,
-        "force": 28217.151643478766
+        "force": 41237.55925548725
       },
       {
         "displacement": 0.13464567464167676,
-        "force": 28349.29981670866
+        "force": 41430.09692832785
       },
       {
         "displacement": 0.13582677705081428,
-        "force": 28480.88170839342
+        "force": 41621.7738401141
       },
       {
         "displacement": 0.1370078794599518,
-        "force": 28611.89444265962
+        "force": 41812.602209593664
       },
       {
         "displacement": 0.13818898186908932,
-        "force": 28742.333498998607
+        "force": 42002.59096538163
       },
       {
         "displacement": 0.13937008427822684,
-        "force": 28872.191940721703
+        "force": 42191.7502180046
       },
       {
         "displacement": 0.14055118668736435,
-        "force": 29001.37527299353
+        "force": 42380.05568689408
       },
       {
         "displacement": 0.14173228909650187,
-        "force": 29129.574358900158
+        "force": 42567.416537898716
       },
       {
         "displacement": 0.1429133915056394,
-        "force": 29256.731249838867
+        "force": 42753.84405605086
       },
       {
         "displacement": 0.14409449391477688,
-        "force": 29383.25275371115
+        "force": 42939.52540359033
       },
       {
         "displacement": 0.1452755963239144,
-        "force": 29509.153456231095
+        "force": 43124.428135553186
       },
       {
         "displacement": 0.14645669873305195,
-        "force": 29634.397449429667
+        "force": 43308.42939380877
       },
       {
         "displacement": 0.14763780114218944,
-        "force": 29759.004730337834
+        "force": 43491.41687209184
       },
       {
         "displacement": 0.14881890355132696,
-        "force": 29883.053187488695
+        "force": 43673.416722686976
       },
       {
         "displacement": 0.15000000596046448,
-        "force": 30006.730533483398
+        "force": 43854.45930062668
       }
     ],
+    "curve_fit": {
+      "kink": {
+        "displacement": 0.02339066658780747,
+        "force": 17433.05043933353
+      },
+      "detected_kink": {
+        "displacement": 0.02362204818275031,
+        "force": 16662.920506788465
+      },
+      "first_line": {
+        "slope": 740860.7757616749,
+        "intercept": 103.82304550779618
+      },
+      "second_line": {
+        "slope": 273765.4560648351,
+        "intercept": 11029.493933261914
+      },
+      "first_start_x": 0.0,
+      "first_end_x": 0.03014066685602837,
+      "second_start_x": 0.01964066643879586,
+      "second_end_x": 0.15000000596046448,
+      "first_window": {
+        "start": 8,
+        "end": 14
+      },
+      "second_window": {
+        "start": 33,
+        "end": 37
+      }
+    },
     "metrics": {
-      "n_samples": 900,
-      "seq_len": 128,
-      "cv_accuracy_mean": 0.9244444444444445,
-      "cv_accuracy_std": 0.010886621079036348,
-      "cv_macro_f1_mean": 0.9154051361009776,
-      "cv_macro_f1_std": 0.016742727647364786,
-      "cv_pt_mae_mean": 496.2151016717747,
-      "cv_pt_mae_std": 75.83695260522927,
-      "cv_max_displacement_mae_mean": 0.000507785214504434,
-      "cv_max_displacement_mae_std": 0.00029960584356326686,
-      "cv_max_force_mae_mean": 578.6684201933408,
-      "cv_max_force_mae_std": 87.61744850182141,
-      "cv_curve_norm_rmse_mean": 0.009584810909596304,
-      "cv_curve_norm_rmse_std": 0.001958624368228023
-    }
+      "n_samples": 1800.0,
+      "seq_len": 128.0,
+      "input_dim": 40.0,
+      "feature_builder": "theta_physics_geometry_canonical_v2",
+      "cv_accuracy_mean": 0.9638888888888888,
+      "cv_accuracy_std": 0.008050764858994135,
+      "cv_macro_f1_mean": 0.9634010273848153,
+      "cv_macro_f1_std": 0.007486546650542295,
+      "cv_pt_mae_mean": 267.78828071589743,
+      "cv_pt_mae_std": 64.26559506331937,
+      "cv_max_displacement_mae_mean": 0.00032931432593492113,
+      "cv_max_displacement_mae_std": 0.00021905027131476914,
+      "cv_max_force_mae_mean": 252.60000089713463,
+      "cv_max_force_mae_std": 32.78343175804605,
+      "cv_curve_norm_rmse_mean": 0.005704961066823653,
+      "cv_curve_norm_rmse_std": 0.0018981549487844236,
+      "cv_curve_force_rmse_mean": 382.42248055568217,
+      "cv_curve_force_rmse_std": 138.50749722379575,
+      "pt_curve_inside_range": 1.0,
+      "pt_curve_inside_range_before_calibration": 1.0,
+      "pt_curve_displacement": 0.025382623718637753,
+      "pt_curve_force_gap": 0.0,
+      "pt_curve_force_scale_correction": 1.0,
+      "kink_fit_pt_force_before_alignment": 11847.283725952433,
+      "kink_fit_pt_force_after_alignment": 17433.05043933353,
+      "kink_fit_force_scale_correction": 1.4714807919341926,
+      "response_output_mode": "pt_aligned_postprocessing",
+      "pt_curve_force_postprocessing_applied": 1.0
+    },
+    "xai": null,
+    "uncertainty": {
+      "reliability_score": 0.8083,
+      "confidence_label": "high",
+      "interpolation_score": 0.8901,
+      "interpolation_label": "interpolation",
+      "nearest_distance": 5.0,
+      "nearest_count": 12,
+      "local_pt_std": 1848.0586,
+      "pt_interval_low": 15584.9919,
+      "pt_interval_high": 19281.109,
+      "type_consistency": 0.5833,
+      "notes": [
+        "Reliability combines model confidence, distance to nearby curated simulations, and local Type agreement.",
+        "Pt interval is a screening band from nearby Pt scatter, not a formal statistical confidence interval.",
+        "This theta/case input is within a well-covered region of the observed design space."
+      ]
+    },
+    "teacher_student": null
   }
 }
