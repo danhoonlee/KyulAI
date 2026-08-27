@@ -89,30 +89,6 @@ public struct ImperialAXAuthSession: Codable, Equatable, Sendable {
         case user
         case entitlements
     }
-
-    public static let demo = ImperialAXAuthSession(
-        accessToken: "demo-token",
-        tokenType: "bearer",
-        user: ImperialAXAccountUser(
-            id: "demo-user",
-            email: "demo@imperialax.com",
-            name: "Demo Account",
-            company: "ImperialAX MVP"
-        ),
-        entitlements: ["module.laminate", "module.injection"]
-    )
-
-    public static let danlee = ImperialAXAuthSession(
-        accessToken: "danlee-token",
-        tokenType: "bearer",
-        user: ImperialAXAccountUser(
-            id: "danlee",
-            email: "danlee@imperialax.com",
-            name: "Dan Lee",
-            company: "ImperialAX"
-        ),
-        entitlements: ["module.laminate", "module.injection", "module.optimization", "module.admin"]
-    )
 }
 
 public struct ImperialAXSignupPayload: Encodable, Equatable, Sendable {

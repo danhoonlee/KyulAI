@@ -106,14 +106,12 @@ final class ImperialAXHomeViewModel: ObservableObject {
             let session = try await client.demoLogin(email: normalizedEmail, password: password)
             setSession(session)
         } catch {
-            if normalizedEmail == "danlee@imperialax.com" {
-                setSession(.danlee)
-            } else if normalizedEmail == "demo@imperialax.com" || normalizedEmail.isEmpty {
-                setSession(.demo)
-            } else {
-                loginError = "Use demo@imperialax.com for the MVP account."
-                return
-            }
+            // A failed sign-in leaves the app signed out. It used to fall back to
+            // a session built from credentials compiled into the app, which the
+            // server has since stopped accepting — so the app looked signed in
+            // while every request failed.
+            loginError = "Could not sign in. Check your connection and your credentials."
+            return
         }
         await refresh()
     }

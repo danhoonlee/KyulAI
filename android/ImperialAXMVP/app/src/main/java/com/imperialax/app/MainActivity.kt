@@ -614,9 +614,11 @@ class MainActivity : Activity() {
         errorLabel.text = ""
         authNotice = null
         Thread {
+            // No local fallback: a session the server did not issue cannot be
+            // used against it, and the compiled-in tokens this used to return
+            // were retired server-side.
             val account = runCatching { login("demo@imperialax.com", "") }.getOrNull()
                 ?: runCatching { demoLoginRequest("demo@imperialax.com") }.getOrNull()
-                ?: localSession("demo@imperialax.com")
             runOnUiThread {
                 if (account == null) {
                     errorLabel.text = "Demo account is not available."
@@ -698,24 +700,6 @@ class MainActivity : Activity() {
             name = cleanAccountName(user.getString("name")),
             entitlements = body.getJSONArray("entitlements").toStringList(),
         )
-    }
-
-    private fun localSession(email: String): AccountSession? {
-        return when (email.trim().lowercase()) {
-            "", "demo@imperialax.com" -> AccountSession(
-                token = "demo-token",
-                email = "demo@imperialax.com",
-                name = "Demo Account",
-                entitlements = listOf("module.laminate", "module.injection"),
-            )
-            "danlee@imperialax.com" -> AccountSession(
-                token = "danlee-token",
-                email = "danlee@imperialax.com",
-                name = "Dan Lee",
-                entitlements = listOf("module.laminate", "module.injection", "module.optimization", "module.admin"),
-            )
-            else -> null
-        }
     }
 
     private fun saveSession(account: AccountSession) {

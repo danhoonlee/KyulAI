@@ -5,6 +5,27 @@ final class ImperialAXAppTests: XCTestCase {
     private let sessionKey = "imperialax.auth.session.v1"
     private let sessionSavedAtKey = "imperialax.auth.saved_at.v1"
 
+    /// Builds a session for storage tests.
+    ///
+    /// The app no longer ships prebuilt sessions, and the struct has no public
+    /// initializer, so tests decode one the way the client does.
+    private func makeStoredSession() throws -> ImperialAXAuthSession {
+        let json = """
+        {
+          "access_token": "test-session-token",
+          "token_type": "bearer",
+          "user": {
+            "id": "test-user",
+            "email": "test.user@imperialax.com",
+            "name": "Test User",
+            "company": "ImperialAX"
+          },
+          "entitlements": ["module.laminate", "module.injection"]
+        }
+        """.data(using: .utf8)!
+        return try JSONDecoder().decode(ImperialAXAuthSession.self, from: json)
+    }
+
     func testModuleContractDecodesServerShape() throws {
         let json = """
         {
@@ -52,7 +73,7 @@ final class ImperialAXAppTests: XCTestCase {
     func testAuthSessionDecodesDemoLoginResponse() throws {
         let json = """
         {
-          "access_token": "demo-token",
+          "access_token": "decoded-session-token",
           "token_type": "bearer",
           "user": {
             "id": "demo-user",
@@ -66,7 +87,7 @@ final class ImperialAXAppTests: XCTestCase {
 
         let session = try JSONDecoder().decode(ImperialAXAuthSession.self, from: json)
 
-        XCTAssertEqual(session.accessToken, "demo-token")
+        XCTAssertEqual(session.accessToken, "decoded-session-token")
         XCTAssertEqual(session.tokenType, "bearer")
         XCTAssertEqual(session.user.email, "demo@imperialax.com")
         XCTAssertEqual(session.entitlements.count, 2)
@@ -75,7 +96,7 @@ final class ImperialAXAppTests: XCTestCase {
     @MainActor
     func testExpiredStoredSessionIsClearedOnStartup() throws {
         let defaults = try makeIsolatedUserDefaults()
-        try defaults.set(JSONEncoder().encode(ImperialAXAuthSession.demo), forKey: sessionKey)
+        try defaults.set(JSONEncoder().encode(makeStoredSession()), forKey: sessionKey)
         let now = Date(timeIntervalSince1970: 1_000_000)
         defaults.set(now.addingTimeInterval(-25 * 60 * 60), forKey: sessionSavedAtKey)
 
@@ -93,7 +114,7 @@ final class ImperialAXAppTests: XCTestCase {
     @MainActor
     func testLegacyStoredSessionGetsTimestampOnStartup() throws {
         let defaults = try makeIsolatedUserDefaults()
-        try defaults.set(JSONEncoder().encode(ImperialAXAuthSession.demo), forKey: sessionKey)
+        try defaults.set(JSONEncoder().encode(makeStoredSession()), forKey: sessionKey)
         let now = Date(timeIntervalSince1970: 1_000_000)
 
         let viewModel = ImperialAXHomeViewModel(
