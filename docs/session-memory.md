@@ -15871,3 +15871,117 @@ catches credentials shipped to clients.
   checked statically only: brace balance per file, no remaining references to the deleted symbols
   anywhere in the repo, and no other call sites. Both apps need a build on a machine that has the
   toolchains before any release.
+
+## 2026-08-28 - DD Laminate Pipeline Audit: Targets, Split, Labels And Features
+
+Five parallel audits — two literature (DD theory; ML surrogate practice) and three code/data — followed by
+independent re-verification of every load-bearing claim against this repository's own code and data. The
+findings compound: the theory explains the data defect, and the data confirms the theory.
+
+### The design space carries two degrees of freedom, not twenty-four
+
+Verified by calling `abd_matrices` over 400 random layups: `A11+A22+2·A66` is constant at 24.01 (sd 5e-15,
+it is `Tr(Q)`) and `A12−A66` is constant at −0.16 (sd 7e-16). The singular values of
+`{A11, A22, A12, A66}` are `[1, 0.34, 0, 0]` — effective rank **2**. The literature names these two
+coordinates: the lamination parameters `ξA1 = ½Σcos2θ`, `ξA2 = ½Σcos4θ` (Zhao et al., AIAA J 61(7):3190,
+2023). The 24-column compact physics pack encodes those two numbers plus noise.
+
+Also confirmed: `a11≡d11`, `a22≡d22`, `a12≡d12`, `a66≡d66` to 1e-14, hence
+`a11_a22_ratio≡d11_d22_ratio` and `membrane_anisotropy≡bending_anisotropy`. This is not a bug — Kappel
+(*Composites and Advanced Materials* 33, 2024) proves `D*11,12,22,66 = A*11,12,22,66` exactly for valid DD
+building blocks. Eight more columns are identically constant (`a16`, `a26`, `a_coupling_norm`,
+`angle_mean`, `stack_balance_sin_sum`, `case_pattern_ii`, `ply_count`, `total_thickness_in`).
+
+### The Case dimension is nearly degenerate, and that is what breaks the holdout
+
+At θ=(20°,65°) the three cases give **identical** `A11 = D11 = 9.59` and differ only in `D16`
+(0.10 / 0.34 / 0.67) and `B`. Theory (Kappel 2024) says the DD building-block permutation moves only
+`D16/D26` and `B`; everything a target driven by in-plane stiffness or orthotropic-plate buckling depends
+on is untouched.
+
+The data agrees: across the 2,700-row manifest, Pt at a fixed (θ1, θ2, panel) varies by a **median 0.14%**
+between cases, against a global Pt coefficient of variation of 0.571.
+
+The split key is `case|theta1|theta2`, so `leaked_groups: 0` is true and meaningless. Measured on
+`split_manifest.csv`: **537 of 546 locked-holdout rows (98.4%)** have a same-(θ1, θ2, panel) twin in
+development under a different case.
+
+Decisive check — a lookup table that predicts a holdout row by averaging its cross-case twins, learning
+nothing:
+
+| | Pt MAE | Type acc. |
+|---|---|---|
+| cross-case lookup | **132.25** | 0.9292 |
+| baseline_tree | 190.12 | 0.9377 |
+| pt_consistent_tree (deployed) | 191.79 | 0.9359 |
+
+No model beats it on Pt. No headline number on this holdout supports a generalization claim. The six
+challenger trainers group by theta pair only and are clean on this axis; the geometry-holdout eval and the
+pt-consistent trainer are not.
+
+### Pt mixes two incompatible target definitions across geometry
+
+`data/datasets/Double-Double/{2,3,4}/` ship two transition tables per case with the same Test_IDs and
+**zero identical rows**: `transition load.csv` (force-plot kink) and `transition load P1.csv` (the PPT's
+type-aware definition — force kink for Type 1, force/u3 average for Type 2, u3 only for Type 3, per
+`docs/DD_Laminate_PPT_Basis.md:63-83`). Correlation between them is **r = 0.135 / 0.146 / 0.172** for
+Case2/3/4 — not two estimates of one quantity.
+
+The training column takes 6x4 from P1 (900/900 exact match) and 6x8/8x8 from the kink definition. Pt at the
+same design point across panels:
+
+```
+6x8 ↔ 8x8 : r = +0.746    (same definition — behaves like one physical quantity)
+6x4 ↔ 6x8 : r = +0.022
+6x4 ↔ 8x8 : r = +0.140
+```
+
+This reinterprets an earlier conclusion. The leave-one-geometry-out Pt MAE recorded at
+`docs/session-memory.md:15503-15505` — 6x4 ≈ 9,829 against 6x8 ≈ 1,394 — was read as weak extrapolation to
+a geometry outside the observed range. It is not: the 6x4 target is a different physical quantity. The
+2026-07-23 note that an independent P1 selector reproduces 99.8% of 6x4 labels but 0.9% of 6x8 and 0.0% of
+8x8 was filed as a diagnostic; it was the signal.
+
+### Two thirds of type labels are unreviewed pseudo-labels from a classifier fed an out-of-distribution feature
+
+`type_label_source` over the corpus: 6x4 human-reviewed (900, confidence 1.00); 6x8 and 8x8 pseudo-labelled
+(1,800, mean confidence 0.708 and 0.625, minimum 0.433 on a 3-class problem). 1,072 rows are flagged `high`
+review priority and none has been reviewed. `type_label_confidence` is written to the manifest and read by
+no training script, so a 0.43 guess is weighted like a human label.
+
+The labeller takes `pt` as an input feature (`scripts/dd_classify_new_data_curves.py:165`) and was trained
+on 6x4 P1-definition Pt, then applied to kink-definition Pt. The Type-1 fraction falls 35.7% → 25.2% →
+11.8% with panel size while labeller confidence falls 1.00 → 0.71 → 0.63; physics and labeller drift cannot
+currently be separated.
+
+### Pt does not lie on the predicted curve
+
+`reports/dd_response_pt_consistent_tree_3size_grouped_v1/validation_metrics.json`, same holdout:
+`pt_mae = 190.12` against `curve_p1_pt_mae = 4557.91` — a factor of 24. The `0.0` P1 gap shown in the UI is
+algebraically guaranteed by `pt_consistent_tree.py:82-83`, which constructs both lines through the
+predicted Pt, and is not evidence of consistency.
+
+### Reported units are wrong by 1000x
+
+No `/1000` exists anywhere in the pipeline, and Pt spans 2,345–34,578 lbf, yet reports, plots and the
+customer-facing UI label the values **kips** — `optimize.py:165`,
+`scripts/dd_response_geometry_holdout_eval.py:458`, `scripts/dd_response_distillation_train.py:746`,
+`train_u3_forecast_models.py:710,719`. "Pt MAE 191.79 kips" on a ~16,600 lbf quantity would be a 12x error;
+read as lbf it is 1.2%.
+
+### The legacy Case3 stack is a different laminate, and it is still the default
+
+`legacy_case_stack_v1` builds `[30,-30,-45,45, 45,-45,45,-45, ...]` where canonical builds
+`[30,-30,-45,45, -30,30,45,-45, ...]`: the `∓θ1` group is dropped and `±θ2` duplicated, giving 4 θ1 plies
+instead of 8. `--feature-set` still defaults to the legacy `theta_physics_geometry_v1` in
+`scripts/dd_response_pt_consistent_tree_train.py:426`, `dd_response_pt_consistent_deep_train.py:760` and
+`dd_response_geometry_holdout_eval.py:486`, and the shipped `*_3size_grouped_v1` artifacts carry it.
+Separately, `feature_set_from_columns` cannot distinguish legacy from canonical because the column names are
+identical, so an artifact reaching serving without `feature_builder` is silently served with legacy physics.
+
+### Ordering
+
+Target definition, then split design, then labels, then features. Feature work cannot be measured while the
+split is degenerate, and no target work is meaningful while Pt means two different things.
+
+Full report and remediation plan: see the published artifact recorded with this entry.
