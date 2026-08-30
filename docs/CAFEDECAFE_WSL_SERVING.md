@@ -76,7 +76,12 @@ be committed to Git.
 
 ## Wedding persistent data
 
-The wedding UI is served from `src/frontend/wedding`, but guestbook and attendance records are
+The wedding UI is served from the directory named by `WEDDING_FRONTEND_DIR`, which is set in the
+systemd drop-in `~/.config/systemd/user/imperialax-laminate.service.d/wedding-frontend.conf` to
+`/home/user/projects/donghoon-seyeon-wedding` (a separate git repo, deployed via SSH file sync).
+The in-tree `src/frontend/wedding` is only the code's fallback default and now holds a **stale
+2025-07-22 copy** (see its `DO-NOT-USE.md`); do not edit or deploy it, and do not remove the
+drop-in or the site silently rolls back to that old copy. Guestbook and attendance records are
 runtime data and are not part of the frontend deployment:
 
 ```text
@@ -93,12 +98,13 @@ install the files with owner-only permissions, and restart the service. The pre-
 created during the July 22 migration is stored under `.remote-backups` as
 `wedding-runtime-before-restore-20260722-212722.tgz`.
 
-The invitation fonts are self-hosted under `src/frontend/wedding/assets/fonts`. Do not reintroduce
-a runtime dependency on Google Fonts: Samsung Internet may otherwise substitute an unreadable
-generic cursive font when the external stylesheet or font request is unavailable.
+The invitation fonts are self-hosted under `assets/fonts` in the deployed repo
+(`donghoon-seyeon-wedding`). Do not reintroduce a runtime dependency on Google Fonts: Samsung
+Internet may otherwise substitute an unreadable generic cursive font when the external stylesheet
+or font request is unavailable.
 
 The scripted couple name on the first cover is intentionally rendered from
-`src/frontend/wedding/assets/donghoon-seyeon-signature.png`, so it remains visually identical even
+`assets/donghoon-seyeon-signature.png` in the deployed repo, so it remains visually identical even
 when a mobile browser blocks every web-font request.
 
 ## Automated persistent-state backup

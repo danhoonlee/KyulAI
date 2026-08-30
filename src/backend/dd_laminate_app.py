@@ -7,13 +7,14 @@ This app avoids the platform database startup path so the research UI can be
 used immediately on a local machine.
 """
 
+import fcntl
 import hmac
 import json
 import os
 import secrets
 import threading
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, contextmanager
 from datetime import datetime
 from pathlib import Path
 
@@ -29,7 +30,11 @@ from src.backend.api.v1.optimization import router as optimization_router
 from src.backend.api.v1.rag import router as rag_router
 from src.backend.api.v1.slack_commands import router as slack_commands_router
 from src.backend.security.module_access import validate_security_configuration
-from src.backend.security.request_limits import enforce_module_api_security
+from src.backend.security.request_limits import (
+    RateLimitRule,
+    ResilientRateLimiter,
+    enforce_module_api_security,
+)
 
 try:
     from datetime import UTC as _UTC
@@ -67,6 +72,37 @@ WEDDING_PUBLIC_BASE_URL = "https://ds-wedding.cafedecafe.co.kr"
 IMPERIALAX_AI_PUBLIC_BASE_URL = "https://ai.imperialax.com"
 WEDDING_MAX_REQUEST_BYTES = 16 * 1024
 _WEDDING_FILE_LOCK = threading.RLock()
+# 청첩장 데이터는 별도 wedding_app.py(ds-wedding, 포트 8100)와 파일을 공유하므로,
+# 스레드 락만으로는 부족하다. 프로세스 간 fcntl 락으로 두 서비스의 동시 쓰기를 직렬화한다.
+_WEDDING_LOCK_PATH = WEDDING_DATA_DIR / ".rsvp-submissions.lock"
+
+
+@contextmanager
+def _wedding_proc_lock():
+    WEDDING_DATA_DIR.mkdir(parents=True, exist_ok=True)
+    with open(_WEDDING_LOCK_PATH, "w") as lock_handle:
+        fcntl.flock(lock_handle.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(lock_handle.fileno(), fcntl.LOCK_UN)
+
+# RSVP/버스 조회(lookup) 남용 방지: IP당 분당 시도 제한. 초기화 실패가 앱을 막지 않도록 방어.
+try:
+    _WEDDING_LOOKUP_LIMITER = ResilientRateLimiter()
+except Exception:  # pragma: no cover - REDIS_URL 등 설정 문제 시 메모리 백엔드로 폴백
+    _WEDDING_LOOKUP_LIMITER = ResilientRateLimiter(backend="memory")
+_WEDDING_LOOKUP_RULE = RateLimitRule(
+    name="wedding-rsvp-lookup", limit=10, window_seconds=60, identity="client-ip"
+)
+
+
+def _client_ip(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for", "")
+    if forwarded:
+        return forwarded.split(",", 1)[0].strip()
+    client = request.client
+    return client.host if client else "unknown"
 
 
 def _env_flag(name: str) -> bool:
@@ -273,7 +309,8 @@ async def ready() -> dict[str, object]:
 async def root(request: Request) -> Response:
     host = _request_host(request)
     if host in WEDDING_LEGACY_HOSTS:
-        return Response(status_code=308, headers={"Location": "/wedding/"})
+        # 청첩장은 별도 서비스(ds-wedding, 8100)로 분리됨 → 정식 도메인으로 리다이렉트
+        return _redirect_to_wedding("/")
     if host in AI_REDIRECT_HOSTS:
         return _redirect_to_ai_workspace(host, "/")
     return _no_cache_file(_root_file_for_host(host))
@@ -563,12 +600,12 @@ async def dd_laminate_v2_ko() -> FileResponse:
 
 @app.api_route("/wedding", methods=["GET", "HEAD"])
 async def wedding_redirect() -> Response:
-    return Response(status_code=307, headers={"Location": "/wedding/"})
+    return _redirect_to_wedding("/")
 
 
 @app.api_route("/wedding/", methods=["GET", "HEAD"])
-async def wedding_index() -> FileResponse:
-    return _no_cache_file(WEDDING_FRONTEND_DIR / "index.html")
+async def wedding_index() -> Response:
+    return _redirect_to_wedding("/")
 
 
 @app.api_route("/en", methods=["GET", "HEAD"])
@@ -593,19 +630,19 @@ async def wedding_bus_qr(request: Request) -> Response:
 
 
 @app.api_route("/wedding/rsvp", methods=["GET", "HEAD"])
-async def wedding_legacy_rsvp_qr() -> FileResponse:
-    return _no_cache_file(WEDDING_FRONTEND_DIR / "rsvp.html")
+async def wedding_legacy_rsvp_qr() -> Response:
+    return _redirect_to_wedding("/rsvp")
 
 
 @app.api_route("/wedding/bus", methods=["GET", "HEAD"])
-async def wedding_legacy_bus_qr() -> FileResponse:
-    return _no_cache_file(WEDDING_FRONTEND_DIR / "bus.html")
+async def wedding_legacy_bus_qr() -> Response:
+    return _redirect_to_wedding("/bus")
 
 
 @app.api_route("/wedding/en", methods=["GET", "HEAD"])
 @app.api_route("/wedding/en.html", methods=["GET", "HEAD"])
-async def wedding_legacy_en() -> FileResponse:
-    return _no_cache_file(WEDDING_FRONTEND_DIR / "en.html")
+async def wedding_legacy_en() -> Response:
+    return _redirect_to_wedding("/en")
 
 
 @app.api_route("/parents", methods=["GET", "HEAD"])
@@ -616,8 +653,8 @@ async def wedding_parents_qr(request: Request) -> Response:
 
 
 @app.api_route("/wedding/parents", methods=["GET", "HEAD"])
-async def wedding_legacy_parents_qr() -> FileResponse:
-    return _no_cache_file(WEDDING_FRONTEND_DIR / "parents.html")
+async def wedding_legacy_parents_qr() -> Response:
+    return _redirect_to_wedding("/parents")
 
 
 @app.api_route("/wedding/admin", methods=["GET", "HEAD"])
@@ -630,7 +667,8 @@ async def wedding_admin(request: Request) -> Response:
         return Response(status_code=308, headers={"Location": "/admin.html"})
     if not request.url.path.startswith("/wedding") and host not in WEDDING_ROOT_HOSTS:
         return _redirect_to_wedding("/admin")
-    return _no_cache_file(WEDDING_FRONTEND_DIR / "admin.html")
+    # /wedding/admin (구경로) → 정식 도메인으로 리다이렉트 (청첩장 분리)
+    return _redirect_to_wedding("/admin")
 
 
 @app.api_route("/wedding/api/rsvp.php", methods=["POST", "OPTIONS"])
@@ -668,7 +706,7 @@ async def wedding_rsvp(request: Request) -> Response:
     elif entry_type == "guestbook":
         required = ["name", "message"]
     else:
-        required = ["name", "side", "attendance", "guests"]
+        required = ["name", "phone", "side", "attendance", "guests"]
     for field in required:
         if data.get(field) in (None, ""):
             return _json_error(422, f"Missing {field}")
@@ -686,10 +724,11 @@ async def wedding_rsvp(request: Request) -> Response:
 
     WEDDING_DATA_DIR.mkdir(parents=True, exist_ok=True)
     submissions_file = WEDDING_DATA_DIR / "rsvp-submissions.jsonl"
-    with _WEDDING_FILE_LOCK:
+    with _WEDDING_FILE_LOCK, _wedding_proc_lock():
         replacement_index: int | None = None
+        existing_for_replacement: dict[str, object] | None = None
         lines = submissions_file.read_text(encoding="utf-8").splitlines() if submissions_file.exists() else []
-        if entry_type == "rsvp":
+        if entry_type in {"rsvp", "bus"}:
             incoming_phone = _normalize_wedding_phone(data.get("phone"))
             if incoming_phone:
                 for index, line in enumerate(lines):
@@ -697,24 +736,97 @@ async def wedding_rsvp(request: Request) -> Response:
                         existing_record = json.loads(line)
                     except json.JSONDecodeError:
                         continue
-                    if not isinstance(existing_record, dict) or existing_record.get("type") != "rsvp":
+                    if not isinstance(existing_record, dict) or existing_record.get("type") != entry_type:
                         continue
                     existing_data = existing_record.get("data") or {}
                     if not isinstance(existing_data, dict):
                         continue
                     if _normalize_wedding_phone(existing_data.get("phone")) == incoming_phone:
                         replacement_index = index
+                        existing_for_replacement = existing_record
+
+        # 재제출 시 옛 방명록 메시지 보존: 새 폼에 message가 없으면 기존 것을 유지한다.
+        if existing_for_replacement is not None:
+            previous_data = existing_for_replacement.get("data") or {}
+            if isinstance(previous_data, dict):
+                previous_message = _trim_text(previous_data.get("message"), 240)
+                if previous_message and not record["data"].get("message"):
+                    record["data"]["message"] = previous_message
+            if not record["message"]:
+                record["message"] = _trim_text(existing_for_replacement.get("message"), 240)
 
         serialized = json.dumps(record, ensure_ascii=False)
         if replacement_index is None:
             lines.append(serialized)
         else:
             lines[replacement_index] = serialized
-        with submissions_file.open("w", encoding="utf-8") as handle:
+        temp_file = submissions_file.with_name(submissions_file.name + ".tmp")
+        with temp_file.open("w", encoding="utf-8") as handle:
             if lines:
                 handle.write("\n".join(lines) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temp_file, submissions_file)
 
     return JSONResponse({"ok": True})
+
+
+@app.api_route("/wedding/api/rsvp/lookup", methods=["POST", "OPTIONS"])
+@app.api_route("/api/rsvp/lookup", methods=["POST", "OPTIONS"])
+async def wedding_rsvp_lookup(request: Request) -> Response:
+    if request.method == "OPTIONS":
+        return Response(status_code=204)
+
+    body = bytearray()
+    async for chunk in request.stream():
+        if len(body) + len(chunk) > WEDDING_MAX_REQUEST_BYTES:
+            return _json_error(413, "Request body too large")
+        body.extend(chunk)
+
+    try:
+        payload = json.loads(body)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return _json_error(400, "Invalid JSON")
+
+    if not isinstance(payload, dict):
+        return _json_error(400, "Invalid JSON")
+
+    entry_type = str(payload.get("type") or "")
+    if entry_type not in {"rsvp", "bus"}:
+        return _json_error(422, "Invalid RSVP type")
+
+    phone = _normalize_wedding_phone(payload.get("phone"))
+    if len(phone) < 7:
+        return _json_error(422, "연락처를 입력해 주세요.")
+
+    name = _trim_text(payload.get("name"), 40)
+    if not name:
+        return _json_error(422, "성함을 입력해 주세요.")
+
+    # 전화번호 나열 방지: IP당 시도 제한
+    allowed, retry_after = await _WEDDING_LOOKUP_LIMITER.check(
+        _WEDDING_LOOKUP_RULE, _client_ip(request)
+    )
+    if not allowed:
+        return JSONResponse(
+            {"ok": False, "error": "잠시 후 다시 시도해 주세요."},
+            status_code=429,
+            headers={"Retry-After": str(retry_after)},
+        )
+
+    for record in reversed(_read_wedding_submissions()):
+        if record.get("type") != entry_type:
+            continue
+        data = record.get("data") or {}
+        if not isinstance(data, dict):
+            continue
+        if _normalize_wedding_phone(data.get("phone")) != phone:
+            continue
+        if _trim_text(data.get("name"), 40) != name:
+            continue
+        return JSONResponse({"ok": True, "found": True, "data": _sanitize_wedding_data(data)})
+
+    return JSONResponse({"ok": True, "found": False})
 
 
 @app.get("/wedding/api/guestbook")
@@ -772,15 +884,19 @@ async def wedding_admin_delete_submission(request: Request, line_number: int) ->
     if not submissions_file.exists():
         return _json_error(404, "삭제할 항목을 찾을 수 없습니다.")
 
-    with _WEDDING_FILE_LOCK:
+    with _WEDDING_FILE_LOCK, _wedding_proc_lock():
         lines = submissions_file.read_text(encoding="utf-8").splitlines()
         if line_number > len(lines):
             return _json_error(404, "삭제할 항목을 찾을 수 없습니다.")
 
         kept_lines = [line for index, line in enumerate(lines, start=1) if index != line_number]
-        with submissions_file.open("w", encoding="utf-8") as handle:
+        temp_file = submissions_file.with_name(submissions_file.name + ".tmp")
+        with temp_file.open("w", encoding="utf-8") as handle:
             if kept_lines:
                 handle.write("\n".join(kept_lines) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temp_file, submissions_file)
 
     return JSONResponse({"ok": True})
 

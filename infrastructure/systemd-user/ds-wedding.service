@@ -1,0 +1,22 @@
+[Unit]
+Description=DS Wedding Invitation API (standalone, split from laminate)
+After=network-online.target imperialax-redis.service
+Wants=network-online.target imperialax-redis.service
+
+[Service]
+Type=simple
+WorkingDirectory=%h/projects/KyulAI
+Environment=HOME=%h
+Environment=PYTHONPATH=%h/projects/KyulAI
+Environment=IMPERIALAX_ENV=production
+Environment=IMPERIALAX_RATE_LIMIT_BACKEND=redis
+Environment=REDIS_URL=unix://%S/imperialax-redis/redis.sock?db=0
+Environment=WEDDING_FRONTEND_DIR=/home/user/projects/donghoon-seyeon-wedding
+ExecStart=%h/projects/KyulAI/.venv/bin/uvicorn src.backend.wedding_app:app --host 127.0.0.1 --port 8100 --proxy-headers --forwarded-allow-ips 127.0.0.1
+Restart=always
+RestartSec=5
+StandardOutput=append:%h/projects/KyulAI/logs/ds-wedding.log
+StandardError=append:%h/projects/KyulAI/logs/ds-wedding.err.log
+
+[Install]
+WantedBy=default.target
