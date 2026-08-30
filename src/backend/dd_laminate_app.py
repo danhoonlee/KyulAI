@@ -722,14 +722,15 @@ async def wedding_rsvp(request: Request) -> Response:
 async def wedding_guestbook() -> Response:
     items: list[dict[str, str]] = []
     for record in reversed(_read_wedding_submissions()):
-        if record.get("type") != "guestbook":
+        record_type = record.get("type")
+        if record_type not in {"guestbook", "rsvp"}:
             continue
         data = record.get("data") or {}
         if not isinstance(data, dict):
             continue
         name = _trim_text(data.get("name"), 20)
         message = _trim_text(data.get("message"), 240)
-        if not name or not message:
+        if not name or not message or message == "-":
             continue
         items.append(
             {
