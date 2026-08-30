@@ -185,6 +185,10 @@ def _trim_text(value: object, max_length: int) -> str:
     return str(value or "").strip()[:max_length]
 
 
+def _normalize_wedding_phone(value: object) -> str:
+    return "".join(character for character in str(value or "") if character.isdigit())
+
+
 WEDDING_FIELD_LIMITS = {
     "name": 40,
     "phone": 30,
@@ -675,8 +679,7 @@ async def wedding_rsvp(request: Request) -> Response:
         "data": data,
         "message": _trim_text(payload.get("message"), 240),
         "submittedAt": _trim_text(
-            payload.get("submittedAt") or datetime.now(_UTC).isoformat().replace("+00:00", "Z")
-            ,
+            payload.get("submittedAt") or datetime.now(_UTC).isoformat().replace("+00:00", "Z"),
             40,
         ),
     }
@@ -684,8 +687,32 @@ async def wedding_rsvp(request: Request) -> Response:
     WEDDING_DATA_DIR.mkdir(parents=True, exist_ok=True)
     submissions_file = WEDDING_DATA_DIR / "rsvp-submissions.jsonl"
     with _WEDDING_FILE_LOCK:
-        with submissions_file.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+        replacement_index: int | None = None
+        lines = submissions_file.read_text(encoding="utf-8").splitlines() if submissions_file.exists() else []
+        if entry_type == "rsvp":
+            incoming_phone = _normalize_wedding_phone(data.get("phone"))
+            if incoming_phone:
+                for index, line in enumerate(lines):
+                    try:
+                        existing_record = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if not isinstance(existing_record, dict) or existing_record.get("type") != "rsvp":
+                        continue
+                    existing_data = existing_record.get("data") or {}
+                    if not isinstance(existing_data, dict):
+                        continue
+                    if _normalize_wedding_phone(existing_data.get("phone")) == incoming_phone:
+                        replacement_index = index
+
+        serialized = json.dumps(record, ensure_ascii=False)
+        if replacement_index is None:
+            lines.append(serialized)
+        else:
+            lines[replacement_index] = serialized
+        with submissions_file.open("w", encoding="utf-8") as handle:
+            if lines:
+                handle.write("\n".join(lines) + "\n")
 
     return JSONResponse({"ok": True})
 
