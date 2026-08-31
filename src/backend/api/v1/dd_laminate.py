@@ -134,6 +134,35 @@ class DDLaminateModelsResponse(BaseModel):
     u3_pt_models: list[ModelInfo] = []
 
 
+TRAINED_PANEL_GEOMETRIES: tuple[tuple[float, float], ...] = ((6.0, 4.0), (6.0, 8.0), (8.0, 8.0))
+PANEL_A_RANGE_IN = (6.0, 8.0)
+PANEL_B_RANGE_IN = (4.0, 8.0)
+
+
+def _is_trained_panel(panel_a_in: float, panel_b_in: float) -> bool:
+    return any(
+        math.isclose(panel_a_in, a, abs_tol=1e-6) and math.isclose(panel_b_in, b, abs_tol=1e-6)
+        for a, b in TRAINED_PANEL_GEOMETRIES
+    )
+
+
+def _describe_trained_panels() -> str:
+    return ", ".join(f"{a:g}x{b:g} in" for a, b in TRAINED_PANEL_GEOMETRIES)
+
+
+class PanelGeometryRequest(BaseModel):
+    """Panel dimensions bounded to the region the response models were fitted on.
+
+    The models saw three panels only. A tree ensemble asked for a panel outside
+    that region does not extrapolate — it returns the nearest trained leaf, so a
+    100x4 in panel answers exactly like 6x4. Bounding the input turns that
+    silently wrong answer into a refusal.
+    """
+
+    panel_a_in: float = Field(6.0, ge=PANEL_A_RANGE_IN[0], le=PANEL_A_RANGE_IN[1])
+    panel_b_in: float = Field(4.0, ge=PANEL_B_RANGE_IN[0], le=PANEL_B_RANGE_IN[1])
+
+
 class ThetaPredictionRequest(BaseModel):
     theta1: float = Field(..., ge=-90, le=90)
     theta2: float = Field(..., ge=-90, le=90)
@@ -141,23 +170,19 @@ class ThetaPredictionRequest(BaseModel):
     model: ThetaModelKey = "theta_classical"
 
 
-class ResponsePredictionRequest(BaseModel):
+class ResponsePredictionRequest(PanelGeometryRequest):
     theta1: float = Field(..., ge=-90, le=90)
     theta2: float = Field(..., ge=-90, le=90)
     case: CaseKey
     model: ResponseModelKey = "response_geometry_tree_canonical_v2"
-    panel_a_in: float = Field(6.0, gt=0)
-    panel_b_in: float = Field(4.0, gt=0)
 
 
-class ResponseEnsemblePredictionRequest(BaseModel):
+class ResponseEnsemblePredictionRequest(PanelGeometryRequest):
     theta1: float = Field(..., ge=-90, le=90)
     theta2: float = Field(..., ge=-90, le=90)
     case: CaseKey
     teacher_model: ResponseModelKey = "response_geometry_tree_canonical_v2"
     student_model: ResponseModelKey = "response_hybrid_student_canonical_v2"
-    panel_a_in: float = Field(6.0, gt=0)
-    panel_b_in: float = Field(4.0, gt=0)
 
 
 class U3ForecastPredictionRequest(BaseModel):
@@ -169,13 +194,11 @@ class U3ForecastPredictionRequest(BaseModel):
     model: U3ForecastModelKey = "u3_forecast_physics_canonical_v2"
 
 
-class LocalXAIRequest(BaseModel):
+class LocalXAIRequest(PanelGeometryRequest):
     theta1: float = Field(..., ge=-90, le=90)
     theta2: float = Field(..., ge=-90, le=90)
     case: CaseKey
     model: str
-    panel_a_in: float = Field(6.0, gt=0)
-    panel_b_in: float = Field(4.0, gt=0)
 
 
 DesignSpaceScope = Literal["response", "u3"]
@@ -2671,6 +2694,12 @@ def _predict_estimated_response(
     confidence = _probability_confidence(probabilities)
     notes = _notes(probabilities, "theta")
     notes[0] = f"{meta['label']} prediction; validate promising candidates with simulation."
+    if not _is_trained_panel(payload.panel_a_in, payload.panel_b_in):
+        notes.append(
+            f"Panel {payload.panel_a_in:g}x{payload.panel_b_in:g} in is between the trained "
+            f"geometries ({_describe_trained_panels()}); treat the panel dependence as "
+            "interpolated rather than measured."
+        )
     predicted_pt = float(result["predicted_pt"])
     if curve_fit_style == "p1_transition_guided":
         from src.ml.dd_laminate.pt_consistent_tree import CURVE_REPRESENTATION
