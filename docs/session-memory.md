@@ -16055,3 +16055,47 @@ endpoints returned 200.
 
 Nothing alerts on a down unit. A ten-hour public 502 went unnoticed, and the only reason it surfaced
 was an unrelated health check.
+
+## 2026-08-31 - Reliability Panel Made Aware Of Panel Size
+
+Follow-up to the panel bounds. The reliability panel reported the same coverage for every panel size,
+for two independent reasons inside `_prediction_uncertainty`:
+
+- Neighbours came from whichever manifest the `dataset` argument selected, and the deployed models
+  were routed to `"canonical"` — `DD_cases_2_3_4_curated_v1/label_manifest.csv`, the 6x4-only set,
+  which carries **no panel columns at all**. Yet all three deployed models
+  (`response_geometry_tree_canonical_v2`, `..._goint_...`, `response_hybrid_student_canonical_v2`)
+  load with `feature_builder = theta_physics_geometry_canonical_v2`, 40 columns — geometry-aware, and
+  fitted on the three-size corpus. The dataset selector only sent the *preview* models to
+  `three_size`.
+- `_distance()` is over theta alone, so panel size never entered the score.
+
+Changes:
+
+- Added `GEOMETRY_AWARE_RESPONSE_MODEL_KEYS` and routed those models to the three-size manifest, which
+  does filter neighbours by panel.
+- That alone leaves a panel like 7x5 in with zero neighbours, which would have dropped the whole
+  uncertainty block. Added a `match_panel` switch to `_design_space_rows` and a fallback: keep the
+  theta neighbourhood from all panels, but record `panel_observed=False`.
+- When the panel was not observed, the interpolation score is capped at 0.60 so it can never read as
+  `interpolation`, and a note names the trained panels and says the panel dependence is interpolated
+  rather than observed. `panel_observed` is now a field on `PredictionUncertainty`.
+- The Korean note table matched exact strings; the new note carries the requested dimensions, so
+  `translateUncertaintyNote` now falls back to a prefix match that keeps the server's numbers.
+
+Before and after for a 7x5 in panel:
+
+```
+before   interpolation_label interpolation   score 0.890   reliability 0.808 high
+after    interpolation_label near-edge       score 0.600   reliability 0.632 medium  + note
+```
+
+A side effect worth noting: the three trained panels now each see their own neighbourhood, so their
+reliability scores differ from one another (0.808 / 0.738 / 0.697) where before all three read 0.808.
+A test pins that they are no longer identical, which is what would break if the routing regressed.
+
+Commit `831c75c`. 201 tests pass; five public endpoints stayed 200 across the restart.
+
+**Still open on this thread:** the reliability band and Type agreement are computed from the same `pt`
+column that mixes two definitions across geometry and the same type labels that are two-thirds
+unreviewed pseudo-labels. Panel awareness fixes what the panel reports, not what the numbers mean.
