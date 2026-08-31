@@ -15985,3 +15985,73 @@ Target definition, then split design, then labels, then features. Feature work c
 split is degenerate, and no target work is meaningful while Pt means two different things.
 
 Full report and remediation plan: see the published artifact recorded with this entry.
+
+## 2026-08-31 - Laminate Forecast Logic Check, And Panel Bounds
+
+Probed the deployed base Forecast (`response_geometry_tree_canonical_v2`) directly through the API,
+looking for logical rather than statistical defects.
+
+### What holds up
+
+- **Physical invariances are respected**, without ever having been encoded. Under a sign flip
+  `(-θ1, -θ2)` Pt moves by a median 0.21% (max 1.20%); under the swap `(θ2, θ1)` by 0.85% (max
+  2.21%). Type never flipped in 10 design points for either. Theory says `A` and the orthotropic
+  part of `D` are exactly invariant under both, so the model learned the symmetry from data.
+- **Case response matches the physics.** Pt spread across Case2/3/4 at a fixed design point is
+  0.1–0.9%, consistent with the building-block permutation moving only `D16`, `D26` and `B`.
+- **Continuity is fine.** Stepping θ1 by 1° moves Pt a median 1.18%, with no jump above 5% across
+  21 steps. Curves start at zero and the predicted Pt always lies within the curve's force range.
+- Note that `predicted_max_force` matching the curve maximum to 0.00% is **not** evidence: the curve
+  is shape-only and gets rescaled by that same predicted value, so the agreement is tautological.
+
+### What does not: the panel axis
+
+The models were fitted on three panels — 6x4, 6x8, 8x8 in — and the API accepted any positive
+dimension (`Field(gt=0)`). A tree ensemble outside its training region does not extrapolate; it
+answers from the nearest trained leaf. Sweeping the panel showed a step function over three plateaus:
+
+```
+  6 x 4 → 17,433.05        6 x 6  → 11,939.76
+  7 x 4 → 17,433.05        6 x 8  →  8,289.93
+ 20 x 4 → 17,433.05        6 x 12 →  8,289.93
+100 x 4 → 17,433.05        6 x 50 →  8,289.93
+1000 x 1000 → 9,846.90 (8x8's answer)     0.1 x 0.1 → 13,947.17
+```
+
+An aspect ratio of 25 and of 1.5 returned the same number to four decimal places.
+
+The reliability panel could not catch this. `_design_space_rows` filters neighbours by panel only
+when `dataset == "three_size"`; the default is `"canonical"`, the 6x4-only curated manifest. And
+`_distance()` is over theta alone — panel size never enters the calculation. For the 100x4 panel the
+API returned `reliability_score 0.8083`, `confidence_label high`,
+`interpolation_label interpolation`, and the note *"This theta/case input is within a well-covered
+region of the observed design space."*
+
+### Change made
+
+Added `PanelGeometryRequest` bounding `panel_a_in` to 6–8 in and `panel_b_in` to 4–8 in, inherited by
+`ResponsePredictionRequest`, `ResponseEnsemblePredictionRequest` and `LocalXAIRequest`. An
+unsupported panel is now refused with 422 instead of silently answered. A panel inside the bounds but
+not one of the three trained geometries still predicts and carries a note saying the panel dependence
+is interpolated rather than measured. The three web forms carry matching `min`/`max` so the browser
+refuses first. `tests/backend/test_dd_laminate_panel_bounds.py` pins all of it, including a guard
+that the three trained panels still give distinct predictions.
+
+Commit `89e6da2`. 196 tests pass. Services stayed 200 through the restart.
+
+**Still open:** the reliability panel remains blind to panel size — it will now only ever see panels
+inside the bounds, but a 7x5 in panel still reports as well-covered interpolation. That is the next
+fix, and it is independent of the model.
+
+### Incident found while verifying
+
+`imperialax-injection` was **inactive**, and `injection.imperialax.com` had been returning 502 for
+about ten hours. The unit was stopped cleanly by SIGTERM at 00:35:56 on 2026-08-31 and never
+restarted; it was not a crash and no error appears in its journal. It sits immediately after the
+2026-08-30 wedding work (`406fae4`, `5173abe`, `e4052bf` — the last at 00:10), which split the
+wedding invitation into its own `ds-wedding.service` and edited the cafedecafe tunnel config, so the
+stop was most likely collateral from cycling services during that split. Restarted; all five public
+endpoints returned 200.
+
+Nothing alerts on a down unit. A ten-hour public 502 went unnoticed, and the only reason it surfaced
+was an unrelated health check.
