@@ -16099,3 +16099,44 @@ Commit `831c75c`. 201 tests pass; five public endpoints stayed 200 across the re
 **Still open on this thread:** the reliability band and Type agreement are computed from the same `pt`
 column that mixes two definitions across geometry and the same type labels that are two-thirds
 unreviewed pseudo-labels. Panel awareness fixes what the panel reports, not what the numbers mean.
+
+## 2026-08-31 - Serving Health Monitoring
+
+Nothing on this host watched the serving stack. Today's ten-hour injection outage surfaced only
+because an unrelated health check happened to run, so the next one would have depended on the same
+luck.
+
+**Why polling rather than `OnFailure`.** The unit was stopped cleanly by SIGTERM and never entered a
+failed state, so an `OnFailure=` hook would never have fired. The check therefore asks
+`systemctl --user is-active` per unit and requests each public `/health`. Both are needed because
+they fail independently — a unit can be active while the Cloudflare tunnel is down, and the tunnel
+can be up while the app is not.
+
+Watches 12 targets: the seven user units (`imperialax-laminate`, `-injection`, `-cloudflared`,
+`-redis`, `cafedecafe-cloudflared`, `cafedecafe-nangman`, `ds-wedding`) and the five public
+endpoints.
+
+Behaviour: alerts on transition only, so a healthy host is silent; a target still down is
+re-reported every 6 checks (about 30 min at the 5-minute timer) so a long outage cannot go quiet;
+recovery is reported. Exit status is 1 while anything is down, and the unit sets
+`SuccessExitStatus=0 1` so that does not mark it failed — the script has already said what is wrong
+and a failed unit would only add noise.
+
+Written against the standard library and `/usr/bin/python3`, not the project venv, because
+monitoring that depends on the venv stops working exactly when the venv is the problem.
+
+- `scripts/check_serving_health.py`
+- `infrastructure/systemd-user/imperialax-health-check.{service,timer}`, installed and enabled in
+  `~/.config/systemd/user/`, running every 5 minutes
+- state in `~/.local/state/imperialax/serving-health.json` — this is what makes transitions visible
+- `docs/SERVING_HEALTH_MONITORING.md`
+
+**Slack is not wired yet.** No incoming webhook exists for this workspace. The script reads
+`IMPERIALAX_ALERT_SLACK_WEBHOOK` from `~/.config/imperialax/alerts.env` (mode 600, outside the repo,
+placeholder written); until that is filled in it records state and logs but posts nowhere. Adding the
+URL needs no restart. Note that the Slack MCP available in a Claude session cannot serve this — it is
+a session tool, not something a timer can call.
+
+Verified by reproducing the outage: stopping `imperialax-injection` was reported as both the unit
+(`inactive`) and its endpoint (`502`), the following run was silent, and starting it reported the
+recovery. Commit `e4398c4`.
