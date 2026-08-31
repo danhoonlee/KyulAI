@@ -1,0 +1,19 @@
+[Unit]
+Description=Check ImperialAX serving units and public endpoints
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/projects/KyulAI
+Environment=HOME=%h
+# Holds IMPERIALAX_ALERT_SLACK_WEBHOOK. Optional: without it the check still
+# runs and records state, it just has nowhere to post.
+EnvironmentFile=-%h/.config/imperialax/alerts.env
+# System python on purpose: this has to keep working if the project venv does not.
+ExecStart=/usr/bin/python3 %h/projects/KyulAI/scripts/check_serving_health.py
+# A non-zero exit means something is down, which the script has already
+# reported. Do not let that mark the unit failed and spam the journal.
+SuccessExitStatus=0 1
+StandardOutput=append:%h/projects/KyulAI/logs/imperialax-health-check.log
+StandardError=append:%h/projects/KyulAI/logs/imperialax-health-check.err.log
