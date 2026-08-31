@@ -94,3 +94,46 @@ def test_the_refusal_is_what_stops_a_saturated_answer() -> None:
 
     assert trained.status_code == 200
     assert saturated.status_code == 422
+
+
+def test_reliability_marks_an_untrained_panel_as_unobserved() -> None:
+    """A panel between trained geometries must not read as well-covered.
+
+    Before this, the reliability panel drew its neighbours from the 6x4-only
+    curated manifest and measured distance over theta alone, so every panel
+    reported the same coverage as 6x4.
+    """
+    client = TestClient(app)
+
+    trained = _predict(client, 6.0, 4.0).json()["uncertainty"]
+    between = _predict(client, 7.0, 5.0).json()["uncertainty"]
+
+    assert trained["panel_observed"] is True
+    assert between["panel_observed"] is False
+    assert between["interpolation_label"] != "interpolation"
+    assert between["interpolation_score"] < trained["interpolation_score"]
+    assert any("No simulation was run" in note for note in between["notes"])
+
+
+@pytest.mark.parametrize(("panel_a_in", "panel_b_in"), TRAINED_PANEL_GEOMETRIES)
+def test_trained_panels_report_their_own_neighbourhood(
+    panel_a_in: float, panel_b_in: float
+) -> None:
+    client = TestClient(app)
+
+    uncertainty = _predict(client, panel_a_in, panel_b_in).json()["uncertainty"]
+
+    assert uncertainty["panel_observed"] is True
+    assert not any("No simulation was run" in note for note in uncertainty["notes"])
+
+
+def test_reliability_differs_between_trained_panels() -> None:
+    """Guards the routing: a shared 6x4-only manifest made these identical."""
+    client = TestClient(app)
+
+    scores = {
+        (a, b): _predict(client, a, b).json()["uncertainty"]["reliability_score"]
+        for a, b in TRAINED_PANEL_GEOMETRIES
+    }
+
+    assert len(set(scores.values())) > 1

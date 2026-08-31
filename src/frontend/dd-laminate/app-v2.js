@@ -2406,7 +2406,16 @@ function translateUncertaintyNote(note) {
     "This theta/case input is within a well-covered region of the observed design space.":
       "현재 θ/Case 입력은 관측된 설계 공간 안에서 비교적 잘 커버된 영역에 있습니다.",
   };
-  return labels[note] || note;
+  if (labels[note]) return labels[note];
+  // The panel note carries the requested dimensions, so it cannot be matched
+  // exactly; translate it by prefix and keep the numbers from the server.
+  const panelMatch = note.match(
+    /^No simulation was run at (.+?) in; the neighbours below come from the trained panels \((.+?)\)/,
+  );
+  if (panelMatch) {
+    return `${panelMatch[1]} in 패널로는 해석을 돌린 적이 없습니다. 아래 이웃 데이터는 학습된 패널(${panelMatch[2]})에서 온 것이라, 패널 크기에 대한 의존성은 관측된 값이 아니라 보간된 값입니다.`;
+  }
+  return note;
 }
 
 function renderResult(data) {

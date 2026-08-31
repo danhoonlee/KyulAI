@@ -65,6 +65,12 @@ THREE_SIZE_PREVIEW_MODEL_KEYS = (
     "response_pt_consistent_goint_3size_grouped_v1",
     "response_pt_consistent_hybrid_3size_grouped_v1",
 )
+GEOMETRY_AWARE_RESPONSE_MODEL_KEYS = (
+    "response_geometry_tree_canonical_v2",
+    "response_geometry_goint_canonical_v2",
+    "response_hybrid_student_canonical_v2",
+    *THREE_SIZE_PREVIEW_MODEL_KEYS,
+)
 OPTIMAL_U3_FORECAST_MODEL_KEYS = (
     "u3_forecast_physics_canonical_v2",
     "u3_forecast_goint_physics_canonical_v2",
@@ -293,6 +299,7 @@ class XAIExplanation(BaseModel):
 
 
 class PredictionUncertainty(BaseModel):
+    panel_observed: bool = True
     reliability_score: float
     confidence_label: Literal["high", "medium", "low"]
     interpolation_score: float
@@ -2034,12 +2041,13 @@ def _distance(theta1: float, theta2: float, row: dict[str, Any]) -> float:
     return math.hypot(theta1 - float(row["theta1"]), theta2 - float(row["theta2"]))
 
 
-@lru_cache(maxsize=12)
+@lru_cache(maxsize=24)
 def _design_space_rows(
     scope: DesignSpaceScope,
     dataset: DesignSpaceDataset = "canonical",
     panel_a_in: float = 6.0,
     panel_b_in: float = 4.0,
+    match_panel: bool = True,
 ) -> list[dict[str, Any]]:
     if scope == "u3":
         manifest_path = PROJECT_ROOT / "data/datasets/DD_u3_pt_v2/manifest.csv"
@@ -2064,7 +2072,7 @@ def _design_space_rows(
                 continue
             row_panel_a = _csv_float(raw, "panel_a_in")
             row_panel_b = _csv_float(raw, "panel_b_in")
-            if dataset == "three_size" and scope == "response":
+            if match_panel and dataset == "three_size" and scope == "response":
                 if row_panel_a is None or row_panel_b is None:
                     continue
                 if not (
@@ -2134,6 +2142,12 @@ def _prediction_uncertainty(
     panel_b_in: float = 4.0,
 ) -> PredictionUncertainty | None:
     rows = _design_space_rows(scope, dataset, panel_a_in, panel_b_in)
+    # Neighbours are what the band and the Type agreement are measured against, so
+    # they have to come from the requested panel. When none exist we still want an
+    # answer, but the caller must be told the panel itself is unobserved.
+    panel_observed = bool(rows)
+    if not rows:
+        rows = _design_space_rows(scope, dataset, panel_a_in, panel_b_in, match_panel=False)
     if not rows:
         return None
 
@@ -2148,6 +2162,11 @@ def _prediction_uncertainty(
         len(nearest_rows[:6]), 1
     )
     interpolation_score = max(0.0, min(1.0, 1.0 - mean_nearest_distance / 80.0))
+    if not panel_observed:
+        # The theta neighbourhood may be dense, but it was observed on other
+        # panels. Panel dependence here is interpolated between trained
+        # geometries, so this can never read as well-covered.
+        interpolation_score = min(interpolation_score, 0.60)
     if interpolation_score >= 0.72:
         interpolation_label: Literal["interpolation", "near-edge", "extrapolation"] = (
             "interpolation"
@@ -2188,6 +2207,12 @@ def _prediction_uncertainty(
         "Reliability combines model confidence, distance to nearby curated simulations, and local Type agreement.",
         "Pt interval is a screening band from nearby Pt scatter, not a formal statistical confidence interval.",
     ]
+    if not panel_observed:
+        notes.append(
+            f"No simulation was run at {panel_a_in:g}x{panel_b_in:g} in; the neighbours below come "
+            f"from the trained panels ({_describe_trained_panels()}), so the panel dependence is "
+            "interpolated rather than observed."
+        )
     if interpolation_label == "extrapolation":
         notes.append(
             "This theta/case input is far from nearby curated simulations; validate before treating the recommendation as stable."
@@ -2200,6 +2225,7 @@ def _prediction_uncertainty(
         )
 
     return PredictionUncertainty(
+        panel_observed=panel_observed,
         reliability_score=round(reliability, 4),
         confidence_label=confidence_label,
         interpolation_score=round(interpolation_score, 4),
@@ -2753,7 +2779,9 @@ def _predict_estimated_response(
             predicted_type=int(result["predicted_type"]),
             confidence=confidence,
             dataset=(
-                "three_size" if payload.model in THREE_SIZE_PREVIEW_MODEL_KEYS else "canonical"
+                "three_size"
+                if payload.model in GEOMETRY_AWARE_RESPONSE_MODEL_KEYS
+                else "canonical"
             ),
             panel_a_in=payload.panel_a_in,
             panel_b_in=payload.panel_b_in,
