@@ -108,7 +108,25 @@ def parse_panel_sizes(value: str) -> list[tuple[float, float]]:
 
 
 def group_key(record: DDRecord) -> str:
-    return f"{record.case}|{record.theta1:.8g}|{record.theta2:.8g}"
+    """Identify a design point by its angles alone.
+
+    Case2/3/4 at the same angles are the same laminate to within the part of
+    the physics these targets depend on: the building-block permutation moves
+    only D16, D26 and B, while A and the orthotropic part of D are identical.
+    Measured across the corpus, Pt at a fixed (theta1, theta2, panel) varies by
+    a median 0.14% between cases against a global coefficient of variation of
+    0.571.
+
+    Keying on case therefore split near-duplicates across the train/test line:
+    537 of 546 held-out rows had a same-angle twin in training, and a lookup
+    table that averaged those twins beat every trained model on Pt. Panel is
+    excluded for the same reason in the other direction — a model that has seen
+    an angle pair at another panel is interpolating, not generalising to an
+    unseen design.
+
+    This matches the key the challenger trainers already use.
+    """
+    return f"{record.theta1:.8g}|{record.theta2:.8g}"
 
 
 def group_stratum(records: list[DDRecord], indices: list[int]) -> tuple[str, int]:
@@ -430,6 +448,49 @@ def hybrid_holdout_metrics(
     return row
 
 
+def nearest_design_baseline_metrics(
+    records: list[DDRecord],
+    y_class: np.ndarray,
+    y_scalars: np.ndarray,
+    train_idx: np.ndarray,
+    test_idx: np.ndarray,
+) -> dict[str, float]:
+    """Predict a held-out row by copying its nearest training row in angle space.
+
+    This learns nothing. It exists so the split cannot silently degenerate
+    again: under the old key, which put Case2/3/4 of the same design on
+    opposite sides, a lookup of this kind scored Pt MAE 132 against 190 for the
+    best trained model. Any run where the models do not clearly beat this row is
+    reporting recall of near-duplicates, not generalisation.
+    """
+    train_points = np.asarray(
+        [[records[int(i)].theta1, records[int(i)].theta2] for i in train_idx], dtype=float
+    )
+    pt_index = 0
+    predictions_class: list[int] = []
+    predictions_pt: list[float] = []
+    for i in test_idx:
+        record = records[int(i)]
+        distances = np.hypot(
+            train_points[:, 0] - record.theta1, train_points[:, 1] - record.theta2
+        )
+        nearest = train_idx[int(np.argmin(distances))]
+        predictions_class.append(int(y_class[nearest]))
+        predictions_pt.append(float(y_scalars[nearest][pt_index]))
+
+    truth_class = y_class[test_idx]
+    truth_pt = y_scalars[test_idx][:, pt_index]
+    predicted_class = np.asarray(predictions_class)
+    predicted_pt = np.asarray(predictions_pt)
+    return {
+        "accuracy": float(accuracy_score(truth_class, predicted_class)),
+        "macro_f1": float(f1_score(truth_class, predicted_class, average="macro")),
+        "pt_mae": float(np.mean(np.abs(predicted_pt - truth_pt))),
+        "curve_norm_rmse": float("nan"),
+        "curve_force_rmse": float("nan"),
+    }
+
+
 def write_report(output_dir: Path, payload: dict[str, Any]) -> None:
     metrics = payload["models"]
     lines = [
@@ -465,6 +526,15 @@ def write_report(output_dir: Path, payload: dict[str, Any]) -> None:
         )
     lines.extend(
         [
+            "",
+            "## Reading this table",
+            "",
+            "`Nearest-design lookup` trains nothing. It answers each held-out row by copying its "
+            "nearest training row in (theta1, theta2). **A model that does not clearly beat that row "
+            "has not been shown to generalise** — it is recalling near-duplicates that the split let "
+            "through. Groups are keyed on the angle pair alone, so all three cases and all panel "
+            "sizes of one design stay on the same side; keying on case previously put near-identical "
+            "rows across the split and the lookup beat every trained model on Pt.",
             "",
             "## Interpretation",
             "",
@@ -547,6 +617,10 @@ def main() -> None:
 
     models: dict[str, dict[str, float]] = {}
     print(f"Split: train={len(train_idx)} holdout={len(test_idx)}", flush=True)
+    print("[baseline] Nearest design lookup", flush=True)
+    models["Nearest-design lookup (no training)"] = nearest_design_baseline_metrics(
+        records, y_class, y_scalars, train_idx, test_idx
+    )
     print("[model] Geometry Tree", flush=True)
     models["Geometry Tree + Physics XAI"] = tree_holdout_metrics(
         x, y_class, y_scalars, y_curve, train_idx, test_idx, args

@@ -45,7 +45,25 @@ class P1Target:
 
 
 def group_key(record: DDRecord) -> str:
-    return f"{record.case}|{record.theta1:.8g}|{record.theta2:.8g}"
+    """Identify a design point by its angles alone.
+
+    Case2/3/4 at the same angles are the same laminate to within the part of
+    the physics these targets depend on: the building-block permutation moves
+    only D16, D26 and B, while A and the orthotropic part of D are identical.
+    Measured across the corpus, Pt at a fixed (theta1, theta2, panel) varies by
+    a median 0.14% between cases against a global coefficient of variation of
+    0.571.
+
+    Keying on case therefore split near-duplicates across the train/test line:
+    537 of 546 held-out rows had a same-angle twin in training, and a lookup
+    table that averaged those twins beat every trained model on Pt. Panel is
+    excluded for the same reason in the other direction — a model that has seen
+    an angle pair at another panel is interpolating, not generalising to an
+    unseen design.
+
+    This matches the key the challenger trainers already use.
+    """
+    return f"{record.theta1:.8g}|{record.theta2:.8g}"
 
 
 def _sha256(path: Path) -> str:
