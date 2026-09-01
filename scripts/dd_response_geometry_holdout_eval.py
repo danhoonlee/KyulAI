@@ -232,6 +232,7 @@ def write_split_manifest(output_dir: Path, records: list[DDRecord], train_idx: n
 
 
 def tree_holdout_metrics(
+    records: list[DDRecord],
     x: np.ndarray,
     y_class: np.ndarray,
     y_scalars: np.ndarray,
@@ -262,6 +263,14 @@ def tree_holdout_metrics(
         "max_force_mae": float(mean_absolute_error(y_scalars[test_idx, 2], pred_scalars[:, 2])),
         "curve_norm_rmse": float(np.sqrt(np.mean((pred_curve - y_curve[test_idx]) ** 2))),
         "curve_force_rmse": float(np.sqrt(np.mean((pred_force - true_force) ** 2))),
+        "by_geometry": per_geometry_breakdown(
+            records,
+            test_idx,
+            y_class[test_idx],
+            pred_class,
+            y_scalars[test_idx, 0],
+            pred_scalars[:, 0],
+        ),
     }
 
 
@@ -448,6 +457,42 @@ def hybrid_holdout_metrics(
     return row
 
 
+def per_geometry_breakdown(
+    records: list[DDRecord],
+    test_idx: np.ndarray,
+    truth_class: np.ndarray,
+    predicted_class: np.ndarray,
+    truth_pt: np.ndarray,
+    predicted_pt: np.ndarray,
+) -> dict[str, dict[str, float]]:
+    """Split the headline numbers by panel.
+
+    A pooled Pt MAE across geometries averages targets that are not the same
+    quantity: 6x4 rows carry the PPT P1 definition and 6x8/8x8 the force-plot
+    kink, and their absolute scales differ by more than a factor of two. Pooling
+    therefore lets a change in the geometry mix look like a change in accuracy.
+    """
+    by_panel: dict[str, list[int]] = defaultdict(list)
+    for position, index in enumerate(test_idx):
+        record = records[int(index)]
+        by_panel[f"{record.panel_a_in:g}x{record.panel_b_in:g}"].append(position)
+
+    breakdown: dict[str, dict[str, float]] = {}
+    for panel, positions in sorted(by_panel.items()):
+        rows = np.asarray(positions, dtype=int)
+        breakdown[panel] = {
+            "n": int(len(rows)),
+            "accuracy": float(accuracy_score(truth_class[rows], predicted_class[rows])),
+            "pt_mae": float(mean_absolute_error(truth_pt[rows], predicted_pt[rows])),
+            "pt_mean": float(np.mean(truth_pt[rows])),
+            "pt_mae_relative": float(
+                mean_absolute_error(truth_pt[rows], predicted_pt[rows])
+                / max(float(np.mean(np.abs(truth_pt[rows]))), 1e-9)
+            ),
+        }
+    return breakdown
+
+
 def nearest_design_baseline_metrics(
     records: list[DDRecord],
     y_class: np.ndarray,
@@ -524,6 +569,29 @@ def write_report(output_dir: Path, payload: dict[str, Any]) -> None:
             f"| {name} | {row['accuracy']:.4f} | {row['macro_f1']:.4f} | "
             f"{row['pt_mae']:.2f} | {row['curve_norm_rmse']:.5f} | {row['curve_force_rmse']:.2f} |"
         )
+
+    for name, row in metrics.items():
+        breakdown = row.get("by_geometry")
+        if not breakdown:
+            continue
+        lines.extend(
+            [
+                "",
+                f"### {name} by panel",
+                "",
+                "Pt MAE is an absolute error, and Pt itself differs by more than a factor of two "
+                "across panels, so the relative column is the one to compare.",
+                "",
+                "| Panel | n | Type Acc. | Pt MAE | Pt mean | Pt MAE / Pt mean |",
+                "| --- | ---: | ---: | ---: | ---: | ---: |",
+            ]
+        )
+        for panel, values in breakdown.items():
+            lines.append(
+                f"| {panel} | {values['n']} | {values['accuracy']:.4f} | "
+                f"{values['pt_mae']:.2f} | {values['pt_mean']:,.0f} | "
+                f"{values['pt_mae_relative'] * 100:.2f}% |"
+            )
     lines.extend(
         [
             "",
@@ -623,7 +691,7 @@ def main() -> None:
     )
     print("[model] Geometry Tree", flush=True)
     models["Geometry Tree + Physics XAI"] = tree_holdout_metrics(
-        x, y_class, y_scalars, y_curve, train_idx, test_idx, args
+        records, x, y_class, y_scalars, y_curve, train_idx, test_idx, args
     )
     if not args.skip_goint:
         print("[model] Geometry GointMLP", flush=True)
