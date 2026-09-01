@@ -43,6 +43,7 @@ from src.ml.dd_laminate.train_cases_2_3_4_classical import DDRecord, load_record
 from src.ml.dd_laminate.train_cases_2_3_4_goint import (  # noqa: E402
     ResponseDataset,
     class_weights,
+    denormalize_scalars,
     make_response_model,
     normalize,
     response_metric_row,
@@ -316,12 +317,21 @@ def goint_holdout_metrics(
             break
     if best_state is not None:
         model.load_state_dict(best_state)
-    row = response_metric_row(
-        run_response_epoch(model, test_loader, None, weights, args.device_torch, train=False, args=args),
-        scalar_mean,
-        scalar_std,
+    eval_out = run_response_epoch(
+        model, test_loader, None, weights, args.device_torch, train=False, args=args
     )
+    row = response_metric_row(eval_out, scalar_mean, scalar_std)
     row["best_epoch"] = float(best_epoch)
+    # test_loader wraps Subset(dataset, test_idx) with shuffle=False, so the
+    # rows come back in test_idx order and can be keyed back to their panel.
+    row["by_geometry"] = per_geometry_breakdown(
+        records,
+        test_idx,
+        np.asarray(eval_out["y_true"]),
+        np.asarray(eval_out["y_pred"]),
+        denormalize_scalars(eval_out["scalar_true_norm"], scalar_mean, scalar_std)[:, 0],
+        denormalize_scalars(eval_out["scalar_pred_norm"], scalar_mean, scalar_std)[:, 0],
+    )
     return row
 
 
@@ -450,10 +460,19 @@ def hybrid_holdout_metrics(
             break
     if best_state is not None:
         model.load_state_dict(best_state)
-    row = hybrid_metric_row(run_hybrid_epoch(model, test_loader, None, args), scalar_mean, scalar_std)
+    eval_out = run_hybrid_epoch(model, test_loader, None, args)
+    row = hybrid_metric_row(eval_out, scalar_mean, scalar_std)
     row["best_epoch"] = float(best_epoch)
     row["synthetic_total"] = float(synthetic_total)
     row["synthetic_kept"] = float(synthetic_kept)
+    row["by_geometry"] = per_geometry_breakdown(
+        records,
+        test_idx,
+        np.asarray(eval_out["y_true"]),
+        np.asarray(eval_out["y_pred"]),
+        denormalize_scalars(eval_out["scalar_true_norm"], scalar_mean, scalar_std)[:, 0],
+        denormalize_scalars(eval_out["scalar_pred_norm"], scalar_mean, scalar_std)[:, 0],
+    )
     return row
 
 
@@ -533,6 +552,9 @@ def nearest_design_baseline_metrics(
         "pt_mae": float(np.mean(np.abs(predicted_pt - truth_pt))),
         "curve_norm_rmse": float("nan"),
         "curve_force_rmse": float("nan"),
+        "by_geometry": per_geometry_breakdown(
+            records, test_idx, truth_class, predicted_class, truth_pt, predicted_pt
+        ),
     }
 
 
@@ -619,9 +641,20 @@ def write_report(output_dir: Path, payload: dict[str, Any]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate geometry-aware Laminate Forecast models on a fixed holdout set.")
-    parser.add_argument("--data-dir", default="data/datasets/DD_cases_2_3_4_geometry_v1")
+    parser.add_argument(
+        "--data-dir",
+        default="data/datasets/DD_cases_2_3_4_geometry_3size_v1",
+        help="Three panels by default; the two-geometry set says nothing about 8x8.",
+    )
     parser.add_argument("--output-dir", default="reports/dd_response_geometry_fixed_holdout_v1")
-    parser.add_argument("--feature-set", default="theta_physics_geometry_v1")
+    parser.add_argument(
+        "--feature-set",
+        default="theta_physics_geometry_canonical_v2",
+        help=(
+            "Canonical by default. theta_physics_geometry_v1 builds the legacy Case3 stack, "
+            "which drops the -+theta1 group and duplicates +-theta2, and no deployed model uses it."
+        ),
+    )
     parser.add_argument("--holdout-ratio", type=float, default=0.2)
     parser.add_argument("--seq-len", type=int, default=128)
     parser.add_argument("--n-components", type=int, default=18)

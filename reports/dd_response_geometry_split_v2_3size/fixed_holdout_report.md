@@ -27,6 +27,16 @@ This report evaluates Laminate Forecast models on one deterministic holdout set.
 | Geometry GointMLP + Physics XAI | 0.9581 | 0.9561 | 675.29 | 0.01417 | 1052.19 |
 | Geometry Hybrid Student | 0.9563 | 0.9534 | 327.87 | 0.00755 | 708.99 |
 
+### Nearest-design lookup (no training) by panel
+
+Pt MAE is an absolute error, and Pt itself differs by more than a factor of two across panels, so the relative column is the one to compare.
+
+| Panel | n | Type Acc. | Pt MAE | Pt mean | Pt MAE / Pt mean |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 6x4 | 183 | 0.8634 | 941.26 | 16,560 | 5.68% |
+| 6x8 | 183 | 0.8251 | 8889.16 | 7,389 | 120.30% |
+| 8x8 | 183 | 0.6339 | 10806.76 | 5,472 | 197.50% |
+
 ### Geometry Tree + Physics XAI by panel
 
 Pt MAE is an absolute error, and Pt itself differs by more than a factor of two across panels, so the relative column is the one to compare.
@@ -36,6 +46,26 @@ Pt MAE is an absolute error, and Pt itself differs by more than a factor of two 
 | 6x4 | 183 | 0.9454 | 265.15 | 16,560 | 1.60% |
 | 6x8 | 183 | 0.9727 | 153.59 | 7,389 | 2.08% |
 | 8x8 | 183 | 0.9563 | 193.51 | 5,472 | 3.54% |
+
+### Geometry GointMLP + Physics XAI by panel
+
+Pt MAE is an absolute error, and Pt itself differs by more than a factor of two across panels, so the relative column is the one to compare.
+
+| Panel | n | Type Acc. | Pt MAE | Pt mean | Pt MAE / Pt mean |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 6x4 | 183 | 0.9454 | 1311.76 | 16,560 | 7.92% |
+| 6x8 | 183 | 0.9727 | 383.75 | 7,389 | 5.19% |
+| 8x8 | 183 | 0.9563 | 330.37 | 5,472 | 6.04% |
+
+### Geometry Hybrid Student by panel
+
+Pt MAE is an absolute error, and Pt itself differs by more than a factor of two across panels, so the relative column is the one to compare.
+
+| Panel | n | Type Acc. | Pt MAE | Pt mean | Pt MAE / Pt mean |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 6x4 | 183 | 0.9399 | 472.88 | 16,560 | 2.86% |
+| 6x8 | 183 | 0.9781 | 227.90 | 7,389 | 3.08% |
+| 8x8 | 183 | 0.9508 | 282.82 | 5,472 | 5.17% |
 
 ## Reading this table
 
