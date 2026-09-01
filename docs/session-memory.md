@@ -16221,3 +16221,50 @@ The remaining choices for a single Pt definition:
   written down rather than inferred.
 
 Commit `b95d63f`.
+
+## 2026-09-01 - What The Laminate Model Is Actually For
+
+A correction from the user that reframes how the surrogate should be judged, and that is not
+recoverable from the code.
+
+**Pt is the target.** The transition load — where the material starts to deform, where the response
+changes regime — is what the research wants to predict. Everything else is secondary.
+
+**Max force is not an independent quantity.** The prescribed displacement is fixed at 0.15 in, so max
+force is the load at the end of that stroke. Checked on 180 curves (60 each from 6x4, 6x8, 8x8):
+**180 of 180** have their maximum at the curve's end, and `last point / max = 1.0000` in every case.
+Max displacement is likewise constant at 0.15 for 2,683 of 2,700 rows. So reporting `pt_mae` and
+`max_force_mae` side by side as two results is close to counting one result twice, and a curve head
+that is graded mostly on its endpoint is being graded on the easy part.
+
+**The curve splits at Pt, and both halves should be as linear as possible.** Type 1 is the ideal —
+a clean bilinear response. Type 2 curves after the transition, Type 3 curves heavily. So the Type
+label is not an arbitrary three-class problem: it is a grading of how well a bilinear description
+holds.
+
+### What this changes
+
+Predicting the curve well and deriving Pt from it — which is where I was heading — has the priority
+backwards. Pt is the quantity; the curve is the evidence for it. The right parameterization is
+probably (first slope, Pt, second slope) rather than 128 samples, and
+`src/ml/dd_laminate/pt_consistent_tree.py` already predicts exactly
+`pt, pt_displacement_norm, first_slope_norm, second_slope_norm` — the project had moved this way
+already. What that head lacks is an honest evaluation, because its P1 fit is guided by the
+ground-truth Pt (`dd_response_pt_consistent_tree_train.py:63`) and its holdout is the leaking one.
+
+Independent convergence worth noting: the 2026-08-28 ML-practice literature review raised a segmented
+(pre-segment, kink, post-segment) encoding as an untested design hypothesis, flagged as an inference
+because no published mechanics surrogate was found doing it. The domain requirement arrived at the
+same shape from the other direction.
+
+### Consequence for ordering
+
+Two things now block, differently, and both are real:
+
+- **Pt definition** blocks *meaning* — with a bimodal column the target is not one quantity, and Pt
+  is the target. Currently waiting on the original author.
+- **Split design** blocks *measurement* — nothing can be shown to improve while a lookup table beats
+  every model on the holdout. Not blocked by anyone.
+
+So the split fix goes first, not because it matters more, but because it is unblocked and it is what
+makes any Pt work visible.
