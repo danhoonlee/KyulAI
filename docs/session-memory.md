@@ -16433,3 +16433,43 @@ compares different physical quantities across rows. The breakdown makes that vis
 hiding it in an average, but it does not resolve it.
 
 207 tests pass. Commit `24e85f3`.
+
+## 2026-09-01 - Per-Panel Breakdown For Every Model, And Corrected Defaults
+
+Extended `per_geometry_breakdown` to the GointMLP, the hybrid student and the lookup baseline. Both
+neural heads take their predictions from a loader wrapping `Subset(dataset, test_idx)` with
+`shuffle=False`, so the returned rows are in `test_idx` order and key back to their panel — checked
+before relying on it, because a misaligned breakdown would be worse than none.
+
+Corrected two defaults so the honest run needs no flags:
+
+- `--data-dir` → `DD_cases_2_3_4_geometry_3size_v1`. The old default was the two-geometry set, which
+  says nothing about 8x8.
+- `--feature-set` → `theta_physics_geometry_canonical_v2`. The old default,
+  `theta_physics_geometry_v1`, builds the legacy Case3 stack — `∓θ1` dropped and `±θ2` duplicated,
+  4 θ1 plies where the canonical block has 8 — and no deployed model uses it.
+
+Relative Pt error by panel:
+
+```
+panel    lookup     Tree   GointMLP   Hybrid
+6x4       5.68%    1.60%      7.92%    2.86%
+6x8     120.30%    2.08%      5.19%    3.08%
+8x8     197.50%    3.54%      6.04%    5.17%
+```
+
+Two findings that only appear once the pooled number is split.
+
+**The lookup is not uniformly weak.** On 6x4 it reaches 5.68% — that geometry's design grid is dense
+enough that a nearest neighbour lands close. Its pooled 6,879 Pt MAE reads as hopeless and is not; it
+is hopeless on 6x8 and 8x8 and respectable on 6x4.
+
+**The GointMLP is worse than the lookup on 6x4**, 7.92% against 5.68%. Pooled it looked like a
+working model — 675 Pt MAE against the baseline's 6,879 — because the pooled figure is dominated by
+the two panels where the baseline collapses. On the one geometry with human-reviewed labels and the
+largest Pt, it does not beat copying the nearest training row.
+
+Every model is also weakest in relative terms on 8x8, the geometry whose type labels are entirely
+unreviewed pseudo-labels and whose Pt uses the kink definition.
+
+207 tests pass. Commit `1dd4c01`.
