@@ -16575,3 +16575,26 @@ drifted toward more Type 2/3 there. The responses really are less bilinear, whic
 regardless.
 
 Commit `e54c6d3`.
+
+## 2026-09-01 - Review Sheet For The 56 Disputed 8x8 Rows
+
+`scripts/dd_build_type_review_sheet.py`, output in `reports/dd_type_review_8x8/`, published at
+https://claude.ai/code/artifact/723cb962-5300-4fca-879e-324bd0ae8d84
+
+The 56 rows labelled Type 1 on 8x8 that the shape measure rejects. Composition: Case2 23, Case3 24,
+Case4 9; all 56 called Type 2 by the measure; classifier confidence 0.458-0.537, median 0.488 —
+near chance on a three-class problem, so the classifier was not sure of these either.
+
+Each row is drawn as an SVG polyline with the two fitted lines and the break point overlaid, so the
+reviewer sees what the measure saw rather than a curvature number. Inline SVG, no rendered images:
+the whole sheet is 100 KB, stays sharp at any zoom, and adapts to the reader's theme.
+
+The sheet asks one question per row — clean bilinear or not — and deliberately does **not** ask about
+Type 2 against Type 3. The measure recovers only 21 of 134 Type 3 rows against human labels, so a
+reviewer there would be adjudicating the measure's failure rather than the label's correctness.
+Sorted by curvature, furthest from bilinear first. Verdicts go in `review_list.csv`, same order.
+
+Either outcome is informative. Mostly "Type 1 after all" means the measure is biased on 8x8 and the
+stored labels stand. Mostly "not Type 1" means the classifier over-calls Type 1 there and the true
+share is below the recorded 11.8%. Either way the 8x8 labels get an error bar, which they do not
+currently have.
