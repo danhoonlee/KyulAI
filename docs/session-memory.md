@@ -16384,3 +16384,52 @@ The Pt column still mixes two definitions across geometry, so a pooled Pt MAE st
 different physical quantities — and Pt is the target. The split makes improvement measurable; it does
 not make the target mean one thing. Type accuracy still rests on labels that are two-thirds
 unreviewed pseudo-labels.
+
+## 2026-09-01 - Three-Geometry Evaluation, And Why Pooled Pt MAE Misleads
+
+Re-ran the fixed holdout on `DD_cases_2_3_4_geometry_3size_v1` with
+`theta_physics_geometry_canonical_v2`. Two corrections to the previous run: it had used the default
+two-geometry dataset, so it said nothing about 8x8, and it had used the default feature set
+`theta_physics_geometry_v1`, which builds the known-wrong legacy Case3 stack while all three deployed
+models carry the canonical one. The script's defaults are still the legacy pair — worth fixing, but
+left alone here so the change is one thing at a time.
+
+```
+                                      Type acc     Pt MAE
+lookup (no training)                    0.7741   6,879.06
+Geometry Tree                           0.9581     204.08
+Geometry GointMLP                       0.9581     675.29
+Geometry Hybrid Student                 0.9563     327.87
+```
+
+The tree beats the lookup by a factor of 34 on Pt, so the split is doing its job across all three
+panels.
+
+### The pooled number moved the wrong way for the right reason
+
+204 on three geometries looks better than 292 on two, and it is not an improvement. Pt MAE is an
+absolute error and Pt differs by more than a factor of two across panels, so adding 8x8 — which has
+the smallest Pt — drags the pooled figure down. Added a per-panel breakdown, which is what the audit
+asked for:
+
+```
+panel     n   Type acc   Pt MAE   Pt mean   Pt MAE / mean
+6x4     183     0.9454   265.15    16,560           1.60%
+6x8     183     0.9727   153.59     7,389           2.08%
+8x8     183     0.9563   193.51     5,472           3.54%
+```
+
+**The absolute and relative orderings are opposite.** 6x4 has the worst absolute error and the best
+relative one; 8x8 the reverse. Any pooled Pt MAE therefore lets a change in the geometry mix read as
+a change in accuracy — and the mix does change, because 8x8 was folded in partway through the
+project's history.
+
+The report now prints this table under each model that produces one, with a line saying which column
+to compare. `per_geometry_breakdown` currently runs for the tree only; the other two heads compute
+their metrics separately and would each need the same call.
+
+Note that 6x4 carries the P1 Pt definition and 6x8/8x8 the force kink, so even the relative column
+compares different physical quantities across rows. The breakdown makes that visible rather than
+hiding it in an average, but it does not resolve it.
+
+207 tests pass. Commit `24e85f3`.
