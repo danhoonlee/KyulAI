@@ -324,14 +324,17 @@ def goint_holdout_metrics(
     row["best_epoch"] = float(best_epoch)
     # test_loader wraps Subset(dataset, test_idx) with shuffle=False, so the
     # rows come back in test_idx order and can be keyed back to their panel.
+    predicted_pt = denormalize_scalars(eval_out["scalar_pred_norm"], scalar_mean, scalar_std)[:, 0]
     row["by_geometry"] = per_geometry_breakdown(
         records,
         test_idx,
         np.asarray(eval_out["y_true"]),
         np.asarray(eval_out["y_pred"]),
         denormalize_scalars(eval_out["scalar_true_norm"], scalar_mean, scalar_std)[:, 0],
-        denormalize_scalars(eval_out["scalar_pred_norm"], scalar_mean, scalar_std)[:, 0],
+        predicted_pt,
     )
+    # Kept so a diagnostic can slice the error without retraining.
+    row["pt_predictions"] = predicted_pt.tolist()
     return row
 
 
@@ -639,7 +642,12 @@ def write_report(output_dir: Path, payload: dict[str, Any]) -> None:
     (output_dir / "fixed_holdout_report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def main() -> None:
+def build_parser() -> argparse.ArgumentParser:
+    """The evaluation's own options, exposed so analyses can reuse the defaults.
+
+    A diagnostic that re-derives these by hand drifts from the run it is meant
+    to explain.
+    """
     parser = argparse.ArgumentParser(description="Evaluate geometry-aware Laminate Forecast models on a fixed holdout set.")
     parser.add_argument(
         "--data-dir",
@@ -699,17 +707,32 @@ def main() -> None:
     parser.add_argument("--synthetic-confidence-power", type=float, default=1.5)
     parser.add_argument("--synthetic-min-confidence-weight", type=float, default=0.45)
     parser.add_argument("--strict-synthetic-exclusion-radius", type=float, default=2.5)
-    args = parser.parse_args()
+    return parser
+
+
+def resolve_runtime_args(args: argparse.Namespace) -> argparse.Namespace:
     set_seed(args.seed)
     args.device_torch = resolve_device(args.device)
     args.synthetic_panel_size_values = parse_panel_sizes(args.synthetic_panel_sizes)
     args.non_blocking = args.pin_memory == "on" or (args.pin_memory == "auto" and args.device_torch.type == "cuda")
-    print(f"Using device: {describe_device(args.device_torch)}", flush=True)
+    return args
 
+
+def load_matrices(
+    args: argparse.Namespace,
+) -> tuple[list[DDRecord], np.ndarray, np.ndarray, np.ndarray, np.ndarray, list[str]]:
     records = load_records(Path(args.data_dir))
     x, feature_names = response_feature_matrix(records, args.feature_set)
     y_class = np.asarray([record.label for record in records], dtype=int)
     y_scalars, y_curve, _grid = make_response_targets(records, args.seq_len)
+    return records, x, y_class, y_scalars, y_curve, feature_names
+
+
+def main() -> None:
+    args = resolve_runtime_args(build_parser().parse_args())
+    print(f"Using device: {describe_device(args.device_torch)}", flush=True)
+
+    records, x, y_class, y_scalars, y_curve, feature_names = load_matrices(args)
     train_idx, test_idx = fixed_group_holdout_split(records, holdout_ratio=args.holdout_ratio, seed=args.seed)
 
     output_dir = Path(args.output_dir)
