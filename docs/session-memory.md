@@ -16268,3 +16268,75 @@ Two things now block, differently, and both are real:
 
 So the split fix goes first, not because it matters more, but because it is unblocked and it is what
 makes any Pt work visible.
+
+## 2026-09-01 - What The Presentation And The Paper Say About Pt
+
+Read `data/PPT/Final ver2.pptx` (27 slides), `data/PPT/TAC vs DD.pptx`, the earlier
+`data/datasets/DD/Presentation_G3MS_Dongwon.pptx`, and `CS_DDpaper.pdf`. No extraction tooling was
+installed, so the slides were parsed as OOXML with the standard library and the PDF text pulled from
+its Flate streams; slide images were unzipped and read directly.
+
+### The rule is confirmed, and it is only a rule
+
+Slides 11-14 state exactly what `docs/DD_Laminate_PPT_Basis.md` records: Type 1 = force-plot
+intersection, Type 2 = mean of the force-plot and u3-plot intersections, Type 3 = u3-plot
+intersection. Slide 14 adds the classification order — clear bilinear → Type 1; otherwise does the
+second region curve heavily → Type 3, else Type 2. So the Type label is a judgement about how well a
+bilinear description holds, which matches what the user said about both sides of Pt needing to read
+as linear.
+
+`CS_DDpaper.pdf` is Vijayachandran & Waas, *Composite Structures* 261 (2021), Michigan. It defines
+the transition load as "the load at the intersection of the two stable equilibrium paths" — the
+concept, with no numerical procedure, and on a 20x20 in 8-ply panel rather than this study's 6x4 in
+16-ply. It is the conceptual source, not the label recipe.
+
+**Nowhere in either document is there a fitting window, a point count, or a tool.** The recipe does
+not exist in writing anywhere available here.
+
+### Slide 10 explains the offset
+
+The pipeline is Stage 0 input file → Stage 1 Python pre-process (imperfection seeding, orientation)
+→ Stage 2 `.inp` generation and Abaqus run → Stage 3 `.dat`/`.odb` giving Pt or ω → **Stage 4
+post-processing and QC, "Check if Pt is correct by looking at the xy plot"** → Stage 5 csv output.
+
+A human eyeball step is part of the official procedure. That is the most likely explanation for the
+Type 1 result — 13 of 13 stored values above the recomputed intersection, median +2.18%, never below.
+An automatic fit corrected by a person leaves exactly that kind of one-sided residue, and it means
+the failure to reproduce is structural rather than a mistake on our side.
+
+### The u3 plot's axis label is wrong
+
+Slide 12 carries two figures for Test_038, both labelled `Load point Displacement (in)` and both
+legended `Force-Displacement`, but with x ranges of 0.30 and 0.70 and identical peak load. The second
+is the u3 plot with the label left unchanged — the plotting code was reused with a different x
+column. This matches our CSVs, where the main curve ends at 0.15 in and the u3 curve at 0.43-0.60 in.
+
+**The presentation's runs are exactly twice our stroke** (0.30 / 0.70 against 0.15 / 0.43-0.60), so
+the slides come from a different batch than the corpus we train on. Worth resolving before any
+number from the slides is compared with ours.
+
+### The units question is settled in our favour
+
+Slide 20 states `QI: = 12344.8 lbs` in body text while every plot's y axis reads `Load (kips)`. The
+mislabel originates in the source plotting script and was inherited, not introduced here. Values are
+lbf.
+
+### Also learned
+
+- Boundary conditions (slide 5): 6x4 in flat panel, simply supported on the lateral edges, clamped at
+  x = 0 and x = a, load applied from x = a. Constant across the corpus, so invisible to the model —
+  but it is the reason the response looks the way it does.
+- The research objective is a weighted cost function (slide 20): 70% transition load, 30% flexural
+  rigidity via the fundamental frequency, each normalised to a reference. Pt is 70% of the objective,
+  not the whole of it.
+- Two rankings exist: by transition load Case 3 wins (15,916.5 against quasi-isotropic 12,344.8,
+  +28.9%); by cost function Case 2 wins.
+- All five cases are 16-ply, and the slides report results for all five. We hold curves for Cases 2,
+  3 and 4 only; Cases 1 and 5 exist here as `theta_values.csv` and a summary spreadsheet with no
+  curves. The models therefore cover Pattern II only.
+
+### Question sheet updated
+
+https://claude.ai/code/artifact/17202040-e9a8-40fd-b2ec-90604ac97290 — now nine questions, led by the
+Stage 3-4 script and whether Pt was adjusted by hand during QC, plus the u3 axis, the doubled stroke,
+the missing Case 1/5 curves, and the unit confirmation.
