@@ -16519,3 +16519,59 @@ To get here, `main()` in the eval was split into `build_parser`, `resolve_runtim
 and drifting from the run it explains. The GointMLP path now also returns its per-row Pt predictions.
 
 207 tests pass. Commit `cb40d8a`.
+
+## 2026-09-01 - The Type 1 Collapse Is Physics, Not Labeller Drift
+
+`scripts/dd_audit_type_labels.py`, report in `reports/dd_type_label_audit/`.
+
+The open question from the 2026-08-28 audit: the Type 1 share falls 35.7% → 25.2% → 11.8% with panel
+size while the pseudo-labeller's confidence falls 1.00 → 0.71 → 0.63, and the two could not be told
+apart. The classifier cannot answer it about itself — it takes `pt` as a feature, was trained on 6x4
+rows carrying the P1 definition and applied to rows carrying the force kink, so that feature is out
+of distribution exactly where its confidence collapses.
+
+Scored the curves again by the rule the presentation states — fit two straight lines, measure how
+much the post-transition branch bends — from **shape alone, with no `pt`**, calibrated against the
+900 human-reviewed 6x4 labels.
+
+### What the measure is good for, and what it is not
+
+Against human 6x4 labels: Type 1 precision 302/320 = 94.4%, recall 302/321 = 94.1%. But only 21 of
+134 Type 3 rows are recovered — a single curvature threshold cannot separate "curves" from "curves
+heavily". **All claims are therefore restricted to Type 1 against the rest.**
+
+That limit also dissolves an apparent anomaly. Agreement with the pseudo-labels is not monotone in
+classifier confidence — the 0.8-0.9 band is worst at 49.4% (6x8) and 17.7% (8x8) — which looked like
+the classifier being confidently wrong. All 172 disagreements in that band are `stored 3 → mine 2`.
+It is this measure failing, not the labels. Worth remembering before treating any confidence-vs-
+agreement curve as evidence.
+
+### The answer
+
+```
+geometry   stored T1   independent T1   stored T1 this measure rejects
+6x4            35.7%            35.6%                        19  (6%)
+6x8            25.2%            24.0%                        19  (8%)
+8x8            11.8%             6.0%                        56 (53%)
+```
+
+**The collapse is real.** A `pt`-free measure reproduces the stored share almost exactly on 6x4 and
+closely on 6x8. Larger panels genuinely produce fewer clean bilinear responses, which is physically
+sensible — a larger plate buckles earlier and more nonlinearly.
+
+**If anything the stored labels understate it.** On 8x8 this measure rejects 56 of the 106 rows
+labelled Type 1 — 53% against 6% and 8% elsewhere — while its Type 1 precision on human data is 94%.
+The likely reading is that the classifier over-calls Type 1 on 8x8 and the true share is below 11.8%.
+
+### Where human review is worth spending
+
+Those 56 rows: `geometry == 8x8`, `label == 1`, `independent != 1` in `type_label_audit.csv`. Few
+enough to review by eye, in the one place the two methods disagree sharply, and the measure making
+the claim is 94% accurate on that class. The 3-versus-2 disagreements are not worth reviewing — this
+measure has no standing there, and a human would be adjudicating its failure rather than the label's.
+
+This also removes one hypothesis for why every model is weakest on 8x8: it is not that the labels
+drifted toward more Type 2/3 there. The responses really are less bilinear, which is harder to fit
+regardless.
+
+Commit `e54c6d3`.
