@@ -16473,3 +16473,49 @@ Every model is also weakest in relative terms on 8x8, the geometry whose type la
 unreviewed pseudo-labels and whose Pt uses the kink definition.
 
 207 tests pass. Commit `1dd4c01`.
+
+## 2026-09-01 - The GointMLP's 6x4 Weakness Is The Pt Definition
+
+The MLP loses to a nearest-neighbour lookup on 6x4 — 7.92% relative Pt error against 5.68% — while
+beating it comfortably on 6x8 and 8x8. `scripts/dd_diagnose_goint_6x4.py`, report in
+`reports/dd_goint_6x4_diagnosis/`.
+
+Splitting the holdout by response type as well as panel locates it. **Type 2 is the discriminating
+cell:**
+
+```
+Type 2      6x4 (P1)   6x8 (kink)   8x8 (kink)
+Tree           1.15%        0.97%        1.10%
+GointMLP       8.11%        2.26%        3.62%
+```
+
+The tree is flat across panels. The MLP is 3.6x worse on the one panel whose Pt carries the PPT P1
+definition.
+
+Type 2 is precisely where P1 is a **blend** — the mean of the force-plot and u3-plot intersections —
+while the same response type on 6x8 and 8x8 carries the force kink alone, with no rule to switch. As
+a function of (theta1, theta2), P1 is piecewise: it changes construction at the type boundaries, with
+stored ratios to the kink of roughly 1.02, 1.68 and 2.46 for Types 1, 2 and 3. A smooth network has
+to approximate that jump; a tree partitions across it and pays nothing.
+
+**Type 3 does not discriminate.** Every model is worst on Type 3 on every panel, including the two
+with no rule switch (goint 15.74% on 6x8, 10.59% on 8x8). The heavily curved response is
+intrinsically hard to fit regardless of how Pt was defined, so it cannot separate the two
+explanations. Type 2 is the test precisely because it is easy under one definition and blended under
+the other.
+
+Second reading worth keeping: the lookup's own profile is inverted on 6x4 — 10.85% on Type 1 against
+4.37% and 3.17% on Types 2 and 3, while it is uniformly hopeless on the other panels (43-222%). So
+"the MLP loses to the lookup on 6x4" is partly the MLP degrading and partly the baseline being
+unusually strong there. Both halves matter before treating it as a verdict on the architecture.
+
+**This argues for unifying the Pt definition, not for changing the network.** Any smooth model pays
+for a target that switches construction partway through the design space; the hybrid student sits
+between tree and MLP at 2.86% overall, consistent with being partly distilled from the tree. Until
+the definition is one thing, the MLP's 6x4 number measures the label as much as the model.
+
+To get here, `main()` in the eval was split into `build_parser`, `resolve_runtime_args` and
+`load_matrices`, so a diagnostic reuses the evaluation's own defaults rather than re-deriving them
+and drifting from the run it explains. The GointMLP path now also returns its per-row Pt predictions.
+
+207 tests pass. Commit `cb40d8a`.
