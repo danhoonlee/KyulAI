@@ -43,17 +43,27 @@ Endpoints: `/health` on ai, laminate, injection, dd and app `.imperialax.com`.
 | `~/.local/state/imperialax/serving-health.json` | Last known state per target, which is what makes transition detection possible. |
 | `logs/imperialax-health-check.log` | Every run, including the quiet ones. Gitignored. |
 
-## Enabling Slack alerts
+## Slack alerts
 
-Create an incoming webhook at https://api.slack.com/apps → Incoming Webhooks,
-pointed at `#imperialax-dev`, then put it in `~/.config/imperialax/alerts.env`:
+Wired up on 2026-09-01 and verified end to end. Alerts post to
+`#imperialax-dev` from a Slack app named **ImperialAX Serving**, created from a
+manifest whose only bot scope is `incoming-webhook` — it can post to that
+channel and do nothing else.
+
+The webhook URL lives in `~/.config/imperialax/alerts.env` at mode 600, outside
+the repository. Treat it as a credential: anyone holding it can post to the
+channel. If it leaks, delete the webhook in the Slack app's Incoming Webhooks
+page and add a new one; nothing else needs changing.
+
+To repoint or replace it:
 
 ```
-IMPERIALAX_ALERT_SLACK_WEBHOOK=https://hooks.slack.com/services/...
+echo 'IMPERIALAX_ALERT_SLACK_WEBHOOK=https://hooks.slack.com/services/...' \
+  > ~/.config/imperialax/alerts.env && chmod 600 ~/.config/imperialax/alerts.env
 ```
 
-No restart is needed; the next timer run picks it up. Until then the check still
-runs and records state — it just prints `no webhook configured` instead of
+No restart is needed; the next timer run picks it up. Without the file the check
+still runs and records state — it just prints `no webhook configured` instead of
 posting.
 
 ## Operating it

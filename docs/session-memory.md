@@ -16140,3 +16140,25 @@ a session tool, not something a timer can call.
 Verified by reproducing the outage: stopping `imperialax-injection` was reported as both the unit
 (`inactive`) and its endpoint (`502`), the following run was silent, and starting it reported the
 recovery. Commit `e4398c4`.
+
+## 2026-09-01 - Serving Alerts Reach Slack
+
+Finished the monitoring thread. A Slack app named **ImperialAX Serving** now posts to
+`#imperialax-dev`.
+
+Created through **From a manifest** rather than a template or a blank app, so the permissions are
+exactly one bot scope — `incoming-webhook`. The app can post to that channel and can do nothing
+else: it cannot read messages or reach files. The AI-agent and starter templates would have attached
+event subscriptions and scopes the alerting does not need.
+
+The webhook URL sits in `~/.config/imperialax/alerts.env` at mode 600, outside the repository. It is
+a credential — whoever holds it can post to the channel — and if it ever leaks the fix is to delete
+that webhook on the app's Incoming Webhooks page and add a new one; nothing else changes.
+
+Verified end to end by reproducing the 2026-08-31 outage: stopping `imperialax-injection` posted the
+down alert naming both the unit (`inactive`) and its endpoint (`502`) at 10:26:59, and starting it
+posted the recovery at 10:27:04. Both returned `slack 200`, and both were confirmed present in the
+channel rather than only accepted by the API.
+
+The gap that produced the ten-hour silent outage is closed: the same failure is now visible within
+five minutes.
