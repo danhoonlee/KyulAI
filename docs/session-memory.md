@@ -16340,3 +16340,47 @@ lbf.
 https://claude.ai/code/artifact/17202040-e9a8-40fd-b2ec-90604ac97290 — now nine questions, led by the
 Stage 3-4 script and whether Pt was adjusted by hand during QC, plus the u3 axis, the doubled stroke,
 the missing Case 1/5 curves, and the unit confirmation.
+
+## 2026-09-01 - The Holdout Now Splits On The Design
+
+Fixed the leak from the 2026-08-28 audit. `group_key` in
+`scripts/dd_response_geometry_holdout_eval.py` and
+`scripts/dd_response_pt_consistent_tree_train.py` was `case|theta1|theta2`, which put Case2/3/4 of
+one design on opposite sides of the split. It is now the angle pair alone — the key the six
+challenger trainers already used, so this makes the project internally consistent rather than
+introducing a new convention.
+
+Groups fall from 900 to 300 over the same 2,700 rows.
+
+Also added `nearest_design_baseline_metrics` as a permanent row in the report. It trains nothing: each
+held-out row is answered by copying its nearest training row in (theta1, theta2). It exists so the
+split cannot degenerate again without being obvious.
+
+```
+                                      Type acc     Pt MAE
+old split   lookup                           —     132.25   <- beat every model
+old split   Geometry Tree               0.9451     200.21
+old split   Geometry Hybrid Student     0.9451     303.19
+
+new split   lookup                      0.8470   4,988.62
+new split   Geometry Tree               0.9563     291.69
+new split   Geometry GointMLP           0.9317     569.54
+new split   Geometry Hybrid Student     0.9590     340.35
+```
+
+Pt MAE went from 200 to 292 and that is the honest number. The qualitative change is what matters:
+the models now beat the lookup by seventeen times on Pt instead of losing to it. This is the first
+result in this benchmark that is evidence of anything.
+
+Note the holdout that ran is 6x4 and 6x8 only — the default data directory does not include 8x8, so
+these numbers do not yet speak to three-geometry generalisation.
+
+`tests/unit/ml/test_dd_split_key.py` pins both scripts: the three cases of one design share a group,
+distinct designs stay distinct, and the key does not mention case. 207 tests pass. Commit `39c08cd`.
+
+### What this does not fix
+
+The Pt column still mixes two definitions across geometry, so a pooled Pt MAE still averages
+different physical quantities — and Pt is the target. The split makes improvement measurable; it does
+not make the target mean one thing. Type accuracy still rests on labels that are two-thirds
+unreviewed pseudo-labels.
