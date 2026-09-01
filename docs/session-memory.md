@@ -16162,3 +16162,62 @@ channel rather than only accepted by the API.
 
 The gap that produced the ten-hour silent outage is closed: the same failure is now visible within
 five minutes.
+
+## 2026-09-01 - The P1 Transition Load Cannot Be Rebuilt From The Repository
+
+The 6x4 rows train on `transition load P1.csv`, and 6x8/8x8 train on the force kink — the mixed
+target from the 2026-08-28 audit. Deciding which definition to unify on turns on one question: is P1
+defined by a rule we can run? If it were, the rule could be pointed at any geometry with a u3 curve.
+
+**It is not.** `scripts/dd_verify_p1_definition.py`, report in
+`reports/dd_p1_definition_check/`.
+
+The PPT rule (`docs/DD_Laminate_PPT_Basis.md:55-78`): Type 1 = force-plot intersection; Type 2 = mean
+of the force-plot and u3-plot intersections; Type 3 = u3-plot intersection. The force half is
+settled — `dd_recompute_kink_pt.py` reproduces `transition load.csv` to 1e-9. Four readings of the
+u3 half were tried:
+
+1. The same bilinear fitter on force-vs-u3. Gives ~3,100 for Case2/Test_001 where the rule needs
+   ~27,400. The u3 curve starts near-vertical (slope 829,547 over the first five points), so the
+   "slope fell to 0.65x initial" test fires almost immediately.
+2. Tangent extrapolation back to u3 = 0, the standard buckling construction. Intercepts across every
+   post-buckling window land between 142 and 8,335 — never near the required value.
+3. u3 against applied displacement, joined by row index (both files carry the same 1001 rows and a
+   byte-identical force column). Cannot work: these runs seed an imperfection, so u3 grows from the
+   first increment. The initial slope, 1.145, is steeper than every later window, so intersections
+   go negative.
+4. A search for any tight statistical relationship. The closest are `u3(P1)/max(u3)` at 0.51 for both
+   types and `P1/max(force)` at 0.557 for Type 2, with coefficients of variation 0.09-0.15. A
+   definition would be exact; these are descriptions.
+
+```
+group          n   median rel   mean rel     <1%     <5%
+Type 1        77      0.02475    0.02616   24.7%   88.3%
+Type 2       154      0.61197    0.59515    0.0%    0.0%
+Type 3        18      0.88599    0.89100    0.0%    0.0%
+```
+
+**Type 1 is the decisive case.** It needs no u3 curve — its rule is the force-plot intersection
+alone, which is reproduced exactly elsewhere. Yet stored P1 sits *above* the recomputed value on
+**13 of 13** sampled rows, median +2.18%, never below. A fitting difference would scatter around
+zero. A one-sided offset means the stored numbers were produced by a construction different from the
+one the PPT describes, even where the rule is simplest.
+
+This confirms and sharpens the 2026-05-29 note that the upstream Pt "may have been manually or
+experimentally marked before the data reached us".
+
+### What it removes, and what is left
+
+Rebuilding 6x8 and 8x8 under the P1 definition is off the table — not only because those geometries
+have no u3 export, but because the rule itself is unknown. Option B from the audit is closed.
+
+The remaining choices for a single Pt definition:
+
+- **The force-plot kink.** Reproducible to 1e-9 for all three geometries today, with code already in
+  the repository. Costs the physical fidelity the PPT wanted for Types 2 and 3 — which is 76% of the
+  corpus — but it is one definition, and it is auditable.
+- **New u3 exports plus a documented construction**, agreed with whoever produced the original
+  labels. Needs the 6x8/8x8 Abaqus decks, which are not in the repository, and needs the rule
+  written down rather than inferred.
+
+Commit `b95d63f`.
