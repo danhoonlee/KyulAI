@@ -16598,3 +16598,20 @@ Either outcome is informative. Mostly "Type 1 after all" means the measure is bi
 stored labels stand. Mostly "not Type 1" means the classifier over-calls Type 1 there and the true
 share is below the recorded 11.8%. Either way the 8x8 labels get an error bar, which they do not
 currently have.
+
+## 2026-09-10 - Handoff Document, For Picking This Up Elsewhere
+
+Nine days idle. Nothing changed: no commits since `b9a5929`, all five public endpoints 200, the
+health check reporting 12/12 with no alert in that window — its first real proving run. The 56-row
+review CSV is still empty and no reply has come from UW, so both human-blocked items stand.
+
+Wrote `docs/HANDOFF.md` and linked it from the top of `CLAUDE.md`. It carries the current state in a
+few minutes of reading: what the laminate model is actually for, the four audit findings with the
+status of each, the honest per-panel numbers, what was fixed with its commit, and a landmines
+section. `session-memory.md` is now explicitly framed as the searchable log rather than something to
+read front to back.
+
+Put it in the repository rather than in the memory directory on purpose. Memory under
+`~/.claude/projects/<path>/memory/` is scoped to the directory Claude was started from — this
+session's lives under `-mnt-c-WINDOWS-system32` because that is the working directory — so it does
+not follow the user to another machine or another folder. The repo does.

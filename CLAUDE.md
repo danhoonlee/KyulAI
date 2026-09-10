@@ -45,6 +45,13 @@ agents/         — Agent team definitions
 research/       — Paper analysis outputs
 ```
 
+## Start here
+
+`docs/HANDOFF.md` is the current state of the work: what the laminate model is
+for, the four open findings and where each stands, the numbers that are honest,
+and the landmines. Read it before `docs/session-memory.md`, which is the full
+16,000-line log and is meant to be searched by date, not read.
+
 ## Serving Host (WSL) — Working Branch
 
 This checkout at `~/projects/KyulAI` on the WSL PC **is** the live server for
