@@ -16653,3 +16653,33 @@ Verification: `kr1-aspmx1`/`kr1-aspmx2.worksmobile.com` both return 125.209.209.
 `spf.worksmobile.com` TXT returns the ip4 list quoted above; `mx1`, `mx2`, `mx` and
 `aspmx.worksmobile.com` all return NXDOMAIN; `curl https://imperialax.com/` returns 308 to
 `https://ai.imperialax.com/`.
+
+## 2026-09-14 - Naver Works MX And SPF Live, Verified From Both Sides
+
+The user added the records. Both are correct and nothing else moved.
+
+`imperialax.com` MX now returns `10 kr1-aspmx1.worksmobile.com` and `20 kr1-aspmx2.worksmobile.com`
+and nothing else, which is what Naver Works requires — a third MX would silently break delivery. TXT
+returns exactly one record, `v=spf1 include:spf.worksmobile.com ~all`. Cloudflare's resolver and
+Google's agree, so propagation is done rather than partial.
+
+Went one step past DNS and opened TCP 25 to `kr1-aspmx1.worksmobile.com`, which answered
+`220 mx.worksmobile.com ESMTP ... - nsmtp`. That distinguishes a correct record pointing at a live
+mail server from a correct record pointing at nothing, which DNS alone cannot tell apart. Admin's
+"MX 레코드 연동 확인하기" should pass.
+
+Serving untouched: NS still `tegan`/`weston.ns.cloudflare.com`, apex still 104.21.43.225 /
+172.67.186.185 with its 308, all three health endpoints 200, and the four units active.
+
+DKIM and DMARC are both NXDOMAIN, which is the intended order. DKIM cannot be written until Admin
+generates the key under selector `naverworks`, and DMARC is worth adding only once DKIM is signing,
+or the reports come back half blind.
+
+One open question left with the user: no ownership-verification TXT is present, only SPF. Either
+Admin fell through to MX-based verification, in which case nothing is missing, or it is still asking
+for a string that has not been entered. A verification TXT would coexist with SPF without conflict —
+the single-record rule applies only to records beginning `v=spf1`.
+
+Verification: MX and TXT identical from `cloudflare-dns.com` and `dns.google`; SMTP banner from
+`kr1-aspmx1.worksmobile.com:25` as quoted; ai/laminate/injection `/health` all 200, apex 308;
+`systemctl --user is-active` returns active for laminate, injection, cloudflared and redis.
