@@ -16615,3 +16615,41 @@ Put it in the repository rather than in the memory directory on purpose. Memory 
 `~/.claude/projects/<path>/memory/` is scoped to the directory Claude was started from — this
 session's lives under `-mnt-c-WINDOWS-system32` because that is the working directory — so it does
 not follow the user to another machine or another folder. The repo does.
+
+## 2026-09-14 - Naver Works On Cloudflare DNS, Without Touching The Tunnel
+
+The question was whether moving the domain to a groupware provider breaks serving. It does not have
+to, because groupware never needed a nameserver change — only MX and TXT records, which Cloudflare
+serves like any other authoritative DNS.
+
+The nameservers must stay on Cloudflare regardless. The named tunnel routes through
+`e8928d27-7518-4ba9-ac36-108ca3a78718.cfargotunnel.com`, a name that resolves only inside Cloudflare
+DNS, and uvicorn binds `127.0.0.1`, so there is no public IP to fall back to. Leaving
+`tegan.ns.cloudflare.com` / `weston.ns.cloudflare.com` is not a preference, it is the requirement.
+
+Current record state, probed over DNS-over-HTTPS: NS as above, MX none, TXT none, `@` at
+104.21.43.225 / 172.67.186.185 behind the proxy and returning 308 to `https://ai.imperialax.com/`.
+No SPF, no DKIM, no DMARC exist today, so the mail records go in without a conflict to resolve.
+
+The Naver Works values were verified rather than recalled. An earlier recollection of
+`mx1`/`mx2`/`mx`/`aspmx.worksmobile.com` was wrong — none of those four hostnames exist. The real
+pair is `kr1-aspmx1.worksmobile.com` at priority 10 and `kr1-aspmx2.worksmobile.com` at priority 20,
+both resolving to 125.209.209.251, which falls inside the `125.209.208.0/20` block published by
+`spf.worksmobile.com`. SPF is `v=spf1 include:spf.worksmobile.com ~all`. DKIM defaults to selector
+`naverworks`, so the host is `naverworks._domainkey`, and its value is issued by Admin and cannot be
+known in advance; 1024-bit is the fallback where 2048 will not fit. DMARC starts at `p=none`.
+
+Two cautions carried to the user. Naver Works requires those two MX values and no others, or mail
+does not arrive. And SPF must remain a single TXT record — a later mail sender gets an added
+`include:`, never a second SPF line.
+
+The root 308 to `ai.imperialax.com` will have to be retired when the company homepage lands on the
+apex. Independent of the mail work, so the order does not matter.
+
+I did not make the changes. There is no Cloudflare dashboard access from here, and a mistaken edit
+on this zone takes down all three live services at once, so the user does it and I verify after.
+
+Verification: `kr1-aspmx1`/`kr1-aspmx2.worksmobile.com` both return 125.209.209.251 over DoH;
+`spf.worksmobile.com` TXT returns the ip4 list quoted above; `mx1`, `mx2`, `mx` and
+`aspmx.worksmobile.com` all return NXDOMAIN; `curl https://imperialax.com/` returns 308 to
+`https://ai.imperialax.com/`.
