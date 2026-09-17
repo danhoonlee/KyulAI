@@ -98,3 +98,7 @@ data/imperialax_auth.sqlite3-*
 # Large raw simulation batches kept local
 data/New_Data/
 data/New_data/
+
+# Material other people wrote, dropped here to be read. Public repo: keep it out
+# regardless of whether a given file is publicly available at its source.
+data/incoming/
