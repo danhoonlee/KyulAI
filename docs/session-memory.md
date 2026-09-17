@@ -16742,3 +16742,52 @@ Verification: `182 passed` across `tests/unit/ml` and `tests/backend`; both trai
 render the canonical default and its explanation; the guard raises on the legacy bundle and on an
 artifact with no metadata; `ai.imperialax.com/health` 200 after restart with three `lbf` and zero
 `kips` on the live page, four `lbf` in the live JavaScript.
+
+## 2026-09-17 - Read The CMT x GE Vernova Cure-Cycle Optimization Deck
+
+The user sent a 21-slide PDF over scp into `data/incoming/`. Recording what it says, because it is
+the closest published thing to our own pipeline and the numbers are worth having to hand.
+
+Extraction needed two passes. Plain string operators gave the prose but dropped every number: the
+figures are all raster and the numerals sit in subset fonts as hex-encoded CIDs. Decoding them meant
+collecting the ToUnicode CMaps out of the file itself (70 codes) and re-running the text operators
+through that. Math-italic glyphs still fall outside the CMap. Saved the decoded text beside the PDF
+as a `.txt`; 65 embedded images, of which the informative ones were read directly.
+
+"Machine Learning Surrogate-Assisted Optimization of Cure Cycles in Multi-Material Thermoset
+Composite Systems", Convergent Manufacturing Technologies with GE Vernova and UBC, presented at the
+Artificial Intelligence for Composite Materials Conference, 5-7 August 2026, Vancouver. Authors
+include Poursartip and Fernlund.
+
+Their pipeline is ours in a different domain: high-fidelity data generation, a fast surrogate, then
+constraint-aware Bayesian optimization. 41 inputs across material stack, factory process and
+commanded thermal cycle. 2^17 = 131,072 ORCA simulations in about 60 minutes on 36 cores at 3.0 GHz.
+Surrogate is a scikit-learn MLP, 41-132-50-50-50-50-2, tanh, Adam, 500 KiB of weights, predicting
+max temperature and minimum final degree of cure. 70/30 split gives RMSE 3.7115, MAE 1.6084,
+R^2 0.9642; the parity plots read 0.990 on peak temperature and 0.993 on min final DoC.
+
+Objective is cycle time subject to DoC_min >= 0.9 and T_max <= 220 C. Only 3.09% of the design space
+satisfies both -- the feasible set is a thin red wedge in the top-right of an otherwise blue
+scatter. Result: roughly 60 minutes of cycle time cut against the manufacturer-recommended cure
+cycle with every constraint met.
+
+The BO loop is worth the note. Sobol sample inside current bounds, rank by expected improvement from
+an objective GP and feasibility from constraint GPs, refine with a local optimizer, validate the
+survivors against the high-fidelity solver, learn the surrogate's bias from that, then re-fit on
+accepted *and* rejected candidates -- successes sharpen the objective surface, failures sharpen the
+constraint boundary.
+
+Three observations against our own work. Our `src/ml/dd_laminate/optimize.py` occupies the same slot
+in the pipeline but is a 181x181 grid search over theta1 x theta2, which is the right choice: BO
+buys you something when evaluation is expensive, and our surrogate answers instantly. Their cost is
+the high-fidelity validation inside the loop, which we do not have. What we do lack is any analogue
+of learning from rejected candidates, and `optimize.py` is not wired into the API at all -- there is
+no `optimize` reference anywhere in `src/backend/api/v1/dd_laminate.py`. Lastly their 3.09% feasible
+fraction rhymes with our Type 1 share collapsing to a claimed 11.8% on 8x8: both are problems where
+the good region is scarce.
+
+The user has not yet said why they sent it, so nothing was actioned.
+
+Verification: 21 pages parsed, page order read from /Kids; decoded text written to
+`data/incoming/CMT x GE Vernova - Bayesian Cure Cycle Optimization.txt`; figures for slides 15-19
+extracted to PNG and read; `grep -rn optimize src/backend/api/v1/dd_laminate.py` returns nothing.
