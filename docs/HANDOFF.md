@@ -124,18 +124,31 @@ These are 8x8 rows labelled Type 1 that the measure rejects — 53% of that
 panel's Type 1 rows against 6% and 8% elsewhere. Verdicts go in
 `reports/dd_type_review_8x8/review_list.csv`, column `verdict_type1_yes_no`.
 
-### 4. Features encode two degrees of freedom, not 24 — **NOT STARTED**
+### 4. Features are redundant — **DIAGNOSIS CONFIRMED, REMEDY REFUTED, CLOSED**
 
-`A11+A22+2·A66` is constant (it is Tr(Q)) and `A12−A66` is constant, so
-`{A11,A22,A12,A66}` has effective rank 2. `a11≡d11`, `a22≡d22`, `a12≡d12`,
-`a66≡d66` to 1e-14 — Kappel proves `D*` equals `A*` for valid DD blocks. Eight
-more columns are identically constant. Nothing computes the laminate trace
-normalisation or the lamination parameters ξA1, ξA2 that the Double-Double
-literature is built on, and no feature multiplies a stiffness by a panel
-dimension.
+Full write-up: `reports/dd_feature_redundancy/README.md`.
 
-Lower priority than 1–3: feature work cannot be measured while the target is
-bimodal.
+The redundancy is real and now proven rather than observed. Five column pairs are
+numerically identical across all 2,700 rows (`a11≡d11`, `a22≡d22`, `a12≡d12`,
+`a66≡d66`, `a11_a22_ratio≡d11_d22_ratio`) because Kappel's `D*`=`A*` holds for
+valid DD blocks. `A11+A22+2·A66` and `A12−A66` are constant because in
+Tsai-Pagano form they equal `2(U1+U5)` and `U4−U5`, functions of the material
+alone — so `{A11,A22,A12,A66}` spends four columns on two degrees of freedom,
+which are exactly ξA1 and ξA2. Within one case and one panel, 11 of 40 columns
+are constant; across the corpus none are and the linear rank is 22.
+
+**But redundant is not useless.** Against bare `theta+case+panel`, the 40 columns
+are worth 2.3× on Pt and 3.6× on the Type 1 rows. An earlier framing here implied
+the features carried nothing; that was wrong.
+
+**The proposed remedy does not work.** `theta_physics_geometry_dd_v3` adds the
+trace, ξA1..4, ξD1..4, trace-normalised stiffnesses and stiffness/dimension
+coupling terms. Measured on the uncontaminated window — 6x8 and 8x8 only, Type 1
+rows only — the current set wins on both a forest and an MLP, and adding the DD
+columns is consistently slightly worse. Do not re-run this; read the report.
+
+`lamination_parameters()` is kept and tested. It is the right vocabulary for
+explaining a layup even though it does not improve a prediction.
 
 ---
 
@@ -227,8 +240,8 @@ rule switch; a tree partitions across it.
    away — the review CSV and any reply from UW.
 3. If the Pt definition arrived: encode the rule, regenerate the column for all
    three geometries, retrain, re-evaluate. That is the main line.
-4. If it did not: everything except finding 1 is still workable. The nearest
-   unblocked piece is finding 4, or writing the per-panel breakdown into the
-   remaining trainers. The legacy-default and `kips` items below are done.
+4. If it did not: findings 2 and 4 are closed and the legacy-default and `kips`
+   items below are done. What is left unblocked is the per-panel breakdown in the
+   remaining trainers, and the 8x8 Type 1 recall lead in `## Current numbers`.
 
 Detail for any of this is in `docs/session-memory.md` under its date.

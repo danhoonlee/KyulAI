@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from math import cos, radians, sin
 from typing import Literal
@@ -331,6 +332,154 @@ def stack_physics_summary(
     }
 
 
+DD_FEATURE_COLUMNS = [
+    # Tsai-Pagano material invariants: what the material contributes, independent
+    # of how it is stacked. Constant for one material, so they are not features --
+    # they are here because the parameters below are only meaningful against them.
+    "tr_q",
+    # Lamination parameters. Four numbers that fix A* completely for any stack,
+    # replacing {a11, a22, a12, a66} which carry the same content in four numbers
+    # constrained by two exact identities.
+    "xi_a1",
+    "xi_a2",
+    "xi_a3",
+    "xi_a4",
+    # The same for bending. Kappel proves xi_d1 == xi_a1 and xi_d2 == xi_a2 for a
+    # valid DD block, so the pair that carries new information is xi_d3/xi_d4 --
+    # which is exactly where Case2, Case3 and Case4 differ.
+    "xi_d1",
+    "xi_d2",
+    "xi_d3",
+    "xi_d4",
+    # Trace-normalised stiffness. Dividing by Tr(Q) removes the material and
+    # leaves the layup, which is the form the Double-Double literature works in.
+    "a11_over_tr",
+    "a22_over_tr",
+    "a12_over_tr",
+    "a66_over_tr",
+    "d16_over_tr",
+    "d26_over_tr",
+    # Stiffness against panel dimension. Buckling and transition loads scale as a
+    # bending stiffness over a length squared; nothing in the existing set couples
+    # the two, and a tree cannot build a quotient out of separate columns.
+    "d11_over_b2",
+    "d22_over_a2",
+    "d12_2d66_over_ab",
+    "buckling_group",
+    "d11_d22_ratio_sqrt_aspect",
+]
+
+
+def _tsai_pagano_invariants(material: MaterialProperties) -> tuple[float, ...]:
+    """U1..U5, the material's contribution to every rotated stiffness.
+
+    Qbar at any angle is a fixed combination of these and cos/sin of 2theta and
+    4theta, which is what makes the lamination parameters below sufficient.
+    """
+
+    q = _reduced_stiffness(material)
+    q11, q12, q22, q66 = q[0, 0], q[0, 1], q[1, 1], q[2, 2]
+    u1 = (3.0 * q11 + 3.0 * q22 + 2.0 * q12 + 4.0 * q66) / 8.0
+    u2 = (q11 - q22) / 2.0
+    u3 = (q11 + q22 - 2.0 * q12 - 4.0 * q66) / 8.0
+    u4 = (q11 + q22 + 6.0 * q12 - 4.0 * q66) / 8.0
+    u5 = (q11 + q22 - 2.0 * q12 + 4.0 * q66) / 8.0
+    return u1, u2, u3, u4, u5
+
+
+def lamination_parameters(stack: list[float]) -> tuple[np.ndarray, np.ndarray]:
+    """Return (xiA1..4, xiD1..4) for a stack of equal-thickness plies.
+
+    xiA is the through-thickness mean of cos2t, cos4t, sin2t, sin4t. xiD is the
+    same weighted by 12*z^2, which is what turns a membrane average into a
+    bending one.
+    """
+
+    angles = np.radians(np.asarray(stack, dtype=float))
+    n = len(angles)
+    basis = np.stack(
+        [np.cos(2 * angles), np.cos(4 * angles), np.sin(2 * angles), np.sin(4 * angles)]
+    )
+
+    xi_a = basis.mean(axis=1)
+
+    # Ply k spans z in [-1/2 + k/n, -1/2 + (k+1)/n] of the normalised thickness;
+    # integrating 12*z^2 over it gives that ply's bending weight.
+    edges = np.linspace(-0.5, 0.5, n + 1)
+    weights = 4.0 * (edges[1:] ** 3 - edges[:-1] ** 3)
+    xi_d = basis @ weights
+
+    return xi_a, xi_d
+
+
+def dd_feature_vector(
+    case: str,
+    theta1: float,
+    theta2: float,
+    material: MaterialProperties = DEFAULT_MATERIAL,
+    *,
+    stack_version: StackVersion = CANONICAL_STACK_VERSION,
+) -> np.ndarray:
+    """The Double-Double literature's own coordinates, plus geometry coupling.
+
+    Two things the existing feature set does not have. First, lamination
+    parameters and trace normalisation, which is how the DD work states a layup:
+    the existing {a11, a22, a12, a66} block satisfies a11 + a22 + 2*a66 = 2(U1+U5)
+    and a12 - a66 = U4 - U5 exactly, so it spends four columns on two degrees of
+    freedom. Second, terms that multiply a stiffness by a panel dimension --
+    every geometry column today is pure geometry, so the model has to invent the
+    quotient that the physics is actually written in.
+    """
+
+    a, b, d, stack = abd_matrices(case, theta1, theta2, material, stack_version=stack_version)
+    h = material.ply_thickness_in * len(stack)
+    a_norm = a / max(h, 1e-12)
+    d_norm = 12.0 * d / max(h**3, 1e-12)
+    eps = 1e-9
+
+    xi_a, xi_d = lamination_parameters(stack)
+    q = _reduced_stiffness(material)
+    tr_q = float(q[0, 0] + q[1, 1] + 2.0 * q[2, 2])
+
+    panel_a = material.panel_a_in
+    panel_b = material.panel_b_in
+    # Bending stiffnesses in force units, not the thickness-normalised form, so
+    # the ratios below carry the real scale of the panel.
+    d11 = float(d[0, 0])
+    d22 = float(d[1, 1])
+    d12 = float(d[0, 1])
+    d66 = float(d[2, 2])
+
+    values = [
+        tr_q,
+        *xi_a.tolist(),
+        *xi_d.tolist(),
+        a_norm[0, 0] / max(tr_q, eps),
+        a_norm[1, 1] / max(tr_q, eps),
+        a_norm[0, 1] / max(tr_q, eps),
+        a_norm[2, 2] / max(tr_q, eps),
+        d_norm[0, 2] / max(tr_q, eps),
+        d_norm[1, 2] / max(tr_q, eps),
+        d11 / max(panel_b**2, eps),
+        d22 / max(panel_a**2, eps),
+        2.0 * (d12 + 2.0 * d66) / max(panel_a * panel_b, eps),
+        # The orthotropic plate buckling group: the combination that sets the
+        # critical load for a simply supported panel under uniaxial compression.
+        (
+            2.0
+            * math.pi**2
+            * (
+                math.sqrt(max(d11 * d22, 0.0))
+                + d12
+                + 2.0 * d66
+            )
+            / max(panel_b**2, eps)
+        ),
+        (d11 / max(d22, eps)) ** 0.5 * (panel_b / max(panel_a, eps)),
+    ]
+    return np.asarray(values, dtype=float)
+
+
 def physics_feature_vector(
     case: str,
     theta1: float,
@@ -486,6 +635,9 @@ def nn_friendly_physics_feature_vector(
 
 __all__ = [
     "CANONICAL_STACK_VERSION",
+    "lamination_parameters",
+    "dd_feature_vector",
+    "DD_FEATURE_COLUMNS",
     "COMPACT_PHYSICS_FEATURE_COLUMNS",
     "DEFAULT_MATERIAL",
     "EXTENDED_PHYSICS_FEATURE_COLUMNS",

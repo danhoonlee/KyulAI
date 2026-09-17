@@ -7,6 +7,8 @@ from dataclasses import dataclass
 import numpy as np
 
 from .laminate_physics import (
+    DD_FEATURE_COLUMNS,
+    dd_feature_vector,
     CANONICAL_STACK_VERSION,
     COMPACT_PHYSICS_FEATURE_COLUMNS,
     EXTENDED_PHYSICS_FEATURE_COLUMNS,
@@ -61,6 +63,15 @@ RESPONSE_PHYSICS_GEOMETRY_V1_FEATURE_COLUMNS = [
     *RESPONSE_GEOMETRY_COLUMNS,
 ]
 
+# The canonical geometry set, plus the Double-Double literature's own
+# coordinates. Nothing is removed: this is a superset, so a regression against
+# it measures what the added columns are worth rather than what dropping the
+# old ones costs.
+RESPONSE_DD_FEATURE_COLUMNS = [
+    *RESPONSE_PHYSICS_GEOMETRY_V1_FEATURE_COLUMNS,
+    *DD_FEATURE_COLUMNS,
+]
+
 RESPONSE_FEATURE_SET_THETA = "theta"
 RESPONSE_FEATURE_SET_PHYSICS_LEGACY = "theta_physics"
 RESPONSE_FEATURE_SET_COMPACT_LEGACY = "theta_physics_v2"
@@ -70,6 +81,7 @@ RESPONSE_FEATURE_SET_PHYSICS_CANONICAL = "theta_physics_canonical_v2"
 RESPONSE_FEATURE_SET_COMPACT_CANONICAL = "theta_physics_compact_canonical_v2"
 RESPONSE_FEATURE_SET_NN_CANONICAL = "theta_physics_nn_canonical_v2"
 RESPONSE_FEATURE_SET_GEOMETRY_CANONICAL = "theta_physics_geometry_canonical_v2"
+RESPONSE_FEATURE_SET_DD = "theta_physics_geometry_dd_v3"
 
 SUPPORTED_RESPONSE_FEATURE_SETS = (
     RESPONSE_FEATURE_SET_THETA,
@@ -81,6 +93,7 @@ SUPPORTED_RESPONSE_FEATURE_SETS = (
     RESPONSE_FEATURE_SET_COMPACT_CANONICAL,
     RESPONSE_FEATURE_SET_NN_CANONICAL,
     RESPONSE_FEATURE_SET_GEOMETRY_CANONICAL,
+    RESPONSE_FEATURE_SET_DD,
 )
 
 
@@ -169,6 +182,28 @@ def response_feature_row(
             float(panel_b_in),
         ]
         return [*theta, *physics, *geometry]
+    if feature_set == RESPONSE_FEATURE_SET_DD:
+        extended_values = dict(
+            zip(
+                EXTENDED_PHYSICS_FEATURE_COLUMNS,
+                extended_physics_feature_vector(
+                    case, theta1, theta2, material, stack_version=stack_version
+                ),
+                strict=True,
+            )
+        )
+        physics = [extended_values[name] for name in COMPACT_PHYSICS_FEATURE_COLUMNS]
+        geometry = [
+            extended_values["panel_aspect"],
+            extended_values["a_slenderness"],
+            extended_values["b_slenderness"],
+            float(panel_a_in),
+            float(panel_b_in),
+        ]
+        dd = dd_feature_vector(
+            case, theta1, theta2, material, stack_version=stack_version
+        ).tolist()
+        return [*theta, *physics, *geometry, *dd]
     if feature_set in {
         RESPONSE_FEATURE_SET_NN_LEGACY,
         RESPONSE_FEATURE_SET_NN_CANONICAL,
@@ -209,6 +244,8 @@ def response_feature_matrix(records, feature_set: str = "theta") -> tuple[np.nda
         RESPONSE_FEATURE_SET_GEOMETRY_CANONICAL,
     }:
         names = RESPONSE_PHYSICS_GEOMETRY_V1_FEATURE_COLUMNS
+    elif feature_set == RESPONSE_FEATURE_SET_DD:
+        names = RESPONSE_DD_FEATURE_COLUMNS
     elif feature_set in {
         RESPONSE_FEATURE_SET_NN_LEGACY,
         RESPONSE_FEATURE_SET_NN_CANONICAL,
@@ -276,6 +313,8 @@ __all__ = [
     "RESPONSE_FEATURE_SET_COMPACT_CANONICAL",
     "RESPONSE_FEATURE_SET_COMPACT_LEGACY",
     "RESPONSE_FEATURE_SET_GEOMETRY_CANONICAL",
+    "RESPONSE_DD_FEATURE_COLUMNS",
+    "RESPONSE_FEATURE_SET_DD",
     "RESPONSE_FEATURE_SET_GEOMETRY_LEGACY",
     "RESPONSE_FEATURE_SET_NN_CANONICAL",
     "RESPONSE_FEATURE_SET_NN_LEGACY",
