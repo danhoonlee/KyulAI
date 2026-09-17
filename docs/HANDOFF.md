@@ -149,8 +149,8 @@ bimodal.
 | `bba5ae4` | Removed retired demo credentials from the iOS **and** Android clients. **Neither was compiled — this host has no Swift or Android toolchain. Build both before any release.** |
 | `89e6da2` | Panel dimensions bounded to 6–8 × 4–8 in. Outside that the tree answered from the nearest trained leaf: 100×4 returned 6×4's Pt to four decimal places. |
 | `831c75c` | The reliability panel was blind to panel size — it reported "interpolation, high confidence, well-covered" for a 100×4 panel. |
-| `a1b2c3d` | Both `pt_consistent` trainers defaulted to the legacy Case3 stack, and their default output directories were the three live model paths. Now canonical, writing to `*_canonical_v2`, with `require_feature_builder` refusing a mismatched baseline or teacher. |
-| `a1b2c3d` | Force relabelled `kips` → `lbf` everywhere code emits it, including the customer-facing page. |
+| `df2f983` | Both `pt_consistent` trainers defaulted to the legacy Case3 stack, and their default output directories were the three live model paths. Now canonical, writing to `*_canonical_v2`, with `require_feature_builder` refusing a mismatched baseline or teacher. |
+| `df2f983` | Force relabelled `kips` → `lbf` everywhere code emits it, including the customer-facing page. |
 | `e4398c4` | Health monitoring. An injection outage had run 10 hours unnoticed; it was a clean SIGTERM, so `OnFailure` would never have caught it. |
 | `25586fd`, `bfa9668` | OpenRadioss starter and output converters built. Two upstream `-no-python` defects patched. See `infrastructure/openradioss/README.md`. |
 

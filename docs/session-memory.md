@@ -16683,3 +16683,62 @@ the single-record rule applies only to records beginning `v=spf1`.
 Verification: MX and TXT identical from `cloudflare-dns.com` and `dns.google`; SMTP banner from
 `kr1-aspmx1.worksmobile.com:25` as quoted; ai/laminate/injection `/health` all 200, apex 308;
 `systemctl --user is-active` returns active for laminate, injection, cloudflared and redis.
+
+## 2026-09-17 - Canonical Physics By Default, And Force Is lbf
+
+Two of the three unblocked items from the handoff, done together because the second one turned out
+to reach the live page.
+
+Both `pt_consistent` trainers still defaulted to `theta_physics_geometry_v1`. Quantified the
+difference before touching anything: Case2 and Case4 expand identically under both rules, so only
+Case3 moves, and there the legacy stack gives 4 theta1 plies against the canonical 8. Over a
+5-degree grid, 272 of 867 design points change — `a11` and `a22` by up to 80%, `d11`/`d22` by 57%,
+and `membrane_anisotropy` by a factor of 31.
+
+Flipping the default alone would have been worse than leaving it. The two trainers' default output
+directories were `models/dd_laminate_response_pt_consistent_{tree,goint,hybrid}_3size_grouped_v1` —
+the exact three artifacts `src/backend/api/v1/dd_laminate.py` serves. A default run would have
+overwritten live models with different physics under an unchanged name. Worse, the tree trainer
+called `decode_baseline(baseline_bundle, holdout_x)` with a matrix built from the run's feature set
+against a bundle trained on the other one. That raises nothing: both sets emit the same 40 column
+names in the same order, and `feature_set_from_columns` returns the legacy name whenever panel
+columns are present, so it cannot tell them apart either.
+
+So the change is four parts. Defaults are canonical. Output and report directories end
+`_canonical_v2`, leaving the served artifacts alone. Baseline and teacher defaults point at
+`geometry_tree_canonical_v2`, `geometry_goint_canonical_v2` and `hybrid_student_canonical_v2`, which
+already existed and already record the canonical builder. And `require_feature_builder` in
+`response_feature_sets.py` refuses an artifact whose recorded builder does not match the run,
+including one that records nothing — wired into the tree trainer's baseline load and the deep
+trainer's teacher load, the two places a stored model meets a freshly built matrix. The deep
+trainer's `predict_baseline` was already safe: it rebuilds features from the checkpoint's own
+builder at line 365.
+
+Serving did not change and did not need to. It prefers `checkpoint["feature_builder"]` and only
+falls back to the column sniff when that is absent; all three served artifacts record
+`theta_physics_geometry_v1`, so they are internally consistent. Promoting a canonical retrain is now
+a deliberate edit to the model list rather than a side effect of running a trainer.
+
+The `kips` mislabel is fixed and it did reach customers.
+`https://ai.imperialax.com/index-3size-preview.html` was serving three `kips` labels and its
+JavaScript four more. Verified the direction before relabelling rather than trusting the note: Pt
+spans 2,344.9 to 34,578.3, sampled peak curve force reaches 42,173.4, max displacement is 0.15 in,
+and the only `0.001` in the whole DD package is an MLP learning rate. Read as kips, the smallest
+coupon in the corpus carries 2.3 million lbf. Relabelled 14 occurrences across six files — the two
+frontend files, `optimize.py`, `train_u3_forecast_models.py`, `dd_response_distillation_train.py`
+and `dd_response_geometry_holdout_eval.py`. Nothing in the API carries `kip` in a field name, so
+this was a display-only change with no contract impact. Historical markdown under `reports/` keeps
+its `kips` text; those files record what past runs printed and rewriting them would falsify the log.
+
+Restarted `imperialax-laminate`; the live page and its JavaScript now read `lbf`.
+
+Two regression tests added. `test_dd_feature_builder_guard.py` pins the canonical default across all
+three geometry scripts, proves Case2/Case4 are unaffected while Case3 differs in ply count, shows
+the two sets are indistinguishable by their columns, and exercises the guard's three rejection
+paths. `test_dd_force_units.py` asserts no source file says `kips` and that Pt's magnitude is only
+consistent with lbf.
+
+Verification: `182 passed` across `tests/unit/ml` and `tests/backend`; both trainers' `--help`
+render the canonical default and its explanation; the guard raises on the legacy bundle and on an
+artifact with no metadata; `ai.imperialax.com/health` 200 after restart with three `lbf` and zero
+`kips` on the live page, four `lbf` in the live JavaScript.
