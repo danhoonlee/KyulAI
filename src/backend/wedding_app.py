@@ -383,6 +383,7 @@ async def wedding_rsvp(request: Request) -> Response:
                     "side": _trim_text(data.get("side"), 20),
                     "attendance": "참석",
                     "guests": _trim_text(data.get("count"), 20),
+                    "meal": "식사 예정",
                 }
                 auto_data = {key: value for key, value in auto_data.items() if value}
                 auto_record = {
