@@ -361,6 +361,39 @@ async def wedding_rsvp(request: Request) -> Response:
             lines.append(serialized)
         else:
             lines[replacement_index] = serialized
+
+        # 버스만 신청하고 참석(RSVP)을 안 한 경우, 같은 정보로 참석을 자동 등록한다.
+        if entry_type == "bus" and incoming_phone:
+            has_rsvp = False
+            for existing_line in lines:
+                try:
+                    existing = json.loads(existing_line)
+                except json.JSONDecodeError:
+                    continue
+                if not isinstance(existing, dict) or existing.get("type") != "rsvp":
+                    continue
+                existing_data = existing.get("data") or {}
+                if isinstance(existing_data, dict) and _normalize_wedding_phone(existing_data.get("phone")) == incoming_phone:
+                    has_rsvp = True
+                    break
+            if not has_rsvp:
+                auto_data = {
+                    "name": _trim_text(data.get("name"), 40),
+                    "phone": _trim_text(data.get("phone"), 30),
+                    "side": _trim_text(data.get("side"), 20),
+                    "attendance": "참석",
+                    "guests": _trim_text(data.get("count"), 20),
+                }
+                auto_data = {key: value for key, value in auto_data.items() if value}
+                auto_record = {
+                    "type": "rsvp",
+                    "wedding": record["wedding"],
+                    "data": auto_data,
+                    "message": "",
+                    "submittedAt": record["submittedAt"],
+                }
+                lines.append(json.dumps(auto_record, ensure_ascii=False))
+
         _atomic_write_lines(submissions_file, lines)
 
     return JSONResponse({"ok": True})
