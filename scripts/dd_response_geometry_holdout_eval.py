@@ -586,7 +586,7 @@ def write_report(output_dir: Path, payload: dict[str, Any]) -> None:
         "",
         "## Results",
         "",
-        "| Model | Type Acc. | Macro F1 | Pt MAE (kips) | Curve Norm RMSE | Curve Force RMSE (kips) |",
+        "| Model | Type Acc. | Macro F1 | Pt MAE (lbf) | Curve Norm RMSE | Curve Force RMSE (lbf) |",
         "| --- | ---: | ---: | ---: | ---: | ---: |",
     ]
     for name, row in metrics.items():

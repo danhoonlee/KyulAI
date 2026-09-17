@@ -28,7 +28,10 @@ from src.ml.dd_laminate.pt_consistent_tree import (  # noqa: E402
     p1_fit_from_parameters,
 )
 from src.ml.dd_laminate.pt_curve_consistency import p1_transition_fit_details  # noqa: E402
-from src.ml.dd_laminate.response_feature_sets import response_feature_matrix  # noqa: E402
+from src.ml.dd_laminate.response_feature_sets import (  # noqa: E402
+    require_feature_builder,
+    response_feature_matrix,
+)
 from src.ml.dd_laminate.train_cases_2_3_4_classical import (  # noqa: E402
     DDRecord,
     load_records,
@@ -429,19 +432,30 @@ def main() -> None:
     parser.add_argument(
         "--baseline-model",
         type=Path,
-        default=Path("models/dd_laminate_response_geometry_tree_3size_grouped_v1/response_surrogate.joblib"),
+        default=Path(
+            "models/dd_laminate_response_geometry_tree_canonical_v2/response_surrogate.joblib"
+        ),
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("models/dd_laminate_response_pt_consistent_tree_3size_grouped_v1"),
+        default=Path("models/dd_laminate_response_pt_consistent_tree_3size_canonical_v2"),
     )
     parser.add_argument(
         "--report-dir",
         type=Path,
-        default=Path("reports/dd_response_pt_consistent_tree_3size_grouped_v1"),
+        default=Path("reports/dd_response_pt_consistent_tree_3size_canonical_v2"),
     )
-    parser.add_argument("--feature-set", default="theta_physics_geometry_v1")
+    parser.add_argument(
+        "--feature-set",
+        default="theta_physics_geometry_canonical_v2",
+        help=(
+            "Canonical by default. theta_physics_geometry_v1 builds the legacy Case3 stack, "
+            "which drops the -+theta1 group and duplicates +-theta2, giving 4 theta1 plies "
+            "where the canonical block has 8. Column names are identical between the two, so "
+            "nothing downstream can tell them apart."
+        ),
+    )
     parser.add_argument("--seq-len", type=int, default=128)
     parser.add_argument("--n-components", type=int, default=20)
     parser.add_argument("--n-estimators", type=int, default=500)
@@ -523,6 +537,9 @@ def main() -> None:
 
     print("Loading existing 3-size Tree baseline...", flush=True)
     baseline_bundle = joblib.load(args.baseline_model)
+    require_feature_builder(
+        baseline_bundle, args.feature_set, f"Baseline {args.baseline_model}"
+    )
     base_class, base_scalars, base_curves = decode_baseline(baseline_bundle, holdout_x)
     baseline_metrics = metric_row(
         "Existing 3-Size Tree",

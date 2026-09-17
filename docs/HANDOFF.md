@@ -149,6 +149,8 @@ bimodal.
 | `bba5ae4` | Removed retired demo credentials from the iOS **and** Android clients. **Neither was compiled — this host has no Swift or Android toolchain. Build both before any release.** |
 | `89e6da2` | Panel dimensions bounded to 6–8 × 4–8 in. Outside that the tree answered from the nearest trained leaf: 100×4 returned 6×4's Pt to four decimal places. |
 | `831c75c` | The reliability panel was blind to panel size — it reported "interpolation, high confidence, well-covered" for a 100×4 panel. |
+| `a1b2c3d` | Both `pt_consistent` trainers defaulted to the legacy Case3 stack, and their default output directories were the three live model paths. Now canonical, writing to `*_canonical_v2`, with `require_feature_builder` refusing a mismatched baseline or teacher. |
+| `a1b2c3d` | Force relabelled `kips` → `lbf` everywhere code emits it, including the customer-facing page. |
 | `e4398c4` | Health monitoring. An injection outage had run 10 hours unnoticed; it was a clean SIGTERM, so `OnFailure` would never have caught it. |
 | `25586fd`, `bfa9668` | OpenRadioss starter and output converters built. Two upstream `-no-python` defects patched. See `infrastructure/openradioss/README.md`. |
 
@@ -193,18 +195,20 @@ rule switch; a tree partitions across it.
   without being asked. Format: `## YYYY-MM-DD - Title In Title Case`, then `-`
   bullets in English wrapped near 100 chars, facts and numbers, usually ending
   with a `Verification:` bullet. Commit and push it.
-- **Reported values are labelled `kips` and are actually `lbf`** — no `/1000`
-  exists anywhere in the pipeline, Pt spans 2,345–34,578 lbf, and the PPT's own
-  body text says `lbs` while only its plot axes say kips. The mislabel is
-  inherited. Not yet fixed; it reaches the customer-facing UI.
-- **`theta_physics_geometry_v1` builds a wrong Case3 stack** — `∓θ1` dropped and
-  `±θ2` duplicated, 4 θ1 plies where the canonical block has 8. It is still the
-  default in `dd_response_pt_consistent_tree_train.py` and
-  `dd_response_pt_consistent_deep_train.py`. The holdout eval's default was
-  corrected; those two were not.
-- **An artifact without `feature_builder` is silently served with legacy
-  physics.** `feature_set_from_columns` cannot distinguish legacy from canonical
-  because the column names are identical.
+- **Force is `lbf`, and historical reports under `reports/` still say `kips`.**
+  Code no longer does (`tests/unit/ml/test_dd_force_units.py` pins it), but the
+  markdown written by past runs was left alone — it is a record of what those
+  runs printed. Do not copy a `kips` figure out of one without relabelling it.
+- **The three served `pt_consistent` artifacts are legacy-physics** — they record
+  `feature_builder: theta_physics_geometry_v1` and are served correctly on that
+  basis, because serving reads the recorded builder. Retraining them on the new
+  canonical defaults writes to `*_canonical_v2` paths instead, so promoting one
+  means editing the model list in `src/backend/api/v1/dd_laminate.py`.
+- **An artifact with no `feature_builder` at all still falls through to legacy.**
+  `feature_set_from_columns` cannot distinguish legacy from canonical because the
+  column names are identical. Four old artifacts record nothing; none is served.
+  `require_feature_builder` now refuses these in the two trainers, but the
+  serving fallback at `dd_laminate.py:1709` is unchanged.
 - **Do not quote numbers from the `KyulAI_dl_v2`/`dl_v3`/`uq` worktrees** — they
   were removed, and their reports were a superseded version where Curve RMSE used
   a different aggregation.
@@ -225,6 +229,6 @@ rule switch; a tree partitions across it.
    three geometries, retrain, re-evaluate. That is the main line.
 4. If it did not: everything except finding 1 is still workable. The nearest
    unblocked piece is finding 4, or writing the per-panel breakdown into the
-   remaining trainers.
+   remaining trainers. The legacy-default and `kips` items below are done.
 
 Detail for any of this is in `docs/session-memory.md` under its date.

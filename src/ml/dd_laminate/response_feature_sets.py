@@ -234,6 +234,31 @@ def prediction_feature_matrix(
     return x
 
 
+def require_feature_builder(artifact: dict | None, expected: str, what: str) -> str:
+    """Fail loudly when an artifact's features were built by a different rule.
+
+    The legacy and canonical geometry sets emit identically named columns in the
+    same order, so handing one model's matrix to the other raises nothing and
+    quietly returns wrong numbers. `feature_set_from_columns` cannot tell them
+    apart either. The recorded `feature_builder` is the only thing that can, so
+    check it wherever a stored model meets a freshly built matrix.
+    """
+
+    recorded = (artifact or {}).get("feature_builder")
+    if recorded is None:
+        raise ValueError(
+            f"{what} records no feature_builder, so it cannot be matched against "
+            f"{expected!r}. Retrain it, or point --feature-set at whatever built it."
+        )
+    if str(recorded) != str(expected):
+        raise ValueError(
+            f"{what} was built with {recorded!r} but this run uses {expected!r}. "
+            "These sets share column names, so the mismatch would not surface "
+            "anywhere downstream. Point at a matching artifact."
+        )
+    return str(recorded)
+
+
 def feature_set_from_columns(feature_columns: list[str] | tuple[str, ...]) -> str:
     columns = set(feature_columns)
     if "panel_a_in" in columns or "panel_b_in" in columns:
@@ -266,6 +291,7 @@ __all__ = [
     "ResponseFeatureRecord",
     "feature_set_from_columns",
     "prediction_feature_matrix",
+    "require_feature_builder",
     "response_feature_matrix",
     "response_feature_row",
     "response_theta_feature_row",

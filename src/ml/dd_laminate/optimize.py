@@ -162,7 +162,7 @@ def plot_optimization_surface(
     # Pt surface
     ax = axes[1]
     c = ax.contourf(theta_range, theta_range, results["pt_grid"], levels=20, cmap="hot")
-    plt.colorbar(c, ax=ax, label="Pt (kips)")
+    plt.colorbar(c, ax=ax, label="Pt (lbf)")
     for r in top[:5]:
         ax.plot(r["theta1"], r["theta2"], "k*", markersize=10)
     ax.set_xlabel("θ₁ (deg)")

@@ -46,6 +46,7 @@ from src.ml.dd_laminate.response_deep import (  # noqa: E402
 )
 from src.ml.dd_laminate.response_feature_sets import (  # noqa: E402
     ResponseFeatureRecord,
+    require_feature_builder,
     response_feature_matrix,
 )
 from src.ml.dd_laminate.train_cases_2_3_4_classical import (  # noqa: E402
@@ -724,40 +725,49 @@ def main() -> None:
         "--goint-baseline",
         type=Path,
         default=Path(
-            "models/dd_laminate_response_geometry_goint_3size_grouped_v1/response_goint.pt"
+            "models/dd_laminate_response_geometry_goint_canonical_v2/response_goint.pt"
         ),
     )
     parser.add_argument(
         "--hybrid-baseline",
         type=Path,
         default=Path(
-            "models/dd_laminate_response_hybrid_student_3size_grouped_v1/response_goint.pt"
+            "models/dd_laminate_response_hybrid_student_canonical_v2/response_goint.pt"
         ),
     )
     parser.add_argument(
         "--teacher-model",
         type=Path,
         default=Path(
-            "models/dd_laminate_response_pt_consistent_tree_3size_grouped_v1/response_surrogate.joblib"
+            "models/dd_laminate_response_pt_consistent_tree_3size_canonical_v2/response_surrogate.joblib"
         ),
     )
     parser.add_argument(
         "--goint-output-dir",
         type=Path,
-        default=Path("models/dd_laminate_response_pt_consistent_goint_3size_grouped_v1"),
+        default=Path("models/dd_laminate_response_pt_consistent_goint_3size_canonical_v2"),
     )
     parser.add_argument(
         "--hybrid-output-dir",
         type=Path,
-        default=Path("models/dd_laminate_response_pt_consistent_hybrid_3size_grouped_v1"),
+        default=Path("models/dd_laminate_response_pt_consistent_hybrid_3size_canonical_v2"),
     )
     parser.add_argument(
         "--report-dir",
         type=Path,
-        default=Path("reports/dd_response_pt_consistent_deep_3size_grouped_v1"),
+        default=Path("reports/dd_response_pt_consistent_deep_3size_canonical_v2"),
     )
     parser.add_argument("--mode", choices=["goint", "hybrid", "both"], default="both")
-    parser.add_argument("--feature-set", default="theta_physics_geometry_v1")
+    parser.add_argument(
+        "--feature-set",
+        default="theta_physics_geometry_canonical_v2",
+        help=(
+            "Canonical by default. theta_physics_geometry_v1 builds the legacy Case3 stack, "
+            "which drops the -+theta1 group and duplicates +-theta2, giving 4 theta1 plies "
+            "where the canonical block has 8. Column names are identical between the two, so "
+            "nothing downstream can tell them apart."
+        ),
+    )
     parser.add_argument("--seq-len", type=int, default=128)
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--batch-size", type=int, default=256)
@@ -845,6 +855,12 @@ def main() -> None:
         )
 
     teacher_bundle = joblib.load(args.teacher_model) if args.mode in {"hybrid", "both"} else None
+    if teacher_bundle is not None:
+        # The teacher's predictions are read off a matrix this run builds, so its
+        # feature rule has to be this run's rule.
+        require_feature_builder(
+            teacher_bundle, args.feature_set, f"Teacher {args.teacher_model}"
+        )
     locked_records = [records[int(index)] for index in holdout_idx]
     requested_modes = ["goint", "hybrid"] if args.mode == "both" else [args.mode]
     for mode in requested_modes:

@@ -48,7 +48,7 @@ const COPY = {
     apiReady: "API ready",
     apiOffline: "API offline",
     loading: "Loading model…",
-    fitDelta: (delta, percent) => `Model Pt − P1 fit Pt: ${delta} kips (${percent})`,
+    fitDelta: (delta, percent) => `Model Pt − P1 fit Pt: ${delta} lbf (${percent})`,
     curvePoint: "Curve point",
   },
   ko: {
@@ -96,7 +96,7 @@ const COPY = {
     apiReady: "API 준비됨",
     apiOffline: "API 연결 안 됨",
     loading: "모델 불러오는 중…",
-    fitDelta: (delta, percent) => `모델 Pt − P1 피팅 Pt: ${delta} kips (${percent})`,
+    fitDelta: (delta, percent) => `모델 Pt − P1 피팅 Pt: ${delta} lbf (${percent})`,
     curvePoint: "곡선 좌표",
   },
 };
@@ -572,7 +572,7 @@ function drawChart() {
   ctx.save();
   ctx.translate(20, plot.y + plot.height / 2);
   ctx.rotate(-Math.PI / 2);
-  ctx.fillText("Force (kips)", 0, 0);
+  ctx.fillText("Force (lbf)", 0, 0);
   ctx.restore();
 }
 
@@ -703,7 +703,7 @@ canvasWrap.addEventListener("pointermove", (event) => {
     tooltip.classList.add("hidden");
     return;
   }
-  tooltip.innerHTML = `<strong>${T.curvePoint}</strong><br>Displacement ${formatNumber(point.displacement, 5)} in<br>Force ${formatNumber(point.force, 2)} kips`;
+  tooltip.innerHTML = `<strong>${T.curvePoint}</strong><br>Displacement ${formatNumber(point.displacement, 5)} in<br>Force ${formatNumber(point.force, 2)} lbf`;
   tooltip.style.left = `${Math.min(canvas.clientWidth - 172, Math.max(8, position.x + 14))}px`;
   tooltip.style.top = `${Math.min(canvas.clientHeight - 80, Math.max(8, position.y - 52))}px`;
   tooltip.classList.remove("hidden");
