@@ -458,6 +458,79 @@ async def wedding_rsvp_lookup(request: Request) -> Response:
     return JSONResponse({"ok": True, "found": False})
 
 
+@app.api_route("/api/rsvp/delete", methods=["POST", "OPTIONS"])
+@app.api_route("/wedding/api/rsvp/delete", methods=["POST", "OPTIONS"])
+async def wedding_rsvp_delete(request: Request) -> Response:
+    if request.method == "OPTIONS":
+        return Response(status_code=204)
+
+    body = bytearray()
+    async for chunk in request.stream():
+        if len(body) + len(chunk) > WEDDING_MAX_REQUEST_BYTES:
+            return _json_error(413, "Request body too large")
+        body.extend(chunk)
+
+    try:
+        payload = json.loads(body)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return _json_error(400, "Invalid JSON")
+
+    if not isinstance(payload, dict):
+        return _json_error(400, "Invalid JSON")
+
+    entry_type = str(payload.get("type") or "")
+    if entry_type not in {"rsvp", "bus"}:
+        return _json_error(422, "Invalid RSVP type")
+
+    phone = _normalize_wedding_phone(payload.get("phone"))
+    if len(phone) < 7:
+        return _json_error(422, "연락처를 입력해 주세요.")
+
+    name = _trim_text(payload.get("name"), 40)
+    if not name:
+        return _json_error(422, "성함을 입력해 주세요.")
+
+    # 전화번호 나열 방지: IP당 시도 제한 (lookup과 공유)
+    allowed, retry_after = await _WEDDING_LOOKUP_LIMITER.check(
+        _WEDDING_LOOKUP_RULE, _client_ip(request)
+    )
+    if not allowed:
+        return JSONResponse(
+            {"ok": False, "error": "잠시 후 다시 시도해 주세요."},
+            status_code=429,
+            headers={"Retry-After": str(retry_after)},
+        )
+
+    submissions_file = _wedding_submissions_file()
+    removed = 0
+    with _wedding_write_lock():
+        lines = submissions_file.read_text(encoding="utf-8").splitlines() if submissions_file.exists() else []
+        kept: list[str] = []
+        for line in lines:
+            try:
+                rec = json.loads(line)
+            except json.JSONDecodeError:
+                kept.append(line)
+                continue
+            data = rec.get("data") if isinstance(rec, dict) else None
+            if (
+                isinstance(rec, dict)
+                and rec.get("type") == entry_type
+                and isinstance(data, dict)
+                and _normalize_wedding_phone(data.get("phone")) == phone
+                and _trim_text(data.get("name"), 40) == name
+            ):
+                removed += 1
+                continue
+            kept.append(line)
+        if removed:
+            _atomic_write_lines(submissions_file, kept)
+
+    if not removed:
+        return JSONResponse({"ok": True, "deleted": 0, "found": False})
+    return JSONResponse({"ok": True, "deleted": removed})
+
+
 @app.get("/api/guestbook")
 @app.get("/wedding/api/guestbook")
 async def wedding_guestbook() -> Response:
