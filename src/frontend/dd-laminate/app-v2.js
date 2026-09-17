@@ -123,6 +123,13 @@ const TEXT = {
   ptContribution: IS_KO ? "Pt 기여" : "Pt",
   typeContribution: IS_KO ? "Type 기여" : "Type",
   proximityContribution: IS_KO ? "거리 기여" : "Distance",
+  type1Required: IS_KO ? "Type 1 필수" : "Type 1 required",
+  feasibleShare: IS_KO
+    ? (count, total, share) => `Type 1 조건 충족 설계 ${count}/${total} (${share})`
+    : (count, total, share) => `${count} of ${total} designs meet Type 1 (${share})`,
+  feasibleNone: IS_KO
+    ? "이 설계 공간에는 Type 1 조건을 만족하는 설계가 없습니다."
+    : "No design in this space meets the Type 1 requirement.",
   totalScore: IS_KO ? "총점" : "Total",
   noComparison: IS_KO
     ? "비교할 추천 후보가 아직 없습니다."
@@ -3886,12 +3893,15 @@ function renderScoreBreakdown(candidate) {
   if (!components) {
     return "";
   }
-  const items = [
-    [TEXT.ptContribution, components.pt],
-    [TEXT.typeContribution, components.type],
-    [TEXT.proximityContribution, components.proximity],
-    [TEXT.totalScore, candidate.score],
-  ];
+  // Type is a constraint on the response scope, so its contribution is 0 and
+  // printing "Type 0%" would read as "Type did not matter". Name the requirement
+  // instead, and only show Type as a weighted term where it actually is one.
+  const items = [[TEXT.ptContribution, components.pt]];
+  if (components.type) {
+    items.push([TEXT.typeContribution, components.type]);
+  }
+  items.push([TEXT.proximityContribution, components.proximity]);
+  items.push([TEXT.totalScore, candidate.score]);
   return `
     <div class="comparison-score">
       <span>${TEXT.scoringBasis}</span>
@@ -4098,6 +4108,24 @@ function renderDesignSpace(insight) {
   });
 
   researchRecommendations.innerHTML = "";
+
+  // How scarce the acceptable designs are is the first thing worth knowing: it
+  // falls from 35.7% on a 6x4 panel to 11.8% on 8x8, and the ranking below only
+  // ever looks inside that set.
+  const feasibility = insight.feasibility;
+  if (feasibility) {
+    const line = document.createElement("p");
+    line.className = "recommendation-feasibility";
+    line.textContent = feasibility.satisfied
+      ? TEXT.feasibleShare(
+          feasibility.candidate_count,
+          feasibility.total_count,
+          percent(feasibility.share),
+        )
+      : TEXT.feasibleNone;
+    researchRecommendations.appendChild(line);
+  }
+
   (insight.recommendations || []).slice(0, 5).forEach((candidate, index) => {
     const candidateCaseLabel = caseLabel(candidate.case);
     const item = document.createElement("button");

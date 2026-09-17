@@ -2866,6 +2866,20 @@ summary:focus-visible {
   gap: 7px;
 }
 
+/* How much of the space is even eligible, stated before the ranking of it. */
+.recommendation-feasibility {
+  margin: 0 0 2px;
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--blue);
+  border-radius: 6px;
+  background: var(--blue-soft);
+  color: var(--ink);
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
 .case-risk-card,
 .nearest-item,
 .recommendation-card {

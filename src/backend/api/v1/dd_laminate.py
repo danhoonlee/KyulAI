@@ -437,6 +437,24 @@ class DesignSpaceRecommendation(BaseModel):
     rationale: str
 
 
+class DesignSpaceFeasibility(BaseModel):
+    """How much of this design space actually satisfies the design requirement.
+
+    On the response scope the requirement is Type 1: the force response splits at
+    Pt and both halves read as linear. That is a constraint, not a preference, so
+    it decides which designs are candidates at all rather than contributing to a
+    score. The share is the number worth looking at first -- it falls from 35.7%
+    on a 6x4 panel to 11.8% on 8x8, and that collapse is the finding, not a
+    detail of the ranking.
+    """
+
+    criterion: str
+    candidate_count: int
+    total_count: int
+    share: float
+    satisfied: bool
+
+
 class DesignSpaceResponse(BaseModel):
     scope: DesignSpaceScope
     inputs: dict[str, float | str]
@@ -445,6 +463,7 @@ class DesignSpaceResponse(BaseModel):
     case_summaries: list[DesignSpaceCaseSummary]
     case_insights: list[DesignSpaceCaseInsight]
     recommendations: list[DesignSpaceRecommendation]
+    feasibility: DesignSpaceFeasibility | None = None
     notes: list[str]
 
 
@@ -2330,38 +2349,121 @@ def _case_insights(
     return insights
 
 
+TYPE1_CRITERION = "type_1_bilinear"
+
+# The original score was 0.72*pt + 0.18*type + 0.10*proximity. On the response
+# scope every candidate is Type 1, so the type term was a constant 0.18 added to
+# all of them and could never change an ordering. Dropping it and rescaling the
+# other two by their own sum keeps the published ranking bit-for-bit while making
+# the weights say what they do.
+_PT_WEIGHT = 0.72
+_PROXIMITY_WEIGHT = 0.10
+_RESPONSE_SCALE = _PT_WEIGHT + _PROXIMITY_WEIGHT
+
+
+def _feasible_rows(rows: list[dict[str, Any]], scope: DesignSpaceScope) -> list[dict[str, Any]]:
+    """Designs that meet the requirement, as opposed to designs that score well.
+
+    Type 1 is the requirement on the response scope: the curve splits at Pt and
+    both halves read as linear. A Type 3 design with a high Pt does not become
+    acceptable by being strong, so it is not a candidate at all. The u3 scope has
+    no such requirement -- there Type 2 and Type 3 are the curve families of
+    interest, so every row stays in.
+    """
+
+    if scope != "response":
+        return list(rows)
+    return [row for row in rows if row.get("type") == 1]
+
+
+def _feasibility(
+    rows: list[dict[str, Any]],
+    candidates: list[dict[str, Any]],
+    scope: DesignSpaceScope,
+) -> DesignSpaceFeasibility | None:
+    if scope != "response":
+        return None
+    total = len(rows)
+    count = len(candidates)
+    return DesignSpaceFeasibility(
+        criterion=TYPE1_CRITERION,
+        candidate_count=count,
+        total_count=total,
+        share=round(count / total, 6) if total else 0.0,
+        satisfied=count > 0,
+    )
+
+
+def _feasibility_notes(
+    feasibility: DesignSpaceFeasibility | None,
+    payload: "DesignSpaceRequest",
+) -> list[str]:
+    """Say how scarce the acceptable designs are, and say it when there are none."""
+
+    if feasibility is None:
+        return []
+    if not feasibility.satisfied:
+        return [
+            "No design in this space meets the Type 1 requirement, so no candidate is "
+            "recommended. Widen the panel selection or accept a Type 2 response "
+            "deliberately rather than by default.",
+        ]
+    return [
+        f"{feasibility.candidate_count} of {feasibility.total_count} simulated designs "
+        f"({feasibility.share:.1%}) meet the Type 1 requirement; recommendations are "
+        "ranked within those.",
+    ]
+
+
 def _recommendations(
     rows: list[dict[str, Any]],
     theta1: float,
     theta2: float,
     scope: DesignSpaceScope,
+    candidates: list[dict[str, Any]] | None = None,
 ) -> list[DesignSpaceRecommendation]:
-    scoring_rows = rows
-    if scope == "response":
-        type1_rows = [row for row in rows if row.get("type") == 1]
-        if len(type1_rows) >= 8:
-            scoring_rows = type1_rows
+    """Rank the designs that already satisfy the requirement.
+
+    Ranking happens inside the feasible set, so nothing here trades the
+    requirement off against Pt. On the response scope every candidate is Type 1
+    by construction and the type term contributes nothing, which is why it is
+    reported as zero rather than as a constant that looks like it mattered.
+    """
+
+    scoring_rows = _feasible_rows(rows, scope) if candidates is None else candidates
+    if not scoring_rows:
+        return []
+
+    # Normalised against the whole space, not just the feasible part, so a
+    # candidate's Pt reads as its position in what this panel can do.
     pts = [float(row["pt"]) for row in rows]
     pt_min = min(pts)
     pt_span = max(max(pts) - pt_min, 1.0)
+
     scored: list[tuple[float, dict[str, Any], str, DesignSpaceScoreBreakdown]] = []
     for row in scoring_rows:
         pt_norm = (float(row["pt"]) - pt_min) / pt_span
         type_value = row.get("type")
+        proximity = 1.0 / (1.0 + _distance(theta1, theta2, row) / 90.0)
         if scope == "u3":
             type_bonus = 0.7 if type_value == 2 else 0.5 if type_value == 3 else 0.35
-            rationale = "High observed u3 Pt in the curated u3 dataset; Type is shown as curve-family context."
-        else:
-            type_bonus = 1.0 if type_value == 1 else 0.45 if type_value == 2 else 0.1
+            pt_component = 0.72 * pt_norm
+            type_component = 0.18 * type_bonus
+            proximity_component = 0.10 * proximity
             rationale = (
-                "High observed Pt with Type 1 preference in the curated Case2/3/4 simulations."
-                if type_value == 1
-                else "High observed Pt candidate; Type shape should be reviewed before simulation follow-up."
+                "High observed u3 Pt in the curated u3 dataset; Type is shown as "
+                "curve-family context."
             )
-        proximity = 1.0 / (1.0 + _distance(theta1, theta2, row) / 90.0)
-        pt_component = 0.72 * pt_norm
-        type_component = 0.18 * type_bonus
-        proximity_component = 0.10 * proximity
+        else:
+            # Type is a filter here, not a term.
+            type_bonus = 1.0
+            pt_component = (_PT_WEIGHT / _RESPONSE_SCALE) * pt_norm
+            type_component = 0.0
+            proximity_component = (_PROXIMITY_WEIGHT / _RESPONSE_SCALE) * proximity
+            rationale = (
+                "Highest observed Pt among the Type 1 designs for this panel; "
+                "Type 1 is required, not traded off."
+            )
         score = pt_component + type_component + proximity_component
         components = DesignSpaceScoreBreakdown(
             pt=round(pt_component, 4),
@@ -2554,7 +2656,11 @@ async def summarize_design_space(payload: DesignSpaceRequest) -> DesignSpaceResp
     nearest_points = [_space_point(row, payload.theta1, payload.theta2) for row in nearest_rows]
     summaries = _case_summaries(rows, payload.scope)
     case_insights = _case_insights(rows, payload.scope)
-    recommendations = _recommendations(rows, payload.theta1, payload.theta2, payload.scope)
+    candidates = _feasible_rows(rows, payload.scope)
+    feasibility = _feasibility(rows, candidates, payload.scope)
+    recommendations = _recommendations(
+        rows, payload.theta1, payload.theta2, payload.scope, candidates=candidates
+    )
     if payload.scope == "u3":
         notes = [
             "u3 design-space context is based on the curated u3 Pt dataset; Type 2/3 is treated as curve-family context.",
@@ -2570,12 +2676,14 @@ async def summarize_design_space(payload: DesignSpaceRequest) -> DesignSpaceResp
             "Risk combines nonlinear Type 2/3 prevalence and below-median Pt prevalence within each Case.",
             "Recommendations are observed candidates from the matching panel geometry, not new simulations.",
         ]
+        notes.extend(_feasibility_notes(feasibility, payload))
     else:
         notes = [
             "Laminate Forecast design-space context is based on the curated Case2/3/4 response dataset.",
             "Risk combines nonlinear Type 2/3 prevalence and below-median Pt prevalence within each Case.",
-            "Recommendations favor high observed Pt and Type 1 behavior, then proximity to the current theta input.",
+            "Recommendations rank by observed Pt and proximity within the Type 1 designs.",
         ]
+        notes.extend(_feasibility_notes(feasibility, payload))
     response_inputs: dict[str, float | str] = {
         "theta1": payload.theta1,
         "theta2": payload.theta2,
@@ -2597,6 +2705,7 @@ async def summarize_design_space(payload: DesignSpaceRequest) -> DesignSpaceResp
         case_summaries=summaries,
         case_insights=case_insights,
         recommendations=recommendations,
+        feasibility=feasibility,
         notes=notes,
     )
 

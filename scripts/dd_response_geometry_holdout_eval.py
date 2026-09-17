@@ -493,6 +493,12 @@ def per_geometry_breakdown(
     quantity: 6x4 rows carry the PPT P1 definition and 6x8/8x8 the force-plot
     kink, and their absolute scales differ by more than a factor of two. Pooling
     therefore lets a change in the geometry mix look like a change in accuracy.
+
+    Each panel also carries the same numbers restricted to its Type 1 rows. Type 1
+    is the design requirement -- the response splits at Pt and both halves read as
+    linear -- so those are the rows an answer actually gets used on. Accuracy over
+    all rows includes Type 2 and Type 3 designs nobody would ship, and the Type 1
+    share itself is the headline: 35.7% on 6x4 against 11.8% on 8x8.
     """
     by_panel: dict[str, list[int]] = defaultdict(list)
     for position, index in enumerate(test_idx):
@@ -502,7 +508,7 @@ def per_geometry_breakdown(
     breakdown: dict[str, dict[str, float]] = {}
     for panel, positions in sorted(by_panel.items()):
         rows = np.asarray(positions, dtype=int)
-        breakdown[panel] = {
+        entry = {
             "n": int(len(rows)),
             "accuracy": float(accuracy_score(truth_class[rows], predicted_class[rows])),
             "pt_mae": float(mean_absolute_error(truth_pt[rows], predicted_pt[rows])),
@@ -512,7 +518,58 @@ def per_geometry_breakdown(
                 / max(float(np.mean(np.abs(truth_pt[rows]))), 1e-9)
             ),
         }
+
+        feasible = rows[truth_class[rows] == 1]
+        entry["type1_n"] = int(len(feasible))
+        entry["type1_share"] = float(len(feasible) / len(rows)) if len(rows) else 0.0
+        if len(feasible):
+            entry["type1_pt_mae"] = float(
+                mean_absolute_error(truth_pt[feasible], predicted_pt[feasible])
+            )
+            entry["type1_pt_mean"] = float(np.mean(truth_pt[feasible]))
+            entry["type1_pt_mae_relative"] = float(
+                entry["type1_pt_mae"] / max(float(np.mean(np.abs(truth_pt[feasible]))), 1e-9)
+            )
+            # Of the designs that really are Type 1, how many were called Type 1.
+            entry["type1_recall"] = float(
+                np.mean(predicted_class[feasible] == 1)
+            )
+        else:
+            entry["type1_pt_mae"] = float("nan")
+            entry["type1_pt_mean"] = float("nan")
+            entry["type1_pt_mae_relative"] = float("nan")
+            entry["type1_recall"] = float("nan")
+        breakdown[panel] = entry
     return breakdown
+
+
+def _pooled_type1(breakdown: dict[str, dict[str, float]] | None) -> dict[str, float] | None:
+    """Recombine the per-panel Type 1 errors into one number.
+
+    MAE is a mean of absolute errors, so weighting each panel by its own Type 1
+    count reproduces the pooled value exactly rather than approximating it.
+    """
+
+    if not breakdown:
+        return None
+    weighted = 0.0
+    feasible = 0
+    total = 0
+    for values in breakdown.values():
+        count = int(values.get("type1_n", 0))
+        total += int(values.get("n", 0))
+        mae = values.get("type1_pt_mae")
+        if count and mae is not None and mae == mae:
+            weighted += mae * count
+            feasible += count
+    if not feasible:
+        return None
+    return {
+        "pt_mae": weighted / feasible,
+        "n": feasible,
+        "total": total,
+        "share": feasible / total if total else 0.0,
+    }
 
 
 def nearest_design_baseline_metrics(
@@ -574,8 +631,10 @@ def write_report(output_dir: Path, payload: dict[str, Any]) -> None:
         f"- Feature set: `{payload['feature_set']}`",
         f"- Seed: `{payload['seed']}`",
         f"- Holdout ratio: `{payload['holdout_ratio']}`",
-        "- Group key: `Case + theta1 + theta2`; no identical case/theta pair appears in both train and holdout.",
-        "- Stratification target: `Case + Type`, preserving 6x4/6x8 source coverage as a consequence of the grouped records.",
+        "- Group key: `theta1 + theta2`; every case and every panel size of one design stays on "
+        "the same side. Keying on the case as well put near-identical rows across the split, and "
+        "a lookup table then beat every trained model on Pt.",
+        "- Stratification target: `Case + Type`, preserving panel coverage as a consequence of the grouped records.",
         "",
         "## Split Summary",
         "",
@@ -586,13 +645,32 @@ def write_report(output_dir: Path, payload: dict[str, Any]) -> None:
         "",
         "## Results",
         "",
-        "| Model | Type Acc. | Macro F1 | Pt MAE (lbf) | Curve Norm RMSE | Curve Force RMSE (lbf) |",
-        "| --- | ---: | ---: | ---: | ---: | ---: |",
+        "| Model | Type Acc. | Macro F1 | Pt MAE (lbf) | Pt MAE, Type 1 only (lbf) | "
+        "Curve Norm RMSE | Curve Force RMSE (lbf) |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for name, row in metrics.items():
+        pooled = _pooled_type1(row.get("by_geometry"))
+        type1_cell = f"{pooled['pt_mae']:.2f}" if pooled else "-"
         lines.append(
             f"| {name} | {row['accuracy']:.4f} | {row['macro_f1']:.4f} | "
-            f"{row['pt_mae']:.2f} | {row['curve_norm_rmse']:.5f} | {row['curve_force_rmse']:.2f} |"
+            f"{row['pt_mae']:.2f} | {type1_cell} | "
+            f"{row['curve_norm_rmse']:.5f} | {row['curve_force_rmse']:.2f} |"
+        )
+
+    pooled_any = next(
+        (_pooled_type1(row.get("by_geometry")) for row in metrics.values() if row.get("by_geometry")),
+        None,
+    )
+    if pooled_any:
+        lines.extend(
+            [
+                "",
+                f"Type 1 is the design requirement, and only {pooled_any['n']} of "
+                f"{pooled_any['total']} held-out rows ({pooled_any['share']:.1%}) meet it. "
+                "The Type 1 column is the error on the rows an answer actually gets used on; "
+                "the pooled column also averages over Type 2 and Type 3 designs nobody would ship.",
+            ]
         )
 
     for name, row in metrics.items():
@@ -607,15 +685,22 @@ def write_report(output_dir: Path, payload: dict[str, Any]) -> None:
                 "Pt MAE is an absolute error, and Pt itself differs by more than a factor of two "
                 "across panels, so the relative column is the one to compare.",
                 "",
-                "| Panel | n | Type Acc. | Pt MAE | Pt mean | Pt MAE / Pt mean |",
-                "| --- | ---: | ---: | ---: | ---: | ---: |",
+                "| Panel | n | Type Acc. | Pt MAE | Pt mean | Pt MAE / Pt mean | "
+                "Type 1 n | Type 1 share | Type 1 recall | Type 1 Pt MAE / mean |",
+                "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
             ]
         )
         for panel, values in breakdown.items():
+            feasible_n = int(values.get("type1_n", 0))
+            relative = values.get("type1_pt_mae_relative")
+            recall = values.get("type1_recall")
             lines.append(
                 f"| {panel} | {values['n']} | {values['accuracy']:.4f} | "
                 f"{values['pt_mae']:.2f} | {values['pt_mean']:,.0f} | "
-                f"{values['pt_mae_relative'] * 100:.2f}% |"
+                f"{values['pt_mae_relative'] * 100:.2f}% | "
+                f"{feasible_n} | {values.get('type1_share', 0.0) * 100:.1f}% | "
+                f"{'-' if recall is None or recall != recall else f'{recall:.4f}'} | "
+                f"{'-' if relative is None or relative != relative else f'{relative * 100:.2f}%'} |"
             )
     lines.extend(
         [
