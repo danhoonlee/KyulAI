@@ -16841,3 +16841,59 @@ Verification: 240 passed across `tests/unit` and `tests/backend`, including 15 n
 and 4 new metric tests; 507-probe sweep shows 0 ranking changes; `imperialax-laminate` restarted,
 `/health` 200; calling `summarize_design_space` directly returns the feasibility block and the note
 for all three panels and `None` for u3.
+
+## 2026-09-17 - Finding 4 Closed: Redundancy Proven, DD Coordinates Refuted
+
+Went to implement the lamination-parameter work and it came back negative, which is the result.
+
+First the diagnosis, which now has a proof rather than an observation. Five column pairs are
+numerically identical across all 2,700 rows -- `a11`/`d11`, `a22`/`d22`, `a12`/`d12`, `a66`/`d66`,
+`a11_a22_ratio`/`d11_d22_ratio`, max relative difference 7.2e-16 -- because Kappel's `D*` = `A*`
+holds for a valid DD block. On top of that `a11 + a22 + 2*a66` = 24.0136301 and `a12 - a66` =
+-0.1638085 across the corpus, spreads 1.8e-14 and 4.4e-15. Writing `A*` in Tsai-Pagano form explains
+both exactly: they are `2(U1+U5)` and `U4-U5`, functions of the material alone. So
+`{a11, a22, a12, a66}` carries two degrees of freedom, and those two are xiA1 and xiA2.
+
+Implemented `lamination_parameters()` and verified it the only way that counts: reconstructing `A*`
+and `D*` from the four parameters and the Tsai-Pagano invariants reproduces all six components to
+1e-14 for every case over an angle sweep. That also shows xiD1 == xiA1 and xiD2 == xiA2 for these
+stacks, so the case information lives in xiD3.
+
+Correcting an overclaim of my own. I had framed this finding as "the features encode two degrees of
+freedom, not 24", which reads as though they carry nothing. Measured: against a bare
+`theta+case+panel` encoding, the 40 columns are worth 467.17 -> 200.79 on Pt and 643.12 -> 176.93 on
+the Type 1 rows, with Type accuracy 0.8962 -> 0.9581. A nonlinear CLT re-encoding of two variables
+genuinely helps a tree, because it hands the model a coordinate system the decision boundary is
+simple in. Intrinsic dimension 2 and useless are different statements. Dropping the five duplicates
+plus two derivable columns is near free -- 200.79 -> 209.12, Type accuracy 0.9581 -> 0.9617 -- which
+is what zero information loss looks like once the forest's random feature selection stops
+double-weighting a duplicated quantity.
+
+Then the remedy, which failed. `theta_physics_geometry_dd_v3` is the canonical 40 plus 20: the
+trace, xiA1..4, xiD1..4, trace-normalised stiffnesses, and terms coupling a bending stiffness to a
+panel dimension -- `d11/b^2`, `d22/a^2`, `2(d12+2d66)/ab` and the orthotropic buckling group. That
+last group is genuinely absent today; every geometry column in the old set is pure geometry
+(`a/b`, `a/h`, `b/h`) with no material in it.
+
+Evaluated on the only window where the target is one quantity: 6x8 and 8x8, which share the
+force-plot kink, restricted to Type 1 rows. 1,434 train, 366 test, 71 of them Type 1. ExtraTrees over
+10 seeds gives canonical 117.64 +/- 4.64, superset 124.60 +/- 4.50, DD-only 129.45 +/- 3.66. Because
+a tree is largely indifferent to coordinates and a network is not, repeated it with an MLP
+(132,50,50,50,50) tanh over 5 seeds: canonical 159.18 +/- 4.83, superset 162.06 +/- 13.60, DD-only
+171.65 +/- 15.07. Both families agree, one to three standard deviations, always the same direction.
+
+The reading is that xiA1/xiA2 and `{a11,a22,a12,a66}` determine each other, so the DD coordinates are
+a restatement rather than new information, and restating the same content in more columns dilutes.
+The stiffness/dimension coupling terms did not rescue it either.
+
+Finding 4 is closed as a modelling lead. Kept the feature set, `lamination_parameters()` and 11 tests
+so the result is reproducible and nobody repeats the experiment. Wrote it up at
+`reports/dd_feature_redundancy/README.md` and rewrote the finding in `docs/HANDOFF.md`, including
+the correction to my earlier framing.
+
+Limits stated in the report: 71 Type 1 rows is thin, only Pt was tested and not curve shape, and the
+negative is about predictive value for this target rather than about the theory.
+
+Verification: 251 passed across `tests/unit` and `tests/backend`; Tsai-Pagano reconstruction 1.1e-14
+on `A*` and 7.1e-15 on `D*`; `dd_feature_vector` length matches its 20 column names; the two constant
+combinations match `2(U1+U5)` and `U4-U5` to 1e-12 for every case in the sweep.
