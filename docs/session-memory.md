@@ -16791,3 +16791,53 @@ The user has not yet said why they sent it, so nothing was actioned.
 Verification: 21 pages parsed, page order read from /Kids; decoded text written to
 `data/incoming/CMT x GE Vernova - Bayesian Cure Cycle Optimization.txt`; figures for slides 15-19
 extracted to PNG and read; `grep -rn optimize src/backend/api/v1/dd_laminate.py` returns nothing.
+
+## 2026-09-17 - Type 1 Stated As A Requirement, And Measured Where It Is Used
+
+Four changes, all downstream of reading the CMT/GE Vernova deck, which reports "3.09% of the design
+space is feasible" as a headline and separates its constraints from its objective.
+
+Checking whether our own recommender could fall through its Type 1 filter came back negative, and
+the negative result was the useful one. `_recommendations` filtered to Type 1 only when at least 8
+such rows existed. Exercising every reachable combination of the real `_design_space_rows`: 6x4 gives
+321 candidates, 6x8 gives 227, 8x8 gives 106, and every other panel 404s on an empty row set. The
+u3 scope never enters that branch by design. The scarcest reachable case is thirteen times the
+cutoff, and even if all 56 disputed 8x8 curves are struck it falls only to 50.
+
+That made a different problem visible. Because the filter always engages, every scored row is Type 1,
+so `type_bonus` is always 1.0 and `0.18 * type_bonus` is a constant added to every candidate -- it
+cannot change an ordering. The `0.45` and `0.1` bonuses and the "Type shape should be reviewed"
+rationale were unreachable, and the UI was printing "Type 18%" for a term that contributed nothing.
+
+So Type 1 is now written as the constraint it already was. `_feasible_rows` selects candidates,
+`_recommendations` ranks within them, and an empty feasible set returns nothing and says so instead
+of reverting to scoring designs that fail the requirement. Response weights are the old 0.72 and
+0.10 divided by their sum, which is order-preserving; 507 theta probes across three panels give
+identical top-8 orderings, and a test pins that against the old formula. The type component reports
+0.0 rather than a misleading constant, and the frontend omits a zero contribution.
+
+`DesignSpaceResponse` gained a `feasibility` block -- criterion, candidate_count, total_count, share,
+satisfied -- and the notes say it in words. The UI prints it above the ranked list. The numbers are
+35.7% on 6x4, 25.2% on 6x8, 11.8% on 8x8, which is this project's version of that 3.09%.
+
+`per_geometry_breakdown` now also emits `type1_n`, `type1_share`, `type1_pt_mae`, `type1_pt_mean`,
+`type1_pt_mae_relative` and `type1_recall`, and the holdout report carries a Type 1 column beside the
+pooled one. `_pooled_type1` recombines the panels by count weight, which reproduces the overall MAE
+exactly rather than averaging averages. No call site changed.
+
+The first run of it says something worth chasing. On the holdout, 134 of 549 rows are Type 1 (24.4%).
+The lookup's Pt MAE drops from 6,879 pooled to 2,394 on Type 1 alone, so Type 1 rows are simply more
+predictable. The tree barely moves, 204.08 to 207.54, so its advantage is not concentrated where the
+answer gets used. Per panel the tree's Type 1 relative error is 2.52 / 2.63 / 1.75%, best on 8x8 --
+but its Type 1 recall there is 0.8750, the worst cell in the table, against 0.9683 and 0.9787
+elsewhere and against the lookup's 1.0000 on the same rows. On the panel where acceptable designs are
+scarcest the model is also worst at recognising them, and the recommender depends on exactly that
+judgement. 24 Type 1 rows is a thin basis for the number, so treat it as a lead.
+
+Also corrected the report's split description, which still read "Group key: `Case + theta1 + theta2`"
+-- the wording the leak fix in `39c08cd` invalidated.
+
+Verification: 240 passed across `tests/unit` and `tests/backend`, including 15 new design-space tests
+and 4 new metric tests; 507-probe sweep shows 0 ranking changes; `imperialax-laminate` restarted,
+`/health` 200; calling `summarize_design_space` directly returns the feasibility block and the note
+for all three panels and `None` for u3.
