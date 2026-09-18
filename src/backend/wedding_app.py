@@ -329,9 +329,11 @@ async def wedding_rsvp(request: Request) -> Response:
         replacement_index: int | None = None
         existing_for_replacement: dict[str, object] | None = None
         lines = submissions_file.read_text(encoding="utf-8").splitlines() if submissions_file.exists() else []
+        incoming_name = _trim_text(data.get("name"), 40)
         if entry_type in {"rsvp", "bus"}:
             incoming_phone = _normalize_wedding_phone(data.get("phone"))
-            if incoming_phone:
+            # 같은 번호라도 이름이 다르면 다른 사람으로 취급(대표번호 공유 대비). 이름+전화 동시 일치만 갱신.
+            if incoming_phone and incoming_name:
                 for index, line in enumerate(lines):
                     try:
                         existing_record = json.loads(line)
@@ -342,7 +344,10 @@ async def wedding_rsvp(request: Request) -> Response:
                     existing_data = existing_record.get("data") or {}
                     if not isinstance(existing_data, dict):
                         continue
-                    if _normalize_wedding_phone(existing_data.get("phone")) == incoming_phone:
+                    if (
+                        _normalize_wedding_phone(existing_data.get("phone")) == incoming_phone
+                        and _trim_text(existing_data.get("name"), 40) == incoming_name
+                    ):
                         replacement_index = index
                         existing_for_replacement = existing_record
 
@@ -373,7 +378,11 @@ async def wedding_rsvp(request: Request) -> Response:
                 if not isinstance(existing, dict) or existing.get("type") != "rsvp":
                     continue
                 existing_data = existing.get("data") or {}
-                if isinstance(existing_data, dict) and _normalize_wedding_phone(existing_data.get("phone")) == incoming_phone:
+                if (
+                    isinstance(existing_data, dict)
+                    and _normalize_wedding_phone(existing_data.get("phone")) == incoming_phone
+                    and _trim_text(existing_data.get("name"), 40) == incoming_name
+                ):
                     has_rsvp = True
                     break
             if not has_rsvp:
