@@ -324,32 +324,38 @@ async def wedding_rsvp(request: Request) -> Response:
         ),
     }
 
+    wants_edit = bool(payload.get("edit"))
     submissions_file = _wedding_submissions_file()
     with _wedding_write_lock():
         replacement_index: int | None = None
         existing_for_replacement: dict[str, object] | None = None
         lines = submissions_file.read_text(encoding="utf-8").splitlines() if submissions_file.exists() else []
         incoming_name = _trim_text(data.get("name"), 40)
-        if entry_type in {"rsvp", "bus"}:
-            incoming_phone = _normalize_wedding_phone(data.get("phone"))
-            # 같은 번호라도 이름이 다르면 다른 사람으로 취급(대표번호 공유 대비). 이름+전화 동시 일치만 갱신.
-            if incoming_phone and incoming_name:
-                for index, line in enumerate(lines):
-                    try:
-                        existing_record = json.loads(line)
-                    except json.JSONDecodeError:
-                        continue
-                    if not isinstance(existing_record, dict) or existing_record.get("type") != entry_type:
-                        continue
-                    existing_data = existing_record.get("data") or {}
-                    if not isinstance(existing_data, dict):
-                        continue
-                    if (
-                        _normalize_wedding_phone(existing_data.get("phone")) == incoming_phone
-                        and _trim_text(existing_data.get("name"), 40) == incoming_name
-                    ):
-                        replacement_index = index
-                        existing_for_replacement = existing_record
+        incoming_phone = _normalize_wedding_phone(data.get("phone")) if entry_type in {"rsvp", "bus"} else ""
+        if incoming_phone:
+            # 전화번호 = 한 사람. 같은 번호로 이미 등록돼 있으면 그 기록을 대상으로 한다.
+            for index, line in enumerate(lines):
+                try:
+                    existing_record = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if not isinstance(existing_record, dict) or existing_record.get("type") != entry_type:
+                    continue
+                existing_data = existing_record.get("data") or {}
+                if not isinstance(existing_data, dict):
+                    continue
+                if _normalize_wedding_phone(existing_data.get("phone")) == incoming_phone:
+                    replacement_index = index
+                    existing_for_replacement = existing_record
+
+        # 이미 같은 번호로 등록됨 + 수정 요청 아님 → 저장하지 않고 기존 내용을 돌려준다(프론트에서 수정 유도).
+        if replacement_index is not None and not wants_edit:
+            prev = existing_for_replacement.get("data") if existing_for_replacement else None
+            return JSONResponse({
+                "ok": True,
+                "status": "exists",
+                "data": _sanitize_wedding_data(prev if isinstance(prev, dict) else {}),
+            })
 
         # 재제출 시 옛 방명록 메시지 보존: 새 폼에 message가 없으면 기존 것을 유지한다.
         if existing_for_replacement is not None:
@@ -381,7 +387,6 @@ async def wedding_rsvp(request: Request) -> Response:
                 if (
                     isinstance(existing_data, dict)
                     and _normalize_wedding_phone(existing_data.get("phone")) == incoming_phone
-                    and _trim_text(existing_data.get("name"), 40) == incoming_name
                 ):
                     has_rsvp = True
                     break
@@ -406,7 +411,7 @@ async def wedding_rsvp(request: Request) -> Response:
 
         _atomic_write_lines(submissions_file, lines)
 
-    return JSONResponse({"ok": True})
+    return JSONResponse({"ok": True, "status": "saved"})
 
 
 @app.api_route("/api/rsvp/lookup", methods=["POST", "OPTIONS"])
