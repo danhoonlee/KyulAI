@@ -16964,3 +16964,36 @@ the PPT's +28.9% is 16-ply DD transition load, so the two must not be combined o
 Verification: every cited figure traced back to `docs/DD_Laminate_PPT_Basis.md` or to text extracted
 from `CS_DDpaper.pdf` page 9; Case formulas match the basis document; the kink-reproduction test run
 on 120 rows per panel.
+
+## 2026-09-21 - Partner Brief Recast As Progress Against The PPT
+
+Misread the request twice before getting it. The point is not to argue that Double-Double is worth
+doing -- the partner is not being sold on the physics. The PPT is the specification the model was
+built from, and what is wanted is what has happened since.
+
+Rebuilt on that basis. Slide 1 is the specification: the analysis setup, the three case formulas,
+why the target is the transition load rather than the buckling load, the Type rules, and the PPT's
+own reported optimum. Slide 3 is the work log, reconstructed by reading back through
+`docs/session-memory.md` rather than from memory, in seven stages:
+
+1. April-May, first Type predictors from theta/case and from an uploaded curve, public serving
+2. May-June, Case2/3/4 together, GointMLP, the u3 Pt dataset the PPT's Type 2/3 rules require
+3. June, reading the PPT into `DD_Laminate_PPT_Basis.md` and turning its physics into features --
+   the turning point, and slide 4 quantifies what it bought
+4. June, sweeping model families so no single architecture is taken on faith
+5. June-July, productisation: reliability, Stack Lab, RAG, mobile
+6. July, ABD normalisation fix, the canonical Case3 correction, three panels, the fixed holdout
+7. August-September, the pipeline audit
+
+Stage 6's Case3 correction is worth naming to a partner: the expansion in code dropped the mp1 group
+and duplicated mp2, so Case3 was built with 4 theta1 plies where the formula has 8. Found by reading
+the PPT formula against the code, corrected, retrained, redeployed.
+
+The audit findings got their own slide. A partner can judge the checking more easily than the
+metrics, and the leak story -- a no-training lookup baseline kept permanently in the report, which
+then beat every trained model and exposed the split -- is the most convincing single item we have.
+
+Added guidance for cutting slide 3 to a 10-minute slot, and kept the five pre-presentation warnings.
+
+Verification: API endpoint count 14, test files 19, 251 tests passing; the Case3 correction detail
+traced to the 2026-07-22 entry; PPT figures traced to `docs/DD_Laminate_PPT_Basis.md`.
