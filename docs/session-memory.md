@@ -17023,3 +17023,28 @@ that would most improve the opening.
 
 Verification: timing budget sums to 630 seconds; all figures unchanged from the previous revision,
 which was itself checked against the manifest, the PPT basis document and the paper.
+
+## 2026-09-21 - The Analysis Runtime Landed, And The Opening Slide Changed Shape
+
+The presenter supplied the missing number: an FE run takes 20 minutes. That was the one gap flagged
+across three revisions of the partner brief, and it changes the opening from a claim into a table.
+
+Measured the sweep instead of extrapolating from the single-prediction figure. A full one-degree
+sweep of the design space for one case and one panel is 181 x 181 = 32,761 points, and the surrogate
+does it in 8.6 seconds -- 8.4 of that is feature construction, 0.2 is inference, 0.26 ms per point.
+The same sweep by analysis is 32,761 x 20 minutes = 455 days. Single prediction is 20 minutes
+against 0.4 seconds, 3,000x. The training corpus itself represents 900 hours, 38 days, of analysis.
+
+The 455 days is serial single-core and any engineer in the room will say so, so the Q&A backup leads
+with that objection rather than waiting for it: 4.6 days on a hundred cores, still against 8.6
+seconds, and that is one case and one panel of nine. Conceding it first is worth more than the
+number. The argument then moves off the multiple onto two things a multiple does not capture --
+whether the question gets answered during the design review or next week, and that narrowing
+candidates lets the same analysis budget go to verifying the ones worth verifying.
+
+Added a second backup entry stating how each figure was obtained, and rewrote part 3 item 1 from
+"this number is missing" to a provenance table saying which figures are measured here and which came
+from the presenter.
+
+Verification: sweep timed in-process at 8.6 s for 32,761 points; 455 days = 32,761 x 1,200 s;
+4.6 days = that divided by 100; 3,000x = 1,200 / 0.4; 900 hours = 2,700 x 20 min.
