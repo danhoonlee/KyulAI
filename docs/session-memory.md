@@ -17048,3 +17048,22 @@ from the presenter.
 
 Verification: sweep timed in-process at 8.6 s for 32,761 points; 455 days = 32,761 x 1,200 s;
 4.6 days = that divided by 100; 3,000x = 1,200 / 0.4; 900 hours = 2,700 x 20 min.
+
+## 2026-09-21 - Disclosure Cleared For The Partner Talk
+
+Material name and performance figures are cleared for external use. Recorded that in part 3 of the
+brief as a table with the clearance date rather than as prose, so a later reader can see what was
+decided and when.
+
+Panel dimensions were on the open list but do not need a separate decision: every performance table
+is reported per panel and the figures are meaningless without the sizes, so clearing the figures
+clears the dimensions with them.
+
+Boundary conditions are the one item still open, and they are the one item that is genuinely
+separable. The talk needs the reason Pt is used instead of a buckling load -- non-zero B matrix,
+membrane-bending coupling, linear eigenvalue analysis overestimating the usable load -- and not the
+support conditions themselves. Noted that the single line in slide 2 can be deleted without touching
+the argument if it turns out to be restricted.
+
+Every other pre-presentation item is now closed: the analysis runtime arrived, the Pt definition has
+an agreed way to be described, and the label review scope is written as a thing not to overstate.
