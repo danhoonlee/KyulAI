@@ -16997,3 +16997,29 @@ Added guidance for cutting slide 3 to a 10-minute slot, and kept the five pre-pr
 
 Verification: API endpoint count 14, test files 19, 251 tests passing; the Case3 correction detail
 traced to the 2026-07-22 entry; PPT figures traced to `docs/DD_Laminate_PPT_Basis.md`.
+
+## 2026-09-21 - Partner Brief Cut To A Ten-Minute Talk
+
+Reduced to eight slides with a per-slide timing budget summing to roughly ten minutes. Nothing was
+deleted: the material that did not fit became a Q&A backup section, which is where it belongs for a
+short talk that will be mostly questions.
+
+Gave the verification slide two of the ten minutes, the largest single share. The reasoning is that
+a partner sitting in the room cannot check whether our Pt MAE is 204 or 2,040, but can judge whether
+the work is checked properly, and the leak story is the one item where the checking caught our own
+error rather than confirming our success. The timing note tells the presenter to protect slide 5 and
+squeeze the timeline and roadmap instead.
+
+Compressed the seven-stage history into a single dated column with three starred items: the turn to
+CLT physics features, the canonical Case3 correction found by reading the PPT formula against the
+code, and the pipeline audit. The model-family sweep, the product features, the Type definitions,
+the GointMLP diagnosis, the Pt definition difference, the label review scope, the lamination
+parameter result and the reference paper all moved to the backup as answers to specific questions.
+
+The third part keeps what must not be said: no claim of exhaustive human label review, no pooled Pt
+MAE as a single headline, and no combining the paper's +35/+58% buckling figures with the PPT's
++28.9% transition load figure. Plus the still-missing analysis runtime, which remains the one thing
+that would most improve the opening.
+
+Verification: timing budget sums to 630 seconds; all figures unchanged from the previous revision,
+which was itself checked against the manifest, the PPT basis document and the paper.
