@@ -16925,3 +16925,42 @@ and Hybrid, and a disclosure check on the material name, boundary conditions and
 Verification: dataset counts, design-point count, case and panel sets, and all three Type 1 shares
 re-read from the manifest; material and ply figures traced to the PPT basis document; the 180-of-180
 max-at-curve-end claim traced to its original check.
+
+## 2026-09-21 - Partner Brief Rebuilt Around Purpose, And The Pt Definition Traced To Source
+
+The brief was reoriented on request: purpose and direction, argued from the material already shared
+with the partner rather than from our own metrics.
+
+Traced the Pt definition question to the source files first, because it was going into an external
+document. The manifest keys on `Test_ID` like `6x4_001` while the source tables key on `Test_001`;
+matching through `source_test_id` shows all 900 6x4 rows come from `transition load P1.csv` to 1e-9.
+The same folder holds `transition load.csv`, and the two tables differ on 300 of 300 rows per case,
+median relative difference about 43%, correlation +0.135 to +0.172 -- not two measurements of one
+quantity. Recomputing the force-plot kink from each panel's own curves reproduces the stored Pt
+120 of 120 times on 6x8 and on 8x8, and 0 of 120 on 6x4 at a 27% median gap.
+
+So the right framing is not that something is broken. Type 2 and Type 3 in the PPT define the
+transition load using the u3 out-of-plane curve; 6x4 has those curves and the other two panels do
+not. The brief now says that, and states the consequence we already follow: never compare Pt
+absolutely across panels, always report per panel.
+
+Read the Waas paper and the TAC-vs-DD deck to build the narrative. The paper optimises 8-ply
+symmetric layups against the Legacy Quad `[0/90/±45]s` benchmark and reports up to +35% for Case I
+and up to +58% for Cases II and III, with the sentence the whole argument rests on: geometry,
+material and thickness are unchanged, so panel mass is unchanged. It also models curing-induced
+out-of-flatness for unsymmetric layups and observes a 48.5% transition-load reduction against the
+symmetric layup of the same angles. The PPT study extends this to 16-ply DD and transition load:
+quasi 12,344.8 lbs against Case3 best 15,916.5, which is +28.9%, and a 70/30 buckling/rigidity cost
+function giving +31.3%. Optimum near theta1 44.13, theta2 -49.42, in a Pattern II response surface
+of four corner peaks with a low centre -- which is the argument for why global search is needed.
+
+Structured the deck so slide 5 is the hinge: the research proved DD beats quasi-isotropic, and what
+remains is finding the optimum under arbitrary conditions. Our work is positioned as answering that,
+not as a separate ML exercise.
+
+Added a fifth pre-presentation warning: the paper's +35/+58% are 8-ply symmetric buckling loads and
+the PPT's +28.9% is 16-ply DD transition load, so the two must not be combined or conflated.
+
+Verification: every cited figure traced back to `docs/DD_Laminate_PPT_Basis.md` or to text extracted
+from `CS_DDpaper.pdf` page 9; Case formulas match the basis document; the kink-reproduction test run
+on 120 rows per panel.
