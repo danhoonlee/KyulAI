@@ -364,6 +364,10 @@ async def wedding_rsvp(request: Request) -> Response:
                 previous_message = _trim_text(previous_data.get("message"), 240)
                 if previous_message and not record["data"].get("message"):
                     record["data"]["message"] = previous_message
+                # 관리자 전용 분류 메모(소속 등)는 하객 재제출 시에도 보존한다.
+                previous_note = _trim_text(previous_data.get("adminNote"), 100)
+                if previous_note and not record["data"].get("adminNote"):
+                    record["data"]["adminNote"] = previous_note
             if not record["message"]:
                 record["message"] = _trim_text(existing_for_replacement.get("message"), 240)
 
@@ -662,6 +666,13 @@ async def wedding_admin_update_submission(request: Request, line_number: int) ->
                     data[field] = new_value
                 elif field in data:
                     del data[field]
+        # 관리자 전용 분류 메모(소속 등). lookup 응답엔 노출되지 않음(_sanitize 제외).
+        if "adminNote" in new_data:
+            admin_note = _trim_text(new_data.get("adminNote"), 100)
+            if admin_note:
+                data["adminNote"] = admin_note
+            elif "adminNote" in data:
+                del data["adminNote"]
         record["data"] = data
         record["editedAt"] = datetime.now(_UTC).isoformat().replace("+00:00", "Z")
         lines[line_number - 1] = json.dumps(record, ensure_ascii=False)
