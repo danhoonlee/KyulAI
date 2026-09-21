@@ -613,6 +613,63 @@ async def wedding_admin_delete_submission(request: Request, line_number: int) ->
     return JSONResponse({"ok": True})
 
 
+@app.api_route("/api/admin/submissions/{line_number}", methods=["PUT", "POST"])
+@app.api_route("/wedding/api/admin/submissions/{line_number}", methods=["PUT", "POST"])
+async def wedding_admin_update_submission(request: Request, line_number: int) -> Response:
+    auth_error = _require_wedding_admin(request)
+    if auth_error is not None:
+        return auth_error
+    if line_number < 1:
+        return _json_error(422, "수정할 항목을 찾을 수 없습니다.")
+
+    body = bytearray()
+    async for chunk in request.stream():
+        if len(body) + len(chunk) > WEDDING_MAX_REQUEST_BYTES:
+            return _json_error(413, "Request body too large")
+        body.extend(chunk)
+    try:
+        payload = json.loads(body)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return _json_error(400, "Invalid JSON")
+    if not isinstance(payload, dict):
+        return _json_error(400, "Invalid JSON")
+    new_data = payload.get("data")
+    if not isinstance(new_data, dict):
+        return _json_error(422, "수정할 내용이 없습니다.")
+
+    submissions_file = _wedding_submissions_file()
+    if not submissions_file.exists():
+        return _json_error(404, "수정할 항목을 찾을 수 없습니다.")
+
+    with _wedding_write_lock():
+        lines = submissions_file.read_text(encoding="utf-8").splitlines()
+        if line_number > len(lines):
+            return _json_error(404, "수정할 항목을 찾을 수 없습니다.")
+        try:
+            record = json.loads(lines[line_number - 1])
+        except json.JSONDecodeError:
+            return _json_error(422, "수정할 수 없는 항목입니다.")
+        if not isinstance(record, dict):
+            return _json_error(422, "수정할 수 없는 항목입니다.")
+        data = record.get("data")
+        if not isinstance(data, dict):
+            data = {}
+        # 허용 필드만, 길이 제한 적용해 갱신 (빈 값이면 해당 필드 삭제)
+        for field, max_length in WEDDING_FIELD_LIMITS.items():
+            if field in new_data:
+                new_value = _trim_text(new_data.get(field), max_length)
+                if new_value:
+                    data[field] = new_value
+                elif field in data:
+                    del data[field]
+        record["data"] = data
+        record["editedAt"] = datetime.now(_UTC).isoformat().replace("+00:00", "Z")
+        lines[line_number - 1] = json.dumps(record, ensure_ascii=False)
+        _atomic_write_lines(submissions_file, lines)
+
+    return JSONResponse({"ok": True, "item": record})
+
+
 # 정적 파일 (assets, fonts 등). 명시 라우트가 우선이므로 마지막에 마운트.
 if WEDDING_FRONTEND_DIR.exists():
     app.mount("/wedding", StaticFiles(directory=WEDDING_FRONTEND_DIR, html=True), name="wedding-legacy")
