@@ -16897,3 +16897,31 @@ negative is about predictive value for this target rather than about the theory.
 Verification: 251 passed across `tests/unit` and `tests/backend`; Tsai-Pagano reconstruction 1.1e-14
 on `A*` and 7.1e-15 on `D*`; `dd_feature_vector` length matches its 20 column names; the two constant
 combinations match `2(U1+U5)` and `U4-U5` to 1e-12 for every case in the sweep.
+
+## 2026-09-21 - Partner Brief For The Laminate Work
+
+Wrote `docs/PARTNER_BRIEF_CAE_AI_LAMINATE.md`, slide-ordered source material for a presentation to a
+partner company, Korean, laminate-focused with the CAE-AI platform framing around it.
+
+Re-derived every figure rather than copying from earlier notes, since this one leaves the building:
+2,700 rows over 300 design points, three cases, three panels; 1,001 points per curve; Type 1 shares
+35.7 / 25.2 / 11.8%; the feature-value comparison 467.17 -> 200.79 pooled and 643.12 -> 176.93 on
+Type 1; end-to-end `predict/response` latency 394 ms locally. Material, ply count and boundary
+conditions came from `docs/DD_Laminate_PPT_Basis.md` rather than memory.
+
+Structured it so the methodology slide carries the weight. A partner judging whether this is done
+properly will be more persuaded by the machinery that makes the numbers trustworthy than by the
+numbers: the permanent no-training lookup baseline and the leak it caught, the constraint/objective
+split, the feasible-share reporting, the uncertainty payload, and a feature hypothesis that was
+implemented, measured and rejected with its reasoning recorded.
+
+Left out any FE-to-surrogate speedup multiple. Nothing in the repository records an Abaqus runtime,
+and an unsourced multiple is exactly what a partner checks first. Flagged it as item 1 of a closing
+section that is marked not-for-slides, alongside: how to speak about the mixed Pt definition
+(recommend saying it plainly -- per-panel reporting is the honest consequence and reads as rigour),
+the limit that only the 900 6x4 labels are human-reviewed, the two empty Type 1 cells for GointMLP
+and Hybrid, and a disclosure check on the material name, boundary conditions and performance figures.
+
+Verification: dataset counts, design-point count, case and panel sets, and all three Type 1 shares
+re-read from the manifest; material and ply figures traced to the PPT basis document; the 180-of-180
+max-at-curve-end claim traced to its original check.
