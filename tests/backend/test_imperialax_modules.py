@@ -159,7 +159,7 @@ def test_imperialax_module_catalog_lists_active_modules() -> None:
     assert response.status_code == 200
     data = response.json()
     modules = {module["id"]: module for module in data["modules"]}
-    assert data["brand"] == "ImperialAX"
+    assert data["brand"] == "KCompositeLab"
     assert {"laminate", "injection"}.issubset(modules)
     assert "admin" not in modules
     assert modules["laminate"]["route"]["models_path"] == "/api/v1/dd-laminate/models"

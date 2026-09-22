@@ -236,7 +236,7 @@ def test_public_root_serves_v2_ui_for_imperialax(client: TestClient) -> None:
 
     assert response.status_code == 200
     assert 'lang="ko"' in response.text
-    assert "ImperialAX 적층 예측" in response.text
+    assert "KCompositeLab 적층 예측" in response.text
     assert 'src="/app-v2.js' in response.text
     # The standalone Modules back-link moved into the shared product shell,
     # which also loads the header auth utilities.
@@ -244,7 +244,18 @@ def test_public_root_serves_v2_ui_for_imperialax(client: TestClient) -> None:
     assert 'src="/auth-gate.js' in response.text
 
 
-def test_laminate_pages_link_back_to_imperialax_user_page(client: TestClient) -> None:
+def test_laminate_v2_pages_do_not_navigate_to_the_branded_front_door(
+    client: TestClient,
+) -> None:
+    """These two pages are shown to outside viewers under a different name.
+
+    The Modules and Sign out links, and the logo anchor, all pointed at
+    ai.imperialax.com -- a login page carrying exactly the brand this pair of
+    pages no longer shows. A viewer clicking any of them mid-demonstration
+    would land on it, so they were removed from these files only. The classic
+    pages and the workspace itself are untouched.
+    """
+
     english_v2 = client.get("/dd-laminate-v2")
     korean_v2 = client.get("/dd-laminate-v2-ko")
     english_classic = client.get("/index.html")
@@ -254,8 +265,14 @@ def test_laminate_pages_link_back_to_imperialax_user_page(client: TestClient) ->
     assert korean_v2.status_code == 200
     assert english_classic.status_code == 200
     assert korean_classic.status_code == 200
-    assert 'href="https://ai.imperialax.com/index.html">Modules</a>' in english_v2.text
-    assert 'href="https://ai.imperialax.com/index.ko.html">모듈 선택</a>' in korean_v2.text
+
+    for page in (english_v2, korean_v2):
+        assert "ai.imperialax.com" not in page.text
+        assert "header-action-module" not in page.text
+        assert "header-action-account" not in page.text
+        # The logo still shows; it just no longer navigates.
+        assert '<span class="product-logo-link"' in page.text
+
     assert "./index-v2.html" in english_classic.text
     assert "./index-v2.ko.html" in korean_classic.text
 
@@ -343,7 +360,7 @@ def test_local_root_serves_forecast_entry_default(client: TestClient) -> None:
 
     assert response.status_code == 200
     assert 'lang="ko"' in response.text
-    assert "ImperialAX 적층 예측" in response.text
+    assert "KCompositeLab 적층 예측" in response.text
     assert 'src="/app-v2.js' in response.text
 
 
@@ -353,7 +370,7 @@ def test_v2_korean_page_serves_translated_current_ui(client: TestClient) -> None
     assert response.status_code == 200
     assert 'lang="ko"' in response.text
     assert "복합재 적층 AI" in response.text
-    assert "ImperialAX 적층 예측" in response.text
+    assert "KCompositeLab 적층 예측" in response.text
     assert "응답 예측" in response.text
     assert 'src="/app-v2.js' in response.text
 

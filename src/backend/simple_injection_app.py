@@ -43,7 +43,7 @@ mimetypes.add_type("model/gltf-binary", ".glb")
 mimetypes.add_type("model/gltf+json", ".gltf")
 
 app = FastAPI(
-    title="ImperialAX Simple Injection API",
+    title="KCompositeLab Simple Injection API",
     version="0.1.0",
     description="Local Moldex3D Simple Injection sprue pressure prediction API.",
 )
@@ -211,6 +211,16 @@ async def simple_injection_brand_logo() -> FileResponse:
 @app.get("/brand/imperialax-mark-black.png")
 async def simple_injection_brand_mark() -> FileResponse:
     return _no_cache_file(BRAND_ASSET_DIR / "imperialax-mark-black.png")
+
+
+@app.get("/brand/kclab-logo-black.png")
+async def simple_injection_kclab_logo() -> FileResponse:
+    return _no_cache_file(BRAND_ASSET_DIR / "kclab-logo-black.png")
+
+
+@app.get("/brand/kclab-mark-black.png")
+async def simple_injection_kclab_mark() -> FileResponse:
+    return _no_cache_file(BRAND_ASSET_DIR / "kclab-mark-black.png")
 
 
 @app.get("/simple-injection")

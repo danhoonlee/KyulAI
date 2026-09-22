@@ -256,7 +256,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(
-    title="ImperialAX DD Laminate API",
+    title="KCompositeLab DD Laminate API",
     version="0.1.0",
     description="Local DD laminate Type prediction API.",
     lifespan=lifespan,
@@ -349,6 +349,11 @@ async def assets(request: Request, asset_path: str) -> FileResponse:
 @app.get("/brand/imperialax-logo-black.png")
 async def imperialax_brand_logo() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "assets" / "imperialax-logo-black.png")
+
+
+@app.get("/brand/kclab-logo-black.png")
+async def kclab_brand_logo() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "assets" / "kclab-logo-black.png")
 
 
 @app.get("/brand/imperialax-mark-black.png")
