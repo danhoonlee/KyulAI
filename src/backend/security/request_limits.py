@@ -17,7 +17,11 @@ from typing import Any
 from fastapi import Request
 from fastapi.responses import JSONResponse, Response
 
-from src.backend.security.module_access import module_access_denial, request_session
+from src.backend.security.module_access import (
+    is_public_demo_request,
+    module_access_denial,
+    request_session,
+)
 
 LOGGER = logging.getLogger("imperialax.security")
 _AUDIT_KEY = secrets.token_bytes(32)
@@ -259,6 +263,30 @@ def _rules_for_request(request: Request) -> list[tuple[RateLimitRule, str]]:
 
     session = request_session(request)
     if session is None:
+        if is_public_demo_request(request) and (_is_prediction(path, method) or _is_rag(path)):
+            # A public demo request has no session and no account, so IP is the
+            # only identity available. Without this the open prefixes would be
+            # the one unmetered surface on the host.
+            return [
+                (
+                    RateLimitRule(
+                        "public-demo-burst",
+                        _positive_int_env("IMPERIALAX_PUBLIC_DEMO_RATE_LIMIT", 30),
+                        10 * 60,
+                        "ip",
+                    ),
+                    ip,
+                ),
+                (
+                    RateLimitRule(
+                        "public-demo-hourly",
+                        _positive_int_env("IMPERIALAX_PUBLIC_DEMO_HOURLY_RATE_LIMIT", 120),
+                        60 * 60,
+                        "ip",
+                    ),
+                    ip,
+                ),
+            ]
         return []
     account_id = session.user.id
     is_demo = session.user.email == "demo@imperialax.com"
