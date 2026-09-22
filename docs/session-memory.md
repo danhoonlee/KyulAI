@@ -17108,3 +17108,41 @@ Verification: 259 tests pass including 8 new ones covering closed-by-default, pa
 scoping, the front door staying shut, half-configuration opening nothing, and the production guard
 on the blanket bypass. Live: laminate models/predict/design-space and injection models/doe all 200
 anonymously; ai.imperialax.com predict 401; both /rag/ask 401; rate limit fires at the expected count.
+
+## 2026-09-22 - KCompositeLab Rebrand, And A Typo In The Supplied Logo
+
+Rebranded the two pages shown publicly tomorrow. Titles, h1 lockup, alt text, aria labels and the
+module catalogue API now read KCompositeLab. Only `index-v2*.html` in dd-laminate and
+simple-injection were touched; ai.imperialax.com and the classic pages are served from different
+files and keep the old brand.
+
+Removed three outbound links from those four files: Modules, Sign out, and the logo anchor. All
+pointed at ai.imperialax.com, a login page under the old name, so a viewer clicking any of them
+mid-demonstration would have landed on the thing the rebrand exists to hide. The logo still renders,
+as a span rather than an anchor. Two tests pinned those links; rewrote both to pin their absence.
+One assumed the injection app had a separate classic page -- it does not, `/index.html` returns the
+same `index-v2.html` -- so all four of its routes are asserted clean.
+
+The supplied artwork could not be used as given. It is a tall stacked lockup at aspect 0.79 and the
+header slot is 126px wide at aspect 5.84, so dropping it in would have pushed the header to 159px.
+Found the transparent bands between mark, tagline and wordmark, split on them, and recomposed mark
+and wordmark side by side at aspect 4.31, sized to the same 251px the previous asset used so no
+layout moves.
+
+Reading the wordmark at full resolution showed it spells **KComposliteLab** -- an extra `l` between
+`Compos` and `ite`. Raised it rather than shipping a page whose title and logo disagreed, and the
+user confirmed KCompositeLab is correct and the logo is wrong.
+
+Fixed it in the image rather than re-typesetting, so every other letter keeps the original face,
+weight and drop shadow. Column-scanned the wordmark for empty verticals: the stray glyph occupies
+x=1323..1391 of 2254 with clean 3px and 9px gaps either side, which is what made it liftable.
+Deleted those 69 columns and closed up, leaving 12px between `s` and `i`, against the 10px `o` and
+`s` already sit at. Rebuilt the header lockup from the corrected wordmark and wrote a corrected full
+vertical version to `data/incoming/kclab_logo_corrected.png` for whoever holds the source artwork.
+
+Bumped the asset cache key so no viewer is served the typo from cache tomorrow, and verified by
+downloading the asset back from the live host and reading it rather than trusting the file on disk.
+
+Verification: 259 tests pass; all four live pages return KCompositeLab titles with zero
+ai.imperialax.com references and zero visible old-brand strings; logo 200 from both hosts; the API
+catalogue returns `"brand":"KCompositeLab"`.
