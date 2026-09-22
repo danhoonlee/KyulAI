@@ -17067,3 +17067,44 @@ the argument if it turns out to be restricted.
 
 Every other pre-presentation item is now closed: the analysis runtime arrived, the Pt definition has
 an agreed way to be described, and the label review scope is written as a thing not to overstate.
+
+## 2026-09-22 - A Narrow Public Opening For Tomorrow's Demonstration
+
+The ask was direct access to laminate.imperialax.com and injection.imperialax.com without signing in
+or clicking demo, for an external demonstration tomorrow. Checked what the authentication was
+actually protecting before touching it.
+
+It protects less than it looks. Neither app registers an auth, account or admin router -- the
+laminate app carries dd_laminate, modules, optimization, rag and slack_commands, and the injection
+app carries simple_injection, modules and rag. The gate is a licensing check on prediction APIs, not
+a wall around user data, so opening it exposes compute rather than accounts. `/api/v1/modules` was
+already public and returns a static catalogue.
+
+Did not use `IMPERIALAX_DISABLE_AUTH_FOR_LOCAL_DEV`. It raises under `IMPERIALAX_ENV=production`,
+which both units set, and that guard exists precisely for this situation. Added a separate, narrower
+switch instead: `IMPERIALAX_PUBLIC_DEMO_PATHS` and `IMPERIALAX_PUBLIC_DEMO_HOSTS`, both required,
+defaulting to nothing open.
+
+Keyed on paths rather than entitlements deliberately. `module.laminate` gates `/api/v1/rag` as well
+as `/api/v1/dd-laminate`, and the assistant calls OpenAI on every question, so opening by entitlement
+would have opened spending to the internet. RAG stays closed and is one prefix away if wanted.
+
+Keyed on hosts after the first attempt proved it necessary. Paths alone worked, and then
+ai.imperialax.com answered a prediction anonymously too, because one Uvicorn serves both names --
+`AI_ROOT_HOSTS` and `V2_ROOT_HOSTS` are branches inside `dd_laminate_app`, not separate processes.
+Caught it in live verification rather than reasoning, added the host list, confirmed the front door
+returns 401 again.
+
+The real hole was rate limiting. `_rules_for_request` returned `[]` for any request without a
+session. Harmless while the entitlement check rejected those first; the moment a prefix opens, that
+prefix becomes the only unmetered surface on the host. Anonymous requests to open prefixes now carry
+two IP-scoped rules, 30 per ten minutes and 120 per hour. Verified against the live host: 25 more
+predictions succeeded and the 26th returned 429.
+
+Units hold the configuration, with a comment saying to delete the lines after the demonstration.
+Backups at `~/.config/systemd/user/imperialax-{laminate,injection}.service.bak-predemo-20260922-164754`.
+
+Verification: 259 tests pass including 8 new ones covering closed-by-default, path scoping, host
+scoping, the front door staying shut, half-configuration opening nothing, and the production guard
+on the blanket bypass. Live: laminate models/predict/design-space and injection models/doe all 200
+anonymously; ai.imperialax.com predict 401; both /rag/ask 401; rate limit fires at the expected count.
