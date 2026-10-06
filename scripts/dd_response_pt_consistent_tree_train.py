@@ -149,7 +149,10 @@ def split_indices(records: list[DDRecord], manifest_path: Path) -> tuple[np.ndar
     assignments: dict[str, str] = {}
     with manifest_path.open("r", encoding="utf-8-sig", newline="") as handle:
         for row in csv.DictReader(handle):
-            key = f"{row['case']}|{float(row['theta1']):.8g}|{float(row['theta2']):.8g}"
+            # Same key as group_key(). 39c08cd moved that to the angle pair and left this
+            # line on case|theta, so no manifest could be read; a manifest that splits the
+            # cases of one design now fails the conflict check below instead.
+            key = f"{float(row['theta1']):.8g}|{float(row['theta2']):.8g}"
             split = str(row["split"]).strip().lower().replace("-", "_")
             normalized = "holdout" if split in {"holdout", "locked_holdout", "test"} else "train"
             previous = assignments.setdefault(key, normalized)

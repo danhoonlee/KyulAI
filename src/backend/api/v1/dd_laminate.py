@@ -54,17 +54,26 @@ ResponseModelKey = Literal[
     "response_hybrid_student_canonical_v2",
     "response_hybrid_student_3size_grouped_v1",
     "response_pt_consistent_hybrid_3size_grouped_v1",
+    "response_pt_consistent_tree_3size_kink_v1",
+    "response_pt_consistent_goint_3size_kink_v1",
+    "response_pt_consistent_hybrid_3size_kink_v1",
 ]
-OPTIMAL_RESPONSE_MODEL_KEYS = (
-    "response_geometry_tree_canonical_v2",
-    "response_geometry_goint_canonical_v2",
-    "response_hybrid_student_canonical_v2",
+# Served family: one Pt definition (force-plot kink) on all three panels.
+KINK_RESPONSE_MODEL_KEYS = (
+    "response_pt_consistent_tree_3size_kink_v1",
+    "response_pt_consistent_goint_3size_kink_v1",
+    "response_pt_consistent_hybrid_3size_kink_v1",
 )
-THREE_SIZE_PREVIEW_MODEL_KEYS = (
+# Kept for comparison: same recipe, but 6x4 Pt is the PPT P1 definition.
+P1_LEGACY_RESPONSE_MODEL_KEYS = (
     "response_pt_consistent_tree_3size_grouped_v1",
     "response_pt_consistent_goint_3size_grouped_v1",
     "response_pt_consistent_hybrid_3size_grouped_v1",
 )
+DEFAULT_RESPONSE_MODEL_KEY = "response_pt_consistent_tree_3size_kink_v1"
+DEFAULT_STUDENT_MODEL_KEY = "response_pt_consistent_hybrid_3size_kink_v1"
+OPTIMAL_RESPONSE_MODEL_KEYS = KINK_RESPONSE_MODEL_KEYS
+THREE_SIZE_PREVIEW_MODEL_KEYS = (*KINK_RESPONSE_MODEL_KEYS, *P1_LEGACY_RESPONSE_MODEL_KEYS)
 GEOMETRY_AWARE_RESPONSE_MODEL_KEYS = (
     "response_geometry_tree_canonical_v2",
     "response_geometry_goint_canonical_v2",
@@ -91,6 +100,8 @@ RESPONSE_DEEP_MODEL_KEYS = {
     "response_hybrid_student_canonical_v2",
     "response_hybrid_student_3size_grouped_v1",
     "response_pt_consistent_hybrid_3size_grouped_v1",
+    "response_pt_consistent_goint_3size_kink_v1",
+    "response_pt_consistent_hybrid_3size_kink_v1",
 }
 
 
@@ -145,15 +156,52 @@ PANEL_A_RANGE_IN = (6.0, 8.0)
 PANEL_B_RANGE_IN = (4.0, 8.0)
 
 
-def _is_trained_panel(panel_a_in: float, panel_b_in: float) -> bool:
+# Models fitted on fewer panels than the request bounds allow. canonical_v2 never saw 8x8 and
+# misses its Pt by 40-124% there (reports/dd_served_model_holdout_check/), with no warning,
+# because the global list above names 8x8 as trained.
+TWO_PANEL_GEOMETRIES: tuple[tuple[float, float], ...] = ((6.0, 4.0), (6.0, 8.0))
+MODEL_TRAINED_PANELS: dict[str, tuple[tuple[float, float], ...]] = {
+    "response_geometry_tree_v1": TWO_PANEL_GEOMETRIES,
+    "response_geometry_goint_v1": TWO_PANEL_GEOMETRIES,
+    "response_geometry_tree_canonical_v2": TWO_PANEL_GEOMETRIES,
+    "response_geometry_goint_canonical_v2": TWO_PANEL_GEOMETRIES,
+    "response_hybrid_student_canonical_v2": TWO_PANEL_GEOMETRIES,
+}
+
+
+def _trained_panels(model_key: str | None = None) -> tuple[tuple[float, float], ...]:
+    return MODEL_TRAINED_PANELS.get(model_key or "", TRAINED_PANEL_GEOMETRIES)
+
+
+def _is_trained_panel(panel_a_in: float, panel_b_in: float, model_key: str | None = None) -> bool:
     return any(
         math.isclose(panel_a_in, a, abs_tol=1e-6) and math.isclose(panel_b_in, b, abs_tol=1e-6)
-        for a, b in TRAINED_PANEL_GEOMETRIES
+        for a, b in _trained_panels(model_key)
     )
 
 
-def _describe_trained_panels() -> str:
-    return ", ".join(f"{a:g}x{b:g} in" for a, b in TRAINED_PANEL_GEOMETRIES)
+def _describe_trained_panels(model_key: str | None = None) -> str:
+    return ", ".join(f"{a:g}x{b:g} in" for a, b in _trained_panels(model_key))
+
+
+def _require_panel_within_model(model_key: str, panel_a_in: float, panel_b_in: float) -> None:
+    """Refuse a panel outside the box spanned by the panels this model was fitted on."""
+    panels = _trained_panels(model_key)
+    a_values = [a for a, _ in panels]
+    b_values = [b for _, b in panels]
+    tolerance = 1e-6
+    if not (
+        min(a_values) - tolerance <= panel_a_in <= max(a_values) + tolerance
+        and min(b_values) - tolerance <= panel_b_in <= max(b_values) + tolerance
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=(
+                f"{model_key} was trained on {_describe_trained_panels(model_key)} only; "
+                f"a {panel_a_in:g}x{panel_b_in:g} in panel is outside that range. "
+                f"Use {DEFAULT_RESPONSE_MODEL_KEY}, which covers all three panels."
+            ),
+        )
 
 
 class PanelGeometryRequest(BaseModel):
@@ -180,15 +228,15 @@ class ResponsePredictionRequest(PanelGeometryRequest):
     theta1: float = Field(..., ge=-90, le=90)
     theta2: float = Field(..., ge=-90, le=90)
     case: CaseKey
-    model: ResponseModelKey = "response_geometry_tree_canonical_v2"
+    model: ResponseModelKey = DEFAULT_RESPONSE_MODEL_KEY
 
 
 class ResponseEnsemblePredictionRequest(PanelGeometryRequest):
     theta1: float = Field(..., ge=-90, le=90)
     theta2: float = Field(..., ge=-90, le=90)
     case: CaseKey
-    teacher_model: ResponseModelKey = "response_geometry_tree_canonical_v2"
-    student_model: ResponseModelKey = "response_hybrid_student_canonical_v2"
+    teacher_model: ResponseModelKey = DEFAULT_RESPONSE_MODEL_KEY
+    student_model: ResponseModelKey = DEFAULT_STUDENT_MODEL_KEY
 
 
 class U3ForecastPredictionRequest(BaseModel):
@@ -498,9 +546,39 @@ CURVE_MODELS: dict[str, dict[str, str]] = {
 }
 
 RESPONSE_MODELS: dict[str, dict[str, str]] = {
-    "response_pt_consistent_tree_3size_grouped_v1": {
+    "response_pt_consistent_tree_3size_kink_v1": {
         "label": "3-Size Pt-Consistent Machine Learning (Tree)",
         "description": (
+            "Tree forecast on one Pt definition, the force-plot kink, across 6x4, 6x8 and 8x8. "
+            "Trained on development designs only; the angle-pair holdout measures this artifact."
+        ),
+        "path": (
+            "models/dd_laminate_response_pt_consistent_tree_3size_kink_v1/response_surrogate.joblib"
+        ),
+        "requires": "joblib,sklearn,numpy",
+    },
+    "response_pt_consistent_goint_3size_kink_v1": {
+        "label": "3-Size Pt-Consistent Deep Learning (GointMLP)",
+        "description": (
+            "GointMLP forecast on kink Pt across all three panels, with learned Pt position and "
+            "P1 slope heads. Trained on development designs only."
+        ),
+        "path": "models/dd_laminate_response_pt_consistent_goint_3size_kink_v1/response_goint.pt",
+        "requires": "torch,numpy",
+    },
+    "response_pt_consistent_hybrid_3size_kink_v1": {
+        "label": "3-Size Pt-Consistent Hybrid (Teacher-Student)",
+        "description": (
+            "Hybrid student distilled from the kink-Pt Tree teacher across all three panels. "
+            "Trained on development designs only."
+        ),
+        "path": "models/dd_laminate_response_pt_consistent_hybrid_3size_kink_v1/response_goint.pt",
+        "requires": "torch,numpy",
+    },
+    "response_pt_consistent_tree_3size_grouped_v1": {
+        "label": "3-Size Pt-Consistent Machine Learning (Tree) - P1 legacy",
+        "description": (
+            "Legacy: 6x4 Pt here is the PPT P1 definition, 6x8/8x8 the force-plot kink. "
             "Grouped-holdout Tree challenger with a learned P1 parameter head. Its two displayed "
             "fit lines intersect exactly at predicted Pt without rescaling the raw response curve."
         ),
@@ -530,8 +608,9 @@ RESPONSE_MODELS: dict[str, dict[str, str]] = {
         "requires": "torch,numpy",
     },
     "response_pt_consistent_goint_3size_grouped_v1": {
-        "label": "3-Size Pt-Consistent Deep Learning (GointMLP)",
+        "label": "3-Size Pt-Consistent Deep Learning (GointMLP) - P1 legacy",
         "description": (
+            "Legacy: 6x4 Pt here is the PPT P1 definition, 6x8/8x8 the force-plot kink. "
             "Grouped-Holdout GointMLP challenger with learned Pt position and P1 slope heads. "
             "The raw neural response curve is preserved while the displayed P1 lines intersect at Pt."
         ),
@@ -550,8 +629,9 @@ RESPONSE_MODELS: dict[str, dict[str, str]] = {
         "requires": "torch,numpy",
     },
     "response_pt_consistent_hybrid_3size_grouped_v1": {
-        "label": "3-Size Pt-Consistent Hybrid (Teacher-Student)",
+        "label": "3-Size Pt-Consistent Hybrid (Teacher-Student) - P1 legacy",
         "description": (
+            "Legacy: 6x4 Pt here is the PPT P1 definition, 6x8/8x8 the force-plot kink. "
             "Pt-consistent distilled Hybrid trained from real development curves and locked-Holdout-"
             "excluded synthetic designs, with a raw response curve and exact displayed P1/Pt intersection."
         ),
@@ -2073,7 +2153,7 @@ def _design_space_rows(
         source = "curated_u3"
     elif dataset == "three_size":
         manifest_path = (
-            PROJECT_ROOT / "data/datasets/DD_cases_2_3_4_geometry_3size_v1/manifest.csv"
+            PROJECT_ROOT / "data/datasets/DD_cases_2_3_4_geometry_3size_kink_v1/manifest.csv"
         )
         source = "three_size_response"
     else:
@@ -2788,6 +2868,7 @@ def _predict_estimated_response(
     curve_fit_style: Literal["default", "p1_transition_guided"] = "default",
 ) -> ResponseSurrogateResponse:
     meta = _ensure_available(payload.model, RESPONSE_MODELS)
+    _require_panel_within_model(payload.model, payload.panel_a_in, payload.panel_b_in)
     model_path = _model_path(meta)
     try:
         if is_deep_response_model(payload.model):
@@ -2829,10 +2910,10 @@ def _predict_estimated_response(
     confidence = _probability_confidence(probabilities)
     notes = _notes(probabilities, "theta")
     notes[0] = f"{meta['label']} prediction; validate promising candidates with simulation."
-    if not _is_trained_panel(payload.panel_a_in, payload.panel_b_in):
+    if not _is_trained_panel(payload.panel_a_in, payload.panel_b_in, payload.model):
         notes.append(
             f"Panel {payload.panel_a_in:g}x{payload.panel_b_in:g} in is between the trained "
-            f"geometries ({_describe_trained_panels()}); treat the panel dependence as "
+            f"geometries ({_describe_trained_panels(payload.model)}); treat the panel dependence as "
             "interpolated rather than measured."
         )
     predicted_pt = float(result["predicted_pt"])

@@ -89,9 +89,9 @@ def test_standalone_dd_laminate_app_health_and_models_for_mobile(client: TestCli
     ready_data = ready.json()
     assert ready_data["status"] == "ready"
     assert set(ready_data["models"]) == {
-        "response_geometry_tree_canonical_v2",
-        "response_geometry_goint_canonical_v2",
-        "response_hybrid_student_canonical_v2",
+        "response_pt_consistent_tree_3size_kink_v1",
+        "response_pt_consistent_goint_3size_kink_v1",
+        "response_pt_consistent_hybrid_3size_kink_v1",
         "u3_forecast_physics_canonical_v2",
         "u3_forecast_goint_physics_canonical_v2",
     }
@@ -104,16 +104,14 @@ def test_standalone_dd_laminate_app_health_and_models_for_mobile(client: TestCli
 
     response_models = {model["key"]: model for model in data["response_models"]}
     assert list(response_models) == [
-        "response_geometry_tree_canonical_v2",
-        "response_geometry_goint_canonical_v2",
-        "response_hybrid_student_canonical_v2",
+        "response_pt_consistent_tree_3size_kink_v1",
+        "response_pt_consistent_goint_3size_kink_v1",
+        "response_pt_consistent_hybrid_3size_kink_v1",
     ]
-    assert response_models["response_geometry_tree_canonical_v2"]["input_mode"] == "response"
-    assert (
-        response_models["response_geometry_tree_canonical_v2"]["label"]
-        == "Laminate Forecast - Machine Learning"
-    )
-    assert "available" in response_models["response_geometry_tree_canonical_v2"]
+    tree = response_models["response_pt_consistent_tree_3size_kink_v1"]
+    assert tree["input_mode"] == "response"
+    assert tree["label"] == "3-Size Pt-Consistent Machine Learning (Tree)"
+    assert "available" in tree
 
     u3_pt_models = {model["key"]: model for model in data["u3_pt_models"]}
     assert list(u3_pt_models) == [
@@ -136,6 +134,9 @@ def test_three_size_preview_models_and_page_are_isolated_from_mobile_registry(
     assert preview_models.status_code == 200
     models = preview_models.json()
     assert [model["key"] for model in models] == [
+        "response_pt_consistent_tree_3size_kink_v1",
+        "response_pt_consistent_goint_3size_kink_v1",
+        "response_pt_consistent_hybrid_3size_kink_v1",
         "response_pt_consistent_tree_3size_grouped_v1",
         "response_pt_consistent_goint_3size_grouped_v1",
         "response_pt_consistent_hybrid_3size_grouped_v1",
@@ -144,10 +145,11 @@ def test_three_size_preview_models_and_page_are_isolated_from_mobile_registry(
     assert all(model["available"] for model in models)
 
     production_models = client.get("/api/v1/dd-laminate/models").json()["response_models"]
+    # The kink-Pt family replaced canonical_v2, which never saw 8x8.
     assert [model["key"] for model in production_models] == [
-        "response_geometry_tree_canonical_v2",
-        "response_geometry_goint_canonical_v2",
-        "response_hybrid_student_canonical_v2",
+        "response_pt_consistent_tree_3size_kink_v1",
+        "response_pt_consistent_goint_3size_kink_v1",
+        "response_pt_consistent_hybrid_3size_kink_v1",
     ]
 
     # The three-size capability folded into the main forecast UI, so this route
@@ -376,14 +378,12 @@ def test_v2_korean_page_serves_translated_current_ui(client: TestClient) -> None
 
 
 def test_predict_response_matches_ios_contract_shape(client: TestClient, ios_fixture: dict) -> None:
-    models = client.get("/api/v1/dd-laminate/models").json()
-    response_surrogate = next(
-        model
-        for model in models["response_models"]
-        if model["key"] == "response_geometry_tree_canonical_v2"
-    )
-    if not response_surrogate["available"]:
-        pytest.skip("response_surrogate model artifact or runtime dependency is unavailable")
+    # Installed iOS builds still send canonical_v2 by name for a 6x4 panel. It left the
+    # /models list when the kink-Pt family replaced it, but that request must keep working.
+    from src.backend.api.v1.dd_laminate import RESPONSE_MODELS, _model_path
+
+    if not _model_path(RESPONSE_MODELS[ios_fixture["request"]["model"]]).exists():
+        pytest.skip("response_surrogate model artifact is unavailable")
 
     response = client.post(ios_fixture["endpoint"], json=ios_fixture["request"])
     assert response.status_code == 200

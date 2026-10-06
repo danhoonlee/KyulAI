@@ -17191,3 +17191,42 @@ catalogue returns `"brand":"KCompositeLab"`.
   sits in `Double-Double/{2,3,4}/transition load.csv`, which `dd_recompute_kink_pt.py` reproduces to
   1e-9 (2026-09-21 entry). The interim unification is a source-file swap for 6x4, no recomputation.
 - Verification: per-case match of the 3-size dataset against all three source tables, run in-place.
+
+## 2026-10-06 - One Pt Definition On All Three Panels, Retrained And Deployed
+
+- Unified served Pt on the force-plot kink. `scripts/dd_build_kink_pt_dataset.py` stage `curated`
+  swaps 6x4 Pt to `Double-Double/{2,3,4}/transition load.csv` (angles checked row by row, 900/900);
+  stage `geometry` builds `DD_cases_2_3_4_geometry_3size_kink_v1`, its frozen angle-pair split
+  manifest (same 549 holdout rows as `dd_response_geometry_split_v2_3size`) and a development-only
+  copy `..._kink_dev_v1`. P1 datasets and P1-era models are untouched.
+- Type classifier retrained on kink Pt with the 900 human 6x4 labels:
+  `models/dd_laminate_cases_2_3_4_csv_kink_v1`, ExtraTrees CV accuracy 0.9567 / F1 0.9539 against
+  0.9533 / 0.9488 on P1. The relabel path was first checked by reproducing all 1,800 existing
+  6x8/8x8 labels and confidences exactly with the old classifier.
+- Relabel of 6x8/8x8 (218 labels changed): mean confidence 0.708 -> 0.824 on 6x8, 0.625 -> 0.749
+  on 8x8; rows under 0.70 fell 418 -> 242 and 654 -> 360. 8x8 Type 1 106 -> 37; share confirmed by
+  the independent shape measure 47.2% -> 91.9%, share of its Type 1 recovered 92.6% -> 63.0%.
+  53 of the 56 disputed 8x8 rows are now Type 2. `reports/dd_kink_pt_relabel/`.
+- Found the deep pt_consistent trainer warm-starts from canonical_v2, which saw every 6x4/6x8 row.
+  Base Tree/GointMLP/Hybrid were therefore retrained on the development copy only, with the
+  recorded RTX recipe, canonical features and three panels:
+  `scripts/remote/Run-LaminateKinkPtRetrain.sh`.
+- Found `split_indices` in `dd_response_pt_consistent_tree_train.py` (also used by the deep
+  trainer) still keyed `case|theta` after `39c08cd` moved `group_key` to the angle pair, so no
+  manifest could be read ("missing 300 design groups"). Fixed; two tests added.
+- Served-path holdout, all 549 rows unseen (row and angle pair), Pt MAE / Pt mean 6x4/6x8/8x8:
+  Tree 1.44/2.14/3.49% (acc 0.962), Hybrid 1.38/2.24/3.76% (0.960), GointMLP 2.69/3.85/4.43%
+  (0.927); same-case-and-panel lookup 6.32/8.53/7.67% (0.903); angle-only lookup
+  6.28/51.39/104.08% (0.685). Only 3 holdout Type 1 rows on 8x8. `reports/dd_served_model_holdout_check/kink_v1/`.
+- Serving: kink Tree/GointMLP/Hybrid registered as `*_3size_kink_v1` and made the default for
+  `/predict/response`, the ensemble, `/models` (mobile), `/models/3size-preview`, `app-v2.js` and
+  `app-rebuild-preview.js`. P1 models kept, labelled "P1 legacy". Design-space three-size data now
+  reads the kink manifest, so 8x8 Type 1 feasibility shows 4.1% (37/900), was 11.8%.
+- `MODEL_TRAINED_PANELS`: canonical_v2 and geometry_v1 refuse panels outside 6x4..6x8 with a 422
+  naming the default model; the interpolation note is per model. The old panel test exercised
+  canonical_v2 at 8x8 as a normal case and was rewritten.
+- Not changed: `curve_classical` (CSV upload classifier) still serves the P1-trained model; u3
+  models; the iOS/Android binaries, which read the model list from `/models`.
+- Verification: 269 passed across `tests/backend` and `tests/unit`; `imperialax-laminate`
+  restarted, `/ready` lists the three kink models ok; live default 8x8 request answers from the
+  kink Tree, canonical_v2 at 8x8 returns 422, at 6x4 200; live page loads `app-v2.js?v=20261006-kink-pt-1`.

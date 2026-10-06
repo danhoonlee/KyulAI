@@ -1,0 +1,91 @@
+{
+  "dataset": "data/datasets/DD_cases_2_3_4_geometry_3size_kink_v1",
+  "split_manifest": "data/datasets/DD_cases_2_3_4_geometry_3size_kink_v1/split_manifest.csv",
+  "split_manifest_sha256": "dbbc45ed9a1251ddee821059ffdf8fd6b4b6d265505eb6b8b63c32ba130deb06",
+  "feature_set": "theta_physics_geometry_canonical_v2",
+  "curve_representation": "pt_consistent_p1_head_v1",
+  "n_components": 20,
+  "n_estimators": 500,
+  "source_pt_guided_extraction_gap": {
+    "median": 2.091837814077735e-11,
+    "p95": 5.043148121330862e-10,
+    "max": 1171.0534043414355
+  },
+  "source_pt_independent_extraction_gap": {
+    "median": 6996.332513427713,
+    "p95": 13195.87528546531,
+    "max": 26117.32809866349,
+    "by_geometry": {
+      "6x4": {
+        "median": 5382.9762191207965,
+        "p95": 11772.731021763471,
+        "max": 13006.933994659705,
+        "within_1_percent_of_source": 0.09777777777777778
+      },
+      "6x8": {
+        "median": 6763.751395257474,
+        "p95": 12284.824260828733,
+        "max": 25456.6314078754,
+        "within_1_percent_of_source": 0.008888888888888889
+      },
+      "8x8": {
+        "median": 8896.166172421601,
+        "p95": 16203.799046155284,
+        "max": 26117.32809866349,
+        "within_1_percent_of_source": 0.0
+      }
+    }
+  },
+  "split": {
+    "development_rows": 2151,
+    "holdout_rows": 549
+  },
+  "metrics": {
+    "baseline_tree": {
+      "name": "Existing 3-Size Tree",
+      "accuracy": 0.9599271402550091,
+      "macro_f1": 0.95699314208442,
+      "pt_mae": 163.48160851346208,
+      "max_displacement_mae": 0.00035197227868372945,
+      "max_force_mae": 251.99157703394113,
+      "curve_norm_rmse": 0.006516962349201399,
+      "curve_force_rmse": 672.9727629447982,
+      "p1_fit_failures": 0,
+      "curve_p1_pt_mae": 6056.047424931561,
+      "direct_curve_p1_gap_mae": 6118.37653141044,
+      "direct_curve_p1_gap_median": 6225.842807158424,
+      "direct_curve_p1_gap_p95": 12780.087540051365,
+      "direct_curve_p1_gap_percent_median": 75.65123335983121,
+      "direct_curve_p1_gap_percent_p95": 255.09978998163967,
+      "direct_curve_p1_within_1_percent": 0.04371584699453552,
+      "direct_curve_p1_within_2_percent": 0.08196721311475409,
+      "direct_curve_p1_within_5_percent": 0.17304189435336975
+    },
+    "pt_consistent_tree": {
+      "name": "Pt-Consistent Tree v1",
+      "accuracy": 0.9617486338797814,
+      "macro_f1": 0.9589787101439703,
+      "pt_mae": 168.63447130033816,
+      "max_displacement_mae": 0.00034382022351352236,
+      "max_force_mae": 250.4111285627,
+      "curve_norm_rmse": 0.006464113724599425,
+      "curve_force_rmse": 674.6572600473067,
+      "pt_displacement_norm_mae": 0.0066225972513750155,
+      "first_slope_norm_mae": 0.07486440054433988,
+      "second_slope_norm_mae": 0.03208886641006746,
+      "displayed_p1_direct_pt_gap": 0.0,
+      "p1_fit_failures": 0,
+      "curve_p1_pt_mae": 6058.495489262896,
+      "direct_curve_p1_gap_mae": 6116.486174437996,
+      "direct_curve_p1_gap_median": 6673.728352476577,
+      "direct_curve_p1_gap_p95": 12775.001822808477,
+      "direct_curve_p1_gap_percent_median": 72.16902724633573,
+      "direct_curve_p1_gap_percent_p95": 254.21092608032083,
+      "direct_curve_p1_within_1_percent": 0.025500910746812388,
+      "direct_curve_p1_within_2_percent": 0.0692167577413479,
+      "direct_curve_p1_within_5_percent": 0.15846994535519127
+    }
+  },
+  "model_path": "models/dd_laminate_response_pt_consistent_tree_3size_kink_v1/response_surrogate.joblib",
+  "model_sha256": "5015a0816233cf4dae35f07e22a8cbd82d3e203c12ebd4d455667f473c089f49"
+}

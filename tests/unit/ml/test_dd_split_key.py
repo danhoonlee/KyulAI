@@ -68,3 +68,46 @@ def test_the_key_does_not_mention_case(path: Path) -> None:
     key = group_key(_Record("Case3", 12.0, -85.0))
 
     assert "Case" not in key
+
+
+def _load_module(path: Path):
+    spec = importlib.util.spec_from_file_location(path.stem, path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[path.stem] = module
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.modules.pop(path.stem, None)
+    return module
+
+
+def _manifest(tmp_path: Path, rows: list[tuple[str, float, float, str]]) -> Path:
+    path = tmp_path / "split_manifest.csv"
+    lines = ["case,theta1,theta2,split", *(f"{c},{a},{b},{s}" for c, a, b, s in rows)]
+    path.write_text("\n".join(lines) + "\n")
+    return path
+
+
+def test_split_manifest_is_read_with_the_same_key(tmp_path: Path) -> None:
+    """39c08cd moved group_key to the angle pair but left split_indices on case|theta,
+    so every manifest failed with "missing design groups"."""
+    module = _load_module(ROOT / "scripts/dd_response_pt_consistent_tree_train.py")
+    records = [_Record(c, 30.0, -30.0) for c in ("Case2", "Case3")] + [_Record("Case2", 10.0, 5.0)]
+    manifest = _manifest(
+        tmp_path,
+        [("Case2", 30, -30, "holdout"), ("Case3", 30, -30, "holdout"), ("Case2", 10, 5, "train")],
+    )
+
+    train, holdout = module.split_indices(records, manifest)
+
+    assert list(train) == [2]
+    assert list(holdout) == [0, 1]
+
+
+def test_split_manifest_that_splits_one_design_across_cases_is_refused(tmp_path: Path) -> None:
+    module = _load_module(ROOT / "scripts/dd_response_pt_consistent_tree_train.py")
+    manifest = _manifest(tmp_path, [("Case2", 30, -30, "holdout"), ("Case3", 30, -30, "train")])
+
+    with pytest.raises(ValueError, match="Conflicting"):
+        module.split_indices([_Record("Case2", 30.0, -30.0)], manifest)

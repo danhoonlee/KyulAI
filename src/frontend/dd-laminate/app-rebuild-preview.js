@@ -92,9 +92,9 @@
   const oneDecimalFormatter = new Intl.NumberFormat(numberLocale, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   const fourDecimalFormatter = new Intl.NumberFormat(numberLocale, { minimumFractionDigits: 4, maximumFractionDigits: 4 });
   const supportedModelKeys = [
-    "response_pt_consistent_tree_3size_grouped_v1",
-    "response_pt_consistent_goint_3size_grouped_v1",
-    "response_pt_consistent_hybrid_3size_grouped_v1",
+    "response_pt_consistent_tree_3size_kink_v1",
+    "response_pt_consistent_goint_3size_kink_v1",
+    "response_pt_consistent_hybrid_3size_kink_v1",
   ];
   const fallbackModels = [
     {

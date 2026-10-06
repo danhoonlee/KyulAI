@@ -1,6 +1,6 @@
 # Handoff — read this first
 
-State as of 2026-09-10. Written so a session starting anywhere, with no prior
+State as of 2026-10-06. Written so a session starting anywhere, with no prior
 context, can pick the work up in a few minutes.
 
 `docs/session-memory.md` is the full log and runs to 16,000 lines. Do not read
@@ -61,7 +61,16 @@ arbitrary three-class problem.
 An audit on 2026-08-28 found four problems, all upstream of the models. None was
 a modelling-technique failure.
 
-### 1. Pt mixes two definitions — **OPEN, blocked on a person**
+### 1. Pt mixes two definitions — **UNIFIED ON KINK AND DEPLOYED 2026-10-06; P1 question still open**
+
+**Served models now use one definition, the force-plot kink, on all three panels.** The split was
+an ingest choice, not a data gap: 6x4 arrived (2026-05-29) with both `transition load P1.csv` and
+`transition load.csv`, and P1 was picked; 6x8 and 8x8 arrived with the kink table only. The 6x4
+kink values were already in `data/datasets/Double-Double/{2,3,4}/transition load.csv`.
+`scripts/dd_build_kink_pt_dataset.py` swaps them in; the P1-era models stay registered as
+`*_3size_grouped_v1` ("P1 legacy") for comparison. Numbers are under Current numbers below.
+
+What follows is the original finding, kept because the P1 question itself is still unanswered.
 
 6x4 rows carry the PPT "P1" definition; 6x8 and 8x8 carry the force-plot kink.
 The two source tables differ on all 300 rows per case and correlate at r ≈ 0.14.
@@ -101,7 +110,17 @@ already did. A `Nearest-design lookup` baseline is a permanent row in the report
 **a model that does not clearly beat it has not been shown to generalise.**
 `tests/unit/ml/test_dd_split_key.py` pins this.
 
-### 3. Two thirds of type labels are unreviewed — **PARTLY ANSWERED**
+### 3. Two thirds of type labels are unreviewed — **MOSTLY RESOLVED BY THE KINK RELABEL**
+
+2026-10-06: the curve classifier was retrained on kink Pt (6x4 human labels, CV accuracy 0.9567
+against 0.9533 on P1) and 6x8/8x8 were relabelled with it. Mean confidence rose 0.708 → 0.824 on
+6x8 and 0.625 → 0.749 on 8x8. 8x8 Type 1 fell 106 → 37, and 92% of those 37 are confirmed by the
+independent shape measure (47% before). **53 of the 56 disputed rows are now Type 2**, so the
+review sheet below is largely moot. Cost: the classifier now recovers 63% of the 8x8 rows the
+independent measure calls Type 1 (34 of 54) — it under-calls Type 1 on 8x8 rather than over-calls.
+`reports/dd_kink_pt_relabel/relabel_summary.json`.
+
+Original finding:
 
 Every 6x8 and 8x8 type label is `curve_classifier_v1` output, mean confidence
 0.708 and 0.625, minimum 0.433 on a three-class problem. That classifier takes
@@ -171,19 +190,30 @@ explaining a layup even though it does not improve a prediction.
 
 ## Current numbers
 
-Honest as of the split fix. `reports/dd_response_geometry_split_v2_3size/`.
+**Served artifacts, measured directly** (2026-10-06,
+`reports/dd_served_model_holdout_check/kink_v1/`). Kink Pt on every panel. The served models were
+trained on the development partition only, so all 549 holdout rows — angle-pair split, same rows
+as `reports/dd_response_geometry_split_v2_3size/` — are unseen, row and angle pair both.
 
 ```
-                                  Type acc     Pt MAE
-lookup (no training)                0.7741   6,879.06
-Geometry Tree                       0.9581     204.08
-Geometry GointMLP                   0.9581     675.29
-Geometry Hybrid Student             0.9563     327.87
+                                   Type acc   Pt MAE / Pt mean
+                                              6x4     6x8     8x8
+lookup, angle only (old baseline)    0.685    6.28%  51.39% 104.08%
+lookup, same Case and panel          0.903    6.32%   8.53%   7.67%   <- the real bar
+pt_consistent Tree (default)         0.962    1.44%   2.14%   3.49%
+pt_consistent Hybrid                 0.960    1.38%   2.24%   3.76%
+pt_consistent GointMLP               0.927    2.69%   3.85%   4.43%
 ```
 
-**Compare the relative column, not the absolute one.** Pt differs by more than a
-factor of two across panels, so a pooled Pt MAE lets a change in the geometry mix
-read as a change in accuracy.
+The old angle-only lookup copies another panel's row, which is why it looks hopeless off 6x4.
+Compare against the same-case-and-panel lookup. Type 1 is 110 of 549 holdout rows but only 3 on
+8x8, so per-panel Type 1 recall on 8x8 is not measurable from this split.
+
+Do not compare 6x4 against the P1-era numbers below: 6x4 Pt is a different quantity there.
+The P1-era served artifacts were trained on rows of this holdout and cannot be scored on it at all
+(`reports/dd_served_model_holdout_check/served_metrics.json`).
+
+P1-era retrained numbers, 2026-09-01, kept for the record (`reports/dd_response_geometry_split_v2_3size/`):
 
 ```
 panel    lookup     Tree   GointMLP   Hybrid
@@ -191,16 +221,6 @@ panel    lookup     Tree   GointMLP   Hybrid
 6x8     120.30%    2.08%      5.19%    3.08%
 8x8     197.50%    3.54%      6.04%    5.17%
 ```
-
-Two things only visible split: the lookup is respectable on 6x4 (5.68%) where the
-design grid is dense, and **the GointMLP is worse than the lookup there**. Traced
-to finding 1 — `reports/dd_goint_6x4_diagnosis/`. The discriminating cell is
-Type 2, where the tree is flat across panels (1.15 / 0.97 / 1.10%) while the MLP
-is 3.6× worse on the P1-definition panel (8.11% against 2.26 / 3.62%). Type 2 is
-where P1 is a *blend* of two intersections. A smooth network approximates the
-rule switch; a tree partitions across it.
-
----
 
 ## Landmines
 
@@ -212,7 +232,14 @@ rule switch; a tree partitions across it.
   Code no longer does (`tests/unit/ml/test_dd_force_units.py` pins it), but the
   markdown written by past runs was left alone — it is a record of what those
   runs printed. Do not copy a `kips` figure out of one without relabelling it.
-- **The three served `pt_consistent` artifacts are legacy-physics** — they record
+- **Served = `KINK_RESPONSE_MODEL_KEYS` in `src/backend/api/v1/dd_laminate.py`** — the
+  API defaults, `/models`, `/models/3size-preview`, both web UIs and the mobile list all follow
+  it. Two-panel models (`canonical_v2`, `geometry_v1`) are in `MODEL_TRAINED_PANELS` and refuse
+  8x8 with a 422. Retrain with `scripts/remote/Run-LaminateKinkPtRetrain.sh`.
+- **The `pt_consistent` trainers could not read any split manifest from `39c08cd` until
+  2026-10-06** — `group_key` moved to the angle pair, `split_indices` did not. Fixed and pinned in
+  `tests/unit/ml/test_dd_split_key.py`. A manifest that splits one design across cases now fails.
+- **The three P1-legacy `pt_consistent` artifacts are legacy-physics** — they record
   `feature_builder: theta_physics_geometry_v1` and are served correctly on that
   basis, because serving reads the recorded builder. Retraining them on the new
   canonical defaults writes to `*_canonical_v2` paths instead, so promoting one

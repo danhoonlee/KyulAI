@@ -5,10 +5,11 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
-from src.backend.api.v1.dd_laminate import TRAINED_PANEL_GEOMETRIES
+from src.backend.api.v1.dd_laminate import DEFAULT_RESPONSE_MODEL_KEY, TRAINED_PANEL_GEOMETRIES
 from src.backend.dd_laminate_app import app
 
-MODEL = "response_geometry_tree_canonical_v2"
+MODEL = DEFAULT_RESPONSE_MODEL_KEY
+TWO_PANEL_MODEL = "response_geometry_tree_canonical_v2"
 
 
 @pytest.fixture(autouse=True)
@@ -18,14 +19,14 @@ def bypass_module_auth(monkeypatch) -> None:
     monkeypatch.setenv("IMPERIALAX_DISABLE_AUTH_FOR_LOCAL_DEV", "1")
 
 
-def _predict(client: TestClient, panel_a_in: float, panel_b_in: float):
+def _predict(client: TestClient, panel_a_in: float, panel_b_in: float, model: str = MODEL):
     return client.post(
         "/api/v1/dd-laminate/predict/response",
         json={
             "theta1": 30,
             "theta2": -30,
             "case": "Case2",
-            "model": MODEL,
+            "model": model,
             "panel_a_in": panel_a_in,
             "panel_b_in": panel_b_in,
         },
@@ -137,3 +138,36 @@ def test_reliability_differs_between_trained_panels() -> None:
     }
 
     assert len(set(scores.values())) > 1
+
+
+def test_a_two_panel_model_refuses_the_panel_it_never_saw() -> None:
+    """canonical_v2 was fitted on 6x4 and 6x8 only and missed 8x8 Pt by 40-124%."""
+    client = TestClient(app)
+
+    response = _predict(client, 8.0, 8.0, TWO_PANEL_MODEL)
+
+    assert response.status_code == 422
+    assert "6x4 in, 6x8 in" in response.json()["detail"]
+
+
+@pytest.mark.parametrize(("panel_a_in", "panel_b_in"), [(6.0, 4.0), (6.0, 8.0), (6.0, 6.0)])
+def test_a_two_panel_model_still_answers_inside_its_own_panels(
+    panel_a_in: float, panel_b_in: float
+) -> None:
+    client = TestClient(app)
+
+    response = _predict(client, panel_a_in, panel_b_in, TWO_PANEL_MODEL)
+
+    assert response.status_code == 200
+
+
+def test_the_default_model_is_the_one_that_covers_8x8() -> None:
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/v1/dd-laminate/predict/response",
+        json={"theta1": 30, "theta2": -30, "case": "Case2", "panel_a_in": 8.0, "panel_b_in": 8.0},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["model_key"] == DEFAULT_RESPONSE_MODEL_KEY

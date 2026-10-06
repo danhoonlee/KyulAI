@@ -405,9 +405,9 @@ let researchRequestSerial = 0;
 let researchMapState = { hoverPoints: [], inputs: null };
 
 const PRIMARY_RESPONSE_MODEL_KEYS = [
-  "response_pt_consistent_tree_3size_grouped_v1",
-  "response_pt_consistent_goint_3size_grouped_v1",
-  "response_pt_consistent_hybrid_3size_grouped_v1",
+  "response_pt_consistent_tree_3size_kink_v1",
+  "response_pt_consistent_goint_3size_kink_v1",
+  "response_pt_consistent_hybrid_3size_kink_v1",
 ];
 const PREDICTION_HISTORY_KEY = IS_THREE_SIZE_PREVIEW
   ? "ddLaminate.predictionHistory.3sizePreview.v1"
@@ -5972,7 +5972,7 @@ responseForm.addEventListener("submit", async (event) => {
   const formData = new FormData(responseForm);
   try {
     const selectedModel = String(
-      formData.get("model") || "response_pt_consistent_tree_3size_grouped_v1",
+      formData.get("model") || "response_pt_consistent_tree_3size_kink_v1",
     );
     const useThreeSizeResponse = isThreeSizeResponseModel(selectedModel);
     const useTeacherStudent = !useThreeSizeResponse
