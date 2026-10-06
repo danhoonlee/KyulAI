@@ -45,6 +45,8 @@ WEDDING_DATA_DIR = Path(
 ).resolve()
 WEDDING_PUBLIC_BASE_URL = "https://ds-wedding.cafedecafe.co.kr"
 WEDDING_MAX_REQUEST_BYTES = 16 * 1024
+# 신규 RSVP/버스 접수 마감 여부(기존 하객 수정은 계속 허용). 환경변수로 끌 수 있음.
+WEDDING_NEW_SIGNUP_CLOSED = os.getenv("WEDDING_NEW_SIGNUP_CLOSED", "1").strip().lower() not in {"0", "false", "no", "off", ""}
 
 _WEDDING_FILE_LOCK = threading.RLock()
 _WEDDING_LOCK_PATH = WEDDING_DATA_DIR / ".rsvp-submissions.lock"
@@ -356,6 +358,10 @@ async def wedding_rsvp(request: Request) -> Response:
                 "status": "exists",
                 "data": _sanitize_wedding_data(prev if isinstance(prev, dict) else {}),
             })
+
+        # 신규 RSVP/버스 접수 마감: 기존 기록이 없으면 새로 저장하지 않는다(기존 하객 수정은 허용).
+        if WEDDING_NEW_SIGNUP_CLOSED and entry_type in {"rsvp", "bus"} and replacement_index is None:
+            return JSONResponse({"ok": True, "status": "closed"})
 
         # 재제출 시 옛 방명록 메시지 보존: 새 폼에 message가 없으면 기존 것을 유지한다.
         if existing_for_replacement is not None:
