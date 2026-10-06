@@ -17174,3 +17174,20 @@ catalogue returns `"brand":"KCompositeLab"`.
   defaults to the 3-size models.
 - Verification: 549 x 6 predictions completed without error; row membership taken from the two
   split manifests and canonical_v2's recorded `n_samples` of 1800.
+
+## 2026-10-06 - Order The Panels Arrived In, And Why Only 6x4 Carries P1
+
+- 6x4: first 400 Case3/Case4 rows (undated), Case3 201-300 on 2026-05-12, then the full
+  `data/datasets/Double-Double/{2,3,4}` set on 2026-05-29 with **both** `transition load P1.csv` and
+  `transition load.csv` per case. The 05-29 audit chose P1 for training; that choice carried into
+  `DD_cases_2_3_4_curated_v1` and every later dataset.
+- 6x8: curves arrived 2026-07-14..20 under `data/New_Data` with no Pt at all; `transition load.csv`
+  followed under `data/New_data/6x8_Case*`. No P1 file, no u3 curves.
+- 8x8: curves and transition rows 2026-07-22..23 (Case3, then Case2 and Case4). No P1 file.
+- `DD_cases_2_3_4_geometry_3size_v1` (2026-07-23) merged them as delivered. Re-checked today: 900 of
+  900 6x4 Pt equal `transition load P1.csv`, 0 equal `transition load.csv`; 900 of 900 6x8 Pt equal
+  the 6x8 `transition load.csv`.
+- So the definition split is an ingest choice, not a data gap: the kink-definition Pt for 6x4 already
+  sits in `Double-Double/{2,3,4}/transition load.csv`, which `dd_recompute_kink_pt.py` reproduces to
+  1e-9 (2026-09-21 entry). The interim unification is a source-file swap for 6x4, no recomputation.
+- Verification: per-case match of the 3-size dataset against all three source tables, run in-place.
