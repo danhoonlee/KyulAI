@@ -17146,3 +17146,31 @@ downloading the asset back from the live host and reading it rather than trustin
 Verification: 259 tests pass; all four live pages return KCompositeLab titles with zero
 ai.imperialax.com references and zero visible old-brand strings; logo 200 from both hosts; the API
 catalogue returns `"brand":"KCompositeLab"`.
+
+## 2026-10-06 - Served Models On The Fixed Holdout: No Clean Rows, And canonical_v2 Fails 8x8
+
+- Ran the six served response models through `_predict_estimated_response` -- the function behind
+  `/predict/response` and `/predict/response/3size-preview` -- on the 549 rows of the v2 3-size
+  holdout. Script `scripts/dd_served_model_holdout_check.py`, output
+  `reports/dd_served_model_holdout_check/`.
+- None of them has a clean holdout row. `*_canonical_v2` was trained on all 1,800 6x4 and 6x8 rows,
+  so 366 holdout rows are training rows and the 183 8x8 rows share their angle pair with training.
+  `*_3size_grouped_v1` used the old `case|theta` split (sha `af7b4b02`): 453 rows are training rows,
+  96 share an angle pair. The holdout cannot measure generalisation for any served artifact; the
+  2026-09-01 retrained numbers remain the honest ones.
+- The tree memorises: Pt MAE exactly 0.0 and Type acc 1.000 on every training row it is shown, both
+  for canonical_v2 and pt_consistent. Its in-sample number says nothing.
+- canonical_v2 has never seen 8x8 and fails there. Pt MAE / Pt mean on 8x8: Tree 63.85%, GointMLP
+  124.46%, Hybrid 39.82%; Type acc 0.765 / 0.770 / 0.749. `TRAINED_PANEL_GEOMETRIES` lists 8x8, so
+  the "between trained geometries" note does not fire for these models either.
+- Exposure: the live UI (`app-v2.js`) fills its response list from the 3-size preview models, so
+  customers on the page do not reach canonical_v2. It is still the default `model` of
+  `ResponsePredictionRequest` and the default teacher/student pair of the ensemble endpoint, both
+  under the public demo path `/api/v1/dd-laminate`. `app.js`, which listed canonical_v2 first, is
+  loaded by no page.
+- pt_consistent served numbers on the angle-pair-only rows (n=96, 32 per panel, leaky through the
+  other cases): Tree 1.28%, Hybrid 2.47%, GointMLP 4.90% Pt rel; Type acc 0.938 / 0.938 / 0.906.
+- Nothing changed in serving. Open decision: restrict canonical_v2 to 6x4/6x8, or move the API
+  defaults to the 3-size models.
+- Verification: 549 x 6 predictions completed without error; row membership taken from the two
+  split manifests and canonical_v2's recorded `n_samples` of 1800.
