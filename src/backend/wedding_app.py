@@ -359,8 +359,9 @@ async def wedding_rsvp(request: Request) -> Response:
                 "data": _sanitize_wedding_data(prev if isinstance(prev, dict) else {}),
             })
 
-        # 신규 RSVP/버스 접수 마감: 기존 기록이 없으면 새로 저장하지 않는다(기존 하객 수정은 허용).
-        if WEDDING_NEW_SIGNUP_CLOSED and entry_type in {"rsvp", "bus"} and replacement_index is None:
+        # 신규 RSVP 접수 마감: 기존 기록이 없으면 새로 저장하지 않는다(기존 하객 수정은 허용).
+        # 버스 신청은 계속 열어 둔다.
+        if WEDDING_NEW_SIGNUP_CLOSED and entry_type == "rsvp" and replacement_index is None:
             return JSONResponse({"ok": True, "status": "closed"})
 
         # 재제출 시 옛 방명록 메시지 보존: 새 폼에 message가 없으면 기존 것을 유지한다.
@@ -385,42 +386,6 @@ async def wedding_rsvp(request: Request) -> Response:
             lines.append(serialized)
         else:
             lines[replacement_index] = serialized
-
-        # 버스만 신청하고 참석(RSVP)을 안 한 경우, 같은 정보로 참석을 자동 등록한다.
-        if entry_type == "bus" and incoming_phone:
-            has_rsvp = False
-            for existing_line in lines:
-                try:
-                    existing = json.loads(existing_line)
-                except json.JSONDecodeError:
-                    continue
-                if not isinstance(existing, dict) or existing.get("type") != "rsvp":
-                    continue
-                existing_data = existing.get("data") or {}
-                if (
-                    isinstance(existing_data, dict)
-                    and _normalize_wedding_phone(existing_data.get("phone")) == incoming_phone
-                ):
-                    has_rsvp = True
-                    break
-            if not has_rsvp:
-                auto_data = {
-                    "name": _trim_text(data.get("name"), 40),
-                    "phone": _trim_text(data.get("phone"), 30),
-                    "side": _trim_text(data.get("side"), 20),
-                    "attendance": "참석",
-                    "guests": _trim_text(data.get("count"), 20),
-                    "meal": "식사 예정",
-                }
-                auto_data = {key: value for key, value in auto_data.items() if value}
-                auto_record = {
-                    "type": "rsvp",
-                    "wedding": record["wedding"],
-                    "data": auto_data,
-                    "message": "",
-                    "submittedAt": record["submittedAt"],
-                }
-                lines.append(json.dumps(auto_record, ensure_ascii=False))
 
         _atomic_write_lines(submissions_file, lines)
 
