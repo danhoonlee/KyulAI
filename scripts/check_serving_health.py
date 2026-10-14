@@ -44,7 +44,15 @@ ENDPOINTS = (
     "https://injection.imperialax.com/health",
     "https://dd.imperialax.com/health",
     "https://app.imperialax.com/health",
+    "https://ds-wedding.cafedecafe.co.kr/health",
 )
+
+# inactive 로 확인되면 자동 재시작을 시도할 유닛(청첩장 가용성 관련만).
+# ML 서비스 등은 감지·알림만 하고 사람이 판단한다.
+AUTO_RESTART_UNITS = {
+    "ds-wedding",
+    "cafedecafe-cloudflared",
+}
 
 STATE_PATH = Path.home() / ".local/state/imperialax/serving-health.json"
 HTTP_TIMEOUT_S = 20
@@ -67,6 +75,23 @@ def check_unit(unit: str) -> tuple[bool, str]:
         return False, f"systemctl failed: {exc}"
     state = result.stdout.strip() or result.stderr.strip() or "unknown"
     return state == "active", state
+
+
+def restart_unit(unit: str) -> tuple[bool, str]:
+    try:
+        result = subprocess.run(
+            ["systemctl", "--user", "restart", unit],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return False, f"restart failed: {exc}"
+    if result.returncode != 0:
+        return False, (result.stderr.strip() or f"rc={result.returncode}")
+    # 재시작 후 active 인지 재확인
+    healthy, state = check_unit(unit)
+    return healthy, state
 
 
 def check_endpoint(url: str) -> tuple[bool, str]:
@@ -112,8 +137,17 @@ def post_to_slack(text: str) -> str:
 
 def main() -> int:
     targets: list[tuple[str, str, bool, str]] = []
+    recovered_by_restart: list[str] = []
     for unit in UNITS:
         healthy, detail = check_unit(unit)
+        # 청첩장 관련 유닛이 내려가 있으면 자동 재시작 1회 시도.
+        if not healthy and unit in AUTO_RESTART_UNITS:
+            ok_after, detail_after = restart_unit(unit)
+            if ok_after:
+                recovered_by_restart.append(f"{unit} (restarted: {detail} -> {detail_after})")
+                healthy, detail = ok_after, detail_after
+            else:
+                detail = f"{detail}; restart failed -> {detail_after}"
         targets.append((f"unit:{unit}", unit, healthy, detail))
     for url in ENDPOINTS:
         healthy, detail = check_endpoint(url)
@@ -148,6 +182,9 @@ def main() -> int:
     summary = f"{len(targets) - len(down_now)}/{len(targets)} healthy"
 
     lines: list[str] = []
+    if recovered_by_restart:
+        lines.append(":arrows_counterclockwise: *ImperialAX auto-restarted*")
+        lines.extend(f"• {item}" for item in recovered_by_restart)
     if newly_down:
         lines.append(":rotating_light: *ImperialAX serving is down*")
         lines.extend(f"• {item}" for item in newly_down)
