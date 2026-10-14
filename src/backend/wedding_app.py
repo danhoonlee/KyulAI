@@ -129,7 +129,7 @@ def _require_wedding_admin(request: Request) -> JSONResponse | None:
     return None
 
 
-def _read_wedding_submissions() -> list[dict[str, object]]:
+def _read_wedding_submissions(include_deleted: bool = False) -> list[dict[str, object]]:
     submissions_file = _wedding_submissions_file()
     if not submissions_file.exists():
         return []
@@ -145,9 +145,33 @@ def _read_wedding_submissions() -> list[dict[str, object]]:
             except json.JSONDecodeError:
                 continue
             if isinstance(record, dict):
+                if record.get("deleted") and not include_deleted:
+                    continue
                 record["_line"] = line_number
                 records.append(record)
     return records
+
+
+def _append_wedding_audit(action: str, line_number: object, record: object, request: Request | None = None) -> None:
+    """관리자 변경 이력을 append-only 로그에 남긴다(복구/추적용). 실패해도 본 동작은 막지 않는다."""
+    try:
+        data = record.get("data") if isinstance(record, dict) else None
+        name = _trim_text(data.get("name"), 40) if isinstance(data, dict) else ""
+        rtype = record.get("type") if isinstance(record, dict) else None
+        entry = {
+            "at": datetime.now(_UTC).isoformat().replace("+00:00", "Z"),
+            "action": action,
+            "line": line_number,
+            "type": rtype,
+            "name": name,
+            "ip": _client_ip(request) if request is not None else "",
+        }
+        WEDDING_DATA_DIR.mkdir(parents=True, exist_ok=True)
+        audit_file = WEDDING_DATA_DIR / "wedding-audit.jsonl"
+        with audit_file.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    except Exception:  # pragma: no cover - 로깅 실패는 무시
+        pass
 
 
 @contextmanager
@@ -343,6 +367,8 @@ async def wedding_rsvp(request: Request) -> Response:
                     continue
                 if not isinstance(existing_record, dict) or existing_record.get("type") != entry_type:
                     continue
+                if existing_record.get("deleted"):
+                    continue
                 existing_data = existing_record.get("data") or {}
                 if not isinstance(existing_data, dict):
                     continue
@@ -497,29 +523,33 @@ async def wedding_rsvp_delete(request: Request) -> Response:
     removed = 0
     with _wedding_write_lock():
         lines = submissions_file.read_text(encoding="utf-8").splitlines() if submissions_file.exists() else []
-        kept: list[str] = []
-        for line in lines:
+        changed = False
+        for index, line in enumerate(lines):
             try:
                 rec = json.loads(line)
             except json.JSONDecodeError:
-                kept.append(line)
                 continue
             data = rec.get("data") if isinstance(rec, dict) else None
             if (
                 isinstance(rec, dict)
                 and rec.get("type") == entry_type
+                and not rec.get("deleted")
                 and isinstance(data, dict)
                 and _normalize_wedding_phone(data.get("phone")) == phone
                 and _trim_text(data.get("name"), 40) == name
             ):
+                # 물리 삭제가 아닌 휴지통 이동(soft-delete). 관리자가 복구 가능.
+                rec["deleted"] = True
+                rec["deletedAt"] = datetime.now(_UTC).isoformat().replace("+00:00", "Z")
+                lines[index] = json.dumps(rec, ensure_ascii=False)
                 removed += 1
-                continue
-            kept.append(line)
-        if removed:
-            _atomic_write_lines(submissions_file, kept)
+                changed = True
+        if changed:
+            _atomic_write_lines(submissions_file, lines)
 
     if not removed:
         return JSONResponse({"ok": True, "deleted": 0, "found": False})
+    _append_wedding_audit("guest-delete", entry_type, {"type": entry_type, "data": {"name": name}}, request)
     return JSONResponse({"ok": True, "deleted": removed})
 
 
@@ -557,12 +587,15 @@ async def wedding_admin_submissions(request: Request) -> Response:
     if auth_error is not None:
         return auth_error
 
-    records = list(reversed(_read_wedding_submissions()))
+    # 관리자 화면은 삭제(휴지통) 항목도 함께 받아 프론트에서 분리 표시/복구한다.
+    records = list(reversed(_read_wedding_submissions(include_deleted=True)))
+    active = [r for r in records if not r.get("deleted")]
     totals = {
-        "all": len(records),
-        "rsvp": sum(1 for record in records if record.get("type") == "rsvp"),
-        "bus": sum(1 for record in records if record.get("type") == "bus"),
-        "guestbook": sum(1 for record in records if record.get("type") == "guestbook"),
+        "all": len(active),
+        "rsvp": sum(1 for record in active if record.get("type") == "rsvp"),
+        "bus": sum(1 for record in active if record.get("type") == "bus"),
+        "guestbook": sum(1 for record in active if record.get("type") == "guestbook"),
+        "trash": sum(1 for record in records if record.get("deleted")),
     }
     return JSONResponse({"ok": True, "totals": totals, "items": records})
 
@@ -618,7 +651,34 @@ async def wedding_admin_create_submission(request: Request) -> Response:
         lines.append(json.dumps(record, ensure_ascii=False))
         _atomic_write_lines(submissions_file, lines)
 
+    _append_wedding_audit("create", len(lines), record, request)
     return JSONResponse({"ok": True, "item": record})
+
+
+def _set_wedding_deleted_flag(line_number: int, deleted: bool) -> dict[str, object] | None:
+    """line_number 레코드의 deleted 플래그를 설정. 변경된 레코드를 반환(없으면 None)."""
+    submissions_file = _wedding_submissions_file()
+    if not submissions_file.exists():
+        return None
+    with _wedding_write_lock():
+        lines = submissions_file.read_text(encoding="utf-8").splitlines()
+        if line_number < 1 or line_number > len(lines):
+            return None
+        try:
+            record = json.loads(lines[line_number - 1])
+        except json.JSONDecodeError:
+            return None
+        if not isinstance(record, dict):
+            return None
+        if deleted:
+            record["deleted"] = True
+            record["deletedAt"] = datetime.now(_UTC).isoformat().replace("+00:00", "Z")
+        else:
+            record.pop("deleted", None)
+            record.pop("deletedAt", None)
+        lines[line_number - 1] = json.dumps(record, ensure_ascii=False)
+        _atomic_write_lines(submissions_file, lines)
+        return record
 
 
 @app.delete("/api/admin/submissions/{line_number}")
@@ -630,18 +690,50 @@ async def wedding_admin_delete_submission(request: Request, line_number: int) ->
     if line_number < 1:
         return _json_error(422, "삭제할 항목을 찾을 수 없습니다.")
 
+    # 영구 삭제가 아니라 휴지통으로 이동(soft-delete). 복구 가능.
+    record = _set_wedding_deleted_flag(line_number, True)
+    if record is None:
+        return _json_error(404, "삭제할 항목을 찾을 수 없습니다.")
+    _append_wedding_audit("delete", line_number, record, request)
+    return JSONResponse({"ok": True})
+
+
+@app.api_route("/api/admin/submissions/{line_number}/restore", methods=["POST"])
+@app.api_route("/wedding/api/admin/submissions/{line_number}/restore", methods=["POST"])
+async def wedding_admin_restore_submission(request: Request, line_number: int) -> Response:
+    auth_error = _require_wedding_admin(request)
+    if auth_error is not None:
+        return auth_error
+    record = _set_wedding_deleted_flag(line_number, False)
+    if record is None:
+        return _json_error(404, "복구할 항목을 찾을 수 없습니다.")
+    _append_wedding_audit("restore", line_number, record, request)
+    return JSONResponse({"ok": True})
+
+
+@app.api_route("/api/admin/submissions/{line_number}/purge", methods=["POST", "DELETE"])
+@app.api_route("/wedding/api/admin/submissions/{line_number}/purge", methods=["POST", "DELETE"])
+async def wedding_admin_purge_submission(request: Request, line_number: int) -> Response:
+    auth_error = _require_wedding_admin(request)
+    if auth_error is not None:
+        return auth_error
     submissions_file = _wedding_submissions_file()
     if not submissions_file.exists():
         return _json_error(404, "삭제할 항목을 찾을 수 없습니다.")
-
     with _wedding_write_lock():
         lines = submissions_file.read_text(encoding="utf-8").splitlines()
-        if line_number > len(lines):
+        if line_number < 1 or line_number > len(lines):
             return _json_error(404, "삭제할 항목을 찾을 수 없습니다.")
-
+        try:
+            record = json.loads(lines[line_number - 1])
+        except json.JSONDecodeError:
+            record = None
+        # 안전장치: 휴지통(deleted=True) 상태인 것만 영구 삭제 허용
+        if not isinstance(record, dict) or not record.get("deleted"):
+            return _json_error(422, "먼저 삭제(휴지통 이동)된 항목만 영구 삭제할 수 있습니다.")
         kept_lines = [line for index, line in enumerate(lines, start=1) if index != line_number]
         _atomic_write_lines(submissions_file, kept_lines)
-
+    _append_wedding_audit("purge", line_number, record, request)
     return JSONResponse({"ok": True})
 
 
@@ -712,6 +804,7 @@ async def wedding_admin_update_submission(request: Request, line_number: int) ->
         lines[line_number - 1] = json.dumps(record, ensure_ascii=False)
         _atomic_write_lines(submissions_file, lines)
 
+    _append_wedding_audit("edit", line_number, record, request)
     return JSONResponse({"ok": True, "item": record})
 
 
