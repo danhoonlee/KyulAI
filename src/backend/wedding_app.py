@@ -17,6 +17,7 @@ import json
 import os
 import secrets
 import threading
+import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, contextmanager
 from datetime import datetime
@@ -117,7 +118,33 @@ def _wedding_admin_token() -> str:
     return token
 
 
+# 관리자 인증 실패에 대한 IP별 슬라이딩 윈도우 제한(무차별 시도 방어).
+# 토큰이 192비트라 추측은 사실상 불가하지만, 자동화된 반복 시도를 차단하고 흔적을 남긴다.
+_ADMIN_AUTH_FAILURES: dict[str, list[float]] = {}
+_ADMIN_AUTH_LOCK = threading.Lock()
+_ADMIN_AUTH_WINDOW_S = 300
+_ADMIN_AUTH_MAX_FAILS = 10
+
+
+def _record_admin_auth_failure(ip: str) -> bool:
+    """인증 실패 1회 기록. 윈도우 내 허용치를 넘으면 True(차단)."""
+    now = time.time()
+    with _ADMIN_AUTH_LOCK:
+        fails = [t for t in _ADMIN_AUTH_FAILURES.get(ip, []) if now - t < _ADMIN_AUTH_WINDOW_S]
+        fails.append(now)
+        _ADMIN_AUTH_FAILURES[ip] = fails
+        if len(_ADMIN_AUTH_FAILURES) > 2000:  # 메모리 폭주 방지
+            _ADMIN_AUTH_FAILURES.clear()
+        return len(fails) > _ADMIN_AUTH_MAX_FAILS
+
+
+def _clear_admin_auth_failures(ip: str) -> None:
+    with _ADMIN_AUTH_LOCK:
+        _ADMIN_AUTH_FAILURES.pop(ip, None)
+
+
 def _require_wedding_admin(request: Request) -> JSONResponse | None:
+    ip = _client_ip(request)
     auth_header = request.headers.get("authorization", "")
     bearer_token = (
         auth_header.removeprefix("Bearer ").strip() if auth_header.startswith("Bearer ") else ""
@@ -125,7 +152,16 @@ def _require_wedding_admin(request: Request) -> JSONResponse | None:
     provided = request.headers.get("x-wedding-admin-token", "").strip() or bearer_token
     expected = _wedding_admin_token()
     if not provided or not hmac.compare_digest(provided, expected):
+        blocked = _record_admin_auth_failure(ip)
+        _append_wedding_audit("admin-auth-fail", ip, {"type": "admin"}, request)
+        if blocked:
+            return JSONResponse(
+                {"ok": False, "error": "로그인 시도가 많아 잠시 차단되었습니다. 잠시 후 다시 시도해 주세요."},
+                status_code=429,
+                headers={"Retry-After": str(_ADMIN_AUTH_WINDOW_S)},
+            )
         return _json_error(401, "관리자 비밀번호가 필요합니다.")
+    _clear_admin_auth_failures(ip)
     return None
 
 
