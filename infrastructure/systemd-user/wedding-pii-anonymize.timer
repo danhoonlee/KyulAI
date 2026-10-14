@@ -1,0 +1,11 @@
+[Unit]
+Description=Run wedding PII anonymization check daily
+
+[Timer]
+OnCalendar=*-*-* 04:30:00
+Persistent=true
+RandomizedDelaySec=10m
+Unit=wedding-pii-anonymize.service
+
+[Install]
+WantedBy=timers.target

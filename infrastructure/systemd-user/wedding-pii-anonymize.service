@@ -1,0 +1,12 @@
+[Unit]
+Description=Anonymize wedding guest PII after retention period
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/projects/KyulAI
+Environment=HOME=%h
+Environment=WEDDING_PII_CUTOFF=2027-01-10
+ExecStart=/usr/bin/python3 %h/projects/KyulAI/scripts/anonymize_wedding_pii.py
+StandardOutput=append:%h/projects/KyulAI/logs/wedding-pii-anonymize.log
+StandardError=append:%h/projects/KyulAI/logs/wedding-pii-anonymize.err.log
