@@ -60,9 +60,6 @@ DEMO_EMAIL_ALIASES = {
 }
 
 
-# 제품 표시명. API 응답으로 나가므로 개발자 도구에서도 보인다.
-BRAND_NAME = "KCompositeLab"
-
 class ModuleRoute(BaseModel):
     base_url: str
     web_url: str
@@ -88,7 +85,7 @@ class ModuleDefinition(BaseModel):
 
 
 class ModuleCatalogResponse(BaseModel):
-    brand: str = BRAND_NAME
+    brand: str = "ImperialAX"
     catalog_version: str = "2026.06.11"
     modules: list[ModuleDefinition]
 
@@ -108,7 +105,7 @@ class AccountUser(BaseModel):
 
 
 class UserModulesResponse(BaseModel):
-    brand: str = BRAND_NAME
+    brand: str = "ImperialAX"
     license_mode: Literal["demo", "entitled"] = "demo"
     user: AccountUser | None = None
     modules: list[UserModule]
@@ -219,7 +216,7 @@ class AdminModuleOption(BaseModel):
 
 
 class AdminUsersResponse(BaseModel):
-    brand: str = BRAND_NAME
+    brand: str = "ImperialAX"
     user_count: int
     users: list[AdminUser]
     modules: list[AdminModuleOption]
@@ -386,7 +383,7 @@ def _display_email(email: str) -> str:
 def _display_company(email: str, company: str | None) -> str | None:
     canonical = _canonical_email(email)
     if canonical == "demo@imperialax.com":
-        return f"{BRAND_NAME} Demo"
+        return "ImperialAX Demo"
     if canonical == "dannylee@imperialax.com" and company == "ImperialAX":
         return "ImperialAX"
     return company

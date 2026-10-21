@@ -47,15 +47,7 @@ def test_simple_injection_model_labels_use_actual_model_names() -> None:
     }
 
 
-def test_injection_v2_pages_do_not_navigate_to_the_branded_front_door() -> None:
-    """Everything injection.imperialax.com serves to outside viewers.
-
-    The Modules and Sign out links, and the logo anchor, pointed at
-    ai.imperialax.com, a login page under the old brand. This app has no
-    separate classic page -- /index.html returns the same index-v2.html -- so
-    all four routes must come back clean.
-    """
-
+def test_simple_injection_pages_link_back_to_imperialax_user_page() -> None:
     client = TestClient(app)
 
     english_v2 = client.get("/index-v2.html")
@@ -67,9 +59,7 @@ def test_injection_v2_pages_do_not_navigate_to_the_branded_front_door() -> None:
     assert korean_v2.status_code == 200
     assert english_classic.status_code == 200
     assert korean_classic.status_code == 200
-
-    for page in (english_v2, korean_v2, english_classic, korean_classic):
-        assert "ai.imperialax.com" not in page.text
-        assert "header-action-module" not in page.text
-        assert "header-action-account" not in page.text
-        assert '<span class="product-logo-link"' in page.text
+    assert 'href="https://ai.imperialax.com/index.html">Modules</a>' in english_v2.text
+    assert 'href="https://ai.imperialax.com/index.ko.html">모듈 선택</a>' in korean_v2.text
+    assert 'href="https://ai.imperialax.com/index.html">Modules</a>' in english_classic.text
+    assert 'href="https://ai.imperialax.com/index.ko.html">모듈 선택</a>' in korean_classic.text

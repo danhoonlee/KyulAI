@@ -256,7 +256,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(
-    title="KCompositeLab DD Laminate API",
+    title="ImperialAX DD Laminate API",
     version="0.1.0",
     description="Local DD laminate Type prediction API.",
     lifespan=lifespan,

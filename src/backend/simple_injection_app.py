@@ -43,7 +43,7 @@ mimetypes.add_type("model/gltf-binary", ".glb")
 mimetypes.add_type("model/gltf+json", ".gltf")
 
 app = FastAPI(
-    title="KCompositeLab Simple Injection API",
+    title="ImperialAX Simple Injection API",
     version="0.1.0",
     description="Local Moldex3D Simple Injection sprue pressure prediction API.",
 )
